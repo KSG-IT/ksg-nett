@@ -12,9 +12,10 @@ Are you developing a feature?
 ## Branching
 
 We keep three separate notions of branches:
-	* The deployment branches master and develop
-	* The hotfix and release branch
-	* Feature branches
+
+* The deployment branches master and develop
+* The hotfix and release branch
+* Feature branches
 
 All commits should be pushed to either the hotfix branch, or a feature branch, and then pull requested into the develop branch.
 
@@ -64,8 +65,7 @@ feature/cryptonite
 
 When all sub-branches are merged into the main feature branch, a pull request can be made into develop.
 
-Feature branches **may** be deleted after merging. Later pdates/fixes/additions to the feature *
-may** be put in the same branch later on.
+Feature branches **may** be deleted after merging. Later pdates/fixes/additions to the feature **may** be put in the same branch later on.
 
 ### The hotfix branch
 Hotfixes should be pushed directly to the hotfix branch. Hotfixes should be tested **thoroughly locally** before being pushed.
@@ -98,18 +98,18 @@ There are some general requirements to the code.
 Commits should generally speaking be as atomic as possible. **We favor many commits over few**.
 Some recommend squashing feature branches into a single commit before merging. We do not do this.
 
-If your style of development is to program continuosly without committing until your desired feature works, you are recommended to install a visual tool for staging partial files. Pycharm has this included, as well as Visual Studio Code (Recommended). [You can also use the CLI to do this](https://git-scm.com/book/en/v2/Git-Tools-Interactive-Staging). You can then break up your changes into single atomic commits.
+If your style of development is to program continuously without committing until your desired feature works, you are recommended to install a visual tool for staging partial files. Pycharm has this included, as well as Visual Studio Code (Recommended). [You can also use the CLI to do this](https://git-scm.com/book/en/v2/Git-Tools-Interactive-Staging). You can then break up your changes into single atomic commits. You may also in such a scenario considering squashing your commits.
 
 A commit should generally speaking only touch the domain in which the feature branch is specified. If you come across a shortcoming in a feature you depend on, it **must** be adressed in a separate branch and merged before continuing.
 
 ### Commit messages
-Commits messages **must** contain a subject title. The title *should* be structured as follows:
+Commits messages **must** contain a subject title. The title **should** be structured as follows:
 
 ```<verb in baseform> <file, files, or module affected> <short description>```
 
 The subject title should be no more than 75 characters.
 
-The commit **should** contain a description of the commit. The description should give some clear indications as to what the commit does, how it does it. If the commit fixes a bug, the description **must** contain information pointing either to a bug report on github, or a description of why the bug occured. It must also contain information regarding how the bug has been fixed.
+The commit **should** contain a description of the commit. The description **should** give some clear indications as to what the commit does, and how it does it. If the commit fixes a bug, the description **must** contain information pointing either to a bug report on github, or a description of why the bug occured. It **should** also contain information regarding how the bug has been fixed. This is not required if the fix is obvious.
 
 
 Examples:
@@ -151,6 +151,9 @@ Whops forgot to commit a file
 ```
 A lot of different changes
 ```
+```
+More small changes
+```
 
 ### Migrations and model changes
 Every change in a model will generate a new migration file, when `python manage.py makemigrations` is run. The model-change *with* the migration should be commited together in a single atomic commit.
@@ -165,7 +168,8 @@ We use [semantic versioning](http://semver.org/) for versioning the system.
 We use the following rules for incrementing the system version:
 
 1. Everytime a new module is merged, we increase the MINOR version.
-2. Everytime one or more modules receives an improvement in form of **more functionality**, we icnrease the MINOR version.
+2. Everytime one or more modules receives an improvement in form of **more functionality**, we increase the MINOR version.
 3. Everytime a module receives a minor change or bug fix, we increase the PATCH version.
+4. (If we ever get this far) API-breaking changes or complete restructuring of the app will increase the MAJOR version.
 
-The official release of the web page will be version 1.0.0.
+The official release of the web page will be version 1.0.0. 
