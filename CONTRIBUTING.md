@@ -5,7 +5,7 @@ Are you developing a hotfix?
  1. See [the hotfix branch](#the_hotfix_branch)
 
 Are you developing a feature?
- 1. Create a feature/<domain>/<name> branch
+ 1. Create a `feature/<domain>/<name>` branch
  2. Make awesome stuff
  3. Create a PR into develop
 
@@ -65,7 +65,7 @@ feature/cryptonite
 
 When all sub-branches are merged into the main feature branch, a pull request can be made into develop.
 
-Feature branches **may** be deleted after merging. Later pdates/fixes/additions to the feature **may** be put in the same branch later on.
+Feature branches **may** be deleted after merging. Later updates/fixes/additions to the feature **may** be put in the same branch later on.
 
 ### The hotfix branch
 Hotfixes should be pushed directly to the hotfix branch. Hotfixes should be tested **thoroughly locally** before being pushed.
@@ -86,13 +86,15 @@ When a new deployment to master is to be made, the following **must** occur:
 3. Code should be reviewed, and bugs should be fixed.
 4. Merge into master, and merge bug fixes back into develop
 
-## Code requirements
+
+## Code style and requirements
 
 There are some general requirements to the code.
 
-1. The style followed is pep8. With the exceptions listed [here](https://www.python.org/dev/peps/pep-0008/#a-foolish-consistency-is-the-hobgoblin-of-little-minds), it should be followed slavishly.
-2. We aim for having roughly 80% test coverage. This means that any new feature should be submitted with the appropriate amount of testing. **Even so-called trivial code should be tested**.
-3. Everything should be documented. Specifically, every method and class should have a docstring associated with it. We use the [reST docstring format](#https://www.python.org/dev/peps/pep-0287/)(this is the one Pycharm uses by default). Also, every non-trivial line of code should contain a preceding comment clarifying what the line does.
+1. For python we use [pep8](https://www.python.org/dev/peps/pep-0008/). With the exceptions listed [here](https://www.python.org/dev/peps/pep-0008/#a-foolish-consistency-is-the-hobgoblin-of-little-minds), it should be followed slavishly.
+2. For javascript, follow the included eslintrc file in the repository.
+3. We aim for having roughly 80% test coverage. This means that any new feature should be submitted with the appropriate amount of testing. **Even so-called trivial code should be tested**.
+4. Everything should be documented. Specifically, every method and class should have a docstring associated with it. We use the [reST docstring format](#https://www.python.org/dev/peps/pep-0287/)(this is the one Pycharm uses by default). Also, every non-trivial line of code should contain a preceding comment clarifying what the line does.
 
 ### Commit contents
 Commits should generally speaking be as atomic as possible. **We favor many commits over few**.
@@ -105,7 +107,9 @@ A commit should generally speaking only touch the domain in which the feature br
 ### Commit messages
 Commits messages **must** contain a subject title. The title **should** be structured as follows:
 
-```<verb in baseform> <file, files, or module affected> <short description>```
+```
+<verb in baseform> <file, files, or module affected> <short description>
+```
 
 The subject title should be no more than 75 characters.
 
@@ -160,7 +164,7 @@ Every change in a model will generate a new migration file, when `python manage.
 
 ## CI
 
-We use Travis for continuous integration.
+We use [Travis](https://travis-ci.org/) for continuous integration.
 
 ## Versioning
 
@@ -172,4 +176,4 @@ We use the following rules for incrementing the system version:
 3. Everytime a module receives a minor change or bug fix, we increase the PATCH version.
 4. (If we ever get this far) API-breaking changes or complete restructuring of the app will increase the MAJOR version.
 
-The official release of the web page will be version 1.0.0. 
+The official release of the web page will be version 1.0.0.
