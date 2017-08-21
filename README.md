@@ -33,4 +33,4 @@ python manage.py runserver
 ```
 
 ## Contributing
-See [Contribution.md](https://github.com/KSG-IT/ksg-nett/blob/master/CONTRIBUTING.md).
+See [CONTRIBUTING.md](https://github.com/KSG-IT/ksg-nett/blob/master/CONTRIBUTING.md), and then [SYSTEM.md](https://github.com/KSG-IT/ksg-nett/blob/master/SYSTEM.md).
