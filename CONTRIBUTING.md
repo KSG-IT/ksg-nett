@@ -8,7 +8,7 @@ Are you developing a feature?
  1. Create a `feature/<domain>/<name>` branch
  2. Make awesome stuff
  3. Push final code to your branch
- 4. Go to github and create a pull request (PR) into the `develop` branch (check out [this guide](https://help.github.com/articles/creating-a-pull-request/)
+ 4. Go to github and create a pull request (PR) into the `develop` branch
 
 ## Branching
 
@@ -27,6 +27,11 @@ The master branch contains the production stable release of the system, and shou
 The release branch should be used before merging into master. The features will be frozen, i.e. new featuers into develop will not be merged into the release branch for this release.
 
 The hotfix branch should be used when pushing commits that fixes critical bugs. After pushing, a PR into develop (and then master) should be made.
+
+### Pull requests
+
+Check out [this guide](https://help.github.com/articles/creating-a-pull-request/) on how to create a new PR on github.
+Our policy on PRs is that you should let **someone else than yourself** confirm it. The purpose is to ensure the code is reviewed before it disappears into the system.
 
 ### Merging and rebasing
 
