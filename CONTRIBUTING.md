@@ -2,7 +2,7 @@
 
 ## Summary/Algorithm of how to contribute
 Are you developing a hotfix?
- 1. See [the hotfix branch](#the_hotfix_branch)
+ 1. See [the hotfix branch](#the-hotfix-branch)
 
 Are you developing a feature?
  1. Create a `feature/<domain>/<name>` branch
@@ -177,3 +177,10 @@ We use the following rules for incrementing the system version:
 4. (If we ever get this far) API-breaking changes or complete restructuring of the app will increase the MAJOR version.
 
 The official release of the web page will be version 1.0.0.
+
+## Guides for (semi-)noobs
+
+Stuck on something or just don't know where to start? Here are some helpful tutorials:
+
+* [Writing your first django app (learning-by-doing django tutorial)](https://docs.djangoproject.com/en/1.11/intro/tutorial01/)
+* [The simple way to understand Django models](https://arevej.me/django-models/)

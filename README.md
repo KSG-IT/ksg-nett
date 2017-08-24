@@ -35,4 +35,6 @@ python manage.py runserver
 ```
 
 ## Contributing
-See [CONTRIBUTING.md](https://github.com/KSG-IT/ksg-nett/blob/develop/CONTRIBUTING.md), and then [SYSTEM.md](https://github.com/KSG-IT/ksg-nett/blob/develop/SYSTEM.md).
+First read [CONTRIBUTING.md](https://github.com/KSG-IT/ksg-nett/blob/develop/CONTRIBUTING.md) to understand the project guidelines. Then cgeck out [SYSTEM.md](https://github.com/KSG-IT/ksg-nett/blob/develop/SYSTEM.md) to understand the various project components.
+
+New to this project? Check out the last section in [CONTRIBUTING.md](https://github.com/KSG-IT/ksg-nett/blob/develop/CONTRIBUTING.md) for some handy guides to get you up to speed 💪
