@@ -102,3 +102,9 @@ ENV/
 
 # SQLite database
 db.sqlite3
+
+# PyCharm
+.idea/
+
+# MacOS metadata
+.DS_Store
