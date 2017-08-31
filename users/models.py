@@ -10,7 +10,6 @@ class Person(models.Model):
 	Model for a KSG member on KSG-nett
 	"""
 
-
 	# Personal details
 	name = models.CharField(max_length=100)
 	date_of_birth = models.DateField()
@@ -44,4 +43,4 @@ class Person(models.Model):
 	status_KSG = models.CharField(max_length=4, choices=KSG_STATUS_TYPES)
 	start_KSG = models.DateField.auto_now_add(default=timezone.now())
 
-	image = FileField()#(upload_to='uploads')
+	image = FileField()  # (upload_to='uploads')
