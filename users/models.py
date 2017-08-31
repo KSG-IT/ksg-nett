@@ -5,24 +5,12 @@ from django.db import models
 from django.utils import timezone
 
 
-
-KSG_STATUS_TYPES = (
-    ('0', 'Aktiv'),
-    ('1', 'Funksjonær'),
-    ('2', 'junior'),
-    ('3', 'senior'),
-)
-
-KSG_JOB_TYPES = (
-	(),
-	(),
-	(),
-)
-
 class Person(models.Model):
 	"""
 	Model for a KSG member on KSG-nett
 	"""
+
+
 	# Personal details
 	name = models.CharField(max_length=100)
 	date_of_birth = models.DateField()
@@ -36,7 +24,24 @@ class Person(models.Model):
 
 	# KSG details
 
+	# KSG choices
+	KSG_ACTIVITY_TYPES = (
+		("aktiv", "Aktiv"),
+		("inaktiv", "Ikke aktiv"),  # Finished with KSG duties
+		("permittert", "Permittert"),  # Implicitly inactive, wants to continue
+		("sluttet", "Sluttet før tiden"),  # Implicitly inactive, has jumped ship
+	)
+
+	KSG_STATUS_TYPES = (
+		("gjengis", "Gjengis"),
+		("funk", "Funksjonær"),
+		("hangaround", "Hangaround"),
+		("gjengpang", "GjengPang"),
+		("funkepang", "FunkePang"),
+		("hospitant", "Hospitant"),
+	)
+
 	status_KSG = models.CharField(max_length=4, choices=KSG_STATUS_TYPES)
 	start_KSG = models.DateField.auto_now_add(default=timezone.now())
-	
+
 	image = FileField()#(upload_to='uploads')
