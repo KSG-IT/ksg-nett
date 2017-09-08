@@ -19,7 +19,7 @@ class UserProfile(models.Model):
 
     # Contact information
     email = models.EmailField(max_length=50)
-    phone = models.IntegerField()
+    phone = models.CharField(max_length=50)
     study_address = models.TextField(max_length=100)
     home_address = models.TextField(max_length=100)
 
