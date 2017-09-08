@@ -108,3 +108,7 @@ db.sqlite3
 
 # MacOS metadata
 .DS_Store
+
+# Media and statics
+/static
+/media
