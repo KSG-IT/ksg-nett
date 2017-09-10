@@ -11,3 +11,8 @@ class TokenTest(TestCase):
         user.save()
         self.assertIsNotNone(user.auth_token)
         self.assertIsInstance(user.auth_token.key, str)
+
+
+class UserAPITest(TestCase):
+    def test_has_contact(self):
+        self.assertEqual(self.client.get('/api/users/').status_code, 200)
