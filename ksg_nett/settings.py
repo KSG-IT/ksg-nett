@@ -124,10 +124,14 @@ STATIC_URL = '/static/'
 
 # Django REST framework
 REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework.authentication.TokenAuthentication',
         'rest_framework.authentication.SessionAuthentication'
-    }
+    ),
+    'DEFAULT_PERMISSIONS_CLASSES': (
+        'rest_framework.permissions.IsAdminUser'
+    ),
+    'PAGE_SIZE': 20
 }
 
 
