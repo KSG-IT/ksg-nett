@@ -29,7 +29,6 @@ class UserProfileTest(TestCase):
             phone=19393113,
             study_address='Kråkeveien 5',
             home_address='Kråkeveien 4',
-            status_ksg='aktiv',
             start_ksg=timezone.now()
         )
         cls.user_profile_1.save()
@@ -44,7 +43,6 @@ class UserProfileTest(TestCase):
                 phone=19393113,
                 study_address='Kråkeveien 5',
                 home_address='Kråkeveien 4',
-                status_ksg='aktiv',
                 start_ksg=timezone.now()
             )
             user_profile_2.save()
