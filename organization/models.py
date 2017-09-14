@@ -16,6 +16,24 @@ class Group(models.Model):
                                         # so we have to make a custom one
     )
 
+    # KSG choices
+    KSG_STATUS_TYPES = (
+        ("aktiv", "Aktiv"),
+        ("inaktiv", "Ikke aktiv"),  # Finished with KSG duties
+        ("permittert", "Permittert"),  # Implicitly inactive, wants to continue
+        ("sluttet", "Sluttet før tiden"),  # Implicitly inactive, has jumped ship
+    )
+
+    # Roles in the KSG hierarchy
+    KSG_ROLES = (
+        ("gjengis", "Gjengis"),
+        ("funk", "Funksjonær"),
+        ("hangaround", "Hangaround"),
+        ("gjengpang", "GjengPang"),
+        ("funkepang", "FunkePang"),
+        ("hospitant", "Hospitant"),
+    )
+
     def __str__(self):
         return "Group %s" % self.name
 

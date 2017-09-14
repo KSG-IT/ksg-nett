@@ -16,34 +16,19 @@ class UserProfile(models.Model):
     name = models.CharField(max_length=100)
     date_of_birth = models.DateField()
     study = models.CharField(max_length=100)
+    profile_image = models.FileField(upload_to='profiles/', blank=True, null=True)
 
     # Contact information
     email = models.EmailField(max_length=50)
     phone = models.CharField(max_length=50)
-    study_address = models.TextField(max_length=100)
-    home_address = models.TextField(max_length=100)
+    study_address = models.CharField(max_length=100)
+    home_address = models.CharField(max_length=100)
 
-    # KSG choices
-    KSG_ACTIVITY_TYPES = (
-        ("aktiv", "Aktiv"),
-        ("inaktiv", "Ikke aktiv"),  # Finished with KSG duties
-        ("permittert", "Permittert"),  # Implicitly inactive, wants to continue
-        ("sluttet", "Sluttet før tiden"),  # Implicitly inactive, has jumped ship
-    )
-
-    KSG_STATUS_TYPES = (
-        ("gjengis", "Gjengis"),
-        ("funk", "Funksjonær"),
-        ("hangaround", "Hangaround"),
-        ("gjengpang", "GjengPang"),
-        ("funkepang", "FunkePang"),
-        ("hospitant", "Hospitant"),
-    )
-
-    status_ksg = models.CharField(max_length=32, choices=KSG_STATUS_TYPES)
+    # KSG activity (
+    #current_status_ksg = models.ForeignKey()   # This should come from a user group relation model
+    #current_ksg_role = models.ForeignKey()     # This should come from a user group relation model
+    #ksg_history = models.OneToOneField()       # This should be calculated from user group relations
     start_ksg = models.DateField(auto_now_add=True)
-
-    profile_image = models.FileField(upload_to='profiles/', blank=True, null=True)
 
     def __str__(self):
         return "UserProfile for %s" % (self.name,)
