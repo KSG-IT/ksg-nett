@@ -4,7 +4,9 @@ This repository contains the source code for [KSG](https://www.samfundet.no/kafe
 
 ## Quickstart
 
-Create a new virtualenv with python 3.6, install dependencies, **and read** See [Contribution.md](https://github.com/KSG-IT/ksg-nett/blob/master/CONTRIBUTING.md).
+1. Create a new virtualenv with python 3.6 (instructions below)
+2. Install dependencies
+3. **Carefully read** [Contribution.md](https://github.com/KSG-IT/ksg-nett/blob/feature/documentation/CONTRIBUTING.md) to aid both yourself and others!
 
 ## Dependencies
 * Django
@@ -33,4 +35,6 @@ python manage.py runserver
 ```
 
 ## Contributing
-See [CONTRIBUTING.md](https://github.com/KSG-IT/ksg-nett/blob/master/CONTRIBUTING.md), and then [SYSTEM.md](https://github.com/KSG-IT/ksg-nett/blob/master/SYSTEM.md).
+First read [CONTRIBUTING.md](https://github.com/KSG-IT/ksg-nett/blob/feature/documentation/CONTRIBUTING.md) to understand the project guidelines. Then check out [SYSTEM.md](https://github.com/KSG-IT/ksg-nett/blob/feature/documentation/SYSTEM.md) to understand the various project components.
+
+New to this project? Check out the last section in [CONTRIBUTING.md](https://github.com/KSG-IT/ksg-nett/blob/feature/documentation/CONTRIBUTING.md) for some handy guides to get you up to speed 💪

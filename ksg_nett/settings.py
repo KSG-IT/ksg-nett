@@ -22,6 +22,10 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'rc4yscfoc9loe+937$q-57agxy0iq+!o0zowl0#vylilol2-)e'
 
+# Admin user
+# user: admin
+# password: test123456
+
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
@@ -40,6 +44,8 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework.authtoken',
     'api'
+    'users',
+    'organization'
 ]
 
 MIDDLEWARE = [
@@ -122,6 +128,7 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 
+
 # Django REST framework
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
@@ -134,4 +141,6 @@ REST_FRAMEWORK = {
     'PAGE_SIZE': 20
 }
 
+STATIC_ROOT = 'static/'
+MEDIA_ROOT = 'media/'
 

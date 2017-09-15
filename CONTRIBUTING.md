@@ -2,12 +2,13 @@
 
 ## Summary/Algorithm of how to contribute
 Are you developing a hotfix?
- 1. See [the hotfix branch](#the_hotfix_branch)
+ 1. See [the hotfix branch](#the-hotfix-branch)
 
 Are you developing a feature?
  1. Create a `feature/<domain>/<name>` branch
  2. Make awesome stuff
- 3. Create a PR into develop
+ 3. Push final code to your branch
+ 4. Go to github and create a pull request (PR) into the `develop` branch
 
 ## Branching
 
@@ -15,9 +16,9 @@ We keep three separate notions of branches:
 
 * The deployment branches master and develop
 * The hotfix and release branch
-* Feature branches
+* Feature branches 
 
-All commits should be pushed to either the hotfix branch, or a feature branch, and then pull requested into the develop branch.
+All commits should be pushed to either the hotfix branch, or a feature branch, and then PRed into the develop branch.
 
 The develop branch contains the latest deployed test version of the system, and will automatically re-deploy.
 
@@ -25,7 +26,12 @@ The master branch contains the production stable release of the system, and shou
 
 The release branch should be used before merging into master. The features will be frozen, i.e. new featuers into develop will not be merged into the release branch for this release.
 
-The hotfix branch should be used when pushing commits that fixes critical bugs. After pushing, a pull request into develop (and then master) should be made.
+The hotfix branch should be used when pushing commits that fixes critical bugs. After pushing, a PR into develop (and then master) should be made.
+
+### Pull requests
+
+Check out [this guide](https://help.github.com/articles/creating-a-pull-request/) on how to create a new PR on github.
+Our policy on PRs is that you should let **someone else than yourself** confirm it. The purpose is to ensure the code is reviewed before it disappears into the system.
 
 ### Merging and rebasing
 
@@ -54,7 +60,7 @@ feature/security
 feature/general-code-cleanup
 ```
 
-Features that are **large** should have nested feature branches. Say we are developing a new large module called `cryptonite`, which will require tens if not hundred of commits to finish. A sensible way to structure the development of this module would be to have one branch `feature/cryptonite`, in which pull requests with incremental development are being made. For example:
+Features that are **large** should have nested feature branches. Say we are developing a new large module called `cryptonite`, which will require tens if not hundred of commits to finish. A sensible way to structure the development of this module would be to have one branch `feature/cryptonite`, in which PRs with incremental development are being made. For example:
 
 ```
 feature/cryptonite
@@ -63,7 +69,7 @@ feature/cryptonite
 |-- feature/cryptonite/optimize
 ```
 
-When all sub-branches are merged into the main feature branch, a pull request can be made into develop.
+When all sub-branches are merged into the main feature branch, a PR can be made into develop.
 
 Feature branches **may** be deleted after merging. Later updates/fixes/additions to the feature **may** be put in the same branch later on.
 
@@ -71,7 +77,7 @@ Feature branches **may** be deleted after merging. Later updates/fixes/additions
 Hotfixes should be pushed directly to the hotfix branch. Hotfixes should be tested **thoroughly locally** before being pushed.
 
 After pushing a commit, do the following:
-	1. Create a PR to develop.
+	1. Create a PR into develop.
 	2. When the PR is accepted, test the deployed fixes on the test-system.
 	3. Create a PR to master.
 
@@ -82,7 +88,7 @@ The develop branch is automatically deployed to when a CI-passing commit is push
 When a new deployment to master is to be made, the following **must** occur:
 
 1. develop is merged into release
-2. A pull request is created from release into master
+2. A PR is created from release into master
 3. Code should be reviewed, and bugs should be fixed.
 4. Merge into master, and merge bug fixes back into develop
 
@@ -105,7 +111,7 @@ If your style of development is to program continuously without committing until
 A commit should generally speaking only touch the domain in which the feature branch is specified. If you come across a shortcoming in a feature you depend on, it **must** be adressed in a separate branch and merged before continuing.
 
 ### Commit messages
-Commits messages **must** contain a subject title. The title **should** be structured as follows:
+Commit messages **must** contain a subject title. The title **should** be structured as follows:
 
 ```
 <verb in baseform> <file, files, or module affected> <short description>
@@ -162,7 +168,7 @@ More small changes
 ### Migrations and model changes
 Every change in a model will generate a new migration file, when `python manage.py makemigrations` is run. The model-change *with* the migration should be commited together in a single atomic commit.
 
-## CI
+## Continuous Integration (CI)
 
 We use [Travis](https://travis-ci.org/) for continuous integration.
 
@@ -177,3 +183,10 @@ We use the following rules for incrementing the system version:
 4. (If we ever get this far) API-breaking changes or complete restructuring of the app will increase the MAJOR version.
 
 The official release of the web page will be version 1.0.0.
+
+## Guides for (semi-)noobs
+
+Stuck on something or just don't know where to start? Here are some helpful tutorials:
+
+* [Writing your first django app](https://docs.djangoproject.com/en/1.11/intro/tutorial01/) (learning-by-doing django tutorial)
+* [The simple way to understand Django models](https://arevej.me/django-models/)
