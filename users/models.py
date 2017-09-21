@@ -15,6 +15,8 @@ class User(AbstractUser):
     study_address = models.CharField(default="", blank=True, max_length=100)
     home_address = models.CharField(default="", blank=True, max_length=100)
 
+    start_ksg = models.DateField(auto_now_add=True)
+
     def __str__(self):
         return "User %s" % (self.first_name,)
 
