@@ -1,8 +1,10 @@
-from django.contrib.auth.models import User
 from django.test import TestCase
 
 
 # Create your tests here.
+from users.models import User
+
+
 class TokenTest(TestCase):
     def test_create_user_should_generate_token(self):
         user = User(
