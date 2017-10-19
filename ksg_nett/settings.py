@@ -45,7 +45,8 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',
     'api',
     'users',
-    'organization'
+    'organization',
+    'internal'
 ]
 
 MIDDLEWARE = [
@@ -111,6 +112,8 @@ AUTH_PASSWORD_VALIDATORS = [
 # Custom user
 AUTH_USER_MODEL = 'users.User'
 
+# Default login_required return url
+LOGIN_URL = '/'
 
 # Internationalization
 # https://docs.djangoproject.com/en/1.10/topics/i18n/
