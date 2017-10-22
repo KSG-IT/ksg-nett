@@ -1,4 +1,4 @@
-from django.contrib.auth import authenticate, login
+from django.contrib.auth import authenticate, login, logout
 from django.http import HttpResponse
 from django.shortcuts import render, redirect
 from rest_framework import status
@@ -41,4 +41,12 @@ def login_user(request):
 
 
 def logout_user(request):
-    pass
+    requested_next_url = request.GET.get('next')
+
+    if request.user.is_authenticated:
+        logout(request)
+
+    if requested_next_url:
+        return redirect(requested_next_url)
+
+    return redirect('/')
