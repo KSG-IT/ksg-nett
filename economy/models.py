@@ -56,5 +56,17 @@ class Product(models.Model):
         return "A product with name %s with the price of %d NOK" %(self.product_name, self.price)
 
 
+class Cross(models.Model):
+    person = models.CharField(max_length=100, blank=True, null=True)
+    product = models.ForeignKey(Product, blank=False, null=False)
+    amount = models.IntegerField(blank=False, null=False)
+    cross_in = models.ForeignKey(CrossIn, on_delete='CASCADE')
+
+
+class CrossIn(models.Model):
+    date_crossed = models.DateField(blank=False, null=False)
+    date_registered = models.DateField(auto_now_add=True, blank=False, null=False)
+    person_crossing_in = models.CharField(max_length=100, blank=False, null=False)
+    comment = models.CharField(max_length=100, blank=False, null=False)
 
 
