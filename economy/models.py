@@ -46,3 +46,15 @@ class Deposit(models.Model):
 
     def __repr__(self):
         return "Group(person=%s,amount=%d)" % (self.person.name, self.amount)
+
+
+class Product(models.Model):
+    product_name = models.CharField(primary_key=True, max_length=50, blank=False, null=False)
+    price = models.DecimalField(max_digits=5, decimal_places=2, blank=False, null=False)
+
+    def __str__(self):
+        return "A product with name %s with the price of %d NOK" %(self.product_name, self.price)
+
+
+
+
