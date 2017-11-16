@@ -49,7 +49,7 @@ class Deposit(models.Model):
 
 
 class Product(models.Model):
-    product_name = models.CharField(primary_key=True, max_length=50, blank=False, null=False)
+    product_name = models.CharField(primary_key=True, max_length=50, blank=False, null=False, unique=True)
     price = models.IntegerField(blank=False, null=False)
 
     def __str__(self):
