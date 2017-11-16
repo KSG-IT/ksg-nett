@@ -50,26 +50,45 @@ class Deposit(models.Model):
 
 class Product(models.Model):
     product_name = models.CharField(primary_key=True, max_length=50, blank=False, null=False)
-    price = models.DecimalField(max_digits=5, decimal_places=2, blank=False, null=False)
+    price = models.IntegerField(blank=False, null=False)
 
     def __str__(self):
-        return "A product with name %s with the price of %d NOK" %(self.product_name, self.price)
+        return "A product with name %s with the price of %d NOK" % (self.product_name, self.price)
+
+    def __repr__(self):
+        return "Product(product_name=%s, price=%d)" % (self.product_name, self.price)
 
 
-class RegisteredCross(models.Model):
-    date_crossed = models.DateField(blank=False, null=False)
+class PurchaseList(models.Model):
+    date_purchased = models.DateField(blank=False, null=False)
     date_registered = models.DateField(auto_now_add=True, blank=False, null=False)
-    person_crossing_in = models.ForeignKey(User, blank=False, null=False)
+    signed_off_by = models.ForeignKey(User, blank=False, null=False)
     comment = models.CharField(max_length=100, blank=False, null=False)
 
+    def __str__(self):
+        return "A list of items purchased at date %s, registered at date %s by person %s" % \
+               (self.date_purchased, self.date_registered, self.signed_off_by.username)
 
-class Cross(models.Model):
+    def __repr__(self):
+        return "PurchaseList(date_crossed=%s, date_registered=%s, signed_off_by=%s, comment=%s)" % \
+               (self.date_purchased, self.date_registered, self.signed_off_by.username, self.comment)
+
+
+class Purchase(models.Model):
     person = models.ForeignKey(User, blank=True, null=True)
     product = models.ForeignKey(Product, blank=False, null=False)
     amount = models.IntegerField(blank=False, null=False)
-    cross_in = models.ForeignKey(RegisteredCross, on_delete=models.CASCADE)
+    purchase_list = models.ForeignKey(PurchaseList, on_delete=models.CASCADE)
 
+    def __str__(self):
+        return "A purchase by person %s of %d number of product %s" % (self.person.username,
+                                                                       self.amount,
+                                                                       self.product.product_name)
 
-
+    def __repr__(self):
+        return "Purchase(person=%s, product=%s, amount=%d, purchase_list=%d)" % (self.person.username,
+                                                                                 self.product.product_name,
+                                                                                 self.amount,
+                                                                                 self.purchase_list.id)
 
 
