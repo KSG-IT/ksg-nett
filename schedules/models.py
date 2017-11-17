@@ -61,6 +61,53 @@ class Shift(models.Model):
     slot = models.OneToOneField(ShiftSlot, null=False, blank=False, related_name='filled_shift')
 
 
+class ScheduleTemplate(models.Model):
+    """
+    This model contains a template for a schedules standard week. A schedule may have
+    several templates.
+    """
+    name = models.CharField(max_length=100)
+    schedule = models.ForeignKey(Schedule, blank=False, null=False)
 
 
+class ShiftSlotGroupTemplate(models.Model):
+    """
+    This model represents a template for a ShiftSlotGroup.
+
+    The model contains some additional information over a ShiftSlot, namely the rules
+    for when the shift slot is supposed to occur.
+    """
+    name = models.CharField(max_length=100)
+    schedule_template = models.ForeignKey(ScheduleTemplate, blank=False, null=False)
+
+
+class ShiftSlotDayRule(models.Model):
+    """
+    This model represents a rule for what days a ShiftSlotGroup can occur
+    """
+    DAY_RULES = (
+        ('mo', 'Monday'),
+        ('tu', 'Tuesday'),
+        ('we', 'Wednesday'),
+        ('th', 'Thursday'),
+        ('fr', 'Friday'),
+        ('sa', 'Saturday'),
+        ('su', 'Sunday'),
+        ('wk', 'Weekdays'),
+        ('ed', 'Weekends'),  # Friday, Saturday
+        ('fu', 'Full weekends'),  # Friday, Saturday, Sunday
+    )
+    rule = models.CharField(max_length=2, choices=DAY_RULES)
+    shift_slot_template = models.ForeignKey(ShiftSlotGroupTemplate, related_name='day_rules')
+
+
+class ShiftSlotTemplate(models.Model):
+    """
+    This model represents a template for a ShiftSlot.
+    """
+    start = models.DateTimeField(blank=False, null=False)
+    end = models.DateTimeField(blank=False, null=False)
+
+    type = models.ForeignKey(ScheduleSlotType, null=False, blank=False)
+    group = models.ForeignKey(ShiftSlotGroupTemplate, null=False, blank=False)
 
