@@ -7,7 +7,7 @@ from users.models import User
 class Schedule(models.Model):
     """
     The Schedule model contains the entire schedule for one type of shifts.
-    I.e. all 'Bodaga'-shifts have one schedule, all 'Lyche kjøkken'-shifts have one schedule,
+    I.e. all 'Bodega'-shifts have one schedule, all 'Lyche kjøkken'-shifts have one schedule,
     and so on.
     """
     name = models.CharField(max_length=100)
