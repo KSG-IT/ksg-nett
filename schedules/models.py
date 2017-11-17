@@ -160,3 +160,13 @@ class ShiftTradeOffer(models.Model):
     shift_offer = models.ForeignKey(Shift, blank=False, null=False, related_name='offered_to_shifts')
 
     accepted = models.BooleanField(default=False, null=False, blank=False)
+
+
+class ShiftSlotGroupInterest(models.Model):
+    """
+    This model represents an interest a user has in a specific shift group. This will
+    ensure that the user is sent notifications when shifts are up for trade in the given
+    group.
+    """
+    shift_group = models.ForeignKey(ShiftSlotGroup, null=False, blank=False)
+    user = models.ForeignKey(User, related_name='shifts_interests')
