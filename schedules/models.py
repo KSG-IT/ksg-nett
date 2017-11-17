@@ -111,3 +111,46 @@ class ShiftSlotTemplate(models.Model):
     type = models.ForeignKey(ScheduleSlotType, null=False, blank=False)
     group = models.ForeignKey(ShiftSlotGroupTemplate, null=False, blank=False)
 
+
+class ShiftTrade(models.Model):
+    """
+    This model represents a trade of shifts.
+
+    If taker and shift_taker is none, the shift trade is still "open for business".
+    When these variables are set, the shift is set as "committed". For the trade to
+    be 'valid' we also introduce a variable signed_off_by, which states which user
+    has signed off the shift-trade. When this variable is set, the trade is valid.
+    """
+
+    offeror = models.ForeignKey(User, blank=False, null=False, related_name='shifts_offered')
+    shift_offer = models.ForeignKey(Shift, blank=False, null=False, related_name='offered_in_trades')
+
+    taker = models.ForeignKey(User, blank=True, null=True, related_name='shifts_taken')
+    shift_taker = models.ForeignKey(Shift, blank=True, null=True, related_name='taken_in_trades')
+    signed_off_by = models.ForeignKey(User, blank=True, null=True, related_name='shift_trades_signed_off')
+
+    @property
+    def valid(self):
+        return self.signed_off_by is not None and \
+               self.taker is not None and \
+               self.shift_taker is not None
+
+    @property
+    def committed(self):
+        return self.taker is not None and self.shift_taker is not None
+
+
+class ShiftTradeOffer(models.Model):
+    """
+    This model represents an offer to a ShiftTrade.
+
+    When accepted, the offeror and shift_offer variables of this model will be
+    transferred to the related ShiftTrade model.
+    """
+
+    shift_trade = models.ForeignKey(ShiftTrade, blank=False, null=False, related_name='counter_offers')
+
+    offeror = models.ForeignKey(User, blank=False, null=False, related_name='shift_offers')
+    shift_offer = models.ForeignKey(Shift, blank=False, null=False, related_name='offered_to_shifts')
+
+    accepted = models.BooleanField(default=False, null=False, blank=False)
