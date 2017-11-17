@@ -22,6 +22,9 @@ class ShiftSlotGroup(models.Model):
     name = models.CharField(max_length=100)
     schedule = models.ForeignKey(Schedule, null=False, blank=False)
 
+    meet_time = models.DateTimeField(null=False, blank=False)
+    start_time = models.DateTimeField(null=False, blank=False)
+
 
 class ScheduleSlotType(models.Model):
     """
@@ -45,8 +48,8 @@ class ShiftSlot(models.Model):
     """
     The ShiftSlot model represents a shift that is due to be or is filled by a person.
     """
-    start = models.DateTimeField(blank=False, null=False)
-    end = models.DateTimeField(blank=False, null=False)
+    start = models.TimeField(blank=False, null=False)
+    end = models.TimeField(blank=False, null=False)
 
     type = models.ForeignKey(ScheduleSlotType, null=False, blank=False)
     group = models.ForeignKey(ShiftSlotGroup)
