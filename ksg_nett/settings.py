@@ -47,7 +47,8 @@ INSTALLED_APPS = [
     'users',
     'organization',
     'login',
-    'internal'
+    'internal',
+    'schedules'
 ]
 
 MIDDLEWARE = [
