@@ -83,6 +83,9 @@ class ShiftSlotGroupTemplate(models.Model):
     name = models.CharField(max_length=100)
     schedule_template = models.ForeignKey(ScheduleTemplate, blank=False, null=False)
 
+    meet_time = models.TimeField(blank=False, null=False)
+    start_time = models.TimeField(blank=False, null=False)
+
 
 class ShiftSlotDayRule(models.Model):
     """
@@ -108,8 +111,8 @@ class ShiftSlotTemplate(models.Model):
     """
     This model represents a template for a ShiftSlot.
     """
-    start = models.DateTimeField(blank=False, null=False)
-    end = models.DateTimeField(blank=False, null=False)
+    start = models.TimeField(blank=False, null=False)
+    end = models.TimeField(blank=False, null=False)
 
     type = models.ForeignKey(ScheduleSlotType, null=False, blank=False)
     group = models.ForeignKey(ShiftSlotGroupTemplate, null=False, blank=False)
