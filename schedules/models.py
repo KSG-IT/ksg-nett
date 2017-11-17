@@ -12,6 +12,12 @@ class Schedule(models.Model):
     """
     name = models.CharField(max_length=100)
 
+    def __str__(self):
+        return "Schedule %s" % self.name
+
+    def __repr__(self):
+        return "Schedule(name=%s)" % self.name
+
 
 class ShiftSlotGroup(models.Model):
     """
@@ -24,6 +30,12 @@ class ShiftSlotGroup(models.Model):
 
     meet_time = models.DateTimeField(null=False, blank=False)
     start_time = models.DateTimeField(null=False, blank=False)
+
+    def __str__(self):
+        return "ShiftSlotGroup %s for schedule %s" % (self.name, self.schedule.name)
+
+    def __repr__(self):
+        return "ShiftSlotGroup(name=%s, schedule=%s)" % (self.name, self.schedule.name)
 
 
 class ScheduleSlotType(models.Model):
@@ -43,6 +55,12 @@ class ScheduleSlotType(models.Model):
     # of a schedule
     standard_groups = models.ManyToManyField(Group, blank=True)
 
+    def __str__(self):
+        return "ScheduleSlotType %s for schedule %s" % (self.name, self.schedule.name)
+
+    def __repr__(self):
+        return "ScheduleSlotType(name=%s, schedule=%s)" % (self.name, self.schedule.name)
+
 
 class ShiftSlot(models.Model):
     """
@@ -52,7 +70,23 @@ class ShiftSlot(models.Model):
     end = models.TimeField(blank=False, null=False)
 
     type = models.ForeignKey(ScheduleSlotType, null=False, blank=False)
-    group = models.ForeignKey(ShiftSlotGroup)
+    group = models.ForeignKey(ShiftSlotGroup, null=False, blank=False)
+
+    def __str__(self):
+        return "%s in %s from %s to %s" % (
+            self.type.name,
+            self.group.name,
+            self.start.strftime("%H:%M"),
+            self.end.strftime("%H:%M")
+        )
+
+    def __repr__(self):
+        return "ShiftSlot(type=%s, group=%s, from=%s, to=%s)" % (
+            self.type.name,
+            self.group.name,
+            self.start.strftime("%H:%M"),
+            self.end.strftime("%H:%M")
+        )
 
 
 class Shift(models.Model):
@@ -63,6 +97,12 @@ class Shift(models.Model):
     user = models.ForeignKey(User, null=False, blank=False)
     slot = models.OneToOneField(ShiftSlot, null=False, blank=False, related_name='filled_shift')
 
+    def __str__(self):
+        return "Shift %s taken by %s" % (str(self.slot), self.user.first_name)
+
+    def __repr__(self):
+        return "Shift(slot=%d, user=%s)" % (self.slot.id, self.user.first_name)
+
 
 class ScheduleTemplate(models.Model):
     """
@@ -71,6 +111,12 @@ class ScheduleTemplate(models.Model):
     """
     name = models.CharField(max_length=100)
     schedule = models.ForeignKey(Schedule, blank=False, null=False)
+
+    def __str__(self):
+        return "Template %s for schedule %s" % (self.name, self.schedule.name)
+
+    def __repr__(self):
+        return "ScheduleTemplate(name=%s, schedule=%s)" % (self.name, self.schedule.name)
 
 
 class ShiftSlotGroupTemplate(models.Model):
@@ -85,6 +131,12 @@ class ShiftSlotGroupTemplate(models.Model):
 
     meet_time = models.TimeField(blank=False, null=False)
     start_time = models.TimeField(blank=False, null=False)
+
+    def __str__(self):
+        return "Template for ShiftSlotGroup %s for schedule-template %s" % (self.name, self.schedule_template.name)
+
+    def __repr__(self):
+        return "ShiftSlotGroupTemplate(name=%s, schedule_template=%s" % (self.name, self.schedule_template.name)
 
 
 class ShiftSlotDayRule(models.Model):
@@ -106,6 +158,12 @@ class ShiftSlotDayRule(models.Model):
     rule = models.CharField(max_length=2, choices=DAY_RULES)
     shift_slot_template = models.ForeignKey(ShiftSlotGroupTemplate, related_name='day_rules')
 
+    def __str__(self):
+        return "Rule %s for shift slot group %s" % (self.get_rule_display(), self.shift_slot_template.name)
+
+    def __repr__(self):
+        return "ShiftSlotDayRule(rule=%s, shift_slot_template=%s)" % (self.get_rule_display(), self.shift_slot_template)
+
 
 class ShiftSlotTemplate(models.Model):
     """
@@ -116,6 +174,22 @@ class ShiftSlotTemplate(models.Model):
 
     type = models.ForeignKey(ScheduleSlotType, null=False, blank=False)
     group = models.ForeignKey(ShiftSlotGroupTemplate, null=False, blank=False)
+
+    def __str__(self):
+        return "Template for shift slot with type %s in %s at %s to %s" % (
+            self.type,
+            self.group.name,
+            self.start.strftime("%H:%M"),
+            self.end.strftime("%H:%M")
+        )
+
+    def __repr__(self):
+        return "ShiftSlotTemplate(type=%s,group=%s,start=%s,end=%s" % (
+            self.type,
+            self.group.name,
+            self.start.strftime("%H:%M"),
+            self.end.strftime("%H:%M")
+        )
 
 
 class ShiftTrade(models.Model):
@@ -145,6 +219,12 @@ class ShiftTrade(models.Model):
     def committed(self):
         return self.taker is not None and self.shift_taker is not None
 
+    def __str__(self):
+        return "Shift trade offered by %s" % (self.offeror.first_name,)
+
+    def __repr__(self):
+        return "ShiftTrade(offeror=%s)" % (self.offeror.first_name,)
+
 
 class ShiftTradeOffer(models.Model):
     """
@@ -161,6 +241,18 @@ class ShiftTradeOffer(models.Model):
 
     accepted = models.BooleanField(default=False, null=False, blank=False)
 
+    def __str__(self):
+        return "Counter trade by %s to shift offered by %s" % (
+            self.offeror.first_name,
+            self.shift_trade.offeror.first_name
+        )
+
+    def __repr__(self):
+        return "ShiftTradeOffer(from=%s, as_counter_to=%s)" % (
+            self.offeror.first_name,
+            self.shift_trade.offeror.first_name
+        )
+
 
 class ShiftSlotGroupInterest(models.Model):
     """
@@ -170,3 +262,15 @@ class ShiftSlotGroupInterest(models.Model):
     """
     shift_group = models.ForeignKey(ShiftSlotGroup, null=False, blank=False)
     user = models.ForeignKey(User, related_name='shifts_interests')
+
+    def __str__(self):
+        return "Interest in shift group %s by %s" % (
+            self.shift_group.name,
+            self.user.first_name
+        )
+
+    def __repr__(self):
+        return "ShiftSlotGroupInterest(shift_group=%s, user=%s)" % (
+            self.shift_group.name,
+            self.user.first_name
+        )
