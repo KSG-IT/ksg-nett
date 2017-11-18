@@ -18,6 +18,9 @@ class Schedule(models.Model):
     def __repr__(self):
         return "Schedule(name=%s)" % self.name
 
+    class Meta:
+        verbose_name_plural = 'schedules'
+
 
 class ShiftSlotGroup(models.Model):
     """
@@ -36,6 +39,10 @@ class ShiftSlotGroup(models.Model):
 
     def __repr__(self):
         return "ShiftSlotGroup(name=%s, schedule=%s)" % (self.name, self.schedule.name)
+
+    class Meta:
+        verbose_name_plural = 'shift slot groups'
+        unique_together = (('name', 'schedule',),)
 
 
 class ScheduleSlotType(models.Model):
@@ -60,6 +67,10 @@ class ScheduleSlotType(models.Model):
 
     def __repr__(self):
         return "ScheduleSlotType(name=%s, schedule=%s)" % (self.name, self.schedule.name)
+
+    class Meta:
+        verbose_name_plural = 'schedule slot types'
+        unique_together = (('name', 'schedule',),)
 
 
 class ShiftSlot(models.Model):
@@ -88,6 +99,9 @@ class ShiftSlot(models.Model):
             self.end.strftime("%H:%M")
         )
 
+    class Meta:
+        verbose_name_plural = 'Shift slots'
+
 
 class Shift(models.Model):
     """
@@ -103,6 +117,9 @@ class Shift(models.Model):
     def __repr__(self):
         return "Shift(slot=%d, user=%s)" % (self.slot.id, self.user.first_name)
 
+    class Meta:
+        verbose_name_plural = 'shifts'
+
 
 class ScheduleTemplate(models.Model):
     """
@@ -117,6 +134,10 @@ class ScheduleTemplate(models.Model):
 
     def __repr__(self):
         return "ScheduleTemplate(name=%s, schedule=%s)" % (self.name, self.schedule.name)
+
+    class Meta:
+        verbose_name_plural = 'schedule templates'
+        unique_together = (('name', 'schedule',),)
 
 
 class ShiftSlotGroupTemplate(models.Model):
@@ -137,6 +158,9 @@ class ShiftSlotGroupTemplate(models.Model):
 
     def __repr__(self):
         return "ShiftSlotGroupTemplate(name=%s, schedule_template=%s" % (self.name, self.schedule_template.name)
+
+    class Meta:
+        verbose_name_plural = 'shift slot group templates'
 
 
 class ShiftSlotDayRule(models.Model):
@@ -164,6 +188,10 @@ class ShiftSlotDayRule(models.Model):
     def __repr__(self):
         return "ShiftSlotDayRule(rule=%s, shift_slot_template=%s)" % (self.get_rule_display(), self.shift_slot_template)
 
+    class Meta:
+        verbose_name_plural = 'Shift slot day rules'
+        unique_together = (('rule', 'shift_slot_template',),)
+
 
 class ShiftSlotTemplate(models.Model):
     """
@@ -190,6 +218,9 @@ class ShiftSlotTemplate(models.Model):
             self.start.strftime("%H:%M"),
             self.end.strftime("%H:%M")
         )
+
+    class Meta:
+        verbose_name_plural = 'Shift slot templates'
 
 
 class ShiftTrade(models.Model):
@@ -225,6 +256,9 @@ class ShiftTrade(models.Model):
     def __repr__(self):
         return "ShiftTrade(offeror=%s)" % (self.offeror.first_name,)
 
+    class Meta:
+        verbose_name_plural = 'Shift trade'
+
 
 class ShiftTradeOffer(models.Model):
     """
@@ -253,6 +287,9 @@ class ShiftTradeOffer(models.Model):
             self.shift_trade.offeror.first_name
         )
 
+    class Meta:
+        verbose_name_plural = 'Shift trade offer'
+
 
 class ShiftSlotGroupInterest(models.Model):
     """
@@ -274,3 +311,7 @@ class ShiftSlotGroupInterest(models.Model):
             self.shift_group.name,
             self.user.first_name
         )
+
+    class Meta:
+        verbose_name_plural = 'Shift slot group interest'
+        unique_together = (('shift_group', 'user'),)
