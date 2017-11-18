@@ -2,5 +2,10 @@ language: python
 python:
   - "3.6"
   - "3.7-dev"
-install: "pip install -r requirements.txt"
-script: make test
+install: 
+    - "pip install -r requirements.txt"
+    - "pip install coveralls"
+script: 
+    - ./run_tests.sh
+after_success:
+    coveralls
