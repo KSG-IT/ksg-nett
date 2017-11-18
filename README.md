@@ -1,4 +1,6 @@
 # ksg-nett
+[![Build Status](https://travis-ci.org/KSG-IT/ksg-nett.svg?branch=develop)](https://travis-ci.org/KSG-IT/ksg-nett)
+[![Coverage Status](https://coveralls.io/repos/github/KSG-IT/ksg-nett/badge.svg?branch=develop)](https://coveralls.io/github/KSG-IT/ksg-nett?branch=develop)
 
 This repository contains the source code for [KSG](https://www.samfundet.no/kafe-og-serveringsgjengen)'s web page. The project is written in Django.
 
