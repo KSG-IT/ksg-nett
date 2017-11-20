@@ -52,6 +52,10 @@ class QuoteVote(models.Model):
             Index(fields=['quote'])
         ]
 
+        unique_together = (
+            ('quote', 'caster')
+        )
+
     def __str__(self):
         if self.value > 0:
             return "Up-vote from %s to quote by %s" % (self.caster.first_name, self.quote.quoter.first_name,)
