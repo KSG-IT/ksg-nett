@@ -57,7 +57,6 @@ class QuoteModelTest(TestCase):
         self.assertEqual(self.quote.sum, 1)
 
 
-
 class QuoteVoteModelTest(TestCase):
 
     @classmethod
@@ -82,3 +81,28 @@ class QuoteVoteModelTest(TestCase):
     def test_str_and_repr_should_not_fail(self):
         str(self.quote_vote)
         repr(self.quote_vote)
+
+
+class QuoteManagersTest(TestCase):
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = User(
+            username='test',
+            email='test@example.com'
+        )
+        cls.user.save()
+        Quote.objects.bulk_create([
+            Quote(text='Quote', quoter=cls.user),
+            Quote(text='Quote', quoter=cls.user),
+            Quote(text='Quote', quoter=cls.user, verified_by=cls.user),
+            Quote(text='Quote', quoter=cls.user),
+            Quote(text='Quote', quoter=cls.user),
+            Quote(text='Quote', quoter=cls.user, verified_by=cls.user),
+        ])
+
+    def test_quote_pending_objects_works(self):
+        self.assertEqual(Quote.pending_objects.count(), 4)
+
+    def test_quote_verified_objects_works(self):
+        self.assertEqual(Quote.verified_objects.count(), 2)

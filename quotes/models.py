@@ -1,6 +1,7 @@
 from django.db import models
 from django.db.models import Sum, Index
 
+from quotes.managers import QuotePendingManager, QuoteVerifiedManager
 from users.models import User
 
 
@@ -10,6 +11,11 @@ class Quote(models.Model):
     # None indicates not validated
     verified_by = models.ForeignKey(User, null=True, blank=True, related_name='verified_quotes')
     created_at = models.DateTimeField(auto_now_add=True)
+
+    # Managers
+    objects = models.Manager()
+    pending_objects = QuotePendingManager()
+    verified_objects = QuoteVerifiedManager()
 
     @property
     def sum(self):
