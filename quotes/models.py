@@ -6,9 +6,9 @@ from users.models import User
 
 class Quote(models.Model):
     text = models.TextField()
-    quoter = models.ForeignKey(User, related_name='quotes')
+    quoter = models.ForeignKey(User, null=False, blank=False, related_name='quotes')
     # None indicates not validated
-    verified_by = models.ForeignKey(User, null=True, related_name='verified_quotes')
+    verified_by = models.ForeignKey(User, null=True, blank=True, related_name='verified_quotes')
 
     @property
     def sum(self):
@@ -28,6 +28,12 @@ class Quote(models.Model):
     class Meta:
         verbose_name_plural = 'quotes'
 
+        indexes = [
+            # This field is used to check for pending and non-pending quotes, and
+            # should thus be indexed.
+            Index(fields=['verified_by'])
+        ]
+
 
 class QuoteVote(models.Model):
     quote = models.ForeignKey(Quote, related_name='votes')
@@ -38,13 +44,13 @@ class QuoteVote(models.Model):
     caster = models.ForeignKey(User)
 
     class Meta:
+        verbose_name_plural = 'quote votes'
+
         indexes = [
             # We index on quote, as we will have to filter on a specific quote
             # on every hit to the quote from our APIs needing the fully vote-tally.
             Index(fields=['quote'])
         ]
-
-        verbose_name_plural = 'quote votes'
 
     def __str__(self):
         if self.value > 0:
