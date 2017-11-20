@@ -21,6 +21,11 @@ class QuoteModelTest(TestCase):
             quoter=cls.user
         )
         cls.quote.save()
+        cls.quote_without_votes = Quote(
+            text='Lorem Ipsum',
+            quoter=cls.user
+        )
+        cls.quote_without_votes.save()
         User.objects.bulk_create([
             User(username='user%d' % 1, email='user%d@example.com' % 1),
             User(username='user%d' % 2, email='user%d@example.com' % 2),
@@ -38,7 +43,10 @@ class QuoteModelTest(TestCase):
         str(self.quote)
         repr(self.quote)
 
-    def test_sum_should_return_correct(self):
+    def test_sum_should_return_0_when_no_votes_exist(self):
+        self.assertEqual(self.quote_without_votes.sum, 0)
+
+    def test_sum_should_return_correct_when_votes_exist(self):
         self.assertEqual(self.quote.sum, 2)
 
         QuoteVote(
@@ -47,6 +55,7 @@ class QuoteModelTest(TestCase):
             value=-1
         ).save()
         self.assertEqual(self.quote.sum, 1)
+
 
 
 class QuoteVoteModelTest(TestCase):

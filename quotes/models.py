@@ -17,6 +17,8 @@ class Quote(models.Model):
         can simply aggregate the value field.
         :return Int:
         """
+        if self.votes.count() == 0:
+            return 0
         return self.votes.aggregate(value=Sum('value'))['value']
 
     def __str__(self):
