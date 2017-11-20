@@ -9,6 +9,7 @@ class Quote(models.Model):
     quoter = models.ForeignKey(User, null=False, blank=False, related_name='quotes')
     # None indicates not validated
     verified_by = models.ForeignKey(User, null=True, blank=True, related_name='verified_quotes')
+    created_at = models.DateTimeField(auto_now_add=True)
 
     @property
     def sum(self):
