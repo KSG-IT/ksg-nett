@@ -21,11 +21,17 @@ class QuoteModelTest(TestCase):
             quoter=cls.user
         )
         cls.quote.save()
+        User.objects.bulk_create([
+            User(username='user%d' % 1, email='user%d@example.com' % 1),
+            User(username='user%d' % 2, email='user%d@example.com' % 2),
+            User(username='user%d' % 3, email='user%d@example.com' % 3),
+            User(username='user%d' % 4, email='user%d@example.com' % 4),
+        ])
         QuoteVote.objects.bulk_create([
-            QuoteVote(quote=cls.quote, caster=cls.user, value=1),
-            QuoteVote(quote=cls.quote, caster=cls.user, value=-1),
-            QuoteVote(quote=cls.quote, caster=cls.user, value=1),
-            QuoteVote(quote=cls.quote, caster=cls.user, value=1),
+            QuoteVote(quote=cls.quote, caster_id=cls.user.id+1, value=1),
+            QuoteVote(quote=cls.quote, caster_id=cls.user.id+2, value=-1),
+            QuoteVote(quote=cls.quote, caster_id=cls.user.id+3, value=1),
+            QuoteVote(quote=cls.quote, caster_id=cls.user.id+4, value=1),
         ])
 
     def test_str_and_repr_should_not_fail(self):
