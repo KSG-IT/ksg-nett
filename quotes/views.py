@@ -1,3 +1,9 @@
 from django.shortcuts import render
+from quotes.models import Quote
+from quotes.serializers import QuoteSerializer
 
-# Create your views here.
+
+
+class QuoteViewSet(viewsets.ModelViewSet):
+    queryset = Quote.objects.all()
+    serializer_class = QuoteSerializer
