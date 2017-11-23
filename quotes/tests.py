@@ -1,9 +1,11 @@
 from django.test import TestCase
 
 # Create your tests here.
+from django.urls import reverse
 from django.utils import timezone
 
 from quotes.models import Quote, QuoteVote
+from quotes.views import list_view
 from users.models import User
 
 
@@ -106,3 +108,25 @@ class QuoteManagersTest(TestCase):
 
     def test_quote_verified_objects_works(self):
         self.assertEqual(Quote.verified_objects.count(), 2)
+
+
+class QuoteViewsTest(TestCase):
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = User(
+            username='test',
+            email='test@example.com'
+        )
+        cls.user.save()
+        Quote.objects.bulk_create([
+            Quote(text='Quote', quoter=cls.user),
+            Quote(text='Quote', quoter=cls.user, verified_by=cls.user),
+        ])
+
+    def test_list_view(self):
+        response = self.client.get(reverse(list_view))
+        self.assertEqual(response.context['pending'].count(), 1)
+        self.assertEqual(response.context['quotes'].count(), 1)
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'quotes/quotes_list.html')
