@@ -66,7 +66,7 @@ class InternalGroup(models.Model):
     members = models.ManyToManyField(
         User,
         blank=True,
-        related_name='internal_group'  # The default django user model already has a `groups` related_name
+        related_name='internal_groups'  # The default django user model already has a `groups` related_name
         # so we have to make a custom one
     )
 

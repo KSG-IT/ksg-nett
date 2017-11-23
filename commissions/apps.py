@@ -2,4 +2,5 @@ from django.apps import AppConfig
 
 
 class CommissionsConfig(AppConfig):
-    name = 'commission'
+    name = 'commissions'
+    verbose_name = 'KSG commissions'
