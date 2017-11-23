@@ -5,6 +5,8 @@ from django.contrib.auth.models import AbstractUser
 from django.db import models
 
 # KSG choices
+from commissions.models import Commission
+
 KSG_STATUS_TYPES = (
     ("aktiv", "Aktiv"),  # Wants to stay in KSG
     ("inaktiv", "Ikke aktiv"),  # Finished with KSG duties, but want to leave
@@ -37,8 +39,16 @@ class User(AbstractUser):
     home_address = models.CharField(default="", blank=True, max_length=100)
 
     start_ksg = models.DateField(auto_now_add=True)
-    ksg_status = models.CharField(max_length=32, choices=KSG_STATUS_TYPES)
-    ksg_role = models.CharField(max_length=32, choices=KSG_ROLES)
+    ksg_status = models.CharField(max_length=32, choices=KSG_STATUS_TYPES, default=KSG_STATUS_TYPES[0])
+    ksg_role = models.CharField(max_length=32, choices=KSG_ROLES, default=KSG_ROLES[0])
+
+    commission = models.ForeignKey(
+        Commission,
+        default=None,
+        blank=True,
+        null=True,
+        related_name='holders'
+    )
 
     def __str__(self):
         return "User %s" % (self.first_name,)

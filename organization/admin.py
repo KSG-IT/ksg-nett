@@ -3,4 +3,7 @@ from __future__ import unicode_literals
 
 from django.contrib import admin
 
-# Register your models here.
+from organization.models import InternalGroup, InternalGroupPosition
+
+admin.site.register(InternalGroup)
+admin.site.register(InternalGroupPosition)

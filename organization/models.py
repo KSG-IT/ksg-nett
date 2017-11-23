@@ -3,9 +3,7 @@ from __future__ import unicode_literals
 
 from django.db import models
 
-# Create your models here.
 from users.models import User
-
 
 # Internal groups in KSG
 KSG_INTERNAL_GROUPS = (
@@ -59,14 +57,14 @@ class InternalGroup(models.Model):
     """
     An internal group within KSG, e.g. Lyche bar
     """
-    name = models.CharField(max_length=32, choices=KSG_INTERNAL_GROUPS)
+    name = models.CharField(max_length=32, choices=KSG_INTERNAL_GROUPS, unique=True)
 
-    description = models.CharField(max_length=1024)
+    description = models.CharField(max_length=1024, blank=True, null=True)
 
     members = models.ManyToManyField(
         User,
         blank=True,
-        related_name='internal_group'  # The default django user model already has a `groups` related_name
+        related_name='internal_groups'  # The default django user model already has a `groups` related_name
         # so we have to make a custom one
     )
 
@@ -78,4 +76,25 @@ class InternalGroup(models.Model):
 
     class Meta:
         default_related_name = 'groups'
-        verbose_name_plural = 'Groups'
+        verbose_name_plural = 'Internal groups'
+
+
+class InternalGroupPosition(models.Model):
+    """
+    A position for an internal group, e.g. Hovmester
+    """
+    name = models.CharField(max_length=32, choices=KSG_POSITIONS, unique=True)
+
+    description = models.CharField(max_length=1024, blank=True, null=True)
+
+    holders = models.ManyToManyField(
+        User,
+        blank=True,
+        related_name='positions'
+    )
+
+    def __str__(self):
+        return "Position %s" % self.name
+
+    def __repr__(self):
+        return "Position(name=%s)" % self.name
