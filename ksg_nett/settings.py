@@ -46,7 +46,7 @@ INSTALLED_APPS = [
 
     # Project apps
     'api',
-    'commission',
+    'commissions',
     'internal',
     'login',
     'organization',
