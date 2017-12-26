@@ -96,8 +96,6 @@ DATABASES = {
 # Password validation
 # https://docs.djangoproject.com/en/1.10/ref/settings/#auth-password-validators
 
-# TODO: In case you didn't know, 6 characters is not enough nowadays...
-# TODO: This should obviously be changed before production
 AUTH_PASSWORD_VALIDATORS = [
     {
         'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
@@ -108,13 +106,16 @@ AUTH_PASSWORD_VALIDATORS = [
             'min_length': 6,
         }
     },
-    # {
-    #     'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
-    # },
-    # {
-    #     'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
-    # },
 ]
+if not DEBUG:
+    AUTH_PASSWORD_VALIDATORS += [
+        {
+            'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
+        },
+        {
+            'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
+        },
+    ]
 
 # Custom user
 AUTH_USER_MODEL = 'users.User'
