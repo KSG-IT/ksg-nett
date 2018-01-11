@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>KSG-Nett</title>
+</head>
+<body>
+  <h2>Pending</h2>
+  <ul>
+    {% for quote in pending %}
+      <li>{{ quote.text }}</li>
+    {% endfor %}
+  </ul>
+  <h2>Quotes</h2>
+  <ul>
+    {% for quote in quotes %}
+      <li>{{ quote.text }} - {{ quote.sum }}</li>
+    {% endfor %}
+  </ul>
+</body>
+</html>
