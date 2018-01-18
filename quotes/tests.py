@@ -189,6 +189,11 @@ class QuoteVoteUpTest(TestCase):
         response = self.client.post(reverse(vote_up, kwargs={'quote_id': 1}))
         self.assertEqual(response.status_code, 404)
 
+    def test_vote_up_GET_405s(self):
+        self.client.login(username='test', password='password')
+        response = self.client.get(reverse(vote_down, kwargs={'quote_id': 2}))
+        self.assertEqual(response.status_code, 405)
+
 
 class QuoteVoteDownTest(TestCase):
 
@@ -243,3 +248,9 @@ class QuoteVoteDownTest(TestCase):
         self.client.login(username='test', password='password')
         response = self.client.post(reverse(vote_down, kwargs={'quote_id': 1}))
         self.assertEqual(response.status_code, 404)
+
+    def test_vote_down_GET_405s(self):
+        self.client.login(username='test', password='password')
+        response = self.client.get(reverse(vote_down, kwargs={'quote_id': 2}))
+        self.assertEqual(response.status_code, 405)
+
