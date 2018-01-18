@@ -40,6 +40,26 @@ def quotes_add(request):
 
 
 @login_required
+def quotes_edit(request, quote_id):
+    quote = get_object_or_404(Quote, pk=quote_id)
+    form = QuoteForm(request.POST or None, instance=quote)
+    ctx = {
+        'quote_form': form,
+        'quote': quote
+    }
+    if request.method == "GET":
+        return render(request, template_name='quotes/quotes_edit.html', context=ctx)
+    elif request.method == "POST":
+        if form.is_valid():
+            form.save()
+            return redirect(reverse(quotes_list))
+        else:
+            return render(request, template_name='quotes/quotes_edit.html', context=ctx)
+    else:
+        return HttpResponse(405)  # Method not supported
+
+
+@login_required
 def vote_up(request, quote_id):
     if request.method == "POST":
         quote = get_object_or_404(Quote.verified_objects, pk=quote_id)
