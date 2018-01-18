@@ -60,6 +60,17 @@ def quotes_edit(request, quote_id):
 
 
 @login_required
+def quotes_delete(request, quote_id):
+    if request.method != "POST":
+        return HttpResponse(405)
+
+    quote = get_object_or_404(Quote, pk=quote_id)
+    quote.delete()
+
+    return redirect(reverse(quotes_list))
+
+
+@login_required
 def vote_up(request, quote_id):
     if request.method == "POST":
         quote = get_object_or_404(Quote.verified_objects, pk=quote_id)
