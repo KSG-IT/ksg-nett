@@ -110,7 +110,32 @@ class QuoteManagersTest(TestCase):
         self.assertEqual(Quote.verified_objects.count(), 2)
 
 
-class QuoteViewsTest(TestCase):
+class QuotePresentationViewsTest(TestCase):
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = User(
+            username='test',
+            email='test@example.com'
+        )
+        cls.user.set_password('password')
+        cls.user.save()
+        Quote.objects.bulk_create([
+            Quote(text='Quote', quoter=cls.user),
+            Quote(text='Quote', quoter=cls.user, verified_by=cls.user),
+            Quote(text='Quote', quoter=cls.user, verified_by=cls.user),
+            Quote(text='Quote', quoter=cls.user, verified_by=cls.user),
+        ])
+
+    def test_list_view(self):
+        response = self.client.get(reverse(list_view))
+        self.assertEqual(response.context['pending'].count(), 1)
+        self.assertEqual(response.context['quotes'].count(), 3)
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'quotes/quotes_list.html')
+
+
+class QuoteVoteUpTest(TestCase):
 
     @classmethod
     def setUpTestData(cls):
@@ -131,13 +156,6 @@ class QuoteViewsTest(TestCase):
             QuoteVote(caster=cls.user, quote_id=3, value=1),
             QuoteVote(caster=cls.user, quote_id=4, value=-1)
         ])
-
-    def test_list_view(self):
-        response = self.client.get(reverse(list_view))
-        self.assertEqual(response.context['pending'].count(), 1)
-        self.assertEqual(response.context['quotes'].count(), 3)
-        self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, 'quotes/quotes_list.html')
 
     def test_vote_up_user_has_not_voted_yet(self):
         self.client.login(username='test', password='password')
@@ -170,3 +188,4 @@ class QuoteViewsTest(TestCase):
         self.client.login(username='test', password='password')
         response = self.client.post(reverse(vote_up, kwargs={'quote_id': 1}))
         self.assertEqual(response.status_code, 404)
+
