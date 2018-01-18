@@ -41,7 +41,37 @@ def vote_up(request, quote_id):
             ).save()
             return HttpResponse(200)
     else:
-        return HttpResponse(status=405)
+        return HttpResponse(status=405)   # Method not supported
+
+
+def vote_down(request, quote_id):
+    if request.method == "POST":
+        quote = get_object_or_404(Quote.verified_objects, pk=quote_id)
+        user = request.user
+        quote_vote = QuoteVote.objects.filter(
+            quote=quote,
+            caster=user
+        ).first()
+
+        # If the user already has cast a vote
+        if quote_vote is not None:
+            # And the vote is already negative
+            if quote_vote.value < 0:
+                return HttpResponse(200)
+            # If the vote was up, change it
+            else:
+                quote_vote.value = -1
+                quote_vote.save()
+                return HttpResponse(200)
+        else:
+            QuoteVote(
+                quote=quote,
+                caster=user,
+                value=-1
+            ).save()
+            return HttpResponse(200)
+    else:
+        return HttpResponse(status=405)  # Method not supported
 
 
 class QuoteViewSet(viewsets.ModelViewSet):

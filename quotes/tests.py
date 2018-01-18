@@ -5,7 +5,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from quotes.models import Quote, QuoteVote
-from quotes.views import list_view, vote_up
+from quotes.views import list_view, vote_up, vote_down
 from users.models import User
 
 
@@ -189,3 +189,57 @@ class QuoteVoteUpTest(TestCase):
         response = self.client.post(reverse(vote_up, kwargs={'quote_id': 1}))
         self.assertEqual(response.status_code, 404)
 
+
+class QuoteVoteDownTest(TestCase):
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = User(
+            username='test',
+            email='test@example.com'
+        )
+        cls.user.set_password('password')
+        cls.user.save()
+        Quote.objects.bulk_create([
+            Quote(text='Quote', quoter=cls.user),
+            Quote(text='Quote', quoter=cls.user, verified_by=cls.user),
+            Quote(text='Quote', quoter=cls.user, verified_by=cls.user),
+            Quote(text='Quote', quoter=cls.user, verified_by=cls.user),
+        ])
+
+        QuoteVote.objects.bulk_create([
+            QuoteVote(caster=cls.user, quote_id=3, value=1),
+            QuoteVote(caster=cls.user, quote_id=4, value=-1)
+        ])
+
+    def test_vote_down_user_has_not_voted_yet(self):
+        self.client.login(username='test', password='password')
+        response = self.client.post(reverse(vote_down, kwargs={'quote_id': 2}))
+        self.assertEqual(response.status_code, 200)
+        quote = Quote.objects.get(pk=2)
+        self.assertEqual(quote.sum, -1)
+
+    def test_vote_down_has_voted_down_already(self):
+        # Test that sum stays the same
+        self.client.login(username='test', password='password')
+        quote = Quote.objects.get(pk=4)
+        self.assertEqual(quote.sum, -1)
+        response = self.client.post(reverse(vote_down, kwargs={'quote_id': 4}))
+        self.assertEqual(response.status_code, 200)
+        quote.refresh_from_db()
+        self.assertEqual(quote.sum, -1)
+
+    def test_vote_down_has_voted_up_already(self):
+        # Test that sum up when we change vote from up to down
+        self.client.login(username='test', password='password')
+        quote = Quote.objects.get(pk=3)
+        self.assertEqual(quote.sum, 1)
+        response = self.client.post(reverse(vote_down, kwargs={'quote_id': 3}))
+        self.assertEqual(response.status_code, 200)
+        quote.refresh_from_db()
+        self.assertEqual(quote.sum, -1)
+
+    def test_vote_down_pending_fails(self):
+        self.client.login(username='test', password='password')
+        response = self.client.post(reverse(vote_down, kwargs={'quote_id': 1}))
+        self.assertEqual(response.status_code, 404)
