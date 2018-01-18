@@ -1,3 +1,4 @@
+from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse
 from django.shortcuts import render, get_object_or_404
 from rest_framework import viewsets
@@ -6,6 +7,7 @@ from quotes.models import Quote, QuoteVote
 from quotes.serializers import QuoteSerializer, QuoteVoteSerializer
 
 
+@login_required
 def quotes_list(request):
     ctx = {
         'pending': Quote.pending_objects.all(),
@@ -14,6 +16,8 @@ def quotes_list(request):
     return render(request, template_name='quotes/quotes_list.html', context=ctx)
 
 
+
+@login_required
 def vote_up(request, quote_id):
     if request.method == "POST":
         quote = get_object_or_404(Quote.verified_objects, pk=quote_id)
@@ -44,6 +48,7 @@ def vote_up(request, quote_id):
         return HttpResponse(status=405)   # Method not supported
 
 
+@login_required
 def vote_down(request, quote_id):
     if request.method == "POST":
         quote = get_object_or_404(Quote.verified_objects, pk=quote_id)
