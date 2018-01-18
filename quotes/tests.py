@@ -75,7 +75,7 @@ class QuoteVoteModelTest(TestCase):
         cls.quote.save()
         cls.quote_vote = QuoteVote(
             quote=cls.quote,
-            value=-1,
+            value=1,
             caster=cls.user
         )
         cls.quote_vote.save()
@@ -83,6 +83,12 @@ class QuoteVoteModelTest(TestCase):
     def test_str_and_repr_should_not_fail(self):
         str(self.quote_vote)
         repr(self.quote_vote)
+        # The __str__ method changes on positive and negative values
+        # so we need to test positive as well
+        self.quote_vote.value = 1
+        self.quote_vote.save()
+
+        str(self.quote_vote)
 
 
 class QuoteManagersTest(TestCase):
