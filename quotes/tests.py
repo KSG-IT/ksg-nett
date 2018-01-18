@@ -134,6 +134,7 @@ class QuotePresentationViewsTest(TestCase):
         ])
 
     def test_list_view(self):
+        self.client.login(username='test', password='password')
         response = self.client.get(reverse(quotes_list))
         self.assertEqual(response.context['pending'].count(), 1)
         self.assertEqual(response.context['quotes'].count(), 3)
