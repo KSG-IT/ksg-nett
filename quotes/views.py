@@ -1,8 +1,10 @@
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import render, get_object_or_404, redirect
+from django.urls import reverse
 from rest_framework import viewsets
 
+from quotes.forms import QuoteForm
 from quotes.models import Quote, QuoteVote
 from quotes.serializers import QuoteSerializer, QuoteVoteSerializer
 
@@ -15,6 +17,26 @@ def quotes_list(request):
     }
     return render(request, template_name='quotes/quotes_list.html', context=ctx)
 
+
+@login_required
+def quotes_add(request):
+    if request.method == "GET":
+        ctx = {
+            'quote_form': QuoteForm()
+        }
+        return render(request, template_name='quotes/quotes_add.html', context=ctx)
+    elif request.method == "POST":
+        form = QuoteForm(request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect(reverse(quotes_list))
+        else:
+            ctx = {
+                'quote_form': form
+            }
+            return render(request, template_name='quotes/quotes_add.html', context=ctx)
+    else:
+        return HttpResponse(405)  # Method not supported
 
 
 @login_required
