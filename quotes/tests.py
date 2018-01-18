@@ -5,7 +5,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from quotes.models import Quote, QuoteVote
-from quotes.views import list_view, vote_up, vote_down
+from quotes.views import quotes_list, vote_up, vote_down
 from users.models import User
 
 
@@ -134,7 +134,7 @@ class QuotePresentationViewsTest(TestCase):
         ])
 
     def test_list_view(self):
-        response = self.client.get(reverse(list_view))
+        response = self.client.get(reverse(quotes_list))
         self.assertEqual(response.context['pending'].count(), 1)
         self.assertEqual(response.context['quotes'].count(), 3)
         self.assertEqual(response.status_code, 200)

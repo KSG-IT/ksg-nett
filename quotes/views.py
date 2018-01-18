@@ -6,7 +6,7 @@ from quotes.models import Quote, QuoteVote
 from quotes.serializers import QuoteSerializer, QuoteVoteSerializer
 
 
-def list_view(request):
+def quotes_list(request):
     ctx = {
         'pending': Quote.pending_objects.all(),
         'quotes': Quote.verified_objects.all()
