@@ -111,13 +111,16 @@ AUTH_PASSWORD_VALIDATORS = [
             'min_length': 6,
         }
     },
-    # {
-    #     'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
-    # },
-    # {
-    #     'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
-    # },
 ]
+if not DEBUG:
+    AUTH_PASSWORD_VALIDATORS += [
+        {
+            'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
+        },
+        {
+            'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
+        },
+    ]
 
 # Custom user
 AUTH_USER_MODEL = 'users.User'
