@@ -1,3 +1,5 @@
+from urllib.parse import urlencode
+
 from django.test import TestCase
 
 # Create your tests here.
@@ -281,10 +283,14 @@ class QuoteAddTest(TestCase):
         self.assertTemplateUsed(response, 'quotes/quotes_add.html')
 
     def test_add_new_quote(self):
-        self.client.post('/internal/quotes/add/', {
+        self.client.post('/internal/quotes/add/', urlencode({
             'text': 'This is a cool quote',
-            'quoter_id': self.user.id
-        })
+            'quoter': self.user.id
+        }), content_type="application/x-www-form-urlencoded")
+        quote = Quote.objects.first()
+        self.assertIsNotNone(quote)
+        self.assertEqual(quote.text, 'This is a cool quote')
+        self.assertEqual(quote.quoter, self.user)
 
     def test_add_new_quote_with_bad_data_fails(self):
         response = self.client.post('/internal/quotes/add/', {
