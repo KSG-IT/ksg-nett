@@ -261,3 +261,39 @@ class QuoteVoteDownTest(TestCase):
         response = self.client.get(reverse(vote_down, kwargs={'quote_id': 2}))
         self.assertEqual(response.status_code, 405)
 
+
+class QuoteAddTest(TestCase):
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = User(
+            username='test',
+            email='test@example.com'
+        )
+        cls.user.set_password('password')
+        cls.user.save()
+
+    def setUp(self):
+        self.client.login(username='test', password='password')
+
+    def test_GET_request_returns_template(self):
+        response = self.client.get('/internal/quotes/add/')
+        self.assertTemplateUsed(response, 'quotes/quotes_add.html')
+
+    def test_add_new_quote(self):
+        self.client.post('/internal/quotes/add/', {
+            'text': 'This is a cool quote',
+            'quoter_id': self.user.id
+        })
+
+    def test_add_new_quote_with_bad_data_fails(self):
+        response = self.client.post('/internal/quotes/add/', {
+            'text': 'This is a cool quote'
+            # Missing id
+        })
+        # We're missing a field
+        assert "This field is required" in response.content.decode("utf-8")
+
+    def test_add_new_quote_with_bad_http_method_fails(self):
+        response = self.client.delete('/internal/quotes/add/')
+        self.assertEqual(response.status_code, 405)
