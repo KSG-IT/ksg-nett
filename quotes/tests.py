@@ -298,8 +298,57 @@ class QuoteAddTest(TestCase):
             # Missing id
         })
         # We're missing a field
-        assert "This field is required" in response.content.decode("utf-8")
+        self.assertIn("This field is required", response.content.decode("utf-8"))
 
     def test_add_new_quote_with_bad_http_method_fails(self):
         response = self.client.delete('/internal/quotes/add/')
         self.assertEqual(response.status_code, 405)
+
+
+class QuoteEditTest(TestCase):
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = User(
+            username='test',
+            email='test@example.com'
+        )
+        cls.user.set_password('password')
+        cls.user.save()
+
+        cls.quote = Quote(
+            text='Some quote text',
+            quoter=cls.user
+        )
+        cls.quote.save()
+
+    def setUp(self):
+        self.client.login(username='test', password='password')
+
+    def test_GET_request_returns_template(self):
+        response = self.client.get('/internal/quotes/1/edit/')
+        self.assertTemplateUsed(response, 'quotes/quotes_edit.html')
+
+    def test_edit_quote(self):
+        self.client.post('/internal/quotes/1/edit/', urlencode({
+            'text': 'Some new quote text',
+            'quoter': self.user.id
+        }), content_type="application/x-www-form-urlencoded")
+        quote = Quote.objects.first()
+        self.assertEqual(Quote.objects.count(), 1)
+        self.assertIsNotNone(quote)
+        self.assertEqual(quote.text, 'Some new quote text')
+        self.assertEqual(quote.quoter, self.user)
+
+    def test_edit_quote_fails_with_bad_data(self):
+        response = self.client.post('/internal/quotes/1/edit/', urlencode({
+            'text': 'Some new quote text',
+        }), content_type="application/x-www-form-urlencoded")
+        self.assertIn("This field is required", response.content.decode("utf-8"))
+
+    def test_edit_new_quote_with_bad_http_method_fails(self):
+        response = self.client.delete('/internal/quotes/1/delete/', urlencode({
+            'text': 'Some new quote text',
+        }), content_type="application/x-www-form-urlencoded")
+        self.assertEqual(response.status_code, 405)
+
