@@ -1,6 +1,6 @@
 from django.db import models
 
-from organization.models import Group
+from organization.models import InternalGroup
 from users.models import User
 
 
@@ -60,7 +60,7 @@ class ScheduleSlotType(models.Model):
 
     # This fields represents which groups will be used in an automatic generation
     # of a schedule
-    standard_groups = models.ManyToManyField(Group, blank=True)
+    standard_groups = models.ManyToManyField(InternalGroup, blank=True)
 
     def __str__(self):
         return "ScheduleSlotType %s for schedule %s" % (self.name, self.schedule.name)

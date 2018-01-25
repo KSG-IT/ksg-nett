@@ -51,7 +51,6 @@ INSTALLED_APPS = [
     'login',
     'organization',
     'users',
-    'internal',
     'quotes',
     'schedules',
 ]
