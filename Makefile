@@ -2,6 +2,10 @@
 test:
 	python manage.py test
 
+.PHONY: test-coverage
+test-coverage:
+	./run_tests.sh
+
 .PHONY: migrate
 migrate:
 	python manage.py migrate
