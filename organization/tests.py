@@ -4,7 +4,7 @@ from __future__ import unicode_literals
 from django.test import TestCase
 
 # Create your tests here.
-from organization.models import Group
+from organization.models import InternalGroup
 from users.models import User
 
 
@@ -12,7 +12,7 @@ class GroupTest(TestCase):
 
     @classmethod
     def setUpTestData(cls):
-        cls.group_1 = Group(
+        cls.group_1 = InternalGroup(
             name='Group 1'
         )
         cls.group_1.save()
