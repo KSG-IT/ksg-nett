@@ -36,7 +36,7 @@ def quotes_add(request):
             }
             return render(request, template_name='quotes/quotes_add.html', context=ctx)
     else:
-        return HttpResponse(405)  # Method not supported
+        return HttpResponse(status=405)  # Method not supported
 
 
 @login_required
@@ -56,13 +56,13 @@ def quotes_edit(request, quote_id):
         else:
             return render(request, template_name='quotes/quotes_edit.html', context=ctx)
     else:
-        return HttpResponse(405)  # Method not supported
+        return HttpResponse(status=405)  # Method not supported
 
 
 @login_required
 def quotes_delete(request, quote_id):
     if request.method != "POST":
-        return HttpResponse(405)
+        return HttpResponse(status=405)
 
     quote = get_object_or_404(Quote, pk=quote_id)
     quote.delete()
@@ -84,12 +84,12 @@ def vote_up(request, quote_id):
         if quote_vote is not None:
             # And the vote is already positive
             if quote_vote.value > 0:
-                return HttpResponse(200)
+                return HttpResponse(status=200)
             # If the vote was down, change it
             else:
                 quote_vote.value = 1
                 quote_vote.save()
-                return HttpResponse(200)
+                return HttpResponse(status=200)
         else:
             QuoteVote(
                 quote=quote,
@@ -115,19 +115,19 @@ def vote_down(request, quote_id):
         if quote_vote is not None:
             # And the vote is already negative
             if quote_vote.value < 0:
-                return HttpResponse(200)
+                return HttpResponse(status=200)
             # If the vote was up, change it
             else:
                 quote_vote.value = -1
                 quote_vote.save()
-                return HttpResponse(200)
+                return HttpResponse(status=200)
         else:
             QuoteVote(
                 quote=quote,
                 caster=user,
                 value=-1
             ).save()
-            return HttpResponse(200)
+            return HttpResponse(status=200)
     else:
         return HttpResponse(status=405)  # Method not supported
 
