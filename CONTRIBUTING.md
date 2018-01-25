@@ -53,6 +53,8 @@ feature/economy/innskudd
 feature/frontend/update-landingpage
 ```
 
+Note that if you have the base branch locally, e.g. `feature/economy`, you cannot name a new branch `feature/economy/something`. In that scenario you should name it `feature/economy_something`.
+
 Updates which are too broad to fall within one particular domain can avoid such nesting, e.g:
 
 ```
@@ -64,9 +66,9 @@ Features that are **large** should have nested feature branches. Say we are deve
 
 ```
 feature/cryptonite
-|-- feature/cryptonite/add-superman
-|-- feature/cryptonite/remove-lex-luthor
-|-- feature/cryptonite/optimize
+|-- feature/cryptonite_add-superman
+|-- feature/cryptonite_remove-lex-luthor
+|-- feature/cryptonite_optimize
 ```
 
 When all sub-branches are merged into the main feature branch, a PR can be made into develop.
