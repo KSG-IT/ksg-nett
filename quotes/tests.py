@@ -347,8 +347,41 @@ class QuoteEditTest(TestCase):
         self.assertIn("This field is required", response.content.decode("utf-8"))
 
     def test_edit_new_quote_with_bad_http_method_fails(self):
-        response = self.client.delete('/internal/quotes/1/delete/', urlencode({
+        response = self.client.delete('/internal/quotes/1/edit/', urlencode({
             'text': 'Some new quote text',
         }), content_type="application/x-www-form-urlencoded")
+        self.assertEqual(response.status_code, 405)
+
+
+class QuoteDeleteTest(TestCase):
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = User(
+            username='test',
+            email='test@example.com'
+        )
+        cls.user.set_password('password')
+        cls.user.save()
+
+        cls.quote = Quote(
+            text='Some quote text',
+            quoter=cls.user
+        )
+        cls.quote.save()
+
+    def setUp(self):
+        self.client.login(username='test', password='password')
+
+    def test_delete_quote(self):
+        response = self.client.post('/internal/quotes/1/delete/')
+        self.assertEqual(response.status_code, 302)
+
+    def test_delete_no_existing_404s(self):
+        response = self.client.post('/internal/quotes/2/delete/')
+        self.assertEqual(response.status_code, 404)
+
+    def test_bad_http_method_fails(self):
+        response = self.client.put('/internal/quotes/2/delete/')
         self.assertEqual(response.status_code, 405)
 
