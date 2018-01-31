@@ -96,7 +96,7 @@ def vote_up(request, quote_id):
                 caster=user,
                 value=1
             ).save()
-            return HttpResponse(200)
+            return HttpResponse(status=200)
     else:
         return HttpResponse(status=405)   # Method not supported
 

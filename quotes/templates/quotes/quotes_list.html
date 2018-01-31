@@ -14,8 +14,20 @@
   <h2>Quotes</h2>
   <ul>
     {% for quote in quotes %}
-      <li>{{ quote.text }} - {{ quote.sum }}</li>
+      <li>
+        <span>
+          {{ quote.text }}
+        </span> -&nbsp;
+        <span>
+          {{ quote.sum }}
+        </span>
+        &nbsp;
+        <button class="quote__voteup" data-quote-id="{{ quote.id }}">Vote up</button>
+        <button class="quote__votedown" data-quote-id="{{ quote.id }}">Vote down</button>
+      </li>
     {% endfor %}
   </ul>
+  {% load static %}
+  <script src="{% static 'quotes/quotes_list.js' %}"></script>
 </body>
 </html>
