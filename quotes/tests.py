@@ -7,7 +7,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from quotes.models import Quote, QuoteVote
-from quotes.views import quotes_list, vote_up, vote_down
+from quotes.views import quotes_list, vote_up, vote_down, quotes_add, quotes_edit, quotes_delete
 from users.models import User
 
 
@@ -279,11 +279,11 @@ class QuoteAddTest(TestCase):
         self.client.login(username='test', password='password')
 
     def test_GET_request_returns_template(self):
-        response = self.client.get('/internal/quotes/add/')
+        response = self.client.get(reverse(quotes_add))
         self.assertTemplateUsed(response, 'quotes/quotes_add.html')
 
     def test_add_new_quote(self):
-        self.client.post('/internal/quotes/add/', urlencode({
+        self.client.post(reverse(quotes_add), urlencode({
             'text': 'This is a cool quote',
             'quoter': self.user.id
         }), content_type="application/x-www-form-urlencoded")
@@ -293,7 +293,7 @@ class QuoteAddTest(TestCase):
         self.assertEqual(quote.quoter, self.user)
 
     def test_add_new_quote_with_bad_data_fails(self):
-        response = self.client.post('/internal/quotes/add/', {
+        response = self.client.post(reverse(quotes_add), {
             'text': 'This is a cool quote'
             # Missing id
         })
@@ -301,7 +301,7 @@ class QuoteAddTest(TestCase):
         self.assertIn("This field is required", response.content.decode("utf-8"))
 
     def test_add_new_quote_with_bad_http_method_fails(self):
-        response = self.client.delete('/internal/quotes/add/')
+        response = self.client.delete(reverse(quotes_add))
         self.assertEqual(response.status_code, 405)
 
 
@@ -326,11 +326,11 @@ class QuoteEditTest(TestCase):
         self.client.login(username='test', password='password')
 
     def test_GET_request_returns_template(self):
-        response = self.client.get('/internal/quotes/1/edit/')
+        response = self.client.get(reverse(quotes_edit, kwargs={'quote_id': 1}))
         self.assertTemplateUsed(response, 'quotes/quotes_edit.html')
 
     def test_edit_quote(self):
-        self.client.post('/internal/quotes/1/edit/', urlencode({
+        self.client.post(reverse(quotes_edit, kwargs={'quote_id': 1}), urlencode({
             'text': 'Some new quote text',
             'quoter': self.user.id
         }), content_type="application/x-www-form-urlencoded")
@@ -341,13 +341,13 @@ class QuoteEditTest(TestCase):
         self.assertEqual(quote.quoter, self.user)
 
     def test_edit_quote_fails_with_bad_data(self):
-        response = self.client.post('/internal/quotes/1/edit/', urlencode({
+        response = self.client.post(reverse(quotes_edit, kwargs={'quote_id': 1}), urlencode({
             'text': 'Some new quote text',
         }), content_type="application/x-www-form-urlencoded")
         self.assertIn("This field is required", response.content.decode("utf-8"))
 
     def test_edit_new_quote_with_bad_http_method_fails(self):
-        response = self.client.delete('/internal/quotes/1/edit/', urlencode({
+        response = self.client.delete(reverse(quotes_edit, kwargs={'quote_id': 1}), urlencode({
             'text': 'Some new quote text',
         }), content_type="application/x-www-form-urlencoded")
         self.assertEqual(response.status_code, 405)
@@ -374,14 +374,14 @@ class QuoteDeleteTest(TestCase):
         self.client.login(username='test', password='password')
 
     def test_delete_quote(self):
-        response = self.client.post('/internal/quotes/1/delete/')
+        response = self.client.post(reverse(quotes_delete, kwargs={'quote_id': 1}))
         self.assertEqual(response.status_code, 302)
 
     def test_delete_no_existing_404s(self):
-        response = self.client.post('/internal/quotes/2/delete/')
+        response = self.client.post(reverse(quotes_delete, kwargs={'quote_id': 2}))
         self.assertEqual(response.status_code, 404)
 
     def test_bad_http_method_fails(self):
-        response = self.client.put('/internal/quotes/2/delete/')
+        response = self.client.put(reverse(quotes_delete, kwargs={'quote_id': 2}))
         self.assertEqual(response.status_code, 405)
 
