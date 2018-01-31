@@ -31,7 +31,7 @@ class Migration(migrations.Migration):
                 ('name', models.CharField(max_length=100)),
                 ('role', models.CharField(max_length=32)),
                 ('schedule', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='schedules.Schedule')),
-                ('standard_groups', models.ManyToManyField(blank=True, to='organization.Group')),
+                ('standard_groups', models.ManyToManyField(blank=True, to='organization.InternalGroup')),
             ],
         ),
         migrations.CreateModel(
