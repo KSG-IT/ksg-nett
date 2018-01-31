@@ -1,15 +1,26 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta http-equiv="x-ua-compatible" content="ie=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <meta name="description" content="The internal web page of KSG">
+  <meta charset="UTF-8">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <meta name="description" content="The internal web page of KSG">
+  {# Make the CSRF token available for all deriving templates #}
+  <meta name="csrf-token" content="{{ csrf_token }}">
 
-    <title>KSG-Nett</title>
+  <title>KSG-Nett</title>
 
-    {% block header %}
-    {% endblock %}
+  {% load static %}
+  {% block override_static_defaults %}
+    {% comment %}
+      This block exists as a block to allow others to override the default static imports.
+    {% endcomment %}
+    <script src="{% static 'internal/js/main.js' %}"></script>
+    <link rel="stylesheet" href="{% static 'internal/css/main.css' %}">
+  {% endblock %}
+  {% block header %}
+  {% endblock %}
+
 </head>
 <body>
   {% block body_content %}
