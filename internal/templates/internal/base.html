@@ -15,11 +15,14 @@
     {% comment %}
       This block exists as a block to allow others to override the default static imports.
     {% endcomment %}
+
+    {# Vendor libraries #}
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+
+    {# Main styling and scripting files #}
     <script src="{% static 'internal/js/main.js' %}"></script>
     <link rel="stylesheet" href="{% static 'internal/css/main.css' %}">
 
-    {# Vendor libraries below #}
-    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
   {% endblock %}
   {% block header %}
   {% endblock %}
