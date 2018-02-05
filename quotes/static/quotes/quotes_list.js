@@ -1,7 +1,7 @@
 
 document.addEventListener('DOMContentLoaded', function(){
 
-    // Register click listeners o all vote up and vote down buttons we can find.
+    // Register click listeners to all vote up and vote down buttons we can find.
     // The quote ids are stored as data attributes on the button elements themselves.
     var voteUps = document.querySelectorAll(".quote__voteup");
     voteUps.forEach(function(element){
