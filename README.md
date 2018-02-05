@@ -8,7 +8,7 @@ This repository contains the source code for [KSG](https://www.samfundet.no/kafe
 
 1. Create a new virtualenv with python 3.6 (instructions below)
 2. Install dependencies
-3. **Carefully read** [Contribution.md](https://github.com/KSG-IT/ksg-nett/blob/feature/documentation/CONTRIBUTING.md) to aid both yourself and others!
+3. **Carefully read** [Contribution.md](https://github.com/KSG-IT/ksg-nett/blob/develop/CONTRIBUTING.md) to aid both yourself and others!
 
 ## Dependencies
 * Django
@@ -17,26 +17,64 @@ This repository contains the source code for [KSG](https://www.samfundet.no/kafe
 
 ## Installation
 
+### macOS / Linux
+
+Create a virtual environment and install dependencies
 ```bash
 virtualenv venv
 source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-To initialize the database, run:
-
+Initialize the database
 ```
 python manage.py migrate
 ```
 
-## Running
+### Windows
 
+Create a virtual environment and install dependencies
+```bash
+virtualenv venv
+venv\Scripts\activate
+pip install -r requirements.txt
+```
+
+Initialize the database
+```
+python manage.py migrate
+```
+
+## Running 
+
+### macOS / Linux
+
+Start the development environment
 ```
 source venv/bin/activate
 python manage.py runserver
 ```
 
-## Contributing
-First read [CONTRIBUTING.md](https://github.com/KSG-IT/ksg-nett/blob/feature/documentation/CONTRIBUTING.md) to understand the project guidelines. Then check out [SYSTEM.md](https://github.com/KSG-IT/ksg-nett/blob/feature/documentation/SYSTEM.md) to understand the various project components.
+Close the development environment
+```
+deactivate
+```
 
-New to this project? Check out the last section in [CONTRIBUTING.md](https://github.com/KSG-IT/ksg-nett/blob/feature/documentation/CONTRIBUTING.md) for some handy guides to get you up to speed 💪
+
+### Windows
+
+Start the development environment
+```
+venv\Scripts\activate
+python manage.py runserver
+```
+
+Close the development environment
+```
+deactivate
+```
+
+## Contributing
+First read [CONTRIBUTING.md](https://github.com/KSG-IT/ksg-nett/blob/develop/CONTRIBUTING.md) to understand the various project components. Then check out [SYSTEM.md](https://github.com/KSG-IT/ksg-nett/blob/develop/SYSTEM.md) to understand the various project components.
+
+New to this project? Check out the [last section](https://github.com/KSG-IT/ksg-nett/blob/develop/CONTRIBUTING.md#guides-for-semi-noobs) in CONTRIBUTING.md for some handy guides to get you up to speed 💪

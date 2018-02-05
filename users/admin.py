@@ -3,7 +3,6 @@ from __future__ import unicode_literals
 
 from django import forms
 from django.contrib import admin
-
 # Register your models here.
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.forms import UserChangeForm, UserCreationForm
@@ -35,6 +34,8 @@ class MyUserAdmin(UserAdmin):
     fieldsets = UserAdmin.fieldsets + (
         ('Personalia', {'fields': ('date_of_birth', 'study',)}),
         ('Contact', {'fields': ('phone', 'study_address', 'home_address',)}),
+        ('KSG options', {'fields': ('commission',)}),
     )
+
 
 admin.site.register(User, MyUserAdmin)
