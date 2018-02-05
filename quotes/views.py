@@ -2,7 +2,7 @@ from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse
-from rest_framework import viewsets
+from rest_framework import viewsets, status
 
 from quotes.forms import QuoteForm
 from quotes.models import Quote, QuoteVote
@@ -36,7 +36,7 @@ def quotes_add(request):
             }
             return render(request, template_name='quotes/quotes_add.html', context=ctx)
     else:
-        return HttpResponse(status=405)  # Method not supported
+        return HttpResponse(status=status.HTTP_405_METHOD_NOT_ALLOWED)  # Method not supported
 
 
 @login_required
@@ -56,13 +56,13 @@ def quotes_edit(request, quote_id):
         else:
             return render(request, template_name='quotes/quotes_edit.html', context=ctx)
     else:
-        return HttpResponse(status=405)  # Method not supported
+        return HttpResponse(status=status.HTTP_405_METHOD_NOT_ALLOWED)  # Method not supported
 
 
 @login_required
 def quotes_delete(request, quote_id):
     if request.method != "POST":
-        return HttpResponse(status=405)
+        return HttpResponse(status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
     quote = get_object_or_404(Quote, pk=quote_id)
     quote.delete()
@@ -84,21 +84,21 @@ def vote_up(request, quote_id):
         if quote_vote is not None:
             # And the vote is already positive
             if quote_vote.value > 0:
-                return HttpResponse(status=200)
+                return HttpResponse(status=status.HTTP_200_OK)
             # If the vote was down, change it
             else:
                 quote_vote.value = 1
                 quote_vote.save()
-                return HttpResponse(status=200)
+                return HttpResponse(status=status.HTTP_200_OK)
         else:
             QuoteVote(
                 quote=quote,
                 caster=user,
                 value=1
             ).save()
-            return HttpResponse(status=200)
+            return HttpResponse(status=status.HTTP_200_OK)
     else:
-        return HttpResponse(status=405)   # Method not supported
+        return HttpResponse(status=status.HTTP_405_METHOD_NOT_ALLOWED)   # Method not supported
 
 
 @login_required
@@ -115,21 +115,21 @@ def vote_down(request, quote_id):
         if quote_vote is not None:
             # And the vote is already negative
             if quote_vote.value < 0:
-                return HttpResponse(status=200)
+                return HttpResponse(status=status.HTTP_200_OK)
             # If the vote was up, change it
             else:
                 quote_vote.value = -1
                 quote_vote.save()
-                return HttpResponse(status=200)
+                return HttpResponse(status=status.HTTP_200_OK)
         else:
             QuoteVote(
                 quote=quote,
                 caster=user,
                 value=-1
             ).save()
-            return HttpResponse(status=200)
+            return HttpResponse(status=status.HTTP_200_OK)
     else:
-        return HttpResponse(status=405)  # Method not supported
+        return HttpResponse(status=status.HTTP_405_METHOD_NOT_ALLOWED)  # Method not supported
 
 
 class QuoteViewSet(viewsets.ModelViewSet):

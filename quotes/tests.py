@@ -5,6 +5,7 @@ from django.test import TestCase
 # Create your tests here.
 from django.urls import reverse
 from django.utils import timezone
+from rest_framework import status
 
 from quotes.models import Quote, QuoteVote
 from quotes.views import quotes_list, vote_up, vote_down, quotes_add, quotes_edit, quotes_delete
@@ -140,7 +141,7 @@ class QuotePresentationViewsTest(TestCase):
         response = self.client.get(reverse(quotes_list))
         self.assertEqual(response.context['pending'].count(), 1)
         self.assertEqual(response.context['quotes'].count(), 3)
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertTemplateUsed(response, 'quotes/quotes_list.html')
 
 
@@ -169,7 +170,7 @@ class QuoteVoteUpTest(TestCase):
     def test_vote_up_user_has_not_voted_yet(self):
         self.client.login(username='test', password='password')
         response = self.client.post(reverse(vote_up, kwargs={'quote_id': 2}))
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
         quote = Quote.objects.get(pk=2)
         self.assertEqual(quote.sum, 1)
 
@@ -179,7 +180,7 @@ class QuoteVoteUpTest(TestCase):
         quote = Quote.objects.get(pk=4)
         self.assertEqual(quote.sum, -1)
         response = self.client.post(reverse(vote_up, kwargs={'quote_id': 4}))
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
         quote.refresh_from_db()
         self.assertEqual(quote.sum, 1)
 
@@ -189,19 +190,19 @@ class QuoteVoteUpTest(TestCase):
         quote = Quote.objects.get(pk=3)
         self.assertEqual(quote.sum, 1)
         response = self.client.post(reverse(vote_up, kwargs={'quote_id': 3}))
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
         quote.refresh_from_db()
         self.assertEqual(quote.sum, 1)
 
     def test_vote_up_pending_fails(self):
         self.client.login(username='test', password='password')
         response = self.client.post(reverse(vote_up, kwargs={'quote_id': 1}))
-        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
     def test_vote_up_bad_http_method_fails(self):
         self.client.login(username='test', password='password')
         response = self.client.get(reverse(vote_up, kwargs={'quote_id': 2}))
-        self.assertEqual(response.status_code, 405)
+        self.assertEqual(response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
 
 
 class QuoteVoteDownTest(TestCase):
@@ -229,7 +230,7 @@ class QuoteVoteDownTest(TestCase):
     def test_vote_down_user_has_not_voted_yet(self):
         self.client.login(username='test', password='password')
         response = self.client.post(reverse(vote_down, kwargs={'quote_id': 2}))
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
         quote = Quote.objects.get(pk=2)
         self.assertEqual(quote.sum, -1)
 
@@ -239,7 +240,7 @@ class QuoteVoteDownTest(TestCase):
         quote = Quote.objects.get(pk=4)
         self.assertEqual(quote.sum, -1)
         response = self.client.post(reverse(vote_down, kwargs={'quote_id': 4}))
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
         quote.refresh_from_db()
         self.assertEqual(quote.sum, -1)
 
@@ -249,19 +250,19 @@ class QuoteVoteDownTest(TestCase):
         quote = Quote.objects.get(pk=3)
         self.assertEqual(quote.sum, 1)
         response = self.client.post(reverse(vote_down, kwargs={'quote_id': 3}))
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
         quote.refresh_from_db()
         self.assertEqual(quote.sum, -1)
 
     def test_vote_down_pending_fails(self):
         self.client.login(username='test', password='password')
         response = self.client.post(reverse(vote_down, kwargs={'quote_id': 1}))
-        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
     def test_vote_down_GET_405s(self):
         self.client.login(username='test', password='password')
         response = self.client.get(reverse(vote_down, kwargs={'quote_id': 2}))
-        self.assertEqual(response.status_code, 405)
+        self.assertEqual(response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
 
 
 class QuoteAddTest(TestCase):
@@ -302,7 +303,7 @@ class QuoteAddTest(TestCase):
 
     def test_add_new_quote_with_bad_http_method_fails(self):
         response = self.client.delete(reverse(quotes_add))
-        self.assertEqual(response.status_code, 405)
+        self.assertEqual(response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
 
 
 class QuoteEditTest(TestCase):
@@ -350,7 +351,7 @@ class QuoteEditTest(TestCase):
         response = self.client.delete(reverse(quotes_edit, kwargs={'quote_id': 1}), urlencode({
             'text': 'Some new quote text',
         }), content_type="application/x-www-form-urlencoded")
-        self.assertEqual(response.status_code, 405)
+        self.assertEqual(response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
 
 
 class QuoteDeleteTest(TestCase):
@@ -375,13 +376,13 @@ class QuoteDeleteTest(TestCase):
 
     def test_delete_quote(self):
         response = self.client.post(reverse(quotes_delete, kwargs={'quote_id': 1}))
-        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.status_code, status.HTTP_302_FOUND)
 
     def test_delete_no_existing_404s(self):
         response = self.client.post(reverse(quotes_delete, kwargs={'quote_id': 2}))
-        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
     def test_bad_http_method_fails(self):
         response = self.client.put(reverse(quotes_delete, kwargs={'quote_id': 2}))
-        self.assertEqual(response.status_code, 405)
+        self.assertEqual(response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
 
