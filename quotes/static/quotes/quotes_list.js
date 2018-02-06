@@ -1,3 +1,4 @@
+/* globals axios */
 
 document.addEventListener('DOMContentLoaded', function(){
 
@@ -7,14 +8,25 @@ document.addEventListener('DOMContentLoaded', function(){
     voteUps.forEach(function(element){
         var quoteId = element.getAttribute('data-quote-id');
         element.addEventListener('click', function(){
-            fetch('/internal/quotes/' + quoteId + '/vote-up', {method: 'POST'})
+            axios('/internal/quotes/' + quoteId + '/vote-up', {method: 'POST'})
+                .then(function(response){
+                    // `element` is the vote up button, and its sibling with class .quote__sum contains
+                    // the actual quote sum data.
+                    element.parentNode.querySelector('.quote__sum').innerHTML = response.data.sum;
+                })
+
         });
     });
     var voteDowns = document.querySelectorAll(".quote__votedown");
     voteDowns.forEach(function(element){
         var quoteId = element.getAttribute('data-quote-id');
         element.addEventListener('click', function(){
-            fetch('/internal/quotes/' + quoteId + '/vote-down', {method: 'POST'})
+            axios('/internal/quotes/' + quoteId + '/vote-down', {method: 'POST'})
+                .then(function(response){
+                    // `element` is the vote down button, and its sibling with class .quote__sum contains
+                    // the actual quote sum data.
+                    element.parentNode.querySelector('.quote__sum').innerHTML = response.data.sum;
+                })
         });
     });
 });
