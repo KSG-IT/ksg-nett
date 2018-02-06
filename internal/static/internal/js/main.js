@@ -10,5 +10,5 @@ function getCsrfToken(){
 
 document.addEventListener('DOMContentLoaded', function(){
     // Set up axios with proper defaults
-    axios.defaults.headers.common['X-CSRF-TOKEN'] = getCsrfToken();
+    axios.defaults.headers.common['X-CSRFTOKEN'] = getCsrfToken();
 });
