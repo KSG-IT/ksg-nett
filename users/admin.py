@@ -6,6 +6,7 @@ from django.contrib import admin
 # Register your models here.
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.forms import UserChangeForm, UserCreationForm
+from django.utils.translation import ugettext_lazy as _
 
 from users.models import User
 
@@ -16,16 +17,11 @@ class MyUserChangeForm(UserChangeForm):
 
 
 class MyUserCreationForm(UserCreationForm):
+    email = forms.EmailField(label=_('E-mail'))
+
     class Meta(UserCreationForm.Meta):
         model = User
-
-    def clean_username(self):
-        username = self.cleaned_data['username']
-        try:
-            User.objects.get(username=username)
-        except User.DoesNotExist:
-            return username
-        raise forms.ValidationError(self.error_messages['duplicate_username'])
+        fields = ('username', 'email',)
 
 
 class MyUserAdmin(UserAdmin):
@@ -35,6 +31,12 @@ class MyUserAdmin(UserAdmin):
         ('Personalia', {'fields': ('date_of_birth', 'study',)}),
         ('Contact', {'fields': ('phone', 'study_address', 'home_address',)}),
         ('KSG options', {'fields': ('commission',)}),
+    )
+    add_fieldsets = (
+        (None, {
+            'classes': ('wide',),
+            'fields': ('username', 'email', 'password1', 'password2'),
+        }),
     )
 
 
