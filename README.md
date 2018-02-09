@@ -11,7 +11,7 @@ This repository contains the source code for [KSG](https://www.samfundet.no/kafe
 3. **Carefully read** [Contribution.md](https://github.com/KSG-IT/ksg-nett/blob/develop/CONTRIBUTING.md) to aid both yourself and others!
 
 ## Dependencies
-* Django
+* Django 2.0
 * Python 3.6
 * virtualenv
 
