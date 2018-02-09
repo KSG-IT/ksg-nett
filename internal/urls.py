@@ -1,9 +1,9 @@
-from django.conf.urls import url, include
+from django.urls import re_path, path, include
 
 from . import views
 
 urlpatterns = [
-    url(r'^$', views.index),
-    url(r'^quotes/', include('quotes.urls')),
-    url(r'^summaries/', include('summaries.urls')),
+    re_path(r'^$', views.index),
+    path('quotes/', include('quotes.urls')),
+    path('summaries/', include('summaries.urls')),
 ]
