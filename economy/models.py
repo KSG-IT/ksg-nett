@@ -60,8 +60,8 @@ class Product(models.Model):
 
 
 class PurchaseList(models.Model):
-    date_purchased = models.DateField(blank=False, null=False)
     date_registered = models.DateField(auto_now_add=True, blank=False, null=False)
+    date_purchased = models.DateField(auto_now_add=True, blank=False, null=False)
     signed_off_by = models.ForeignKey(User, blank=False, null=False)
     comment = models.CharField(max_length=100, blank=False, null=False)
 

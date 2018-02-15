@@ -1,5 +1,5 @@
 from django.test import TestCase
-from economy.models import Product, Deposit, Transaction
+from economy.models import Product, Deposit, Transaction, Purchase, PurchaseList
 from users.models import User
 import datetime
 
@@ -75,3 +75,34 @@ class TransactionTestCase(TestCase):
     def test_to_string(self):
         string = 'Transaction from user1 to user2 of 100 NOK'
         self.assertEquals(self.transaction.__str__(), string)
+
+
+class PurchaseTestCase(TestCase):
+
+    def setUp(self):
+        self.user1 = User.objects.create(id=1, username='user1', email='person1@something.com')
+        self.user2 = User.objects.create(id=2, username='user2', email='person2@something.com')
+        self.product = Product.objects.create(product_name='burger', price=50)
+        self.purchase_list = PurchaseList.objects.create(signed_off_by=self.user1, comment="hello")
+        self.purchase1 = Purchase.objects.create(person=self.user2, product=self.product, amount=1,
+                                                 purchase_list=self.purchase_list)
+        self.purchase2 = Purchase.objects.create(person=self.user1,
+                                                 product=self.product,
+                                                 amount=2,
+                                                 purchase_list=self.purchase_list)
+
+    def test_creation(self):
+        self.assertIsInstance(self.purchase1, Purchase)
+        self.assertIsInstance(self.purchase2, Purchase)
+
+    def test_to_string(self):
+        string = "A purchase by person user1 of 2 number of product burger"
+        self.assertEquals(self.purchase2.__str__(), string)
+
+
+class PurchaseListTestCase(TestCase):
+
+    def setUp(self):
+        self.user1 = User.objects.create(id=1, username='user1', email='person1@something.com')
+        self.purchase_list = PurchaseList.objects.create(signed_off_by=self.user2, comment="A sample purchase list")
+        
