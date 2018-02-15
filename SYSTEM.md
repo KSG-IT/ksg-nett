@@ -11,7 +11,7 @@ The project is structured as a typical django project, with multiple apps. Curre
 ├── common - App for common functionality 
 ├── CONTRIBUTING.md - Documentation for how to contribute
 ├── economy - App for all economic functionality
-├── internal - Main app for the internal part of the web page. Note that not all internal views live here, but in other apps.
+├── internal - Main app for the internal part of the web page. Note that some internal views live in other apps.
 ├── ksg_nett - Project root folder.
 ├── LICENSE - License of project, currently GPL.
 ├── login - App handling login and authentication.
@@ -37,15 +37,15 @@ There are some guidelines, and general tips to be found in this document.
 All models must be defined as a regular Django-ORM model. They are required to:
 
 1. Contain a Meta class
-2. With the table name of the class explicitly defined
-3. Should follow [general normalization](https://en.wikipedia.org/wiki/Database_normalization) [best practices](http://agiledata.org/essays/dataNormalization.html).
-4. Must implement the \_\_str\_\_ method.
-5. Should implement the \_\_repr\_\_ method.
-6. Should not override the auto-incrementing default primary key. Other unique constrains should be specified explicitly.
-7. Must implement the get_absolute_url method.
-8. Must be given a DRF ModelSerializer and ModelView, and then be registered on the API.
-9. Should specify the following values under the Meta class: `default_related_name`, `verbose_name_plural`
-10. Every field should explicitly specifiy some or all the following values: [blank](https://docs.djangoproject.com/en/1.11/ref/models/fields/#blank), [null](https://docs.djangoproject.com/en/1.11/ref/models/fields/#null), [default](https://docs.djangoproject.com/en/1.11/ref/models/fields/#default).
+2. Should follow [general normalization](https://en.wikipedia.org/wiki/Database_normalization) [best practices](http://agiledata.org/essays/dataNormalization.html).
+3. Must implement the \_\_str\_\_ method.
+4. Should implement the \_\_repr\_\_ method.
+5. Should not override the auto-incrementing default primary key. Other unique constrains should be specified explicitly.
+6. Should given a DRF ModelSerializer and ModelView, and then be registered on the API.
+7. Should specify the following values under the Meta class: `default_related_name`, `verbose_name_plural`
+8. Every field should explicitly specifiy some or all the following parameters: [blank](https://docs.djangoproject.com/en/1.11/ref/models/fields/#blank), [null](https://docs.djangoproject.com/en/1.11/ref/models/fields/#null), [default](https://docs.djangoproject.com/en/1.11/ref/models/fields/#default).
+9. All ForeignKey and OneToOne fields must specificy the `on_delete` parameter. The rule of thumb is that nullable
+fields receive `models.SET_NULL` and all others receive `models.CASCADE`.
 
 
 Example:
@@ -60,7 +60,6 @@ class Image(models.Model):
     albums = models.ManyToManyField(Album)
 
     class Meta:
-        db_table = 'image'
         default_related_name = 'images'
         verbose_name_plural = 'images'
 ```
@@ -95,19 +94,33 @@ Template-rendering views should be as straight forward as possible. They should 
 3. Is the view a detail type of view? Like `internal/vaktlister/lyche` or `internal/users/25`. Then it should be suffixed with `_detail`, e.g. `users_detail`.
 4. Is the view a model-updating view? Then it should be suffixed with the operation it represents: `users_create`, `users_update`, `users_delete`.
 
-Any other view should be named simply after what service it yield / resource it returns. For instance, a view that generates a [jwt-token](https://jwt.io/), situated at `/security/jwt-token` can be named either of `jwt_token`, `generate_jwt_token`, etc.
+Any other view should be named simply after what service it yield / resource it returns. For instance, a view that generates a [jwt-token](https://jwt.io/), situated at `/security/jwt-token` can be named either `jwt_token`, or `generate_jwt_token`.
 
 Views should generally speaking **not** be suffixed with `_view`.
 
-Views that naturally have conflicting names with globals or other methods **can** get a `_view` prefix, or **may** find another prefix or suffix fitting. For example, a view for user login can not simply be named `login` as the Django-internal method for starting a user session is named `login`. Instead of renaming this method, we can call our view
-`user_login`. `login_view` would also have been fine.
+A few examples:
+
+```python
+# View situated at /internal/users/create that creates a user.
+def users_create(request):
+    pass
+
+# View situated at /internal/search
+def search(request):
+    pass
+
+# View situated at /internal/schedules/schedule-slot/create
+def schedule_slots_create(request):
+    pass
+```
+
+Views that naturally have conflicting names with globals or other methods **can** get a `_view` prefix, or **may** find another prefix or suffix fitting. For example, a view for user login can not simply be named `login` as the Django-internal method for starting a user session is named `login`. Instead of renaming this method, or rename the import of the internal login method, we can call our view `user_login`. `login_view` would also have been fine.
 
 As is clear, the URLs of a view can easily be determined from what type of view it is.
 
-
 ### Templates
 
-Not too much to say here. The only thing to mention is that there are two base-templates, of which one of them should always be the template you extend your new template with: `base_external.html` and `base_internal.html`.
+Not too much to say here. The only thing to mention is that there are two base-templates, of which one of them should always be the template you extend your new template with: `external/base.html` and `internal/base.html`.
 
 
 ## Frontend
