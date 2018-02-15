@@ -2,7 +2,31 @@
 
 ## General overview
 
-TODO
+The project is structured as a typical django project, with multiple apps. Currently the directory tree looks as follows:
+
+```
+.
+├── api/ - App where the public API live 
+├── commissions - App for commissions, aka "Verv"
+├── common - App for common functionality 
+├── CONTRIBUTING.md - Documentation for how to contribute
+├── economy - App for all economic functionality
+├── internal - Main app for the internal part of the web page. Note that not all internal views live here, but in other apps.
+├── ksg_nett - Project root folder.
+├── LICENSE - License of project, currently GPL.
+├── login - App handling login and authentication.
+├── Makefile - Makefile with some handy targets.
+├── manage.py - Django manage script.
+├── organization - App for organizational structures.
+├── quotes - App for quotes.
+├── README.md - The primary README.
+├── requirements.txt - Dependencies of the project.
+├── run_tests.sh - Helper file which run tests and report coverage.
+├── schedules - App for schedules and scheduling, i.e. "Vaktlister".
+├── SYSTEM.md - StackOverflowException
+└── users - App for user functionality, including our own custom AbstractUser implementation.
+
+```
 
 ## Backend
 We use the full-stack Django-experience. This means that we use Django views, Django routing, the Django ORM, and Django templates.
