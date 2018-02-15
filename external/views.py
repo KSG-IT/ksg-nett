@@ -8,4 +8,4 @@ def index(request):
     :param request:
     :return:
     """
-    return render(request, 'external/base.html')
+    return render(request, 'external/landing.html')
