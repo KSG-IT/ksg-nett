@@ -1,0 +1,18 @@
+{% extends 'internal/base.html' %}
+{% block body_content %}
+  <h1>{{ summary.get_summary_type_display }} at {{ summary.date|date:"d M, Y" }}</h1>
+  <p><b>Participants: </b></p>
+  {% if summary.participants|length == 0 %}
+    No participants
+  {% else %}
+    {{ summary.participants }}
+  {% endif %}
+  <p><b>Reporter:</b></p>
+  {{ summary.reporter.get_full_name }}
+  <p><b>Contents:</b></p>
+  {{ summary.contents }}
+  <p>
+    <button><a href="/internal/summaries/">Go back</a></button>
+  </p>
+
+{% endblock %}
