@@ -53,6 +53,7 @@ INSTALLED_APPS = [
     'users',
     'quotes',
     'schedules',
+    'summaries',
 ]
 
 MIDDLEWARE = [
