@@ -27,14 +27,15 @@ class DepositTestCase(TestCase):
         self.user1 = User.objects.create(id=1, username='user1', email='person1@something.com')
         self.user2 = User.objects.create(id=2, username='user2', email='person2@something.com')
         self.deposit = Deposit.objects.create(person=self.user1, amount=100)
-        self.now = datetime.datetime.now()
 
     def test_creation(self):
         self.assertIsInstance(self.deposit, Deposit)
 
     def test_time_of_creation(self):
+        self.deposit.signed_off_time = datetime.datetime.now()
+        self.now = datetime.datetime.now()
         self.assertEquals(self.now.date(), self.deposit.signed_off_time.date())
-        self.assertEquals(self.now.hour, self.deposit.signed_off_time.hour + 1) # +1 to set to norwegian time zone
+        self.assertEquals(self.now.hour, self.deposit.signed_off_time.hour)
         self.assertEquals(self.now.minute, self.deposit.signed_off_time.minute)
         self.assertEquals(self.now.second, self.deposit.signed_off_time.second)
 
@@ -43,6 +44,12 @@ class DepositTestCase(TestCase):
         self.deposit.signed_off_by = self.user2
         self.assertEquals(self.user2, self.deposit.signed_off_by)
         self.assertNotEqual(self.deposit.person, self.deposit.signed_off_by)
+
+    def test_str(self):
+        self.assertEquals(self.deposit.__str__(), "Deposit by user1 of 100 NOK")
+
+    def test_repr(self):
+        self.assertEquals(self.deposit.__repr__(), "Group(person=user1,amount=100)")
 
 
 class TransactionTestCase(TestCase):
@@ -59,11 +66,8 @@ class TransactionTestCase(TestCase):
     def test_creation(self):
         self.assertIsInstance(self.transaction, Transaction)
 
-    def test_time_of_creation(self):
-        self.assertEquals(self.now.date(), self.transaction.signed_off_time.date())
-        self.assertEquals(self.now.hour, self.transaction.signed_off_time.hour + 1) # +1 to set to norwegian time zone
-        self.assertEquals(self.now.minute, self.transaction.signed_off_time.minute)
-        self.assertEquals(self.now.second, self.transaction.signed_off_time.second)
+    def test_invalid(self):
+        self.assertTrue(self.transaction.invalid)
 
     def test_signed_off_by(self):
         self.assertIsNone(self.transaction.signed_off_by)
@@ -71,6 +75,16 @@ class TransactionTestCase(TestCase):
         self.assertEquals(self.user3, self.transaction.signed_off_by)
         self.assertNotEqual(self.transaction.sender, self.transaction.signed_off_by)
         self.assertNotEqual(self.transaction.recipient, self.transaction.signed_off_by)
+
+    def test_sign_off_time(self):
+        self.transaction.signed_off_time = datetime.datetime.now()
+        self.assertEquals(self.now.date(), self.transaction.signed_off_time.date())
+        self.assertEquals(self.now.hour, self.transaction.signed_off_time.hour)
+        self.assertEquals(self.now.minute, self.transaction.signed_off_time.minute)
+        self.assertEquals(self.now.second, self.transaction.signed_off_time.second)
+
+    def test_valid(self):
+        self.assertTrue(self.transaction.valid)
 
     def test_to_string(self):
         string = 'Transaction from user1 to user2 of 100 NOK'
@@ -105,4 +119,5 @@ class PurchaseListTestCase(TestCase):
     def setUp(self):
         self.user1 = User.objects.create(id=1, username='user1', email='person1@something.com')
         self.purchase_list = PurchaseList.objects.create(signed_off_by=self.user2, comment="A sample purchase list")
-        
+
+
