@@ -3,7 +3,6 @@ from __future__ import unicode_literals
 
 from django import forms
 from django.contrib import admin
-# Register your models here.
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.forms import UserChangeForm, UserCreationForm
 from django.utils.translation import ugettext_lazy as _
@@ -25,12 +24,13 @@ class MyUserCreationForm(UserCreationForm):
 
 
 class MyUserAdmin(UserAdmin):
+    list_display = ['id', 'full_name', 'ksg_role', 'ksg_status', 'current_commission', 'active', ]
     form = MyUserChangeForm
     add_form = MyUserCreationForm
     fieldsets = UserAdmin.fieldsets + (
         ('Personalia', {'fields': ('date_of_birth', 'study',)}),
         ('Contact', {'fields': ('phone', 'study_address', 'home_address',)}),
-        ('KSG options', {'fields': ('commission',)}),
+        ('KSG options', {'fields': ('ksg_status', 'ksg_role', 'commission',)}),
     )
     add_fieldsets = (
         (None, {
