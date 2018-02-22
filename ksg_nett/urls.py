@@ -23,6 +23,5 @@ urlpatterns = [
     url(r'^internal/', include('internal.urls')),
     url(r'^external/', include('external.urls')),
     url(r'^organization/', include('organization.urls')),
-    url(r'^users/', include('users.urls')),
-    url(r'^commissions/', include('commissions.urls')),
+    url(r'^users/', include('users.urls'))
 ]
