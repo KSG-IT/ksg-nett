@@ -71,12 +71,20 @@ class PurchaseList(models.Model):
     signed_off_by = models.ForeignKey(User, blank=False, null=False)
     comment = models.CharField(max_length=100, blank=False, null=False)
 
+    @property
+    def valid(self):
+        return self.signed_off_by is not None
+
+    @property
+    def invalid(self):
+        return not self.valid
+
     def __str__(self):
         return "A list of items purchased at date %s, registered at date %s by person %s" % \
                (self.date_purchased, self.date_registered, self.signed_off_by.username)
 
     def __repr__(self):
-        return "PurchaseList(date_crossed=%s, date_registered=%s, signed_off_by=%s, comment=%s)" % \
+        return "PurchaseList(date_purchased=%s, date_registered=%s, signed_off_by=%s, comment=%s)" % \
                (self.date_purchased, self.date_registered, self.signed_off_by.username, self.comment)
 
 
