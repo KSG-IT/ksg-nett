@@ -170,6 +170,28 @@ More small changes
 ### Migrations and model changes
 Every change in a model will generate a new migration file, when `python manage.py makemigrations` is run. The model-change *with* the migration should be commited together in a single atomic commit.
 
+## Automated Testing
+For every new feature implemented, at least one automated test utilizing this feature should be included as well. How many tests that are needed per feature is a highly subjective question, and is hard to generalize about. 
+
+Most tests should aim for testing that the feature is working as intended. Feel free to write tests that intentionally fail, as long as they do not complement other tests. 
+
+If fixing a bug, a regression test should be made. It is critical to ensure that this test **fails before** your bug fix, and then **passes after** your changes have been implemented.
+
+Writing tests should follow this naming convention: `test_PART_TO_TEST__INITIAL_STATE_OR_INPUTS__EXPECTED_OUTCOME`
+
+Example of a good test name:
+```
+test_add_commission_to_user__existing_commission__status_ok
+```
+
+Example of a bad test name:
+```
+test_add_commission
+```
+
+Do not be afraid to include all relevant info in the test names themselves. Long test names are encouraged when testing complex issues.
+
+
 ## Continuous Integration (CI)
 
 We use [Travis](https://travis-ci.org/) for continuous integration.
