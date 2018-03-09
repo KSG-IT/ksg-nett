@@ -17,3 +17,19 @@ def summaries_detail(request, summary_id):
     }
     return render(request, template_name='summaries/summary_detail.html', context=ctx)
 
+
+def summaries_create(request):
+    form = SummaryForm(request.POST or None)
+    ctx = {
+        'summary_form': form
+    }
+    if request.method == "GET":
+        return render(request, template_name='summaries/summaries_create.html', context=ctx)
+    elif request.method == "POST":
+        if form.is_valid():
+            instance = form.save()
+            return redirect(reverse(summaries_detail, kwargs={'summary_id': instance.id}))
+        else:
+            return render(request, template_name='summaries/summaries_create.html', context=ctx)
+    else:
+        return HttpResponse(status=status.HTTP_405_METHOD_NOT_ALLOWED)
