@@ -32,3 +32,27 @@ class TestSummaryModel(TestCase):
         str(self.summary)
         repr(self.summary)
 
+
+class SummaryPresentationViewsTest(TestCase):
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = User(
+            username='test',
+            email='test@example.com'
+        )
+        cls.user.set_password('password')
+        cls.user.save()
+        Summary.objects.bulk_create([
+            Summary(summary_type=SUMMARY_TYPE_BS, contents='Summary', reporter=cls.user, date=timezone.now()),
+            Summary(summary_type=SUMMARY_TYPE_BS, contents='Summary', reporter=cls.user, date=timezone.now()),
+            Summary(summary_type=SUMMARY_TYPE_BS, contents='Summary', reporter=cls.user, date=timezone.now()),
+            Summary(summary_type=SUMMARY_TYPE_BS, contents='Summary', reporter=cls.user, date=timezone.now())
+        ])
+
+    def test_list_view__renders_a_template_with_context(self):
+        self.client.login(username='test', password='password')
+        response = self.client.get(reverse(summaries_list))
+        self.assertEqual(response.context['summaries'].count(), 4)
+        self.assertTemplateUsed(response, 'summaries/summaries_list.html')
+
