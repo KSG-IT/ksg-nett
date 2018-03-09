@@ -112,10 +112,10 @@ class QuoteManagersTest(TestCase):
             Quote(text='Quote', quoter=cls.user, verified_by=cls.user),
         ])
 
-    def test_quote_pending_objects_works(self):
+    def test_quote_pending_objects__returns_correct_count(self):
         self.assertEqual(Quote.pending_objects.count(), 4)
 
-    def test_quote_verified_objects_works(self):
+    def test_quote_verified_objects__returns_correct_count(self):
         self.assertEqual(Quote.verified_objects.count(), 2)
 
 
@@ -136,7 +136,7 @@ class QuotePresentationViewsTest(TestCase):
             Quote(text='Quote', quoter=cls.user, verified_by=cls.user),
         ])
 
-    def test_list_view(self):
+    def test_list_view__renders_template_with_correct_context(self):
         self.client.login(username='test', password='password')
         response = self.client.get(reverse(quotes_list))
         self.assertEqual(response.context['pending'].count(), 1)
@@ -167,15 +167,14 @@ class QuoteVoteUpTest(TestCase):
             QuoteVote(caster=cls.user, quote_id=4, value=-1)
         ])
 
-    def test_vote_up_user_has_not_voted_yet(self):
+    def test_vote_up__user_has_not_voted_yet__quote_sum_changes(self):
         self.client.login(username='test', password='password')
         response = self.client.post(reverse(vote_up, kwargs={'quote_id': 2}))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         quote = Quote.objects.get(pk=2)
         self.assertEqual(quote.sum, 1)
 
-    def test_vote_up_has_voted_down_already(self):
-        # Test that sum updates when we change vote from down to up
+    def test_vote_up__user_has_voted_down_already__quote_sum_changes(self):
         self.client.login(username='test', password='password')
         quote = Quote.objects.get(pk=4)
         self.assertEqual(quote.sum, -1)
@@ -184,8 +183,7 @@ class QuoteVoteUpTest(TestCase):
         quote.refresh_from_db()
         self.assertEqual(quote.sum, 1)
 
-    def test_vote_up_has_voted_up_already(self):
-        # Test that sum stays the same
+    def test_vote_up__user_has_voted_up_already__quote_sum_does_not_change(self):
         self.client.login(username='test', password='password')
         quote = Quote.objects.get(pk=3)
         self.assertEqual(quote.sum, 1)
@@ -194,12 +192,12 @@ class QuoteVoteUpTest(TestCase):
         quote.refresh_from_db()
         self.assertEqual(quote.sum, 1)
 
-    def test_vote_up_pending_fails(self):
+    def test_vote_up__quote_is_pending__fails_with_404(self):
         self.client.login(username='test', password='password')
         response = self.client.post(reverse(vote_up, kwargs={'quote_id': 1}))
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
-    def test_vote_up_bad_http_method_fails(self):
+    def test_vote_up__bad_http_method__fails_with_405(self):
         self.client.login(username='test', password='password')
         response = self.client.get(reverse(vote_up, kwargs={'quote_id': 2}))
         self.assertEqual(response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
@@ -227,14 +225,14 @@ class QuoteVoteDownTest(TestCase):
             QuoteVote(caster=cls.user, quote_id=4, value=-1)
         ])
 
-    def test_vote_down_user_has_not_voted_yet(self):
+    def test_vote_down__user_has_not_voted_yet__quote_sum_changes(self):
         self.client.login(username='test', password='password')
         response = self.client.post(reverse(vote_down, kwargs={'quote_id': 2}))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         quote = Quote.objects.get(pk=2)
         self.assertEqual(quote.sum, -1)
 
-    def test_vote_down_has_voted_down_already(self):
+    def test_vote_down__user_has_voted_down_already__quote_sum_does_not_change(self):
         # Test that sum stays the same
         self.client.login(username='test', password='password')
         quote = Quote.objects.get(pk=4)
@@ -244,8 +242,7 @@ class QuoteVoteDownTest(TestCase):
         quote.refresh_from_db()
         self.assertEqual(quote.sum, -1)
 
-    def test_vote_down_has_voted_up_already(self):
-        # Test that sum up when we change vote from up to down
+    def test_vote_down__user_has_voted_up_already__quote_sum_changes(self):
         self.client.login(username='test', password='password')
         quote = Quote.objects.get(pk=3)
         self.assertEqual(quote.sum, 1)
@@ -254,12 +251,12 @@ class QuoteVoteDownTest(TestCase):
         quote.refresh_from_db()
         self.assertEqual(quote.sum, -1)
 
-    def test_vote_down_pending_fails(self):
+    def test_vote_down__quote_is_pending__fails_with_404(self):
         self.client.login(username='test', password='password')
         response = self.client.post(reverse(vote_down, kwargs={'quote_id': 1}))
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
-    def test_vote_down_GET_405s(self):
+    def test_vote_down__bad_http_method__fails_with_405(self):
         self.client.login(username='test', password='password')
         response = self.client.get(reverse(vote_down, kwargs={'quote_id': 2}))
         self.assertEqual(response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
@@ -279,11 +276,11 @@ class QuoteAddTest(TestCase):
     def setUp(self):
         self.client.login(username='test', password='password')
 
-    def test_GET_request_returns_template(self):
+    def test_quote_add__GET_request___renders_template(self):
         response = self.client.get(reverse(quotes_add))
         self.assertTemplateUsed(response, 'quotes/quotes_add.html')
 
-    def test_add_new_quote(self):
+    def test_quote_add__POST_request_with_new_quote__creates_quote(self):
         self.client.post(reverse(quotes_add), urlencode({
             'text': 'This is a cool quote',
             'quoter': self.user.id
@@ -293,7 +290,7 @@ class QuoteAddTest(TestCase):
         self.assertEqual(quote.text, 'This is a cool quote')
         self.assertEqual(quote.quoter, self.user)
 
-    def test_add_new_quote_with_bad_data_fails(self):
+    def test_quote_add__POST_request_with_missing_data__renders_with_form_failure(self):
         response = self.client.post(reverse(quotes_add), {
             'text': 'This is a cool quote'
             # Missing id
@@ -301,7 +298,7 @@ class QuoteAddTest(TestCase):
         # We're missing a field
         self.assertIn("This field is required", response.content.decode("utf-8"))
 
-    def test_add_new_quote_with_bad_http_method_fails(self):
+    def test_quotes_add__bad_http_method__fails_with_405(self):
         response = self.client.delete(reverse(quotes_add))
         self.assertEqual(response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
 
@@ -326,11 +323,11 @@ class QuoteEditTest(TestCase):
     def setUp(self):
         self.client.login(username='test', password='password')
 
-    def test_GET_request_returns_template(self):
+    def test_quotes_edit__GET_request__renders_template(self):
         response = self.client.get(reverse(quotes_edit, kwargs={'quote_id': 1}))
         self.assertTemplateUsed(response, 'quotes/quotes_edit.html')
 
-    def test_edit_quote(self):
+    def test_quotes_edit__POST_request_with_new_quote_data__changes_quote_object(self):
         self.client.post(reverse(quotes_edit, kwargs={'quote_id': 1}), urlencode({
             'text': 'Some new quote text',
             'quoter': self.user.id
@@ -341,13 +338,13 @@ class QuoteEditTest(TestCase):
         self.assertEqual(quote.text, 'Some new quote text')
         self.assertEqual(quote.quoter, self.user)
 
-    def test_edit_quote_fails_with_bad_data(self):
+    def test_quote_edit__POST_request_with_missing_data__renders_with_form_failure(self):
         response = self.client.post(reverse(quotes_edit, kwargs={'quote_id': 1}), urlencode({
             'text': 'Some new quote text',
         }), content_type="application/x-www-form-urlencoded")
         self.assertIn("This field is required", response.content.decode("utf-8"))
 
-    def test_edit_new_quote_with_bad_http_method_fails(self):
+    def test_quotes_edit__bad_http_method__fails_with_405(self):
         response = self.client.delete(reverse(quotes_edit, kwargs={'quote_id': 1}), urlencode({
             'text': 'Some new quote text',
         }), content_type="application/x-www-form-urlencoded")
@@ -374,15 +371,15 @@ class QuoteDeleteTest(TestCase):
     def setUp(self):
         self.client.login(username='test', password='password')
 
-    def test_delete_quote(self):
+    def test_delete_quote__deletes_quote(self):
         response = self.client.post(reverse(quotes_delete, kwargs={'quote_id': 1}))
         self.assertEqual(response.status_code, status.HTTP_302_FOUND)
 
-    def test_delete_no_existing_404s(self):
+    def test_delete_quote__non_existing_quote__fails_with_404(self):
         response = self.client.post(reverse(quotes_delete, kwargs={'quote_id': 2}))
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
-    def test_bad_http_method_fails(self):
+    def test_delete_quote__bad_http_method__fails_with_405(self):
         response = self.client.put(reverse(quotes_delete, kwargs={'quote_id': 2}))
         self.assertEqual(response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
 
