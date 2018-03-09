@@ -7,5 +7,5 @@ class SummaryForm(forms.ModelForm):
     class Meta:
         model = Summary
         fields = (
-            'summary_type', 'contents', 'participants', 'reporter'
+            'summary_type', 'contents', 'participants', 'reporter', 'date'
         )
