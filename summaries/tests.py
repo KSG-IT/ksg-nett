@@ -155,3 +155,37 @@ class SummaryUpdateTest(TestCase):
         }), content_type="application/x-www-form-urlencoded")
         self.assertEqual(response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
 
+
+class SummaryDeleteTest(TestCase):
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = User(
+            username='test',
+            email='test@example.com'
+        )
+        cls.user.set_password('password')
+        cls.user.save()
+
+        cls.summary = Summary(
+            contents="Some very cool contents",
+            reporter=cls.user,
+            date=timezone.now(),
+        )
+        cls.summary.save()
+
+    def setUp(self):
+        self.client.login(username='test', password='password')
+
+    def test_delete_summary__deletes_summary(self):
+        response = self.client.post(reverse(summaries_delete, kwargs={'summary_id': 1}))
+        self.assertEqual(response.status_code, status.HTTP_302_FOUND)
+        self.assertEqual(Summary.objects.all().count(), 0)
+
+    def test_delete_summary__summary_does_not_exist__fails_with_404(self):
+        response = self.client.post(reverse(summaries_delete, kwargs={'summary_id': 2}))
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_delete_summary__bad_http_method__fails_with_405(self):
+        response = self.client.put(reverse(summaries_delete, kwargs={'summary_id': 2}))
+        self.assertEqual(response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)

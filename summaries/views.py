@@ -1,5 +1,9 @@
-from django.shortcuts import render, get_object_or_404
+from django.http import HttpResponse
+from django.shortcuts import render, get_object_or_404, redirect
+from django.urls import reverse
+from rest_framework import status
 
+from summaries.forms import SummaryForm
 from summaries.models import Summary
 
 
@@ -53,3 +57,12 @@ def summaries_update(request, summary_id):
     else:
         return HttpResponse(status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
+
+def summaries_delete(request, summary_id):
+    if request.method != "POST":
+        return HttpResponse(status=status.HTTP_405_METHOD_NOT_ALLOWED)
+
+    summary = get_object_or_404(Summary, pk=summary_id)
+    summary.delete()
+
+    return redirect(reverse(summaries_list))
