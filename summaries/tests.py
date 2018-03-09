@@ -93,7 +93,7 @@ class SummaryCreateTest(TestCase):
         self.assertEqual(summary.contents, 'Nice summary yo')
         self.assertEqual(summary.reporter, self.user)
 
-    def test_summary_create__POST_request_with_missing_data__renders_form_with_error(elf):
+    def test_summary_create__POST_request_with_missing_data__renders_form_with_error(self):
         response = self.client.post(reverse(summaries_create), {
             'text': 'This is a cool summary'
         })
