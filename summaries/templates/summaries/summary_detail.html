@@ -2,11 +2,12 @@
 {% block body_content %}
   <h1>{{ summary.get_summary_type_display }} at {{ summary.date|date:"d M, Y" }}</h1>
   <p><b>Participants: </b></p>
-  {% if summary.participants|length == 0 %}
-    No participants
-  {% else %}
-    {{ summary.participants }}
-  {% endif %}
+  {% for participant in summary.participants.all %}
+    <div>
+      {{ participant.get_full_name }}
+    </div>
+  {% endfor %}
+
   <p><b>Reporter:</b></p>
   {{ summary.reporter.get_full_name }}
   <p><b>Contents:</b></p>
@@ -14,5 +15,7 @@
   <p>
     <button><a href="/internal/summaries/">Go back</a></button>
   </p>
-
+  <p>
+  <button><a href="{% url 'summaries_update' summary_id=summary.id %}">Edit</a></button>
+  </p>
 {% endblock %}
