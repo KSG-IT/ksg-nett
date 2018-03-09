@@ -33,3 +33,23 @@ def summaries_create(request):
             return render(request, template_name='summaries/summaries_create.html', context=ctx)
     else:
         return HttpResponse(status=status.HTTP_405_METHOD_NOT_ALLOWED)
+
+
+def summaries_update(request, summary_id):
+    summary = get_object_or_404(Summary, pk=summary_id)
+    form = SummaryForm(request.POST or None, instance=summary)
+    ctx = {
+        'summary_form': form,
+        'summary': summary
+    }
+    if request.method == "GET":
+        return render(request, template_name='summaries/summaries_update.html', context=ctx)
+    elif request.method == "POST":
+        if form.is_valid():
+            form.save()
+            return redirect(reverse(summaries_detail, kwargs={'summary_id': summary_id}))
+        else:
+            return render(request, template_name='summaries/summaries_update.html', context=ctx)
+    else:
+        return HttpResponse(status=status.HTTP_405_METHOD_NOT_ALLOWED)
+

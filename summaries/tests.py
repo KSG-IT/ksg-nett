@@ -104,3 +104,54 @@ class SummaryCreateTest(TestCase):
         response = self.client.delete(reverse(summaries_create))
         self.assertEqual(response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
 
+
+class SummaryUpdateTest(TestCase):
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = User(
+            username='test',
+            email='test@example.com'
+        )
+        cls.user.set_password('password')
+        cls.user.save()
+
+        cls.summary = Summary(
+            contents="Some very cool contents",
+            reporter=cls.user,
+            date=timezone.now(),
+        )
+        cls.summary.save()
+
+    def setUp(self):
+        self.client.login(username='test', password='password')
+
+    def test_GET_request__renders_template(self):
+        response = self.client.get(reverse(summaries_update, kwargs={'summary_id': 1}))
+        self.assertTemplateUsed(response, 'summaries/summaries_update.html')
+
+    def test_update_summary__POST_request_with_correct_data__updates_summary(self):
+        response = self.client.post(reverse(summaries_update, kwargs={'summary_id': 1}), urlencode({
+            'contents': 'Some new content',
+            'reporter': self.user.id,
+            'summary_type': 'ot',
+            'date': self.summary.date.strftime("%Y-%m-%d")
+        }), content_type="application/x-www-form-urlencoded")
+        self.assertEqual(response.status_code, 302)
+        summary = Summary.objects.first()
+        self.assertEqual(Summary.objects.count(), 1)
+        self.assertIsNotNone(summary)
+        self.assertEqual(summary.contents, 'Some new content')
+
+    def test_update_summary__POST_request_with_missing_data__fails_with_error_in_form(self):
+        response = self.client.post(reverse(summaries_update, kwargs={'summary_id': 1}), urlencode({
+            'text': 'Some new summary text',
+        }), content_type="application/x-www-form-urlencoded")
+        self.assertIn("This field is required", response.content.decode("utf-8"))
+
+    def test_update_summary__bad_http_method__fails_with_404(self):
+        response = self.client.delete(reverse(summaries_update, kwargs={'summary_id': 1}), urlencode({
+            'text': 'Some new summary text',
+        }), content_type="application/x-www-form-urlencoded")
+        self.assertEqual(response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
+
