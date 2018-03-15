@@ -16,8 +16,9 @@ class CommissionSerializer(serializers.ModelSerializer):
 
 
 class CreateCommissionSerializer(serializers.ModelSerializer):
-    name = serializers.CharField(required=True, validators=[
-        UniqueValidator(queryset=Commission.objects.all(), message='Commission already exists.')])
+    name = serializers.CharField(required=True,
+                                 validators=[UniqueValidator(queryset=Commission.objects.all(),
+                                                             message='Commission already exists.')])
 
     class Meta:
         model = Commission
