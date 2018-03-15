@@ -7,7 +7,7 @@ from django.urls import reverse
 from django.utils import timezone
 from rest_framework import status
 
-from summaries.consts import SUMMARY_TYPE_BS
+from summaries.consts import SUMMARY_TYPE_BS, SUMMARY_TYPE_OTHER
 from summaries.models import Summary
 from summaries.views import summaries_delete, summaries_create, summaries_update, summaries_list
 from users.models import User
@@ -82,7 +82,7 @@ class SummaryCreateTest(TestCase):
 
     def test_summary_create__POST_request_with_data__creates_new_summary(self):
         response = self.client.post(reverse(summaries_create), urlencode({
-            'summary_type': 'bs',
+            'summary_type': SUMMARY_TYPE_BS,
             'contents': 'Nice summary yo',
             'reporter': self.user.id,
             'date': timezone.now().strftime("%Y-%m-%d")
@@ -134,7 +134,7 @@ class SummaryUpdateTest(TestCase):
         response = self.client.post(reverse(summaries_update, kwargs={'summary_id': 1}), urlencode({
             'contents': 'Some new content',
             'reporter': self.user.id,
-            'summary_type': 'ot',
+            'summary_type': SUMMARY_TYPE_OTHER,
             'date': self.summary.date.strftime("%Y-%m-%d")
         }), content_type="application/x-www-form-urlencoded")
         self.assertEqual(response.status_code, 302)
