@@ -1,10 +1,5 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>KSG-Nett</title>
-</head>
-<body>
+{% extends 'internal/base.html' %}
+{% block body_content %}
   <h2>Pending</h2>
   <ul>
     {% for quote in pending %}
@@ -14,8 +9,19 @@
   <h2>Quotes</h2>
   <ul>
     {% for quote in quotes %}
-      <li>{{ quote.text }} - {{ quote.sum }}</li>
+      <li>
+        <span class="quote__text">
+          {{ quote.text }}
+        </span> -&nbsp;
+        <span class="quote__sum">
+          {{ quote.sum }}
+        </span>
+        &nbsp;
+        <button class="quote__voteup" data-quote-id="{{ quote.id }}">Vote up</button>
+        <button class="quote__votedown" data-quote-id="{{ quote.id }}">Vote down</button>
+      </li>
     {% endfor %}
   </ul>
-</body>
-</html>
+  {% load static %}
+  <script src="{% static 'quotes/quotes_list.js' %}"></script>
+{% endblock %}
