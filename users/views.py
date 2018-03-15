@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
 
-from django.views import generic
-
-from users.models import User
+from django.shortcuts import render
 
 
-class CurrentUserView(generic.ListView):
-    model = User
+def current_user(request):
+    user = {'current_user': request.user}
+    return render(request=request,
+                  template_name='users/profile_page.html',
+                  context=user)

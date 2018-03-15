@@ -1,7 +1,7 @@
 from django.conf.urls import url
 
-from users.views import CurrentUserView
+from users.views import current_user
 
 urlpatterns = [
-    url('current-user/', CurrentUserView.as_view())
+    url('current-user/', current_user)
 ]

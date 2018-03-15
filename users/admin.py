@@ -39,5 +39,8 @@ class MyUserAdmin(UserAdmin):
         }),
     )
 
+    def full_name(self, obj):
+        return obj.get_full_name()
+
 
 admin.site.register(User, MyUserAdmin)
