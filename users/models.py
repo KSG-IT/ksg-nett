@@ -56,6 +56,17 @@ class User(AbstractUser):
     def __repr__(self):
         return "User(name=%s)" % (self.first_name,)
 
+    def current_commission(self):
+        if self.commission:
+            return "%s" % (self.commission.name,)
+        else:
+            return None
+
+    def active(self):
+        return self.ksg_status == KSG_STATUS_TYPES[0][0]
+
+    active.boolean = True
+
     class Meta:
         default_related_name = 'users'
         verbose_name_plural = 'Users'

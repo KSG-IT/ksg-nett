@@ -33,7 +33,7 @@ KSG_POSITIONS = (
     ("brygger", "Brygger"),
     # Daglighallen
     ("daglighallenfunk", "Daglighallenfunk"),
-    ("daglighallenfunk", "Daglighallenbartender"),
+    ("daglighallenbartender", "Daglighallenbartender"),
     # Edgar
     ("kafeansvarlig", "Kaféansvarlig"),
     ("baristaer", "Barista"),

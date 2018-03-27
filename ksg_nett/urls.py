@@ -21,5 +21,7 @@ urlpatterns = [
     url(r'^api/', include('api.urls')),
     url(r'^', include('login.urls')),
     url(r'^internal/', include('internal.urls')),
+    url(r'^external/', include('external.urls')),
     url(r'^organization/', include('organization.urls')),
+    url(r'^users/', include('users.urls'))
 ]

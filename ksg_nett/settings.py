@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     'api',
     'commissions',
     'internal',
+    'external',
     'login',
     'organization',
     'users',
