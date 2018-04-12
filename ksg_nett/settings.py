@@ -47,13 +47,15 @@ INSTALLED_APPS = [
     # Project apps
     'api',
     'commissions',
-    'internal',
+    'economy',
     'external',
+    'internal',
     'login',
     'organization',
-    'users',
     'quotes',
     'schedules',
+    'users',
+
 ]
 
 MIDDLEWARE = [
