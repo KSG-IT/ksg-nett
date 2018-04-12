@@ -1,11 +1,28 @@
+from drf_yasg import openapi
+from drf_yasg.views import get_schema_view
 from rest_framework import generics, status
-from rest_framework import viewsets
+from rest_framework import viewsets, permissions
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from api.serializers import UserSerializer, CommissionSerializer, CreateCommissionSerializer
 from commissions.models import Commission
 from users.models import User
+
+# ===============================
+# API DOCS
+# ===============================
+
+schema_view = get_schema_view(
+    urlconf='api.urls',
+    info=openapi.Info(
+        title="KSG-nett API",
+        default_version='v1',
+        description="This is the API reference for the web services of Kafé og Serveringsgjengen at Samfundet.",
+    ),
+    public=True,
+    permission_classes=(permissions.AllowAny,),
+)
 
 
 # ===============================
