@@ -1,3 +1,4 @@
-Django==1.11.4
-djangorestframework==3.6.4
-pytz==2017.2
+Django==1.11.11
+djangorestframework==3.8.2
+pytz==2018.4
+drf-yasg==1.6.1

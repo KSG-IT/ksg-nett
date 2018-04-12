@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     # Third party apps
     'rest_framework',
     'rest_framework.authtoken',
+    'drf_yasg',
 
     # Project apps
     'api',
@@ -157,8 +158,7 @@ REST_FRAMEWORK = {
     ),
     'DEFAULT_PERMISSIONS_CLASSES': (
         'rest_framework.permissions.IsAdminUser'
-    ),
-    'PAGE_SIZE': 20
+    )
 }
 
 STATIC_ROOT = 'static/'
