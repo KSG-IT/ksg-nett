@@ -163,3 +163,9 @@ REST_FRAMEWORK = {
 
 STATIC_ROOT = 'static/'
 MEDIA_ROOT = 'media/'
+
+# GLOBAL SETTINGS
+# ------------------------------
+MINIMUM_SOCI_AMOUNT = 0
+SOCI_CARD_ID = 8008135  # For identifying Soci's own Soci Bank Account (a normal card id is 9 digits)
+DIRECT_CHARGE_SKU = "X-BELØP"
