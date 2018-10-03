@@ -16,12 +16,19 @@ Including another URLconf
 from django.conf.urls import url, include
 from django.contrib import admin
 
+from api.views import schema_view
+
 urlpatterns = [
+    # Website
+    url(r'^', include('login.urls')),
+    url(r'^', include('common.urls')),
+    url(r'^external/', include('external.urls')),
+    url(r'^internal/', include('internal.urls')),
+    url(r'^organization/', include('organization.urls')),
+    url(r'^users/', include('users.urls')),
+
+    # Developer
     url(r'^admin/', admin.site.urls),
     url(r'^api/', include('api.urls')),
-    url(r'^', include('login.urls')),
-    url(r'^internal/', include('internal.urls')),
-    url(r'^external/', include('external.urls')),
-    url(r'^organization/', include('organization.urls')),
-    url(r'^users/', include('users.urls'))
+    url(r'^docs/$', schema_view.with_ui('redoc', cache_timeout=None), name='schema-redoc'),
 ]

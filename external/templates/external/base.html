@@ -1,38 +1,38 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta http-equiv="x-ua-compatible" content="ie=edge">
-  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-  <meta name="description" content="The external web page of KSG">
-  {# Make the CSRF token available for all deriving templates #}
-  <meta name="csrf-token" content="{{ csrf_token }}">
+    <meta charset="UTF-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="The external web page of KSG">
+    {# Make the CSRF token available for all deriving templates #}
+    <meta name="csrf-token" content="{{ csrf_token }}">
 
-  <title>Kafé- og Serveringsgjengen</title>
+    <title>Kafé- og Serveringsgjengen</title>
 
-  {% load static %}
-  {% block override_static_defaults %}
-    {% comment %}
+    {% load static %}
+    {% block override_static_defaults %}
+        {% comment %}
       This block exists as a block to allow others to override the default static imports.
     {% endcomment %}
 
-    {# Vendor libraries #}
-    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+        {# Vendor libraries #}
+        <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
 
-    {# Main styling and scripting files #}
-    <script src="{% static 'external/js/main.js' %}"></script>
-    <link rel="stylesheet" href="{% static 'external/css/main.css' %}">
+        {# Main styling and scripting files #}
+        <script src="{% static 'external/js/main.js' %}"></script>
+        <link rel="stylesheet" href="{% static 'external/css/main.css' %}">
 
-  {% endblock %}
-  {% block header %}
-  {% endblock %}
+    {% endblock %}
+    {% block header %}
+    {% endblock %}
 
 </head>
 <body>
 {% block body_content %}
 {% endblock %}
 {% block body_end %}
-  <!-- Place body-loaded scripts in this block -->
+    <!-- Place body-loaded scripts in this block -->
 {% endblock %}
 </body>
 </html>
