@@ -11,6 +11,14 @@ Du er registrert som {{ current_user.ksg_status }} {{ current_user.ksg_role }}
 <br>
 Du startet i KSG {{ current_user.start_ksg }}
 <br>
+Du har følgende saldo på kontoen din: {{ current_user.balance }}
+<br>
+Phone number: {{ current_user.phone }}
+<br>
+Study address: {{ current_user.study_address }}
+<br>
+Home address: {{ current_user.home_address }}
+<br>
 {% if current_user.current_commission %}
     Du har for tiden vervet {{ current_user.current_commission }}
 {% else %}

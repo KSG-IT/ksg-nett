@@ -9,7 +9,6 @@ from django.utils.translation import ugettext_lazy as _
 
 from economy.models import SociBankAccount
 from users.models import User
-from users.models import Allergy
 
 
 class MyUserChangeForm(UserChangeForm):
@@ -44,7 +43,7 @@ class MyUserAdmin(UserAdmin):
         ('Credentials', {'fields': ('date_of_birth', 'study', 'profile_image', 'serious_profile_image',)}),
         ('Contact', {'fields': ('phone', 'study_address', 'home_address',)}),
         ('KSG options', {'fields': ('ksg_status', 'ksg_role', 'commission',)}),
-        ('Additional info', {'fields': ('in_relationship',)}),
+        ('Additional info', {'fields': ('in_relationship', 'allergies',)}),
     )
     inlines = [SociBankAccountInline]
     add_fieldsets = (
@@ -57,8 +56,6 @@ class MyUserAdmin(UserAdmin):
     @staticmethod
     def full_name(obj):
         return obj.get_full_name()
-
-    inlines = [Allergens]
 
 
 admin.site.register(User, MyUserAdmin)

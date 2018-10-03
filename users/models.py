@@ -24,6 +24,36 @@ KSG_ROLES = (
     ("hospitant", "Hospitant"),
 )
 
+# Allergy types
+ALLERGIES = (
+    ("gluten", "Glutenallergi"),
+    ("lactose", "Laktoseintolerant"),
+    ("milk", "Melkeallergi"),
+    ("nuts", "Nøtter"),
+    ("shellfish", "Skalldyr"),
+    ("celery", "Selleri"),
+    ("soy", "Soya"),
+    ("fish", "Fisk"),
+    ("egg", "Egg"),
+)
+
+
+class Allergy(models.Model):
+    """
+    Model containing food preferences and allergies
+    """
+    name = models.CharField(max_length=32)
+
+    def __str__(self):
+        return self.name
+
+    def __repr__(self):
+        return self.name
+
+    class Meta:
+        default_related_name = 'allergies'
+        verbose_name_plural = 'Allergies'
+
 
 class User(AbstractUser):
     """
@@ -54,6 +84,12 @@ class User(AbstractUser):
         on_delete=models.SET_NULL
     )
 
+    allergies = models.ManyToManyField(
+        Allergy,
+        blank=True,
+        related_name='users'
+    )
+
     def __str__(self):
         return f"User {self.get_full_name()}"
 
@@ -74,36 +110,5 @@ class User(AbstractUser):
         verbose_name_plural = 'Users'
 
 
-class Allergy(models.Model):
-    """
-    Model containing food preferences and allergies
-    """
-    user = models.OneToOneField(to='User', default=None)
-
-    # Allergens
-    gluten = models.BooleanField(default=False)
-    lactose = models.BooleanField(default=False)
-    milk = models.BooleanField(default=False)
-    nuts = models.BooleanField(default=False)
-    shellfish = models.BooleanField(default=False)
-    celery = models.BooleanField(default=False)
-    soy = models.BooleanField(default=False)
-    fish = models.BooleanField(default=False)
-    egg = models.BooleanField(default=False)
-
-    # Diets
-    vegetarian = models.BooleanField(default=False)
-    pescitarian = models.BooleanField(default=False)
-    vegan = models.BooleanField(default=False)
-    not_swine = models.BooleanField(default=False)
-
-    def __str__(self):
-        return ""
-
-    def __repr__(self):
-        return ""
 
 
-    class Meta:
-        default_related_name = 'allergies'
-        verbose_name_plural = 'Allergies'
