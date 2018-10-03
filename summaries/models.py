@@ -8,7 +8,7 @@ from users.models import User
 
 class Summary(models.Model):
     summary_type = models.CharField(
-        max_length=4,
+        max_length=16,
         null=False,
         choices=SUMMARY_TYPE_CHOICES,
         default=SUMMARY_TYPE_OTHER

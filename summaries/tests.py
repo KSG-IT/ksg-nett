@@ -7,7 +7,7 @@ from django.urls import reverse
 from django.utils import timezone
 from rest_framework import status
 
-from summaries.consts import SUMMARY_TYPE_BS, SUMMARY_TYPE_OTHER
+from summaries.consts import SUMMARY_TYPE_BARSJEF, SUMMARY_TYPE_OTHER
 from summaries.models import Summary
 from summaries.views import summaries_delete, summaries_create, summaries_update, summaries_list
 from users.models import User
@@ -24,7 +24,7 @@ class TestSummaryModel(TestCase):
         for user in cls.users:
             user.save()
         cls.summary = Summary(
-            summary_type=SUMMARY_TYPE_BS,
+            summary_type=SUMMARY_TYPE_BARSJEF,
             contents="Kjersti falt av stolen.",
             date=timezone.now(),
             reporter=cls.users[0]
@@ -49,10 +49,10 @@ class SummaryPresentationViewsTest(TestCase):
         cls.user.set_password('password')
         cls.user.save()
         Summary.objects.bulk_create([
-            Summary(summary_type=SUMMARY_TYPE_BS, contents='Summary', reporter=cls.user, date=timezone.now()),
-            Summary(summary_type=SUMMARY_TYPE_BS, contents='Summary', reporter=cls.user, date=timezone.now()),
-            Summary(summary_type=SUMMARY_TYPE_BS, contents='Summary', reporter=cls.user, date=timezone.now()),
-            Summary(summary_type=SUMMARY_TYPE_BS, contents='Summary', reporter=cls.user, date=timezone.now())
+            Summary(summary_type=SUMMARY_TYPE_BARSJEF, contents='Summary', reporter=cls.user, date=timezone.now()),
+            Summary(summary_type=SUMMARY_TYPE_BARSJEF, contents='Summary', reporter=cls.user, date=timezone.now()),
+            Summary(summary_type=SUMMARY_TYPE_BARSJEF, contents='Summary', reporter=cls.user, date=timezone.now()),
+            Summary(summary_type=SUMMARY_TYPE_BARSJEF, contents='Summary', reporter=cls.user, date=timezone.now())
         ])
 
     def test_list_view__renders_a_template_with_context(self):
@@ -82,7 +82,7 @@ class SummaryCreateTest(TestCase):
 
     def test_summary_create__POST_request_with_data__creates_new_summary(self):
         response = self.client.post(reverse(summaries_create), urlencode({
-            'summary_type': SUMMARY_TYPE_BS,
+            'summary_type': SUMMARY_TYPE_BARSJEF,
             'contents': 'Nice summary yo',
             'reporter': self.user.id,
             'date': timezone.now().strftime("%Y-%m-%d")
