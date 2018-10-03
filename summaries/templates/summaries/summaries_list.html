@@ -1,0 +1,12 @@
+{% extends 'internal/base.html' %}
+{% block body_content %}
+  <h1>Summaries</h1>
+  {% if summaries %}
+    <ul>
+      {% for summary in summaries %}
+        <li><a href="/internal/summaries/{{ summary.id }}/">{{ summary }}</a></li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+  <button><a href="{% url 'summaries_create' %}">Create new summary</a></button>
+{% endblock %}

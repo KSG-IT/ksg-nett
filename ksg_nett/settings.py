@@ -55,8 +55,8 @@ INSTALLED_APPS = [
     'organization',
     'quotes',
     'schedules',
-    'users',
-
+    'summaries',
+    'users'
 ]
 
 MIDDLEWARE = [

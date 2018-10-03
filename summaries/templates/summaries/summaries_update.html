@@ -1,0 +1,7 @@
+{% extends 'internal/base.html' %}
+{% block body_content %}
+  <form method="POST">
+    {% csrf_token %}
+    {{ summary_form }}
+  </form>
+{% endblock %}
