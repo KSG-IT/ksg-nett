@@ -7,8 +7,8 @@ from rest_framework.generics import get_object_or_404, ListAPIView, RetrieveAPIV
 from rest_framework.response import Response
 
 from api.serializers import CheckBalanceSerializer, SociProductSerializer, ChargeSociBankAccountDeserializer, \
-    TransactionSerializer
-from economy.models import SociBankAccount, SociProduct
+    PurchaseSerializer
+from economy.models import SociBankAccount, SociProduct, Purchase
 
 # ===============================
 # API DOCS
@@ -75,20 +75,24 @@ class CheckBalanceView(RetrieveAPIView):
 class ChargeSociBankAccountView(generics.CreateAPIView):
     """
     #### Charges the specified account, based on the provided RFID card number, \
-    for the price of the product connected to the provided SKU number.
+    for the price of the product with provided SKU number. \
+    If the SKU is the direct charge, an amount needs to be specified as well.
     """
-    serializer_class = TransactionSerializer
+    serializer_class = PurchaseSerializer
 
     def post(self, request, *args, **kwargs):
         card_uuid = self.request.META.get('HTTP_CARD_NUMBER', None)
         soci_bank_account: SociBankAccount = self._get_account_from_card_id(card_uuid=card_uuid)
 
-        deserializer = ChargeSociBankAccountDeserializer(soci_bank_account, data=request.data,
-                                                         context={'user': request.user})
+        deserializer = ChargeSociBankAccountDeserializer(
+            data=request.data, context={'soci_bank_account': soci_bank_account}, many=True, allow_empty=False)
         deserializer.is_valid(raise_exception=True)
-        transaction = deserializer.save()
 
-        serializer = self.get_serializer(transaction)
+        purchase = Purchase.objects.create(source=soci_bank_account, signed_off_by=request.user)
+        deserializer.save(purchase=purchase)
+        purchase.save()  # Trigger signal
+
+        serializer = self.get_serializer(purchase)
         data = serializer.data
 
         return Response(data, status=status.HTTP_201_CREATED)

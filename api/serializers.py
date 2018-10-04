@@ -2,7 +2,7 @@ from django.conf import settings
 from rest_framework import serializers
 
 from api.exceptions import InsufficientFundsException
-from economy.models import SociProduct, Transaction, SociBankAccount
+from economy.models import SociProduct, ProductOrder
 
 
 # ===============================
@@ -21,6 +21,9 @@ class SociProductSerializer(serializers.Serializer):
 
     icon = serializers.CharField(read_only=True, label="Product icon descriptor")
 
+    expiry_date = serializers.DateTimeField(read_only=True, allow_null=True,
+                                            label="Product only available for purchase until this date")
+
 
 class CheckBalanceSerializer(serializers.Serializer):
     user = serializers.CharField(read_only=True, label="User´s full name")
@@ -35,8 +38,11 @@ class CheckBalanceSerializer(serializers.Serializer):
 class ChargeSociBankAccountDeserializer(serializers.Serializer):
     sku = serializers.CharField(label="Product SKU number to charge for")
 
-    amount = serializers.IntegerField(required=False, label="Amount to charge",
-                                      help_text="Only required when using the SKU for charging a direct amount")
+    order_size = serializers.IntegerField(required=False, label="Order size for this product",
+                                          help_text="Defaults to 1 if not supplied")
+
+    direct_charge_amount = serializers.IntegerField(required=False, label="Amount to charge directly",
+                                                    help_text="Only required when using the direct charge SKU")
 
     @staticmethod
     def validate_sku(value):
@@ -45,38 +51,40 @@ class ChargeSociBankAccountDeserializer(serializers.Serializer):
         return value
 
     @staticmethod
-    def validate_amount(value):
+    def validate_order_size(value):
+        if value <= 0:
+            raise serializers.ValidationError('Order size must be positive.')
+        return value
+
+    @staticmethod
+    def validate_direct_charge_amount(value):
         if value <= 0:
             raise serializers.ValidationError('Amount must be positive.')
         return value
 
     def validate(self, attrs):
-        if attrs.get('sku', None) != settings.DIRECT_CHARGE_SKU:
-            if attrs.get('amount', None):
-                raise serializers.ValidationError('Amount can only be set when charging a direct amount.')
+        if attrs.get('sku', None) != settings.DIRECT_CHARGE_SKU and attrs.get('direct_charge_amount', None):
+            raise serializers.ValidationError('Amount can only be set when charging a direct amount.')
 
-            attrs['amount'] = SociProduct.objects.get(sku_number=attrs['sku']).price
-
-        elif attrs.get('sku', None) == settings.DIRECT_CHARGE_SKU and attrs.get('amount', None) is None:
+        elif attrs.get('sku', None) == settings.DIRECT_CHARGE_SKU and attrs.get('direct_charge_amount', None) is None:
             raise serializers.ValidationError('Amount must be set when charging a direct amount.')
 
-        if attrs['amount'] > self.instance.balance:
+        attrs['amount'] = attrs.pop('direct_charge_amount', SociProduct.objects.get(sku_number=attrs['sku']).price)
+        if attrs['amount'] > self.context['soci_bank_account'].chargeable_balance:
             raise InsufficientFundsException()
 
         return attrs
 
-    def update(self, instance: SociBankAccount, validated_data):
-        destination = SociBankAccount.objects.get(card_uuid=settings.SOCI_CARD_ID)
-        product = SociProduct.objects.get(sku_number=validated_data['sku'])
-        transaction = Transaction.objects.create(source=instance, destination=destination,
-                                                 amount=validated_data['amount'], product=product,
-                                                 signed_off_by=self.context['user'])
+    def create(self, validated_data):
+        product_order = ProductOrder.objects.create(
+            product=SociProduct.objects.get(sku_number=validated_data.pop('sku')), **validated_data
+        )
 
-        return transaction
+        return product_order
 
 
-class TransactionSerializer(serializers.Serializer):
-    amount_charged = serializers.IntegerField(read_only=True, source='amount',
+class PurchaseSerializer(serializers.Serializer):
+    amount_charged = serializers.IntegerField(read_only=True, source='total_amount',
                                               label="Amount that was charged from user´s Soci account")
 
     amount_remaining = serializers.IntegerField(read_only=True, source='source.public_balance', allow_null=True,
@@ -84,5 +92,4 @@ class TransactionSerializer(serializers.Serializer):
                                                 help_text="Returns `null` if user has disabled public display of "
                                                           "balance")
 
-    product_purchased = serializers.CharField(read_only=True, source='product.name',
-                                              label="The product that was purchased")
+    products_purchased = serializers.ListField(read_only=True, label="The products that were purchased")

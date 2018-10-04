@@ -3,7 +3,7 @@ from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase, APIClient
 
-from economy.models import SociBankAccount, SociProduct, Transaction
+from economy.models import SociBankAccount, SociProduct
 from users.models import User
 
 
@@ -31,7 +31,7 @@ class SociProductsViewTest(APITestCase):
 
         self.assertEquals(response.status_code, status.HTTP_200_OK)
         self.assertEquals(len(response.data), 3)
-        self.assertEqual((len(response.data[0])), 5)
+        self.assertEqual((len(response.data[0])), 6)
 
     def test_get__product_without_description__description_blank(self):
         SociProduct.objects.create(sku_number='NORDLANDS', name="Nordlands Pils", price=30)
@@ -49,7 +49,7 @@ class CheckBalanceViewTest(APITestCase):
         self.client = APIClient()
         self.user = User.objects.create(username='Christian')
         self.client.force_authenticate(user=self.user)
-        self.soci_account = SociBankAccount.objects.create(user=self.user, balance=0, card_uuid=1234567890)
+        self.soci_account = SociBankAccount.objects.create(user=self.user, card_uuid=1234567890)
         self.client.credentials(HTTP_CARD_NUMBER=self.soci_account.card_uuid)
 
     def test_get_balance__positive_amount__ok(self):
@@ -94,128 +94,104 @@ class ChargeSociBankAccountViewTest(APITestCase):
     def setUp(self):
         self.url = reverse('charge')
         self.client = APIClient()
-        self.user = User.objects.create(username='Christian', email='christian@kit.no', first_name='source')
-        self.soci = User.objects.create(username='Soci', email='soci@kit.no', first_name='destination')
+        self.user = User.objects.create(username='User', email='user@samfundet.no', first_name='user')
+        self.soci = User.objects.create(username='Soci', email='soci@samfundet.no', first_name='soci')
         self.client.force_authenticate(user=self.soci)
-        SociBankAccount.objects.create(user=self.soci, balance=0, card_uuid=settings.SOCI_CARD_ID)
+        SociBankAccount.objects.create(user=self.soci, card_uuid=settings.SOCI_MASTER_ACCOUNT_CARD_ID)
         self.soci_account = SociBankAccount.objects.create(user=self.user, balance=1000, card_uuid=1234567890)
 
+        self.dahls = SociProduct.objects.create(sku_number='DAHLS', name="Dahls", price=30,
+                                                description="En gammel slager. Nytes lunken.")
         self.smirre = SociProduct.objects.create(sku_number='ICE', name="Smirnoff ICE", price=35,
                                                  description="Når du føler for å imponere.")
         self.direct_charge = SociProduct.objects.create(sku_number=settings.DIRECT_CHARGE_SKU, name="Direct charge",
                                                         price=0, description="Kryss direkte beløp her.")
         self.client.credentials(HTTP_CARD_NUMBER=self.soci_account.card_uuid)
 
-    def test_charge_product__sufficient_balance__created_and_charged_correctly(self):
-        data = {
-            "sku": self.smirre.sku_number,
-        }
+    def test_charge_valid_products__sufficient_balance__created_and_charged_correctly(self):
+        data = [
+            {"sku": self.smirre.sku_number, "order_size": 5},
+            {"sku": self.dahls.sku_number},
+            {"sku": settings.DIRECT_CHARGE_SKU, "direct_charge_amount": 200}
+        ]
 
-        response = self.client.post(self.url, data)
-
-        self.assertEquals(response.status_code, status.HTTP_201_CREATED)
-        self.assertEquals(len(response.data), 3)
-        self.assertEqual(response.data['amount_charged'], self.smirre.price)
-        self.assertFalse(response.data['amount_remaining'])
-        self.assertTrue(self.user.bank_account.transaction_history.last().is_valid)
-
-    def test_direct_charge__sufficient_balance__created_and_charged_correctly(self):
-        data = {
-            "sku": self.direct_charge.sku_number,
-            "amount": 100,
-        }
-
-        response = self.client.post(self.url, data)
+        response = self.client.post(self.url, data, format="json")
 
         self.assertEquals(response.status_code, status.HTTP_201_CREATED)
-        self.assertEquals(len(response.data), 3)
-        self.assertEqual(response.data['amount_charged'], 100)
-        self.assertFalse(response.data['amount_remaining'])
+        self.assertEquals(3, len(response.data))
+        self.assertEqual(405, response.data['amount_charged'])
+        self.assertFalse(response.data['amount_remaining'])  # Balance hidden
+        self.assertTrue(self.user.bank_account.transaction_history['purchases'].last().is_valid)
 
     def test_charge__user_wants_balance_shown__created_and_return_balance(self):
         self.soci_account.display_balance_at_soci = True
         self.soci_account.save()
-        data = {
-            "sku": self.smirre.sku_number,
-        }
+        data = [
+            {"sku": self.smirre.sku_number}
+        ]
 
-        response = self.client.post(self.url, data)
+        response = self.client.post(self.url, data, format="json")
 
         self.assertEquals(response.status_code, status.HTTP_201_CREATED)
-        self.assertEquals(len(response.data), 3)
-        self.assertEqual(response.data['amount_charged'], self.smirre.price)
-        self.assertEqual(response.data['amount_remaining'], self.soci_account.balance - self.smirre.price)
+        self.assertEqual(965, response.data['amount_remaining'])
 
     def test_charge__insufficient_balance__payment_required(self):
         self.soci_account.remove_funds(1000)
-        data = {
-            "sku": self.smirre.sku_number,
-        }
+        data = [
+            {"sku": self.smirre.sku_number}
+        ]
 
-        response = self.client.post(self.url, data)
+        response = self.client.post(self.url, data, format="json")
 
         self.assertEquals(response.status_code, status.HTTP_402_PAYMENT_REQUIRED)
-        self.assertEqual(self.soci_account.balance, 0)
-        self.assertEqual(Transaction.objects.count(), 0)
 
     def test_charge__incorrect_card_id__not_found(self):
-        data = {
-            "sku": self.smirre.sku_number,
-        }
-
         self.client.credentials(HTTP_CARD_NUMBER="01189998819991197253")
-        response = self.client.post(self.url, data)
+        data = [
+            {"sku": self.smirre.sku_number}
+        ]
+
+        response = self.client.post(self.url, data, format="json")
 
         self.assertEquals(response.status_code, status.HTTP_404_NOT_FOUND)
-        self.assertEqual(self.soci_account.balance, 1000)
-        self.assertEqual(Transaction.objects.count(), 0)
 
     def test_charge__invalid_sku__bad_request(self):
-        data = {
-            "sku": "ABSINTHE",
-        }
+        data = [
+            {"sku": "ABSINTHE"}
+        ]
 
-        response = self.client.post(self.url, data)
-
-        self.assertEquals(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertTrue(response.data['sku'])
-        self.assertEqual(self.soci_account.balance, 1000)
-        self.assertEqual(Transaction.objects.count(), 0)
-
-    def test_charge__negative_amount__bad_request(self):
-        data = {
-            "sku": self.smirre.sku_number,
-            "amount": -100,
-        }
-
-        response = self.client.post(self.url, data)
+        response = self.client.post(self.url, data, format="json")
 
         self.assertEquals(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertTrue(response.data['amount'])
-        self.assertEqual(self.soci_account.balance, 1000)
-        self.assertEqual(Transaction.objects.count(), 0)
+
+    def test_charge__negative_direct_charge_amount__bad_request(self):
+        data = [
+            {"sku": settings.DIRECT_CHARGE_SKU, "direct_charge_amount": -100}
+        ]
+
+        response = self.client.post(self.url, data, format="json")
+
+        self.assertEquals(response.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_charge__amount_but_not_direct_charge__bad_request(self):
-        data = {
-            "sku": self.smirre.sku_number,
-            "amount": 100,
-        }
+        data = [
+            {"sku": self.smirre.sku_number, "direct_charge_amount": 100}
+        ]
 
-        response = self.client.post(self.url, data)
+        response = self.client.post(self.url, data, format="json")
 
         self.assertEquals(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertTrue(response.data['non_field_errors'])
-        self.assertEqual(self.soci_account.balance, 1000)
-        self.assertEqual(Transaction.objects.count(), 0)
 
     def test_charge__direct_charge_but_not_amount__bad_request(self):
-        data = {
-            "sku": self.direct_charge.sku_number,
-        }
+        data = [{"sku": self.direct_charge.sku_number}]
 
-        response = self.client.post(self.url, data)
+        response = self.client.post(self.url, data, format="json")
 
         self.assertEquals(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertTrue(response.data['non_field_errors'])
-        self.assertEqual(self.soci_account.balance, 1000)
-        self.assertEqual(Transaction.objects.count(), 0)
+
+    def test_charge__non_list_as_body__bad_request(self):
+        data = {"sku": self.direct_charge.sku_number}
+
+        response = self.client.post(self.url, data, format="json")
+
+        self.assertEquals(response.status_code, status.HTTP_400_BAD_REQUEST)
