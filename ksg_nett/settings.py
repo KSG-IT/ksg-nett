@@ -158,8 +158,17 @@ REST_FRAMEWORK = {
     ),
     'DEFAULT_PERMISSIONS_CLASSES': (
         'rest_framework.permissions.IsAdminUser'
-    )
+    ),
+    'DEFAULT_PAGINATION_CLASS': (
+        'rest_framework.pagination.PageNumberPagination'
+    ),
 }
 
 STATIC_ROOT = 'static/'
 MEDIA_ROOT = 'media/'
+
+# ECONOMY SETTINGS
+# ------------------------------
+MINIMUM_SOCI_AMOUNT = 0
+SOCI_MASTER_ACCOUNT_CARD_ID = 0xBADCAFEBABE  # Real card ids are 10 digits, while this is 14, meaning no collisions
+DIRECT_CHARGE_SKU = "X-BELOP"

@@ -47,20 +47,19 @@ class User(AbstractUser):
         default=None,
         blank=True,
         null=True,
-        related_name='holders'
+        related_name='holders',
+        on_delete=models.SET_NULL
     )
 
     def __str__(self):
-        return "User %s" % (self.first_name,)
+        return f"User {self.get_full_name()}"
 
     def __repr__(self):
-        return "User(name=%s)" % (self.first_name,)
+        return f"User(name={self.get_full_name()})"
 
+    @property
     def current_commission(self):
-        if self.commission:
-            return "%s" % (self.commission.name,)
-        else:
-            return None
+        return f"{self.commission.name}" if self.commission else None
 
     def active(self):
         return self.ksg_status == KSG_STATUS_TYPES[0][0]
