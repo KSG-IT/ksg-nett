@@ -14,6 +14,7 @@ class Quote(models.Model):
         related_name='quotes',
         on_delete=models.DO_NOTHING
     )
+
     # None indicates not validated
     verified_by = models.ForeignKey(
         User,
@@ -57,12 +58,19 @@ class Quote(models.Model):
 
 
 class QuoteVote(models.Model):
-    quote = models.ForeignKey(Quote, related_name='votes', on_delete=models.CASCADE)
+    quote = models.ForeignKey(
+        Quote,
+        related_name='votes',
+        on_delete=models.CASCADE
+    )
     # 1 for thumbs up, -1 for thumbs down. Having the field as an integer field
     # allows for future flexibility such as allowing for extra-value thumbs-up etc.
     # We can also get the total tally now by aggregating the sum of this column.
     value = models.SmallIntegerField()
-    caster = models.ForeignKey(User, on_delete=models.CASCADE)
+    caster = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE
+    )
 
     class Meta:
         verbose_name_plural = 'quote votes'
@@ -84,8 +92,4 @@ class QuoteVote(models.Model):
             return "Down-vote from %s to quote by %s" % (self.caster.first_name, self.quote.quoter.first_name,)
 
     def __repr__(self):
-        return "QuoteVote(quote=%d,value=%d,caster=%s)" % (
-            self.quote_id,
-            self.value,
-            self.caster.first_name
-        )
+        return f"QuoteVote(quote={self.quote_id},value={self.value},caster={self.caster.first_name})"

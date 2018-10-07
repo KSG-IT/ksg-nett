@@ -10,4 +10,5 @@ urlpatterns = [
     path('<int:quote_id>/vote-down', views.vote_down),
     path('<int:quote_id>/edit', views.quotes_edit),
     path('<int:quote_id>/delete', views.quotes_delete),
+
 ]

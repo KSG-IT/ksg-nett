@@ -29,7 +29,12 @@ class ShiftSlotGroup(models.Model):
     And we also want to group them in presentational circumstances.
     """
     name = models.CharField(max_length=100)
-    schedule = models.ForeignKey(Schedule, null=False, blank=False, on_delete=models.CASCADE)
+    schedule = models.ForeignKey(
+        Schedule,
+        null=False,
+        blank=False,
+        on_delete=models.CASCADE
+    )
 
     meet_time = models.DateTimeField(null=False, blank=False)
     start_time = models.DateTimeField(null=False, blank=False)
@@ -51,7 +56,12 @@ class ScheduleSlotType(models.Model):
     This would typically be values like "Hovmester", "Barsjef", etc.
     """
     name = models.CharField(max_length=100, null=False, blank=False)
-    schedule = models.ForeignKey(Schedule, null=False, blank=False, on_delete=models.CASCADE)
+    schedule = models.ForeignKey(
+        Schedule,
+        null=False,
+        blank=False,
+        on_delete=models.CASCADE
+    )
 
     # This model describes what type of role is associated with
     # the slot type. For instance is Hovmester a "funkevakt", and Barservitør a "gjengisvakt".
@@ -80,8 +90,19 @@ class ShiftSlot(models.Model):
     start = models.TimeField(blank=False, null=False)
     end = models.TimeField(blank=False, null=False)
 
-    type = models.ForeignKey(ScheduleSlotType, null=False, blank=False, on_delete=models.CASCADE)
-    group = models.ForeignKey(ShiftSlotGroup, null=False, blank=False, on_delete=models.CASCADE)
+    type = models.ForeignKey(
+        ScheduleSlotType,
+        null=False,
+        blank=False,
+        on_delete=models.CASCADE
+    )
+
+    group = models.ForeignKey(
+        ShiftSlotGroup,
+        null=False,
+        blank=False,
+        on_delete=models.CASCADE
+    )
 
     def __str__(self):
         return "%s in %s from %s to %s" % (
@@ -108,7 +129,13 @@ class Shift(models.Model):
     The Shift model represents a shift-slot filled by
     a person.
     """
-    user = models.ForeignKey(User, null=False, blank=False, on_delete=models.CASCADE)
+    user = models.ForeignKey(
+        User,
+        null=False,
+        blank=False,
+        on_delete=models.CASCADE
+    )
+
     slot = models.OneToOneField(
         ShiftSlot,
         null=False,
@@ -133,7 +160,13 @@ class ScheduleTemplate(models.Model):
     several templates.
     """
     name = models.CharField(max_length=100)
-    schedule = models.ForeignKey(Schedule, blank=False, null=False, on_delete=models.CASCADE)
+
+    schedule = models.ForeignKey(
+        Schedule,
+        blank=False,
+        null=False,
+        on_delete=models.CASCADE
+    )
 
     def __str__(self):
         return "Template %s for schedule %s" % (self.name, self.schedule.name)
@@ -154,7 +187,13 @@ class ShiftSlotGroupTemplate(models.Model):
     for when the shift slot is supposed to occur.
     """
     name = models.CharField(max_length=100)
-    schedule_template = models.ForeignKey(ScheduleTemplate, blank=False, null=False, on_delete=models.CASCADE)
+
+    schedule_template = models.ForeignKey(
+        ScheduleTemplate,
+        blank=False,
+        null=False,
+        on_delete=models.CASCADE
+    )
 
     meet_time = models.TimeField(blank=False, null=False)
     start_time = models.TimeField(blank=False, null=False)
@@ -185,8 +224,14 @@ class ShiftSlotDayRule(models.Model):
         ('ed', 'Weekends'),  # Friday, Saturday
         ('fu', 'Full weekends'),  # Friday, Saturday, Sunday
     )
+
     rule = models.CharField(max_length=2, choices=DAY_RULES)
-    shift_slot_template = models.ForeignKey(ShiftSlotGroupTemplate, related_name='day_rules', on_delete=models.CASCADE)
+
+    shift_slot_template = models.ForeignKey(
+        ShiftSlotGroupTemplate,
+        related_name='day_rules',
+        on_delete=models.CASCADE
+    )
 
     def __str__(self):
         return "Rule %s for shift slot group %s" % (self.get_rule_display(), self.shift_slot_template.name)
@@ -206,8 +251,19 @@ class ShiftSlotTemplate(models.Model):
     start = models.TimeField(blank=False, null=False)
     end = models.TimeField(blank=False, null=False)
 
-    type = models.ForeignKey(ScheduleSlotType, null=False, blank=False, on_delete=models.CASCADE)
-    group = models.ForeignKey(ShiftSlotGroupTemplate, null=False, blank=False, on_delete=models.CASCADE)
+    type = models.ForeignKey(
+        ScheduleSlotType,
+        null=False,
+        blank=False,
+        on_delete=models.CASCADE
+    )
+
+    group = models.ForeignKey(
+        ShiftSlotGroupTemplate,
+        null=False,
+        blank=False,
+        on_delete=models.CASCADE
+    )
 
     def __str__(self):
         return "Template for shift slot with type %s in %s at %s to %s" % (
@@ -278,9 +334,7 @@ class ShiftTrade(models.Model):
 
     @property
     def valid(self):
-        return self.signed_off_by is not None and \
-               self.taker is not None and \
-               self.shift_taker is not None
+        return self.signed_off_by is not None and self.taker is not None and self.shift_taker is not None
 
     @property
     def committed(self):
@@ -357,6 +411,7 @@ class ShiftSlotGroupInterest(models.Model):
         blank=False,
         on_delete=models.CASCADE
     )
+
     user = models.ForeignKey(
         User,
         related_name='shifts_interests',
