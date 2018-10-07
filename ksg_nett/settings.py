@@ -158,7 +158,10 @@ REST_FRAMEWORK = {
     ),
     'DEFAULT_PERMISSIONS_CLASSES': (
         'rest_framework.permissions.IsAdminUser'
-    )
+    ),
+    'DEFAULT_PAGINATION_CLASS': (
+        'rest_framework.pagination.PageNumberPagination'
+    ),
 }
 
 STATIC_ROOT = 'static/'

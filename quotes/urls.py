@@ -1,12 +1,14 @@
-from django.conf.urls import url
+from django.urls import path
 
 from quotes import views
 
 urlpatterns = [
-    url('(?P<quote_id>[0-9]+)/vote-up', views.vote_up),
-    url('(?P<quote_id>[0-9]+)/vote-down', views.vote_down),
-    url('^add', views.quotes_add),
-    url('(?P<quote_id>[0-9]+)/edit', views.quotes_edit),
-    url('(?P<quote_id>[0-9]+)/delete', views.quotes_delete),
-    url('^', views.quotes_list),
+    path('', views.quotes_list),
+    path('add/', views.quotes_add),
+
+    path('<int:quote_id>/vote-up', views.vote_up),
+    path('<int:quote_id>/vote-down', views.vote_down),
+    path('<int:quote_id>/edit', views.quotes_edit),
+    path('<int:quote_id>/delete', views.quotes_delete),
+
 ]
