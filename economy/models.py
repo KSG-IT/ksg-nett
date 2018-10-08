@@ -14,7 +14,14 @@ class SociBankAccount(models.Model):
     A bank account account in Societeten, used for storing available
     balance and tracking transactions for a KSG user.
     """
-    user = models.OneToOneField(User, related_name='bank_account', blank=False, null=False, on_delete=models.CASCADE)
+    user = models.OneToOneField(
+        User,
+        related_name='bank_account',
+        blank=False,
+        null=False,
+        on_delete=models.CASCADE
+    )
+
     balance = models.IntegerField(default=0)
     card_uuid = models.BigIntegerField(blank=True, null=True, default=None, unique=True)
     display_balance_at_soci = models.BooleanField(default=False)
@@ -82,11 +89,19 @@ class ProductOrder(models.Model):
     An order for a specific Soci product, and the order size.
     If the product is direct charge, direct_charge_amount is used to specify the amount.
     """
-    product = models.ForeignKey('SociProduct', on_delete=models.CASCADE)
+    product = models.ForeignKey(
+        'SociProduct',
+        on_delete=models.CASCADE
+    )
+
     order_size = models.IntegerField(default=1)
     amount = models.IntegerField()
 
-    purchase = models.ForeignKey('Purchase', related_name='product_orders', on_delete=models.CASCADE)
+    purchase = models.ForeignKey(
+        'Purchase',
+        related_name='product_orders',
+        on_delete=models.CASCADE
+    )
 
     def __str__(self):
         return f"Order of {self.order_size} {self.product.name}(s)"
@@ -100,14 +115,29 @@ class Purchase(models.Model):
     A transfer from a personal Soci bank account to the Soci master account.
     Each purchase object can contain multiple ProductOrders.
     """
-    source = models.ForeignKey('SociBankAccount', related_name='purchases', blank=True, null=True,
-                               on_delete=models.SET_NULL)
+    source = models.ForeignKey(
+        'SociBankAccount',
+        related_name='purchases',
+        blank=True,
+        null=True,
+        on_delete=models.SET_NULL
+    )
 
-    signed_off_by = models.ForeignKey(User, null=True, related_name='verified_purchases')
+    signed_off_by = models.ForeignKey(
+        User,
+        null=True,
+        related_name='verified_purchases',
+        on_delete=models.DO_NOTHING
+    )
     signed_off_time = models.DateTimeField(auto_now_add=True)
 
-    collection = models.ForeignKey('PurchaseCollection', related_name='purchases', blank=True, null=True,
-                                   on_delete=models.SET_NULL)
+    collection = models.ForeignKey(
+        'PurchaseCollection',
+        related_name='purchases',
+        blank=True,
+        null=True,
+        on_delete=models.SET_NULL
+    )
 
     @property
     def is_valid(self) -> bool:
@@ -165,10 +195,21 @@ class Transfer(models.Model):
     """
     A transfer between two personal Soci bank accounts.
     """
-    source = models.ForeignKey('SociBankAccount', related_name='source_transfers', blank=True, null=True,
-                               on_delete=models.SET_NULL)
-    destination = models.ForeignKey('SociBankAccount', related_name='destination_transfers', blank=True,
-                                    null=True, on_delete=models.SET_NULL)
+    source = models.ForeignKey(
+        'SociBankAccount',
+        related_name='source_transfers',
+        blank=True,
+        null=True,
+        on_delete=models.SET_NULL
+    )
+
+    destination = models.ForeignKey(
+        'SociBankAccount',
+        related_name='destination_transfers',
+        blank=True,
+        null=True,
+        on_delete=models.SET_NULL
+    )
 
     amount = models.IntegerField(blank=False, null=False)
 
@@ -188,11 +229,24 @@ class Deposit(models.Model):
     def _receipt_upload_location(self, filename):
         return os.path.join('receipts', str(self.id), filename)
 
-    account = models.ForeignKey('SociBankAccount', related_name='deposits', blank=True, null=True,
-                                on_delete=models.SET_NULL)
+    account = models.ForeignKey(
+        'SociBankAccount',
+        related_name='deposits',
+        blank=True,
+        null=True,
+        on_delete=models.SET_NULL
+    )
+
     amount = models.IntegerField(blank=False, null=False)
     receipt = models.ImageField(upload_to=_receipt_upload_location, blank=True, null=True, default=None)
-    signed_off_by = models.ForeignKey(User, null=True, blank=True, related_name='verified_deposits')
+
+    signed_off_by = models.ForeignKey(
+        User,
+        null=True,
+        blank=True,
+        related_name='verified_deposits',
+        on_delete=models.DO_NOTHING
+    )
     signed_off_time = models.DateTimeField(auto_now_add=True, null=True, blank=True)
 
     @property

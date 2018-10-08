@@ -47,7 +47,8 @@ class User(AbstractUser):
         default=None,
         blank=True,
         null=True,
-        related_name='holders'
+        related_name='holders',
+        on_delete=models.SET_NULL
     )
 
     def __str__(self):
