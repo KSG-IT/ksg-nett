@@ -92,4 +92,5 @@ class PurchaseSerializer(serializers.Serializer):
                                                 help_text="Returns `null` if user has disabled public display of "
                                                           "balance")
 
-    products_purchased = serializers.ListField(read_only=True, label="The products that were purchased")
+    products_purchased = serializers.ListField(read_only=True, child=serializers.CharField(),
+                                               help_text="The products that were purchased")
