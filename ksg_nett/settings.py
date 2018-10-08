@@ -163,3 +163,9 @@ REST_FRAMEWORK = {
 
 STATIC_ROOT = 'static/'
 MEDIA_ROOT = 'media/'
+
+# ECONOMY SETTINGS
+# ------------------------------
+MINIMUM_SOCI_AMOUNT = 0
+SOCI_MASTER_ACCOUNT_CARD_ID = 0xBADCAFEBABE  # Real card ids are 10 digits, while this is 14, meaning no collisions
+DIRECT_CHARGE_SKU = "X-BELOP"

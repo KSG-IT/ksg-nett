@@ -1,4 +1,5 @@
 Django==1.11.11
 djangorestframework==3.8.2
 pytz==2018.4
-drf-yasg==1.6.1
+drf-yasg==1.7.0
+Pillow==5.0.0
