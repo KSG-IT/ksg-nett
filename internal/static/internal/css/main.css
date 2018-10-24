@@ -1,0 +1,48 @@
+/* FONTS */
+@import url('https://fonts.googleapis.com/css?family=Open+Sans:300,400,600');
+
+*{
+    /* TODO: Fonts should be more specific to different types of elements */
+    font-family: 'Open Sans', sans-serif;
+}
+
+.light-blue{
+    color: #7ACCF0;
+}
+
+.dark-blue {
+    color: #0A3672;
+}
+
+.darker-blue{
+    color: #103242;
+}
+
+.white{
+    color: white;
+}
+
+.black{
+    color: black;
+}
+
+.bg-light-blue{
+    background-color: #7ACCF0;
+}
+
+.bg-dark-blue {
+    background-color: #0A3672;
+}
+
+.bg-darker-blue{
+    background-color: #103242;
+}
+
+.bg-white{
+    background-color: white;
+}
+
+.bg-black{
+    background-color: black;
+}
+
