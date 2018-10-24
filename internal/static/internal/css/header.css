@@ -2,6 +2,10 @@
     padding: 0.5em 4em;
 }
 
+.header.open .header__bottom{
+
+}
+
 .header__top{
     display: flex;
     justify-content: space-between;
@@ -21,4 +25,34 @@
 .header h3,
 .header h2{
     margin: 0;
+}
+
+.header__bottom{
+    padding: 1em 4em;
+}
+
+.header__bottom{
+    display: none;
+    justify-content: space-between;
+    border-top: 1px solid #103242;
+    border-bottom: 1px solid #103242;
+}
+
+.header__bottom--open{
+    /* TODO: Animate in more elegantly */
+    display: flex;
+}
+
+.header__nav ul{
+    display: flex;
+    list-style: none;
+    flex-wrap: wrap;
+    justify-content: space-between;
+}
+
+.header__nav li{
+    display: block;
+    width: 33%;
+    height: 40px;
+    text-align: center;
 }

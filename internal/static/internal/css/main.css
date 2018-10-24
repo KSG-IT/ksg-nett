@@ -6,6 +6,20 @@
     font-family: 'Open Sans', sans-serif;
 }
 
+/* Button reset */
+button{
+    background: none;
+    border: none;
+    -webkit-appearance: none;
+    cursor: pointer;
+}
+
+/* Link reset */
+.resetlink{
+    text-decoration: none;
+    color: inherit;
+}
+
 .light-blue{
     color: #7ACCF0;
 }

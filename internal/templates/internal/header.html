@@ -2,16 +2,44 @@
 <div class="header bg-light-blue darker-blue">
   <div class="header__top">
     <div class="header__logo">
-      <h2>KSG</h2>
+      <a href="/internal/" class="resetlink">
+        <h2>KSG</h2>
+      </a>
     </div>
     <div class="header__menu">
-      <h3>
-        {% trans "Meny" %}
-      </h3>
+        <h3>
+          {% trans "Meny" %}
+        </h3>
     </div>
-      <div class="header__icon">
-        {# TODO: Connect to Profile picture with default #}
-        {% include "components/thumb.html" with size="small" url='https://m.media-amazon.com/images/M/MV5BMjA5NTE4NTE5NV5BMl5BanBnXkFtZTcwMTcyOTY5Mw@@._V1_UY317_CR20,0,214,317_AL_.jpg' %}
-      </div>
+    <div class="header__icon">
+      {# TODO: Connect to Profile picture with default #}
+      {% include "components/thumb.html" with size="small" url='https://m.media-amazon.com/images/M/MV5BMjA5NTE4NTE5NV5BMl5BanBnXkFtZTcwMTcyOTY5Mw@@._V1_UY317_CR20,0,214,317_AL_.jpg' %}
+    </div>
+  </div>
+  <div class="header__bottom">
+    <div class="header__langselect">
+      {# TODO: Add i18n handling #}
+      <button>NO</button>
+      <button>EN</button>
+    </div>
+    {# TODO: Add search #}
+    <nav class="header__nav">
+      <ul>
+        <li><a class="resetlink" href="/internal/schedules/">{% trans "Vakter" %}</a></li>
+        <li><a class="resetlink" href="/internal/summaries/">{% trans "Referater" %}</a></li>
+        <li><a class="resetlink" href="/internal/gang/">{% trans "Gjengen" %}</a></li>
+        <li><a class="resetlink" href="/internal/info/">{% trans "Info" %}</a></li>
+        <li><a class="resetlink" href="/internal/entertainment/">{% trans "Underholdning" %}</a></li>
+        <li><a class="resetlink" href="/internal/calendar/">{% trans "Kalender" %}</a></li>
+        <li><a class="resetlink" href="/internal/quotes/">{% trans "Sitater" %}</a></li>
+        {# TODO: This check should probably be changed for a specific admin permission #}
+        {% if user.is_superuser %}
+          <li><a class="resetlink" href="/internal/admin/">{% trans "Admin" %}</a></li>
+        {% endif %}
+      </ul>
+    </nav>
+    <div class="header__logout">
+      <a class="header__logoutbutton resetlink" href="/logout/">{% trans "Logg ut" %}</a>
+    </div>
   </div>
 </div>
