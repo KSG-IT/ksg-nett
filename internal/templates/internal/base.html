@@ -14,6 +14,7 @@
   {% block override_static_defaults %}
     {% comment %}
       This block exists as a block to allow others to override the default static imports.
+      Note that overriding this will probably remove most of the defaulting styling of the page.
     {% endcomment %}
 
     {# Vendor libraries #}
@@ -24,6 +25,7 @@
     <script src="{% static 'internal/js/main.js' %}"></script>
 
     <link rel="stylesheet" href="{% static 'internal/css/main.css' %}">
+    <link rel="stylesheet" href="{% static 'internal/css/header.css' %}">
     <link rel="stylesheet" href="{% static 'internal/css/components.css' %}">
 
   {% endblock %}
@@ -32,6 +34,9 @@
 
 </head>
 <body>
+  {% block override_header %}
+      {% include 'internal/header.html' %}
+  {% endblock %}
   {% block body_content %}
   {% endblock %}
   {% block body_end %}
