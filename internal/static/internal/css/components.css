@@ -1,0 +1,47 @@
+.thumb__small{
+    display: inline-block;
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    overflow: hidden;
+}
+
+.thumb__small .thumb__inner{
+    display: inline-block;
+    background-size: cover;
+    background-position: center;
+    width: 42px;
+    height: 42px;
+}
+
+.thumb__medium{
+    display: inline-block;
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    overflow: hidden;
+}
+
+.thumb__medium .thumb__inner{
+    display: inline-block;
+    background-size: cover;
+    background-position: center;
+    width: 72px;
+    height: 72px;
+}
+
+.thumb__large{
+    display: inline-block;
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    overflow: hidden;
+}
+
+.thumb__large .thumb__inner{
+    display: inline-block;
+    background-size: cover;
+    background-position: center;
+    width: 120px;
+    height: 120px;
+}
