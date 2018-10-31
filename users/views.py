@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
 from django.http import HttpResponse, HttpResponseRedirect
+from rest_framework import status
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse
 from users.models import User
@@ -32,8 +33,7 @@ def get_user(request, user_id):
 
 def update_user(request, user_id):
     user = get_object_or_404(User, pk=user_id)
-    form = UserForm(request.post)
-
+    form = UserForm(request.POST)
     ctx = {
         'user_form': form,
         'user': user
@@ -44,6 +44,9 @@ def update_user(request, user_id):
     elif request.method == "POST":
         if form.is_valid():
             form.save()
-            return redirect(reverse(user_details, kwargs={'user_id': user_id}))
+            return redirect(reverse('user_details', kwargs={'user_id': user_id}))
         else:
-            return
+            return render(request, template_name='users/edit_profile_page.html',
+                          context=ctx)
+    else:
+        return HttpResponse(status=status.HTTP_405_METHOD_NOT_ALLOWED)

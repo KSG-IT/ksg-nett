@@ -6,9 +6,9 @@
     DETTE ER REDIGERINGSSIDEN
 </head>
 <body>
-<form action="/users/current-user/" method="post">
+<form  method="POST">
     {% csrf_token %}
-    {{ form }}
+    {{ user_form }}
     <input type="submit" value="Submit">
 </form>
 </body>
