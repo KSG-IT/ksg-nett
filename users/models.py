@@ -64,8 +64,8 @@ class User(AbstractUser):
     study = models.CharField(default="", blank=True, max_length=100)
     profile_image = models.FileField(upload_to='profiles/', null=True, blank=True)
     serious_profile_image = models.FileField(upload_to='profiles', null=True, blank=True)
-    balance = models.IntegerField(editable=False, default=0)
     in_relationship = models.BooleanField(default=False)
+    biography = models.TextField(blank=True, default="", max_length=200)
 
     phone = models.CharField(default="", blank=True, max_length=50)
     study_address = models.CharField(default="", blank=True, max_length=100)
@@ -74,6 +74,7 @@ class User(AbstractUser):
     start_ksg = models.DateField(auto_now_add=True)
     ksg_status = models.CharField(max_length=32, choices=KSG_STATUS_TYPES, default=KSG_STATUS_TYPES[0])
     ksg_role = models.CharField(max_length=32, choices=KSG_ROLES, default=KSG_ROLES[0])
+    
 
     commission = models.ForeignKey(
         Commission,

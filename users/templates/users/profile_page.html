@@ -11,7 +11,7 @@ Du er registrert som {{ current_user.ksg_status }} {{ current_user.ksg_role }}
 <br>
 Du startet i KSG {{ current_user.start_ksg }}
 <br>
-Du har følgende saldo på kontoen din: {{ current_user.balance }}
+Du har følgende saldo på kontoen din: {{ current_user.bank_account.balance }}kr
 <br>
 Phone number: {{ current_user.phone }}
 <br>
@@ -24,5 +24,7 @@ Home address: {{ current_user.home_address }}
 {% else %}
     Du har for tiden ikke noe aktivt verv
 {% endif %}
+<br>
+Litt om meg: {{ current_user.biography }}
 </body>
 </html>

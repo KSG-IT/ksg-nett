@@ -1,7 +1,8 @@
-from django.conf.urls import url
+from django.urls import path
 
-from users.views import current_user
+from users.views import current_user, edit_current_user
 
 urlpatterns = [
-    url('current-user/', current_user)
+    path('current-user/', current_user, name='profile'),
+    path('current-user/edit/', edit_current_user)
 ]
