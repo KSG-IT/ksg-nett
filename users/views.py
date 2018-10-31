@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
 from django.http import HttpResponse, HttpResponseRedirect
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse
 from users.models import User
 from users.forms.user_form import UserForm
 
 
 def current_user(request):
-    user = {'current_user': request.user}
+    user = {'user': request.user}
     return render(request=request,
                   template_name='users/profile_page.html',
                   context=user)
@@ -21,6 +21,29 @@ def edit_current_user(request):
                   context=user)
 
 
+def get_user(request, user_id):
+    user = get_object_or_404(User, pk=user_id)
+    ctx = {
+        'user': user
+    }
+    return render(request, template_name='users/profile_page.html',
+                  context=ctx)
+
+
 def update_user(request, user_id):
     user = get_object_or_404(User, pk=user_id)
     form = UserForm(request.post)
+
+    ctx = {
+        'user_form': form,
+        'user': user
+    }
+    if request.method == "GET":
+        return render(request, template_name='users/edit_profile_page.html',
+                      context=ctx)
+    elif request.method == "POST":
+        if form.is_valid():
+            form.save()
+            return redirect(reverse(user_details, kwargs={'user_id': user_id}))
+        else:
+            return

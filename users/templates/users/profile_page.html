@@ -5,26 +5,26 @@
     <title>KSG-nett</title>
 </head>
 <body>
-Du er logget inn som bruker {{ current_user.get_full_name }}
+Du er logget inn som bruker {{ user.get_full_name }}
 <br>
-Du er registrert som {{ current_user.ksg_status }} {{ current_user.ksg_role }}
+Du er registrert som {{ user.ksg_status }} {{ user.ksg_role }}
 <br>
-Du startet i KSG {{ current_user.start_ksg }}
+Du startet i KSG {{ user.start_ksg }}
 <br>
-Du har følgende saldo på kontoen din: {{ current_user.bank_account.balance }}kr
+Du har følgende saldo på kontoen din: {{ user.bank_account.balance }}kr
 <br>
-Phone number: {{ current_user.phone }}
+Phone number: {{ user.phone }}
 <br>
-Study address: {{ current_user.study_address }}
+Study address: {{ user.study_address }}
 <br>
-Home address: {{ current_user.home_address }}
+Home address: {{ user.home_address }}
 <br>
-{% if current_user.current_commission %}
-    Du har for tiden vervet {{ current_user.current_commission }}
+{% if user.current_commission %}
+    Du har for tiden vervet {{ user.current_commission }}
 {% else %}
     Du har for tiden ikke noe aktivt verv
 {% endif %}
 <br>
-Litt om meg: {{ current_user.biography }}
+Litt om meg: {{ user.biography }}
 </body>
 </html>
