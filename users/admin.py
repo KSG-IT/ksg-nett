@@ -39,6 +39,7 @@ class MyUserAdmin(UserAdmin):
         ('Personalia', {'fields': ('date_of_birth', 'study',)}),
         ('Contact', {'fields': ('phone', 'study_address', 'home_address',)}),
         ('KSG options', {'fields': ('ksg_status', 'ksg_role', 'commission',)}),
+        ('Media', {'fields': ('profile_image',)})
     )
     inlines = [SociBankAccountInline]
     add_fieldsets = (
