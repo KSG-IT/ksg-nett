@@ -1,6 +1,7 @@
 {% load i18n %}
-<div class="header bg-light-blue darker-blue">
-  <div class="header__top">
+{% load static %}
+<div class="header">
+  <div class="header__top bg-light-blue darker-blue">
     <div class="header__logo">
       <a href="/internal/" class="resetlink">
         <h2>KSG</h2>
@@ -12,11 +13,12 @@
         </h3>
     </div>
     <div class="header__icon">
-      {# TODO: Connect to Profile picture with default #}
-      {% include "components/thumb.html" with size="small" url='https://m.media-amazon.com/images/M/MV5BMjA5NTE4NTE5NV5BMl5BanBnXkFtZTcwMTcyOTY5Mw@@._V1_UY317_CR20,0,214,317_AL_.jpg' %}
+      <a href="/internal/users/{{ user.id }}" class="resetlink">
+        {% include "components/thumb.html" with size="small" url=user.profile_image.url %}
+      </a>
     </div>
   </div>
-  <div class="header__bottom">
+  <div class="header__bottom bg-light-blue darker-blue">
     <div class="header__langselect">
       {# TODO: Add i18n handling #}
       <button>NO</button>

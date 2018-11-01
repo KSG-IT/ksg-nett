@@ -1,5 +1,10 @@
 .header{
     padding: 0.5em 4em;
+    height: 60px;
+    box-sizing: border-box;
+    /* The bottom drawer needs an anchor from this div to position itself absolutely */
+    position: relative;
+    z-index: 1;
 }
 
 .header.open .header__bottom{
@@ -11,6 +16,12 @@
     justify-content: space-between;
     align-items: center;
     padding: 0 4em;
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    height: 60px;
+    z-index: 3;
 }
 
 .header__logo{
@@ -32,7 +43,11 @@
 }
 
 .header__bottom{
+    left: 0;
+    right: 0;
     display: none;
+    top: 60px;
+    position: absolute;
     justify-content: space-between;
     border-top: 1px solid #103242;
     border-bottom: 1px solid #103242;
