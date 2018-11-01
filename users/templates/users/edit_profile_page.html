@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <title>EDIT</title>
-    DETTE ER REDIGERINGSSIDEN
+    DETTE ER REDIGERINGSSIDEN FOR {{ user.get_full_name }}
 </head>
 <body>
 <form  method="POST">
     {% csrf_token %}
-    {{ user_form }}
+    {{ user_form.as_table }}
     <input type="submit" value="Submit">
 </form>
 </body>

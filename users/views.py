@@ -7,14 +7,14 @@ from django.urls import reverse
 from users.models import User
 from users.forms.user_form import UserForm
 
-
+# not used anymore
 def current_user(request):
     user = {'user': request.user}
     return render(request=request,
                   template_name='users/profile_page.html',
                   context=user)
 
-
+# not used anymore
 def edit_current_user(request):
     user = {'current_user': request.user}
     return render(request=request,
@@ -33,7 +33,7 @@ def get_user(request, user_id):
 
 def update_user(request, user_id):
     user = get_object_or_404(User, pk=user_id)
-    form = UserForm(request.POST)
+    form = UserForm(request.POST or None, instance=user)
     ctx = {
         'user_form': form,
         'user': user
