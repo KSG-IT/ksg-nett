@@ -1,5 +1,5 @@
 /* FONTS */
-@import url('https://fonts.googleapis.com/css?family=Open+Sans:300,400,600');
+@import url('https://fonts.googleapis.com/css?family=Open+Sans:300,400,600,700,800');
 
 *{
     /* TODO: Fonts should be more specific to different types of elements */
@@ -60,3 +60,85 @@ button{
     background-color: black;
 }
 
+
+/* Font and text styling */
+.text-left{
+    text-align: left;
+}
+
+.text-center{
+    text-align: center;
+}
+
+.text-right{
+    text-align: right;
+}
+
+.extra-bold{
+    font-weight: 800;
+}
+
+.bolder{
+    font-weight: 700;
+}
+
+.bold{
+    font-weight: 600;
+}
+
+.normal{
+    font-weight: 400;
+}
+
+.light{
+    font-weight: 300;
+}
+
+
+/* Display */
+.block{
+    display: block;
+}
+
+.inline-block{
+    display: inline-block;
+}
+
+.flex{
+    display: flex;
+}
+
+.inline-flex{
+    display: inline-flex;
+}
+
+/* Containers and standard sizings */
+.default-container{
+    width: 1200px;
+    margin: 0 auto;
+    -webkit-box-sizing: border-box;
+    -moz-box-sizing: border-box;
+    box-sizing: border-box;
+}
+
+.default-left-panel{
+    width: 500px;
+    padding-right: 50px;
+    float: left;
+    -webkit-box-sizing: border-box;
+    -moz-box-sizing: border-box;
+    box-sizing: border-box;
+}
+
+.default-right-panel{
+    overflow: hidden;
+    padding-bottom: 0.2em;
+}
+
+.default-top-offset{
+    margin-top: 4em;
+}
+
+.resetmargins{
+    margin: 0;
+}
