@@ -64,6 +64,19 @@ class User(AbstractUser):
     def active(self):
         return self.ksg_status == KSG_STATUS_TYPES[0][0]
 
+    def get_start_ksg_display(self):
+        """
+        This method returns a "semester-year" display for the start ksg date.
+        Examples:
+            2018-01-01 => V18
+            2014-08-30 => H14
+            2012-12-30 => H12
+        :return:
+        """
+        short_year_format = str(self.start_ksg.year)[2:]
+        semester_prefix = "H" if self.start_ksg.month > 7 else "V"
+        return f"{semester_prefix}{short_year_format}"
+
     active.boolean = True
 
     class Meta:
