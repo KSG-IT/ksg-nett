@@ -1,20 +1,48 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>KSG-nett</title>
-</head>
-<body>
-Du er logget inn som bruker {{ current_user.get_full_name }}
-<br>
-Du er registrert som {{ current_user.ksg_status }} {{ current_user.ksg_role }}
-<br>
-Du startet i KSG {{ current_user.start_ksg }}
-<br>
-{% if current_user.current_commission %}
-    Du har for tiden vervet {{ current_user.current_commission }}
-{% else %}
-    Du har for tiden ikke noe aktivt verv
-{% endif %}
-</body>
-</html>
+{% extends 'internal/base.html' %}
+{% load static %}
+{% load i18n %}
+{% block header %}
+  <link rel="stylesheet" href="{% static 'users/css/profile_page.css' %}">
+{% endblock %}
+{% block body_content %}
+  <div class="profilepage">
+    <div class="default-container default-top-offset">
+      <div class="default-left-panel profilepage__thumbwrapper text-right">
+        {% include 'components/thumb.html' with size='enormous' url=user.profile_image.url %}
+      </div>
+      <div class="default-right-panel">
+        <div class="profilepage__primaryinfo">
+          <h1 class="profilepage__title text-bold resetmargins darker-blue">{{ user.get_full_name }}</h1>
+          {# TODO: Nicknames on User model #}
+          <h3 class="profilepage__nickname resetmargins text-bold">Lahlum</h3>
+          <h3 class="profilepage__phone resetmargins text-bold darker-blue">{{ user.phone }}</h3>
+          <a href="mailto:tormod.haugland@gmail.com" class="resetlink">
+            <h3 class="profilepage__email resetmargins darker-blue normal">{{ user.email }}</h3>
+          </a>
+        </div>
+        <div class="profilepage__ksginfo">
+          {# TODO: Retrieve this from somewhere #}
+          <h3 class="profilepage__position normal resetmargins">Spritbargjengis</h3>
+          <p class="profilepage__status resetmargins light">{{ user.get_ksg_status_display }}</p>
+          <p class="profilepage__role resetmargins light">{{ user.get_ksg_role_display }}</p>
+          <p class="profilepage__since resetmargins light">
+            {% trans 'I KSG siden' %}:
+            <span class="normal">
+              {{ user.get_start_ksg_display }}
+            </span>
+          </p>
+          <p class="profilepage__nextshift resetmargins light">
+            {% trans 'Neste vakt' %}:
+            <a href="/internal/schedules/shift/1" class="resetlink normal">Strossatøs 24.08.2018</a>
+          </p>
+        </div>
+        <div class="profilepage__bio">
+          <h3 class="profilepage__biotitle normal resetmargins">{% trans "Hvem er jeg?" %}</h3>
+          <p class="resetemargins profilepage__biocontent light">
+            Lorem ipsum dolor sit amet, consectetur adipisicing elit. Ab at aut beatae cupiditate magni maxime molestiae non nostrum possimus praesentium quibusdam quidem quisquam quos ratione rerum, tempore voluptas voluptate voluptatem.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}

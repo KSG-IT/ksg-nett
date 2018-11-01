@@ -1,0 +1,31 @@
+
+.profilepage__thumbwrapper{
+    margin-top: 3em;
+}
+
+.profilepage__nickname{
+    color: #8ca9ae;
+    margin-top: 0.4em;
+}
+
+.profilepage__phone{
+    margin-top: 0.4em;
+}
+
+.profilepage__email{
+    margin-top: 0.4em;
+}
+
+.profilepage__position{
+    margin-top: 2em;
+    margin-bottom: 0.25em;
+}
+
+.profilepage__ksginfo > p{
+    margin: 0.3em 0;
+}
+
+.profilepage__bio{
+    margin-top: 2em;
+}
+
