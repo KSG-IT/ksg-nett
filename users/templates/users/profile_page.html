@@ -8,27 +8,27 @@
   <div class="profilepage">
     <div class="default-container default-top-offset">
       <div class="default-left-panel profilepage__thumbwrapper text-right">
-        {% include 'components/thumb.html' with size='enormous' url=user.profile_image.url %}
+        {% include 'components/thumb.html' with size='enormous' url=profile_user.profile_image_url %}
       </div>
       <div class="default-right-panel">
         <div class="profilepage__primaryinfo">
-          <h1 class="profilepage__title text-bold resetmargins darker-blue">{{ user.get_full_name }}</h1>
+          <h1 class="profilepage__title text-bold resetmargins darker-blue">{{ profile_user.get_full_name }}</h1>
           {# TODO: Nicknames on User model #}
           <h3 class="profilepage__nickname resetmargins text-bold">Lahlum</h3>
-          <h3 class="profilepage__phone resetmargins text-bold darker-blue">{{ user.phone }}</h3>
-          <a href="mailto:tormod.haugland@gmail.com" class="resetlink">
-            <h3 class="profilepage__email resetmargins darker-blue normal">{{ user.email }}</h3>
+          <h3 class="profilepage__phone resetmargins text-bold darker-blue">{{ profile_user.phone }}</h3>
+          <a href="mailto:{{ profile_user.email }}" class="resetlink">
+            <h3 class="profilepage__email resetmargins darker-blue normal">{{ profile_user.email }}</h3>
           </a>
         </div>
         <div class="profilepage__ksginfo">
           {# TODO: Retrieve this from somewhere #}
           <h3 class="profilepage__position normal resetmargins">Spritbargjengis</h3>
-          <p class="profilepage__status resetmargins light">{{ user.get_ksg_status_display }}</p>
-          <p class="profilepage__role resetmargins light">{{ user.get_ksg_role_display }}</p>
+          <p class="profilepage__status resetmargins light">{{ profile_user.get_ksg_status_display }}</p>
+          <p class="profilepage__role resetmargins light">{{ profile_user.get_ksg_role_display }}</p>
           <p class="profilepage__since resetmargins light">
             {% trans 'I KSG siden' %}:
             <span class="normal">
-              {{ user.get_start_ksg_display }}
+              {{ profile_user.get_start_ksg_display }}
             </span>
           </p>
           <p class="profilepage__nextshift resetmargins light">

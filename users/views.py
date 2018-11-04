@@ -18,6 +18,8 @@ def current_user(request):
 def user_detail(request, user_id):
     user = get_object_or_404(User, pk=user_id)
     ctx = {
-        'user': user
+        # We don't want to name it `user` as it will override the default user attribute
+        # (which is the user calling the view).
+        'profile_user': user
     }
     return render(request, template_name='users/profile_page.html', context=ctx)
