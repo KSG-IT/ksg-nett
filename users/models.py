@@ -77,6 +77,21 @@ class User(AbstractUser):
         semester_prefix = "H" if self.start_ksg.month > 7 else "V"
         return f"{semester_prefix}{short_year_format}"
 
+    @property
+    def profile_image_url(self):
+        """
+        profile_image_url is a helper property which returns the url of the user's profile
+        image, if the user has an associated profile image. The reason this exists, is that
+        simply calling `user.profile_image.url` will result in a ValueError if the profile_image
+        is null. We can work around this in templates by doing a bunch of if-conditionals. However,
+        it is more practical to use the `default_if_none` filter, hence this method returns None if the
+        image does not exist.
+        :return:
+        """
+        if self.profile_image and hasattr(self.profile_image, 'url'):
+            return self.profile_image.url
+        return None
+
     active.boolean = True
 
     class Meta:
