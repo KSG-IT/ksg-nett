@@ -5,7 +5,8 @@ from rest_framework import status
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse
 from users.models import User
-from users.forms.user_form import UserForm
+from users.forms.user_form import UserForm, UserFormAdmin
+from django.contrib.auth.decorators import login_required
 
 # not used anymore
 def current_user(request):
@@ -21,7 +22,7 @@ def edit_current_user(request):
                   template_name='users/edit_profile_page.html',
                   context=user)
 
-
+@login_required(login_url='/login/')
 def get_user(request, user_id):
     user = get_object_or_404(User, pk=user_id)
     ctx = {
@@ -30,10 +31,11 @@ def get_user(request, user_id):
     return render(request, template_name='users/profile_page.html',
                   context=ctx)
 
-
+@login_required(login_url='/login/')
 def update_user(request, user_id):
     user = get_object_or_404(User, pk=user_id)
     form = UserForm(request.POST or None, instance=user)
+    admin_form = UserFormAdmin
     ctx = {
         'user_form': form,
         'user': user

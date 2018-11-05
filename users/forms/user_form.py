@@ -8,3 +8,11 @@ class UserForm(forms.ModelForm):
         fields = {
             'first_name', 'last_name', 'phone', 'study', 'biography'
         }
+
+
+class UserFormAdmin(UserForm):
+    class Meta:
+        model = User
+        fields = {
+            'in_relationship'
+        }
