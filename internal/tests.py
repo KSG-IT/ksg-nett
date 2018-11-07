@@ -1,4 +1,3 @@
-from django.contrib.auth import login
 from django.test import TestCase, Client
 from users.models import User
 
@@ -16,13 +15,24 @@ class InternalRouteTests(TestCase):
         response = self.client.get('/internal/')
         self.assertEqual(response.status_code, 302)
 
-    def test_index_with_logging_in_should_not_redirect(self):
+    def test_index__logged_in__should_render_frontpage(self):
         client = Client()
         client.login(username='me', password='pw')
         response = client.get('/internal/')
 
         self.assertEqual(response.status_code, 200)
-        parsed_content = response.content.decode()
+        self.assertTemplateUsed(response, 'internal/base.html')
+        self.assertTemplateUsed(response, 'internal/frontpage.html')
+        self.assertTemplateUsed(response, 'internal/header.html')
 
-        self.assertIn('<!DOCTYPE html>', parsed_content, 'Erroneous html declaration, expected html5')
-        self.assertIn('<html', parsed_content)
+        # Check that some key context variables are passed along.
+        self.assertIsNotNone(response.context.get('last_summaries'))
+        self.assertIsNotNone(response.context.get('last_quotes'))
+
+    def test_not_found__non_matching_url__catches_the_request(self):
+        client = Client()
+        client.login(username='me', password='pw')
+        response = client.get('/internal/this-does-not-match-anything')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'internal/not_found.html')
