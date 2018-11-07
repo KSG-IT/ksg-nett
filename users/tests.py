@@ -1,22 +1,18 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
 
-import os
 import shutil
 import tempfile
 
-from unittest import mock
-
-from coreapi.utils import File
 from django.conf import settings
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
-
 # Create your tests here.
+from django.urls import reverse
 from django.utils import timezone
 
-from commissions.models import Commission
 from users.models import User, KSG_STATUS_TYPES
+from users.views import user_detail
 
 
 class UserProfileTest(TestCase):
@@ -112,4 +108,47 @@ class UserProfileTest(TestCase):
         user.ksg_status = KSG_STATUS_TYPES[3][0]
         user.save()
         self.assertEqual(user.active(), False)
+
+
+class UserDetailViewTest(TestCase):
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = User(
+            username='username',
+            email='user@example.com',
+            first_name='Tormod',
+            last_name='Haugland'
+        )
+        cls.user.set_password('password')
+        cls.user.save()
+        cls.user_detail_url = reverse(user_detail, kwargs={'user_id': cls.user.id})
+
+    def test_user_detail__not_logged_in__redirects(self):
+        response = self.client.get(self.user_detail_url)
+        self.assertEqual(response.status_code, 302)
+
+    def test_user_detail__logged_in_user_does_not_exist__returns_404_not_found(self):
+        self.client.login(
+            username='username',
+            password='password'
+        )
+        response = self.client.get(reverse(user_detail, kwargs={'user_id': 1337}))
+        self.assertEqual(response.status_code, 404)
+
+    def test_user_detail__logged_in_user_exists__renders_profile_page(self):
+        self.client.login(
+            username='username',
+            password='password'
+        )
+        response = self.client.get(reverse(user_detail, kwargs={'user_id': self.user.id}))
+        # Decode so we can do string-comparison/containment checks
+        content = response.content.decode()
+        self.assertTemplateUsed(response, 'users/profile_page.html')
+
+        # Check that some key properties of the user is rendered
+        self.assertIn(self.user.get_full_name(), content)
+        self.assertIn(self.user.get_start_ksg_display(), content)
+        self.assertIn(self.user.email, content)
+        self.assertIn(self.user.phone, content)
 
