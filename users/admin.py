@@ -36,7 +36,7 @@ class Allergens(admin.TabularInline):
 
 
 class MyUserAdmin(UserAdmin):
-    list_display = ['pk', 'full_name', 'ksg_role', 'current_commission', 'active']
+    list_display = ['id', 'full_name', 'ksg_role', 'ksg_status', 'current_commission', 'active', ]
     form = MyUserChangeForm
     add_form = MyUserCreationForm
     fieldsets = UserAdmin.fieldsets + (
@@ -59,4 +59,3 @@ class MyUserAdmin(UserAdmin):
 
 
 admin.site.register(User, MyUserAdmin)
-admin.site.register(Allergy)

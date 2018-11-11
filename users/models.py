@@ -7,7 +7,6 @@ from django.db import models
 # KSG choices
 from commissions.models import Commission
 
-# TODO moves these to consts.py
 KSG_STATUS_TYPES = (
     ("aktiv", "Aktiv"),  # Wants to stay in KSG
     ("inaktiv", "Ikke aktiv"),  # Finished with KSG duties, but want to leave
@@ -65,8 +64,7 @@ class User(AbstractUser):
     study = models.CharField(default="", blank=True, max_length=100)
     profile_image = models.FileField(upload_to='profiles/', null=True, blank=True)
     serious_profile_image = models.FileField(upload_to='profiles', null=True, blank=True)
-    in_relationship = models.BooleanField(default=False)
-    hide_relationship_status = models.BooleanField(default=False)
+    in_relationship = models.NullBooleanField(default=False)
     biography = models.TextField(blank=True, default="", max_length=200)
 
     phone = models.CharField(default="", blank=True, max_length=50)
@@ -76,6 +74,7 @@ class User(AbstractUser):
     start_ksg = models.DateField(auto_now_add=True)
     ksg_status = models.CharField(max_length=32, choices=KSG_STATUS_TYPES, default=KSG_STATUS_TYPES[0])
     ksg_role = models.CharField(max_length=32, choices=KSG_ROLES, default=KSG_ROLES[0])
+
 
     commission = models.ForeignKey(
         Commission,
@@ -93,10 +92,10 @@ class User(AbstractUser):
     )
 
     def __str__(self):
-        return f"User {self.get_full_name()}"
+        return "User %s" % (self.first_name,)
 
     def __repr__(self):
-        return f"User(name={self.get_full_name()})"
+        return "User(name=%s)" % (self.first_name,)
 
     @property
     def current_commission(self):
@@ -110,3 +109,7 @@ class User(AbstractUser):
     class Meta:
         default_related_name = 'users'
         verbose_name_plural = 'Users'
+
+
+
+
