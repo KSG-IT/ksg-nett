@@ -64,7 +64,7 @@ class User(AbstractUser):
     study = models.CharField(default="", blank=True, max_length=100)
     profile_image = models.FileField(upload_to='profiles/', null=True, blank=True)
     serious_profile_image = models.FileField(upload_to='profiles', null=True, blank=True)
-    in_relationship = models.NullBooleanField(default=False)
+    in_relationship = models.BooleanField(default=False, null=True)
     biography = models.TextField(blank=True, default="", max_length=200)
 
     phone = models.CharField(default="", blank=True, max_length=50)
