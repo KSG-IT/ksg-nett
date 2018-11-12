@@ -14,14 +14,19 @@
   {% block override_static_defaults %}
     {% comment %}
       This block exists as a block to allow others to override the default static imports.
+      Note that overriding this will probably remove most of the defaulting styling of the page.
     {% endcomment %}
 
     {# Vendor libraries #}
     <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/normalize.css@8.0.0/normalize.css">
 
     {# Main styling and scripting files #}
     <script src="{% static 'internal/js/main.js' %}"></script>
+
     <link rel="stylesheet" href="{% static 'internal/css/main.css' %}">
+    <link rel="stylesheet" href="{% static 'internal/css/header.css' %}">
+    <link rel="stylesheet" href="{% static 'internal/css/components.css' %}">
 
   {% endblock %}
   {% block header %}
@@ -29,10 +34,16 @@
 
 </head>
 <body>
+  {% block override_header %}
+      {% include 'internal/header.html' %}
+  {% endblock %}
   {% block body_content %}
   {% endblock %}
   {% block body_end %}
     <!-- Place body-loaded scripts in this block -->
+  {% endblock %}
+  {% block override_body_end_script_defaults %}
+    <script src="{% static 'internal/js/header.js' %}"></script>
   {% endblock %}
 </body>
 </html>

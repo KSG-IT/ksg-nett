@@ -1,0 +1,47 @@
+{% load i18n %}
+{% load static %}
+<div class="header">
+  <div class="header__top bg-light-blue darker-blue">
+    <div class="header__logo">
+      <a href="/internal/" class="resetlink">
+        <h2>KSG</h2>
+      </a>
+    </div>
+    <div class="header__menu">
+        <h3>
+          {% trans "Meny" %}
+        </h3>
+    </div>
+    <div class="header__icon">
+      <a href="/internal/users/{{ user.id }}" class="resetlink">
+        {% include "components/thumb.html" with size="small" url=user.profile_image_url %}
+      </a>
+    </div>
+  </div>
+  <div class="header__bottom bg-light-blue darker-blue">
+    <div class="header__langselect">
+      {# TODO: Add i18n handling #}
+      <button>NO</button>
+      <button>EN</button>
+    </div>
+    {# TODO: Add search #}
+    <nav class="header__nav">
+      <ul>
+        <li><a class="resetlink" href="/internal/schedules/">{% trans "Vakter" %}</a></li>
+        <li><a class="resetlink" href="/internal/summaries/">{% trans "Referater" %}</a></li>
+        <li><a class="resetlink" href="/internal/gang/">{% trans "Gjengen" %}</a></li>
+        <li><a class="resetlink" href="/internal/info/">{% trans "Info" %}</a></li>
+        <li><a class="resetlink" href="/internal/entertainment/">{% trans "Underholdning" %}</a></li>
+        <li><a class="resetlink" href="/internal/calendar/">{% trans "Kalender" %}</a></li>
+        <li><a class="resetlink" href="/internal/quotes/">{% trans "Sitater" %}</a></li>
+        {# TODO: This check should probably be changed for a specific admin permission #}
+        {% if user.is_superuser %}
+          <li><a class="resetlink" href="/internal/admin/">{% trans "Admin" %}</a></li>
+        {% endif %}
+      </ul>
+    </nav>
+    <div class="header__logout">
+      <a class="header__logoutbutton resetlink" href="/logout/">{% trans "Logg ut" %}</a>
+    </div>
+  </div>
+</div>

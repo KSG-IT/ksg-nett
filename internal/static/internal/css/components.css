@@ -1,0 +1,114 @@
+.thumb__tiny{
+    display: inline-block;
+    width: 21px;
+    height: 21px;
+    border-radius: 50%;
+    overflow: hidden;
+}
+
+.thumb__tiny .thumb__inner{
+    display: inline-block;
+    background-size: cover;
+    background-position: center;
+    width: 21px;
+    height: 21px;
+}
+
+.thumb__small{
+    display: inline-block;
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    overflow: hidden;
+}
+
+.thumb__small .thumb__inner{
+    display: inline-block;
+    background-size: cover;
+    background-position: center;
+    width: 42px;
+    height: 42px;
+}
+
+.thumb__medium{
+    display: inline-block;
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    overflow: hidden;
+}
+
+.thumb__medium .thumb__inner{
+    display: inline-block;
+    background-size: cover;
+    background-position: center;
+    width: 72px;
+    height: 72px;
+}
+
+.thumb__large{
+    display: inline-block;
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    overflow: hidden;
+}
+
+.thumb__large .thumb__inner{
+    display: inline-block;
+    background-size: cover;
+    background-position: center;
+    width: 120px;
+    height: 120px;
+}
+
+
+.thumb__verylarge{
+    display: inline-block;
+    width: 210px;
+    height: 210px;
+    border-radius: 50%;
+    overflow: hidden;
+}
+
+.thumb__verylarge .thumb__inner{
+    display: inline-block;
+    background-size: cover;
+    background-position: center;
+    width: 210px;
+    height: 210px;
+}
+
+
+.thumb__huge{
+    display: inline-block;
+    width: 315px;
+    height: 315px;
+    border-radius: 50%;
+    overflow: hidden;
+}
+
+.thumb__huge .thumb__inner{
+    display: inline-block;
+    background-size: cover;
+    background-position: center;
+    width: 315px;
+    height: 315px;
+}
+
+
+.thumb__enormous{
+    display: inline-block;
+    width: 400px;
+    height: 400px;
+    border-radius: 50%;
+    overflow: hidden;
+}
+
+.thumb__enormous .thumb__inner{
+    display: inline-block;
+    background-size: cover;
+    background-position: center;
+    width: 400px;
+    height: 400px;
+}

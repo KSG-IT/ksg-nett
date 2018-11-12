@@ -1,0 +1,144 @@
+/* FONTS */
+@import url('https://fonts.googleapis.com/css?family=Open+Sans:300,400,600,700,800');
+
+*{
+    /* TODO: Fonts should be more specific to different types of elements */
+    font-family: 'Open Sans', sans-serif;
+}
+
+/* Button reset */
+button{
+    background: none;
+    border: none;
+    -webkit-appearance: none;
+    cursor: pointer;
+}
+
+/* Link reset */
+.resetlink{
+    text-decoration: none;
+    color: inherit;
+}
+
+.light-blue{
+    color: #7ACCF0;
+}
+
+.dark-blue {
+    color: #0A3672;
+}
+
+.darker-blue{
+    color: #103242;
+}
+
+.white{
+    color: white;
+}
+
+.black{
+    color: black;
+}
+
+.bg-light-blue{
+    background-color: #7ACCF0;
+}
+
+.bg-dark-blue {
+    background-color: #0A3672;
+}
+
+.bg-darker-blue{
+    background-color: #103242;
+}
+
+.bg-white{
+    background-color: white;
+}
+
+.bg-black{
+    background-color: black;
+}
+
+
+/* Font and text styling */
+.text-left{
+    text-align: left;
+}
+
+.text-center{
+    text-align: center;
+}
+
+.text-right{
+    text-align: right;
+}
+
+.extra-bold{
+    font-weight: 800;
+}
+
+.bolder{
+    font-weight: 700;
+}
+
+.bold{
+    font-weight: 600;
+}
+
+.normal{
+    font-weight: 400;
+}
+
+.light{
+    font-weight: 300;
+}
+
+
+/* Display */
+.block{
+    display: block;
+}
+
+.inline-block{
+    display: inline-block;
+}
+
+.flex{
+    display: flex;
+}
+
+.inline-flex{
+    display: inline-flex;
+}
+
+/* Containers and standard sizings */
+.default-container{
+    width: 1200px;
+    margin: 0 auto;
+    -webkit-box-sizing: border-box;
+    -moz-box-sizing: border-box;
+    box-sizing: border-box;
+}
+
+.default-left-panel{
+    width: 500px;
+    padding-right: 50px;
+    float: left;
+    -webkit-box-sizing: border-box;
+    -moz-box-sizing: border-box;
+    box-sizing: border-box;
+}
+
+.default-right-panel{
+    overflow: hidden;
+    padding-bottom: 0.2em;
+}
+
+.default-top-offset{
+    margin-top: 4em;
+}
+
+.resetmargins{
+    margin: 0;
+}

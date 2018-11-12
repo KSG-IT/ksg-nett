@@ -1,0 +1,10 @@
+{% extends 'internal/base.html' %}
+{% load static %}
+{% block header %}
+  <link rel="stylesheet" href="{% static 'internal/css/not_found.css' %}">
+{% endblock %}
+{% block body_content %}
+  <div class="default-container notfound">
+    <h1 class="text-center">Not Found &#9760;</h1>
+  </div>
+{% endblock %}

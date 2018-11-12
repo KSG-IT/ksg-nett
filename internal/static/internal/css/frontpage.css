@@ -1,0 +1,24 @@
+
+.frontpage__section{
+    display: flex;
+    width: 1200px;
+    margin: 0 auto;
+    flex-wrap: wrap;
+    justify-content: left;
+}
+
+.frontpage__column{
+    width: 25%;
+    padding: 0.5em;
+    -webkit-box-sizing: border-box;
+    -moz-box-sizing: border-box;
+    box-sizing: border-box;
+}
+
+.frontpage__columnallmarker{
+    text-align: right;
+}
+
+.frontpage__quote{
+    margin-bottom: 0.4em;
+}
