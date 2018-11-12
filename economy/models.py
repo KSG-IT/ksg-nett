@@ -22,7 +22,7 @@ class SociBankAccount(models.Model):
         on_delete=models.CASCADE
     )
 
-    balance = models.IntegerField(default=0)
+    balance = models.IntegerField(default=0, editable=False)
     card_uuid = models.BigIntegerField(blank=True, null=True, default=None, unique=True)
     display_balance_at_soci = models.BooleanField(default=False)
 
