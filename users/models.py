@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
 
+from typing import Optional
+
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 
@@ -64,21 +66,21 @@ class User(AbstractUser):
     def active(self):
         return self.ksg_status == KSG_STATUS_TYPES[0][0]
 
-    def get_start_ksg_display(self):
+    def get_start_ksg_display(self) -> str:
         """
-        This method returns a "semester-year" display for the start ksg date.
+        get_start_ksg_display renders the `start_ksg` attribute into a "semester-year"-representation.
         Examples:
             2018-01-01 => V18
             2014-08-30 => H14
             2012-12-30 => H12
-        :return:
+        :return: The "semeter-year" display of the `start_ksg` attribute.
         """
         short_year_format = str(self.start_ksg.year)[2:]
         semester_prefix = "H" if self.start_ksg.month > 7 else "V"
         return f"{semester_prefix}{short_year_format}"
 
     @property
-    def profile_image_url(self):
+    def profile_image_url(self) -> Optional[str]:
         """
         profile_image_url is a helper property which returns the url of the user's profile
         image, if the user has an associated profile image. The reason this exists, is that
@@ -86,7 +88,7 @@ class User(AbstractUser):
         is null. We can work around this in templates by doing a bunch of if-conditionals. However,
         it is more practical to use the `default_if_none` filter, hence this method returns None if the
         image does not exist.
-        :return:
+        :return: The url of the `profile_image` attribute, if it exists, otherwise None.
         """
         if self.profile_image and hasattr(self.profile_image, 'url'):
             return self.profile_image.url
