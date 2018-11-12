@@ -8,6 +8,8 @@ SUMMARY_TYPE_SOUSCHEF = 'souschef'
 SUMMARY_TYPE_ARRANGEMENT = 'arrangement'
 SUMMARY_TYPE_OKONOMI = 'okonomi'
 SUMMARY_TYPE_STYRET = 'styret'
+SUMMARY_TYPE_DRIFT = 'drift'
+SUMMARY_TYPE_DAGLIGHALLEN = 'daglighallen'
 SUMMARY_TYPE_KSG_IT = 'kit'
 
 SUMMARY_TYPE_CHOICES = (
@@ -19,6 +21,8 @@ SUMMARY_TYPE_CHOICES = (
     (SUMMARY_TYPE_ARRANGEMENT, 'Arrangement summary'),
     (SUMMARY_TYPE_OKONOMI, 'Økonomi summary'),
     (SUMMARY_TYPE_STYRET, 'Styret summary'),
+    (SUMMARY_TYPE_DRIFT, 'Drift summary'),
+    (SUMMARY_TYPE_DAGLIGHALLEN, 'Daglighallen summary'),
     (SUMMARY_TYPE_KSG_IT, 'KSG-IT summary')
 )
 
@@ -31,6 +35,8 @@ SUMMARY_TYPE_SHORT_NAMES = (
     (SUMMARY_TYPE_ARRANGEMENT, 'Arrangement'),
     (SUMMARY_TYPE_OKONOMI, 'Økonomi'),
     (SUMMARY_TYPE_STYRET, 'Styret'),
+    (SUMMARY_TYPE_DRIFT, 'Drift'),
+    (SUMMARY_TYPE_DAGLIGHALLEN, 'Daglighallen'),
     (SUMMARY_TYPE_KSG_IT, 'KSG-IT')
 )
 
