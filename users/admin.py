@@ -24,8 +24,8 @@ class MyUserCreationForm(UserCreationForm):
         fields = ('username', 'email',)
 
 
-class Allergens(admin.TabularInline):
-    model = Allergy
+class AllergyAdmin(admin.ModelAdmin):
+    list_display = ['pk', 'name']
 
 
 class SociBankAccountInline(admin.StackedInline):
@@ -60,3 +60,4 @@ class MyUserAdmin(UserAdmin):
 
 
 admin.site.register(User, MyUserAdmin)
+admin.site.register(Allergy, AllergyAdmin)
