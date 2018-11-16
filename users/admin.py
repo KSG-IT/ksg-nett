@@ -8,7 +8,7 @@ from django.contrib.auth.forms import UserChangeForm, UserCreationForm
 from django.utils.translation import ugettext_lazy as _
 
 from economy.models import SociBankAccount
-from users.models import User
+from users.models import User, Allergy
 
 
 class MyUserChangeForm(UserChangeForm):
@@ -24,9 +24,13 @@ class MyUserCreationForm(UserCreationForm):
         fields = ('username', 'email',)
 
 
+class AllergyAdmin(admin.ModelAdmin):
+    list_display = ['pk', 'name']
+
+
 class SociBankAccountInline(admin.StackedInline):
     model = SociBankAccount
-    fields = ['card_uuid', 'balance', 'display_balance_at_soci']
+    fields = ['card_uuid', 'display_balance_at_soci']
     verbose_name_plural = 'Soci Bank Account'
     can_delete = False
 
@@ -39,7 +43,8 @@ class MyUserAdmin(UserAdmin):
         ('Personalia', {'fields': ('date_of_birth', 'study',)}),
         ('Contact', {'fields': ('phone', 'study_address', 'home_address',)}),
         ('KSG options', {'fields': ('ksg_status', 'ksg_role', 'commission',)}),
-        ('Media', {'fields': ('profile_image',)})
+        ('Media', {'fields': ('profile_image',)}),
+        ('Additional info', {'fields': ('biography', 'in_relationship', 'allergies',)})
     )
     inlines = [SociBankAccountInline]
     add_fieldsets = (
@@ -55,3 +60,4 @@ class MyUserAdmin(UserAdmin):
 
 
 admin.site.register(User, MyUserAdmin)
+admin.site.register(Allergy, AllergyAdmin)

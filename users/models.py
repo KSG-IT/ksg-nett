@@ -27,6 +27,23 @@ KSG_ROLES = (
 )
 
 
+class Allergy(models.Model):
+    """
+    Model containing food preferences and allergies
+    """
+    name = models.CharField(max_length=32)
+
+    def __str__(self):
+        return self.name
+
+    def __repr__(self):
+        return self.name
+
+    class Meta:
+        default_related_name = 'allergies'
+        verbose_name_plural = 'Allergies'
+
+
 class User(AbstractUser):
     """
     A KSG user
@@ -44,6 +61,8 @@ class User(AbstractUser):
     ksg_status = models.CharField(max_length=32, choices=KSG_STATUS_TYPES, default=KSG_STATUS_TYPES[0])
     ksg_role = models.CharField(max_length=32, choices=KSG_ROLES, default=KSG_ROLES[0])
 
+    biography = models.TextField(blank=True, default="", max_length=200)
+    in_relationship = models.BooleanField(null=True, default=False)
     commission = models.ForeignKey(
         Commission,
         default=None,
@@ -51,6 +70,12 @@ class User(AbstractUser):
         null=True,
         related_name='holders',
         on_delete=models.SET_NULL
+    )
+
+    allergies = models.ManyToManyField(
+        Allergy,
+        blank=True,
+        related_name='users'
     )
 
     def __str__(self):
