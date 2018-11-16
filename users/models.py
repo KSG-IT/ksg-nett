@@ -26,19 +26,6 @@ KSG_ROLES = (
     ("hospitant", "Hospitant"),
 )
 
-# Allergy types
-ALLERGIES = (
-    ("gluten", "Glutenallergi"),
-    ("lactose", "Laktoseintolerant"),
-    ("milk", "Melkeallergi"),
-    ("nuts", "Nøtter"),
-    ("shellfish", "Skalldyr"),
-    ("celery", "Selleri"),
-    ("soy", "Soya"),
-    ("fish", "Fisk"),
-    ("egg", "Egg"),
-)
-
 
 class Allergy(models.Model):
     """
