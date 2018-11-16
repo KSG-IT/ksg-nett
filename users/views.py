@@ -9,13 +9,6 @@ from users.forms.user_form import UserForm
 from django.urls import reverse
 
 
-def current_user(request):
-    user = {'current_user': request.user}
-    return render(request=request,
-                  template_name='users/profile_page.html',
-                  context=user)
-
-
 @login_required
 def user_detail(request, user_id):
     user = get_object_or_404(User, pk=user_id)

@@ -189,10 +189,42 @@ class UserFormTest(TestCase):
         self.assertFalse(form.is_valid())
 
     def test_update_user_view_valid(self):
-        self.client.login(email=self.user.email, password=self.user.password)
+        self.client.login(email=self.user.email, password='password')
         response = self.client.post('/users/142/update', {
             'first_name': "Alexander", 'last_name': "Orvik",
             'phone': "45087749", 'study': "Samf", 'biography': "Nå er det endret", 'email': "alexaor@stud.ntnu.no"})
         self.assertEqual(response.status_code, 302)
+
+    def test_update_user_get_request(self):
+        self.client.login(username=self.user.username, password='password')
+        response = self.client.get(reverse(update_user, kwargs={'user_id': self.user.id}))
+        self.assertTemplateUsed(response, 'users/update_profile_page.html')
+
+    def test_update_user_post_request_valid(self):
+        self.client.login(username=self.user.username, password='password')
+        response = self.client.post(reverse(update_user, kwargs={'user_id': self.user.id}), data={
+            'first_name': "Alexander", 'last_name': "Orvik",
+            'phone': "45087749", 'study': "Samf", 'biography': "Nå er det endret", 'email': "alexaor@stud.ntnu.no"})
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.first_name, 'Alexander')
+        self.assertEqual(self.user.last_name, 'Orvik')
+        self.assertEqual(self.user.phone, '45087749')
+        self.assertEqual(self.user.study, 'Samf')
+        self.assertEqual(self.user.biography, 'Nå er det endret')
+        self.assertEqual(self.user.email, 'alexaor@stud.ntnu.no')
+
+    def test_update_user_post_request_invalid(self):
+        self.client.login(username=self.user.username, password='password')
+        response = self.client.post(reverse(update_user, kwargs={'user_id': self.user.id}), data={
+            'first_name': "Alexander", 'last_name': "Orvik",
+            'phone': "45087749", 'study': "Samf", 'biography': "Nå er det endret", 'email': ""})
+        self.assertTemplateUsed(response, 'users/update_profile_page.html')
+
+    def test_update_user_not_post_or_get_request(self):
+        self.client.login(username=self.user.username, password='password')
+        response = self.client.patch(reverse(update_user, kwargs={'user_id': self.user.id}))
+        self.assertEqual(response.status_code, 405)
+
+
 
     # TODO add invalid view test and more comprehensive testing
