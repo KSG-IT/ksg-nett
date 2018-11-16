@@ -41,7 +41,7 @@ def update_user(request, user_id):
     elif request.method == "POST":
         if form.is_valid():
             form.save()
-            return redirect(reverse('user_details', kwargs={'user_id': user_id}))
+            return redirect(reverse('user_detail', kwargs={'user_id': user_id}))
         else:
             return render(request, template_name='users/update_profile_page.html',
                           context=ctx)

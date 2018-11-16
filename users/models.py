@@ -90,6 +90,7 @@ class User(AbstractUser):
         blank=True,
         related_name='users'
     )
+
     def __str__(self):
         return f"User {self.get_full_name()}"
 
