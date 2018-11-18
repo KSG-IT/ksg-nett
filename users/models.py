@@ -53,7 +53,7 @@ class User(AbstractUser):
     email = models.EmailField(unique=True)
     date_of_birth = models.DateField(blank=True, null=True)
     study = models.CharField(default="", blank=True, max_length=100)
-    profile_image = models.FileField(upload_to='profiles/', null=True)
+    profile_image = models.FileField(upload_to='profiles/', null=True, blank=True)
 
     phone = models.CharField(default="", blank=True, max_length=50)
     study_address = models.CharField(default="", blank=True, max_length=100)
