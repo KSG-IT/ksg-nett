@@ -1,17 +1,67 @@
 {% extends 'internal/base.html' %}
+{% load static %}
+{% block header %}
+    <link rel="stylesheet" href="{% static 'users/css/update_profile_page.css' %}">
+{% endblock %}
 {% block body_content %}
     <html lang="en">
-        <head>
-            <meta charset="UTF-8">
-            <title>EDIT</title>
-            DETTE ER REDIGERINGSSIDEN FOR {{ profile_user.get_full_name }}
-        </head>
-        <body>
-            <form method="POST">
-                {% csrf_token %}
-                {{ user_form.as_table }}
-                <input type="submit" value="Submit">
-            </form>
-        </body>
+    <head>
+        <meta charset="UTF-8">
+        <title>Rediger {{ profile_user.get_full_name }}</title>
+    </head>
+    <body>
+
+    <form method="post">
+        {% csrf_token %}
+
+        <div class="grid-container">
+            <div class="grid-item" id="left-item">Full name</div>
+            <div class="grid-item">{{ profile_user.get_full_name }}</div>
+            <div class="grid-item" id="right-item">
+
+                {% if profile_user.use_nickname %}
+                    <input type="radio" name="display_name">
+                {% else %}
+                    <input type="radio" name="display_name" checked="checked">
+                {% endif %} Bruk
+            </div>
+            <div class="grid-item" id="left-item">Nickname</div>
+            <div class="grid-item">{{ profile_user.nickname }}</div>
+            <div class="grid-item" id="right-item">
+
+                {% if profile_user.use_nickname %}
+                    <input type="radio" name="display_name" checked="checked">
+                {% else %}
+                    <input type="radio" name="display_name"> Bruk
+                {% endif %}</div>
+            <div class="grid-item" id="left-item">E-post</div>
+            <div class="grid-item">{{ user_form.email }}</div>
+            <div class="grid-item"></div>
+            <div class="grid-item" id="left-item">Telefon</div>
+            <div class="grid-item">{{ user_form.phone }}</div>
+            <div class="grid-item"></div>
+            <div class="grid-item" id="left-item">Kortnummer</div>
+            <div class="grid-item">{{ profile_user.bank_account.card_uuid }}</div>
+            <div class="grid-item"></div>
+            <div class="grid-item" id="left-item">Sivilstatus</div>
+            <div class="grid-item">
+                Singel <input type="radio" name="relationship"> <br>
+                I forhold <input type="radio" name="relationship"><br>
+                Vil ikke vise <input type="radio" name="relationship">
+            </div>
+            <div class="grid-item"></div>
+            <div class="grid-item" id="left-item">Biografi</div>
+            <div class="grid-item">{{ user_form.biography }}</div>
+            <div class="grid-item"></div>
+            <div class="grid-item" id="left-item">Laste opp bilde</div>
+            <div class="grid-item">{{ user_form.profile_image }}</div>
+            <div class="grid-item"></div>
+            <div class="grid-item" id="left-item">Lagre</div>
+            <div class="grid-item">    <input type="submit" value="Submit"></div>
+            <div class="grid-item"></div>
+        </div>
+
+    </form>
+    </body>
     </html>
 {% endblock %}
