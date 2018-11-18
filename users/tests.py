@@ -166,8 +166,8 @@ class UserFormTest(TestCase):
             last_name='Exampleson',
             phone='12345678',
             biography='Before the bio has been changed',
-            study='Informatikk'
-
+            study='Informatikk',
+            use_nickname=False
         )
 
         cls.user.set_password('password')
@@ -178,7 +178,8 @@ class UserFormTest(TestCase):
     def test_UserForm_valid(self):
         form = UserForm(data={
             'first_name': "Alexander", 'last_name': "Orvik",
-            'phone': "45087749", 'study': "Samf", 'biography': "Nå er det endret", 'email': "alexaor@stud.ntnu.no"})
+            'phone': "45087749", 'study': "Samf", 'biography': "Nå er det endret", 'email': "alexaor@stud.ntnu.no",
+            'use_nickname': False})
         self.assertTrue(form.is_valid())
 
     def test_UserForm_invalid(self):
@@ -192,7 +193,8 @@ class UserFormTest(TestCase):
         self.client.login(email=self.user.email, password='password')
         response = self.client.post('/users/142/update', {
             'first_name': "Alexander", 'last_name': "Orvik",
-            'phone': "45087749", 'study': "Samf", 'biography': "Nå er det endret", 'email': "alexaor@stud.ntnu.no"})
+            'phone': "45087749", 'study': "Samf", 'biography': "Nå er det endret", 'email': "alexaor@stud.ntnu.no",
+            'use_nickname': False})
         self.assertEqual(response.status_code, 302)
 
     def test_update_user_get_request(self):
@@ -202,7 +204,7 @@ class UserFormTest(TestCase):
 
     def test_update_user_post_request_valid(self):
         self.client.login(username=self.user.username, password='password')
-        response = self.client.post(reverse(update_user, kwargs={'user_id': self.user.id}), data={
+        self.client.post(reverse(update_user, kwargs={'user_id': self.user.id}), data={
             'first_name': "Alexander", 'last_name': "Orvik",
             'phone': "45087749", 'study': "Samf", 'biography': "Nå er det endret", 'email': "alexaor@stud.ntnu.no"})
         self.user.refresh_from_db()
@@ -224,7 +226,5 @@ class UserFormTest(TestCase):
         self.client.login(username=self.user.username, password='password')
         response = self.client.patch(reverse(update_user, kwargs={'user_id': self.user.id}))
         self.assertEqual(response.status_code, 405)
-
-
 
     # TODO add invalid view test and more comprehensive testing
