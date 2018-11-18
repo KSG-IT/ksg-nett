@@ -49,7 +49,7 @@ class User(AbstractUser):
     A KSG user
     """
     use_nickname = models.BooleanField(default=False)
-    nickname = models.CharField(unique=True, blank=True, max_length=20)
+    ksg_nickname = models.CharField(blank=True, max_length=20)
     email = models.EmailField(unique=True)
     date_of_birth = models.DateField(blank=True, null=True)
     study = models.CharField(default="", blank=True, max_length=100)
