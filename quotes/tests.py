@@ -8,7 +8,7 @@ from django.utils import timezone
 from rest_framework import status
 
 from quotes.models import Quote, QuoteVote
-from quotes.views import quotes_list, vote_up, vote_down, quotes_add, quotes_edit, quotes_delete
+from quotes.views import quotes_list, vote_up, vote_down, quotes_add, quotes_edit, quotes_delete, approve_quote
 from users.models import User
 
 
@@ -38,10 +38,10 @@ class QuoteModelTest(TestCase):
             User(username='user%d' % 4, email='user%d@example.com' % 4),
         ])
         QuoteVote.objects.bulk_create([
-            QuoteVote(quote=cls.quote, caster_id=cls.user.id+1, value=1),
-            QuoteVote(quote=cls.quote, caster_id=cls.user.id+2, value=-1),
-            QuoteVote(quote=cls.quote, caster_id=cls.user.id+3, value=1),
-            QuoteVote(quote=cls.quote, caster_id=cls.user.id+4, value=1),
+            QuoteVote(quote=cls.quote, caster_id=cls.user.id + 1, value=1),
+            QuoteVote(quote=cls.quote, caster_id=cls.user.id + 2, value=-1),
+            QuoteVote(quote=cls.quote, caster_id=cls.user.id + 3, value=1),
+            QuoteVote(quote=cls.quote, caster_id=cls.user.id + 4, value=1),
         ])
 
     def test_str_and_repr_should_not_fail(self):
@@ -352,7 +352,6 @@ class QuoteEditTest(TestCase):
 
 
 class QuoteDeleteTest(TestCase):
-
     @classmethod
     def setUpTestData(cls):
         cls.user = User(
@@ -383,3 +382,30 @@ class QuoteDeleteTest(TestCase):
         response = self.client.put(reverse(quotes_delete, kwargs={'quote_id': 2}))
         self.assertEqual(response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
 
+
+class QuoteApproveTest(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = User(
+            username='test',
+            email='test@example.com',
+            first_name='Alex',
+            last_name='Orvik'
+        )
+        cls.user.set_password('password')
+        cls.user.save()
+
+        cls.quote = Quote(
+            text='Some quote text',
+            quoter=cls.user,
+            id=124
+        )
+        cls.quote.save()
+
+    def setUp(self):
+        self.client.login(username='test', password='password')
+
+    def test_approving_unapproved_quote(self):
+        self.assertEqual(self.quote.verified_by, None)
+        self.client.post(reverse(approve_quote, kwargs={'quote_id': 124, 'user': self.user}))
+        self.assertEqual(self.quote.verified_by, self.user)

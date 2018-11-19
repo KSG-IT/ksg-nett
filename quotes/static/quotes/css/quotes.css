@@ -30,3 +30,15 @@
 }
 
 
+.quote__text {
+    font-style: italic;
+}
+
+.no-bullet {
+    list-style-type: none;
+}
+
+a:visited { text-decoration: none; color:black; }
+a:hover { text-decoration: none; color:black; }
+a:focus { text-decoration: none; color:black; }
+a:hover, a:active { text-decoration: none; color:black }

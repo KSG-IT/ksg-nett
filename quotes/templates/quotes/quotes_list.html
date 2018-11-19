@@ -1,27 +1,49 @@
 {% extends 'internal/base.html' %}
+{% load static %}
+{% load i18n %}
+{% block header %}
+  <link rel="stylesheet" href="{% static 'quotes/css/quotes.css' %}">
+{% endblock %}
 {% block body_content %}
-  <h2>Pending</h2>
-  <ul>
+  <div class="profilepage">
+    <div class="default-container default-top-offset">
+      <div class="default-left-panel profilepage__thumbwrapper text-right">
+          <h3>Sitater</h3>
+          <p><a class="btn btn-primary" href="/internal/quotes/add/">Opprett</a></p>
+          <p>Arkiv</p>
+          <p>Søk</p>
+      </div>
+      <div class="default-right-panel">
+      <h2>Ikke godkjente</h2>
+        <ul>
     {% for quote in pending %}
-      <li>{{ quote.text }}</li>
+        <li class="no-bullet">"{{ quote.text }}"
+            <span>
+           <button class="quote__approve" data-quote-id="{{ quote.id }}">Godkjenn sitat</button>
+            <a class="btn btn-primary" href="/internal/quotes/{{ quote.id }}/edit">edit</a>
+                </span>
+        </li>
     {% endfor %}
   </ul>
-  <h2>Quotes</h2>
-  <ul>
+      <h2>Godkjente</h2>
+        <ul>
     {% for quote in quotes %}
-      <li>
+      <li class="no-bullet">
         <span class="quote__text">
-          {{ quote.text }}
-        </span> -&nbsp;
+          "{{ quote.text }}"
+        </span> <br> -&nbsp;{{ quote.quoter.get_full_name }}
         <span class="quote__sum">
           {{ quote.sum }}
         </span>
-        &nbsp;
-        <button class="quote__voteup" data-quote-id="{{ quote.id }}">Vote up</button>
-        <button class="quote__votedown" data-quote-id="{{ quote.id }}">Vote down</button>
+        <button class="quote__voteup" data-quote-id="{{ quote.id }}" style="color: #4cae4c;">Vote up</button>
+        <button class="quote__votedown" data-quote-id="{{ quote.id }}" style="color: red;">Vote down</button>
+          <a class="btn btn-primary" href="/internal/quotes/{{ quote.id }}/edit">#</a>
       </li>
     {% endfor %}
-  </ul>
-  {% load static %}
-  <script src="{% static 'quotes/quotes_list.js' %}"></script>
+        </ul>
+      </div>
+    </div>
+  </div>
+    {% load static %}
+    <script src="{% static 'quotes/quotes_list.js' %}"></script>
 {% endblock %}
