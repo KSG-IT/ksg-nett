@@ -15,32 +15,31 @@
       </div>
       <div class="default-right-panel">
       <h2>Ikke godkjente</h2>
-        <ul>
     {% for quote in pending %}
-        <li class="no-bullet">"{{ quote.text }}"
-            <span>
+            <span class="grid-item">
+                {{ quote.text }}
            <button class="quote__approve" data-quote-id="{{ quote.id }}">Godkjenn sitat</button>
             <a class="btn btn-primary" href="/internal/quotes/{{ quote.id }}/edit">edit</a>
                 </span>
-        </li>
     {% endfor %}
-  </ul>
       <h2>Godkjente</h2>
-        <ul>
+      <div class="grid-container">
     {% for quote in quotes %}
-      <li class="no-bullet">
-        <span class="quote__text">
+        <div class="grid-item">
           "{{ quote.text }}"
-        </span> <br> -&nbsp;{{ quote.quoter.get_full_name }}
-        <span class="quote__sum">
-          Score: {{ quote.sum }}
+        <br> -&nbsp;{{ quote.quoter.get_full_name }}
+            <span class="quote__sum">
+                Score: {{ quote.sum }}
+
+
         </span>
-        <button class="quote__voteup" data-quote-id="{{ quote.id }}" style="color: #4cae4c;">Vote up</button>
-        <button class="quote__votedown" data-quote-id="{{ quote.id }}" style="color: red;">Vote down</button>
-          <a class="btn btn-primary" href="/internal/quotes/{{ quote.id }}/edit">#</a>
-      </li>
+                        <button class="quote__voteup" data-quote-id="{{ quote.id }}" style="color: #4cae4c;">Vote up</button>
+                <button class="quote__votedown" data-quote-id="{{ quote.id }}" style="color: red;">Vote down</button>
+                <a class="btn btn-primary" href="/internal/quotes/{{ quote.id }}/edit">#</a>
+        </div>
+
     {% endfor %}
-        </ul>
+              </div>
       </div>
     </div>
   </div>

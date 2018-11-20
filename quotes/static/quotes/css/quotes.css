@@ -1,34 +1,33 @@
 
-.profilepage__thumbwrapper{
+.profilepage__thumbwrapper {
     margin-top: 3em;
 }
 
-.profilepage__nickname{
+.profilepage__nickname {
     color: #8ca9ae;
     margin-top: 0.4em;
 }
 
-.profilepage__phone{
+.profilepage__phone {
     margin-top: 0.4em;
 }
 
-.profilepage__email{
+.profilepage__email {
     margin-top: 0.4em;
 }
 
-.profilepage__position{
+.profilepage__position {
     margin-top: 2em;
     margin-bottom: 0.25em;
 }
 
-.profilepage__ksginfo > p{
+.profilepage__ksginfo > p {
     margin: 0.3em 0;
 }
 
-.profilepage__bio{
+.profilepage__bio {
     margin-top: 2em;
 }
-
 
 .quote__text {
     font-style: italic;
@@ -38,7 +37,43 @@
     list-style-type: none;
 }
 
-a:visited { text-decoration: none; color:black; }
-a:hover { text-decoration: none; color:black; }
-a:focus { text-decoration: none; color:black; }
-a:hover, a:active { text-decoration: none; color:black }
+.quote_box {
+
+}
+
+.grid-container {
+    display: grid;
+    grid-template-columns: auto auto auto;
+    padding: 10px;
+
+}
+
+.grid-item {
+    background-color: rgba(255, 255, 255, 0.8);
+    padding: 10px;
+    font-size: 14px;
+    text-align: left;
+    font-style: italic;
+    width: 200px;
+    margin: 10px;
+}
+
+a:visited {
+    text-decoration: none;
+    color: black;
+}
+
+a:hover {
+    text-decoration: none;
+    color: black;
+}
+
+a:focus {
+    text-decoration: none;
+    color: black;
+}
+
+a:hover, a:active {
+    text-decoration: none;
+    color: black
+}
