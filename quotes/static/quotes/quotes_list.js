@@ -11,7 +11,7 @@ document.addEventListener('DOMContentLoaded', function(){
                 .then(function(response){
                     // `element` is the vote up button, and its sibling with class .quote__sum contains
                     // the actual quote sum data.
-                    element.parentNode.querySelector('.quote__sum').innerHTML = response.data.sum;
+                    element.parentNode.querySelector('.quote__sum').innerHTML = "Score: " + response.data.sum;
                 })
 
         });
@@ -36,7 +36,7 @@ document.addEventListener('DOMContentLoaded', function(){
                 .then(function(response){
                     // `element` is the vote down button, and its sibling with class .quote__sum contains
                     // the actual quote sum data.
-                    element.parentNode.querySelector('.quote__sum').innerHTML = response.data.sum;
+                    element.parentNode.querySelector('.quote__sum').innerHTML = "Score: " + response.data.sum;
                 })
         });
     });
