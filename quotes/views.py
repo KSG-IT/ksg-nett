@@ -10,7 +10,7 @@ from quotes.serializers import QuoteSerializer, QuoteVoteSerializer
 
 
 @login_required
-def approve_quote(request, quote_id):
+def quotes_approve(request, quote_id):
     if request.method == "POST":
         quote = get_object_or_404(Quote, pk=quote_id)
         quote.verified_by = request.user
