@@ -8,7 +8,7 @@ from django.utils import timezone
 from rest_framework import status
 
 from quotes.models import Quote, QuoteVote
-from quotes.views import quotes_list, vote_up, vote_down, quotes_add, quotes_edit, quotes_delete, approve_quote
+from quotes.views import quotes_list, vote_up, vote_down, quotes_add, quotes_edit, quotes_delete, quotes_approve
 from users.models import User
 
 
@@ -407,5 +407,6 @@ class QuoteApproveTest(TestCase):
 
     def test_approving_unapproved_quote(self):
         self.assertEqual(self.quote.verified_by, None)
-        self.client.post(reverse(approve_quote, kwargs={'quote_id': 124, 'user': self.user}))
+        self.client.post(reverse(viewname=quotes_approve, kwargs={'quote_id': 124}), data={'user': self.user})
+        self.quote.refresh_from_db()
         self.assertEqual(self.quote.verified_by, self.user)

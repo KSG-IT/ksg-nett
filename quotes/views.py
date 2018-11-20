@@ -10,12 +10,17 @@ from quotes.serializers import QuoteSerializer, QuoteVoteSerializer
 
 
 @login_required
-def approve_quote(request, quote_id):
+def quotes_approve(request, quote_id):
     if request.method == "POST":
         quote = get_object_or_404(Quote, pk=quote_id)
-        quote.verified_by = request.user
-        quote.save()
-        return render(request, template_name='quotes/quotes_list.html')
+        # If quote is already verified
+        if quote.verified_by != None:
+            return render(request, template_name='quotes/quotes_list.html')
+        # Otherwise quote is not verified and gets verified
+        else:
+            quote.verified_by = request.user
+            quote.save()
+            return render(request, template_name='quotes/quotes_list.html')
 
 
 @login_required
