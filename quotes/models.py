@@ -55,6 +55,7 @@ class Quote(models.Model):
             # should thus be indexed.
             Index(fields=['verified_by'])
         ]
+        ordering = ['-created_at']
 
 
 class QuoteVote(models.Model):
@@ -84,6 +85,8 @@ class QuoteVote(models.Model):
         unique_together = (
             ('quote', 'caster')
         )
+
+
 
     def __str__(self):
         if self.value > 0:
