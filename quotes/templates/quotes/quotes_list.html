@@ -3,6 +3,7 @@
 {% load i18n %}
 {% block header %}
     <link rel="stylesheet" href="{% static 'quotes/css/quotes.css' %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
 {% endblock %}
 {% block body_content %}
     <!--TODO: Clean up classnames in css file and remove unused parts and reformat and make cleaner-->
@@ -33,12 +34,10 @@
                         <div class="grid-item">
                             "{{ quote.text }}"
                             <br> -&nbsp;{{ quote.quoter.get_full_name }}
-                            <span class="quote__sum">Score: {{ quote.sum }}</span>
-                            <button class="quote__voteup" data-quote-id="{{ quote.id }}" style="color: #4cae4c;">Vote
-                                up
+                            <span class="quote__sum">Score: {{ quote.sum }}</span><br>
+                            <button id="thumb" class="quote__voteup" data-quote-id="{{ quote.id }}" style="color: #4cae4c;"><i class="fa fa-thumbs-up"></i>
                             </button>
-                            <button class="quote__votedown" data-quote-id="{{ quote.id }}" style="color: red;">Vote
-                                down
+                            <button id="thumb" class="quote__votedown" data-quote-id="{{ quote.id }}" style="color: red;"><i class="fa fa-thumbs-down"></i>
                             </button>
                             <a class="btn btn-primary" href="/internal/quotes/{{ quote.id }}/edit">#</a>
                         </div>
