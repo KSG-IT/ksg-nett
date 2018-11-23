@@ -10,7 +10,7 @@ const cameraSpeed = 7
 const cameraZoomSpeed = 1.1
 
 // Physics constants
-const nodesIdealDistance = 150
+const nodesEquilibrium = 150
 const springCoefficient = 0.005
 const siblingReplusionCoefficient = 0.08
 const springMaxSeparationLongerThanEquilibriumMax = -500
@@ -232,15 +232,15 @@ function applySpringForce (nodeOne, nodeTwo) {
   const distanceX = nodeOne.x - nodeTwo.x
   const distanceY = nodeOne.y - nodeTwo.y
 
-  const idealDistanceCorrelator = Math.min(
+  const equilibriumCorrelator = Math.min(
     nodeOne.assocCount,
     nodeTwo.assocCount
   )
 
-  let correlatedIdealDistance = nodesIdealDistance
+  let correlatedEquilibrium = nodesEquilibrium
 
-  if (idealDistanceCorrelator > 1) {
-    correlatedIdealDistance *= (Math.pow(1.2, idealDistanceCorrelator))
+  if (equilibriumCorrelator > 1) {
+    correlatedEquilibrium *= (Math.pow(1.2, equilibriumCorrelator))
   }
 
   let distance = Math.sqrt(distanceX * distanceX + distanceY * distanceY)
@@ -249,7 +249,7 @@ function applySpringForce (nodeOne, nodeTwo) {
     distance = 0.1
   }
 
-  const distanceFromIdeal = Math.max(correlatedIdealDistance - distance, springMaxSeparationLongerThanEquilibriumMax)
+  const distanceFromIdeal = Math.max(correlatedEquilibrium - distance, springMaxSeparationLongerThanEquilibriumMax)
   const differenceVector = {
     x: distanceX / distance,
     y: distanceY / distance
