@@ -1,0 +1,20 @@
+{% extends 'internal/base.html' %}
+{% load static %}
+{% load i18n %}
+{% block header %}
+  <meta name="made-out-data" content="{{ made_out_data }}">
+  <link rel="stylesheet" href="{% static 'users/css/klinekart.css' %}">
+  <style>
+    body{
+      overflow: hidden;
+    }
+  </style>
+{% endblock %}
+{% block body_content %}
+  <div id="klinekart-wrapper" class="klinekart__wrapper default-fill-height-container">
+    <canvas id="klinekart-canvas" class="klinekart" width="640" height="480"></canvas>
+  </div>
+{% endblock %}
+{% block body_end %}
+  <script src="{% static 'users/js/klinekart.js' %}"></script>
+{% endblock %}
