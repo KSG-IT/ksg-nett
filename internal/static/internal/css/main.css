@@ -1,9 +1,13 @@
 /* FONTS */
 @import url('https://fonts.googleapis.com/css?family=Open+Sans:300,400,600,700,800');
 
-*{
-    /* TODO: Fonts should be more specific to different types of elements */
+html, body{
     font-family: 'Open Sans', sans-serif;
+}
+
+/* Make body and html fill page height*/
+html,body{
+    height: 100%;
 }
 
 /* Button reset */
