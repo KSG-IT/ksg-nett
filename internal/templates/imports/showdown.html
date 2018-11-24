@@ -1,0 +1,40 @@
+{# Set up showdown and add code highlighting #}
+{% include 'imports/highlightjs.html'  %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/showdown/1.8.7/showdown.min.js"></script>
+<script>
+  // Add highlighting using hightlight.js
+  showdown.extension('highlight', function () {
+    return [{
+      type: "output",
+      filter: function (text, converter, options) {
+        let left = "<pre><code\\b[^>]*>",  // The \\b[^>]* matches from the word boundary of `code` and all
+                                           // characters that are not `>`.
+            right = "</code></pre>",
+            flags = "g";
+        let replacement = function (wholeMatch, match, left, right) {
+          // The regex here matches `class="` follow by all non-spaces, non-double-quotaions.
+          // The the result non-spaces, non-double-quotation part is grouped, and hence is available at
+          // index 1, if it exists. In all other cases lang should be undefined after this expression.
+          let lang = (left.match(/class=\"([^ \"]+)/) || [])[1];
+          if (lang && hljs.getLanguage(lang)) {
+            // Add the hljs class to the <code> element, to get highlighting
+            left = left.slice(0, 18) + 'hljs ' + left.slice(18);
+            return left + hljs.highlight(lang, match).value + right;
+          } else {
+            // We need to be slightly more tricky here, as the code element might not have a
+            // class.
+            if (left.indexOf('class') >= 0) {
+                // The length of `<pre><code class="` is 18
+                left = left.slice(0, 18) + 'hljs ' + left.slice(18);
+            } else {
+                // The length of `<pre><code` is 10
+                left = left.slice(0, 10) + " class=\"hljs\"" + left.slice(10)
+            }
+            return left + hljs.highlightAuto(match).value + right;
+          }
+        };
+        return showdown.helper.replaceRecursiveRegExp(text, replacement, left, right, flags);
+      }
+    }];
+  });
+</script>
