@@ -34,10 +34,10 @@ class TestIndexView(TestCase):
         self.assertEqual(response['Location'], reverse(login_user))
 
 class TestGetSemesterYearShortHand(TestCase):
-    def test_get_semester_year_shorthand__user_in_spring__returns_v_prefix_and_correct_year(self):
+    def test_get_semester_year_shorthand__timestamp_in_spring__returns_v_prefix_and_correct_year(self):
         timestamp = timezone.datetime(year=2018, month=3, day=1)
         self.assertEqual(get_semester_year_shorthand(timestamp), "V18")
 
-    def test_get_semester_year_shorthand__user_in_autumn__returns_h_prefix_and_correct_year(self):
+    def test_get_semester_year_shorthand__timestamp_in_autumn__returns_h_prefix_and_correct_year(self):
         timestamp = timezone.datetime(year=2018, month=8, day=1)
         self.assertEqual(get_semester_year_shorthand(timestamp), "H18")
