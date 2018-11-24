@@ -1,3 +1,4 @@
+from django.template import Template, Context
 from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
@@ -41,3 +42,40 @@ class TestGetSemesterYearShortHand(TestCase):
     def test_get_semester_year_shorthand__timestamp_in_autumn__returns_h_prefix_and_correct_year(self):
         timestamp = timezone.datetime(year=2018, month=8, day=1)
         self.assertEqual(get_semester_year_shorthand(timestamp), "H18")
+
+
+class TestGetSemesterYearShortHandFilter(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.template = Template("""
+            {% load ksg_helpers %} 
+            {{ timestamp | get_semester_year_shorthand }}
+        """)
+
+    def test_get_semester_year_shorthand_filter__timestamp_in_spring__returns_v_prefix_and_correct_year(self):
+        timestamp = timezone.datetime(year=2018, month=3, day=1)
+        context = Context({'timestamp': timestamp})
+        output = self.template.render(context)
+        self.assertEqual(output.strip(), "V18")
+
+
+    def test_get_semester_year_shorthand_filter__timestamp_in_autumn__returns_h_prefix_and_correct_year(self):
+        timestamp = timezone.datetime(year=2018, month=8, day=1)
+        context = Context({'timestamp': timestamp})
+        output = self.template.render(context)
+        self.assertEqual(output.strip(), "H18")
+
+    def test_get_semester_year_shorthand_filter__bad_input_type__throws(self):
+        with self.assertRaises(ValueError):
+            context = Context({'timestamp': 25})
+            output = self.template.render(context)
+
+        with self.assertRaises(ValueError):
+            # Sorry, strings doesn't work either
+            context = Context({'timestamp': "2018-01-01T22:22:22Z"})
+            output = self.template.render(context)
+
+        with self.assertRaises(ValueError):
+            context = Context({'timestamp': []})
+            output = self.template.render(context)
+
