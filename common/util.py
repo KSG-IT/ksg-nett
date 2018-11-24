@@ -1,7 +1,8 @@
-from datetime import datetime
+from datetime import datetime, date
+from typing import Union
 
 
-def get_semester_year_shorthand(timestamp: datetime) -> str:
+def get_semester_year_shorthand(timestamp: Union[datetime, date]) -> str:
     """
     get_semester_year_shortand renders the `timestamp` attribute into a "semester-year"-representation.
     Examples:
