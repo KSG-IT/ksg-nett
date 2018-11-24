@@ -27,6 +27,7 @@ class Summary(models.Model):
         related_name='reported_summaries'
     )
     date = models.DateTimeField(null=False, blank=False)
+    updated_at = models.DateTimeField(auto_now=True)
 
     def get_short_summary_type_name(self):
         return SUMMARY_TYPE_SHORT_NAMES_DICT.get(self.summary_type)
