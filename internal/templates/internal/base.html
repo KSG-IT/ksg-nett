@@ -20,6 +20,8 @@
     {# Vendor libraries #}
     <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
     <link rel="stylesheet" href="https://unpkg.com/normalize.css@8.0.0/normalize.css">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons"
+      rel="stylesheet">
 
     {# Main styling and scripting files #}
     <script src="{% static 'internal/js/main.js' %}"></script>
@@ -39,11 +41,11 @@
   {% endblock %}
   {% block body_content %}
   {% endblock %}
-  {% block body_end %}
-    <!-- Place body-loaded scripts in this block -->
-  {% endblock %}
   {% block override_body_end_script_defaults %}
     <script src="{% static 'internal/js/header.js' %}"></script>
+  {% endblock %}
+  {% block body_end %}
+    <!-- Place body-loaded scripts in this block -->
   {% endblock %}
 </body>
 </html>
