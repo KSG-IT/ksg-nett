@@ -173,3 +173,16 @@ MEDIA_ROOT = 'media/'
 MINIMUM_SOCI_AMOUNT = 0
 SOCI_MASTER_ACCOUNT_CARD_ID = 0xBADCAFEBABE  # Real card ids are 10 digits, while this is 14, meaning no collisions
 DIRECT_CHARGE_SKU = "X-BELOP"
+
+
+# Load local and production settings
+try:
+    from .settings_local import *
+except ImportError:
+    pass
+
+if 'PROD' in os.environ:
+    try:
+        from .settings_prod import *
+    except ImportError:
+        pass
