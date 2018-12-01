@@ -13,7 +13,7 @@ const cameraZoomSpeed = 1.1
 const nodesEquilibrium = 150
 const springCoefficient = 0.005
 const siblingReplusionCoefficient = 0.08
-const springMaxSeparationLongerThanEquilibriumMax = -500
+const springMaxSeparationLongerThanEquilibriumMax = -1000
 const damping = 0.1
 
 // Get and set canvas size
@@ -41,7 +41,9 @@ const mouseInfo = {
   // This variable is used to check whether or not the mouse was just released. This is useful to detect clicks.
   mouseUpLastFrame: false,
   // This list contains tuples [id, distance], where id is the node id, and distance is the distance from the center of the node to the mouse
-  intersectingUsersThisFrame: []  
+  intersectingUsersThisFrame: [],
+  // Use to contain a reference the the currently dragged user
+  userDragged: null
 }
 
 // Frame and update specific variables. The three first are used to implement a fixed timestep logic loop
@@ -209,6 +211,13 @@ function updateLogic () {
 
     // Update velocity and positions
     Object.values(nodes).forEach(node => {
+      // Abort if the node is currently being dragged, but reset acceleration
+      if (mouseInfo.userDragged === node.user.id) {
+        node.ax = 0
+        node.ay = 0 
+        return
+      }
+
       node.vx += node.ax
       node.vy += node.ay
 
@@ -317,27 +326,50 @@ function render () {
     checkNodeIntersectionWithMouse(nodes[i])
   })
 
-  // If there are intersecting users, take the nearest one, and render an outline and present user data
-  const nearestUser = mouseInfo.intersectingUsersThisFrame.reduce(
-    // Take "next" if and only if the distance is smaller than the previous smallest distance.
-    // The distance is always the second value in the tuples
-    (acc, next) => next[1] < acc[1] ? next : acc, 
-    // The "default" user has no id and an infinite distance to the mouse
-    [null, Infinity]
-  )
+  // User is currently being dragged. Move the user
+  if (mouseInfo.userDragged !== null && !mouseInfo.mouseUpLastFrame) {
+    const node = nodes[mouseInfo.userDragged]
 
-  // A user is being hovered over
-  if (nearestUser[0] !== null) {
-    const node = nodes[nearestUser[0]]
-    renderNodeBeingHoveredOver(node)
-    document.body.style.cursor = "pointer"
-
-    // User has been clicked
-    if (mouseInfo.mouseUpLastFrame) {
-      handleUserClicked(node.user)
-    }
+    node.x = mouseInfo.lastPosWorldSpaceX
+    node.y = mouseInfo.lastPosWorldSpaceY
   } else {
-    document.body.style.cursor = "default"
+    // Perform other mouse interaction checks
+
+    // If there are intersecting users, take the nearest one, and render an outline and present user data
+    const nearestUser = mouseInfo.intersectingUsersThisFrame.reduce(
+      // Take "next" if and only if the distance is smaller than the previous smallest distance.
+      // The distance is always the second value in the tuples
+      (acc, next) => next[1] < acc[1] ? next : acc, 
+      // The "default" user has no id and an infinite distance to the mouse
+      [null, Infinity]
+    )
+
+    // A user is being hovered over
+    if (nearestUser[0] !== null) {
+      const node = nodes[nearestUser[0]]
+      renderNodeBeingHoveredOver(node)
+      document.body.style.cursor = "pointer"
+
+      // Only perform the below actions if there is no currently dragged user
+
+      if (mouseInfo.userDragged === null) {
+        // User has been clicked
+        if (mouseInfo.mouseUpLastFrame) {
+          handleUserClicked(node.user)
+        // User is now being dragged
+        } else if (mouseInfo.mouseDown && mouseInfo.userDragged === null) {
+          mouseInfo.userDragged = node.user.id
+        }
+      }
+    } else {
+      // Reset the mouse style in all non-hovering scenarios
+      document.body.style.cursor = "default"
+    }
+
+    // If the mouse was up last frame, we always reset userDragged
+    if (mouseInfo.mouseUpLastFrame){
+      mouseInfo.userDragged = null
+    }
   }
 
   // Capture current frame time. Update framerate every tenth frame
@@ -549,8 +581,8 @@ function handleMouseMove(event) {
   mouseInfo.lastPosWorldSpaceX = transformedMousePos.x
   mouseInfo.lastPosWorldSpaceY = transformedMousePos.y
 
-  // Abort the translation if the mouse is not down
-  if (!mouseInfo.mouseDown) {
+  // Abort the translation if the mouse is not down, or if user is being dragged
+  if (!mouseInfo.mouseDown || mouseInfo.userDragged !== null) {
     return
   }
 
