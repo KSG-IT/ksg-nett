@@ -112,3 +112,6 @@ db.sqlite3
 # Media and statics
 /static
 /media
+
+# Settings
+settings_local.py
