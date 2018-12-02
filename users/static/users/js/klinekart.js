@@ -6,6 +6,8 @@ ctx.globalCompositeOperation = 'destination-in'
 
 const thumbSize = 50
 
+let debug = false
+
 // Camera constants
 const cameraSpeed = 7
 const cameraZoomSpeed = 1.1
@@ -436,9 +438,16 @@ function render () {
   // Draw static text while in identity-space
   ctx.font = '24px Arial '
   ctx.fillStyle = '#999'
-  ctx.fillText('Klinekart', width - 170, height - 20)
+  ctx.textAlign = "right"
+  const titleText = "Klinekart  " + frameRate + "fps"
+  ctx.fillText(titleText, width - 20, height - 20)
 
-  ctx.fillText(frameRate + " fps", width - 280, height - 20)
+  if (debug) {
+    ctx.textAlign = "left"
+    ctx.fillText("1337 h4xx0r m0d3", 20, height - 20)
+
+    ctx.fillText("Zoom: " + camera.zoom.toFixed(2), width - 350, height - 20)
+  }
 
   // Restore the current zoom
   ctx.restore()
@@ -513,6 +522,11 @@ function render () {
 
   if (frameCount % 10 === 0) {
     frameRate = getCurrentFrameRate().toFixed(0)
+  }
+
+
+  if (debug) {
+    renderDebug()
   }
 
   // Reset pertinent values
@@ -602,6 +616,19 @@ function renderNodeBeingHoveredOver(node) {
   renderNodeUserText(node, 26, '#D90368')
 }
 
+function renderDebug() {
+  ctx.save()
+  ctx.font = '18px Arial'
+  ctx.textAlign="center"; 
+
+  nodeIslands.forEach((island, i) => {
+    ctx.fillText("Island " + (i + 1).toString(), island.centroidX, island.centroidY - 22)
+    ctx.fillText("Centroid: (" + island.centroidX.toFixed(2) + ", " + island.centroidY.toFixed(2) +")", island.centroidX, island.centroidY)
+    ctx.fillText("Velocity: (" + island.vx.toFixed(2) + ", " + island.vy.toFixed(2) +")", island.centroidX, island.centroidY + 22)
+  })
+  ctx.restore()
+}
+
 function checkNodeIntersectionWithMouse(node) {
   const correlatedSize = (thumbSize + 6 * node.assocCount) / 2
   const xPos = node.x
@@ -655,6 +682,9 @@ function handleKeyup (event) {
     case 'ArrowDown':
     case 's':
       camera.vy = 0
+      break
+    case 'p':
+      debug = !debug
       break
     case 'r':
       randomizePositions()
