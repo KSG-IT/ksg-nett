@@ -1,3 +1,4 @@
+// Some important elements
 const canvasWrapperEl = document.getElementById('klinekart-wrapper')
 const canvas = document.getElementById('klinekart-canvas')
 const ctx = canvas.getContext('2d')
@@ -13,8 +14,12 @@ const cameraZoomSpeed = 1.1
 const nodesEquilibrium = 150
 const springCoefficient = 0.005
 const siblingReplusionCoefficient = 0.08
+const islandRepulsionCoefficient = 3.5
 const springMaxSeparationLongerThanEquilibriumMax = -1000
+const islandMaxSeparationThatYieldsForce = 10000
+
 const damping = 0.1
+const islandDamping = 0.002
 
 // Get and set canvas size
 const width = canvasWrapperEl.scrollWidth
@@ -94,6 +99,10 @@ let lastFrameTimes = [
 // const nodes = {}
 // END RANDOM USER GENERATION MODE
 
+// ========================== //
+// INITIALIZATION             //
+// ========================== //
+
 // Load and transform data
 const madeOutData = JSON.parse(
   document.querySelector(
@@ -163,10 +172,86 @@ madeOutAssociations.forEach(assoc => {
   nodes[secondUserId].assocCount += 1
 })
 
+// Create node islands
+const nodeIslands = []
+const inverseNodeIslandLookups = {}
+let currentIsland = null
+const nodesUsed = new Set()
+const nodesRemaining = Array.from(Object.values(nodes).map(node => node.user.id))
+const bfsList = []
+let next = null
+
+while(nodesRemaining.length > 0) {
+  // This while loop is called once for every distinct island
+  next = nodesRemaining.pop()
+  if (nodesUsed.has(next)) {
+    continue
+  }
+
+  currentIsland = createNodeIsland()
+  // Add the next node to the bfsList
+  bfsList.push(next)
+
+  // Perform a DFS search over the graph.
+  while(bfsList.length > 0) {
+    const currentNode = nodes[next]
+
+    if (nodesUsed.has(currentNode)) {
+      continue
+    }
+
+    currentIsland.nodes.push(currentNode)
+    currentIsland.mass += currentNode.assocCount
+    inverseNodeIslandLookups[next] = currentIsland
+
+    const siblings = associationSiblingLookup[next]
+    Object.values(siblings).forEach(sibling => {
+      if (nodesUsed.has(sibling.id)) {
+        return
+      }
+      bfsList.push(sibling.id)
+    })
+
+    nodesUsed.add(next)
+    next = bfsList.pop()
+  }
+
+  // Island is complete
+  // Mass should be scaled as the logarithm of the sum all assoc counts
+  currentIsland.mass = Math.log2(currentIsland.mass)
+  recalculateNodeIslandCentroid(currentIsland)
+  nodeIslands.push(currentIsland)
+}
+
+function recalculateNodeIslandCentroid(island) {
+  let sumXPos = 0
+  let sumYPos = 0
+  island.nodes.forEach(node => {
+    sumXPos += node.x
+    sumYPos += node.y
+  })
+  island.centroidX = sumXPos / island.nodes.length
+  island.centroidY = sumYPos / island.nodes.length
+}
+
+
 function getCameraOffset () {
   return {
     x: camera.x - camera.width / 2,
     y: camera.y - camera.height / 2
+  }
+}
+
+function createNodeIsland() {
+  return {
+    nodes: [],
+    centroidX: 0,
+    centroidY: 0,
+    mass: 0,
+    vx: 0,
+    vy: 0,
+    ax: 0,
+    ay: 0
   }
 }
 
@@ -209,17 +294,64 @@ function updateLogic () {
       applySiblingForce(nodeTwo, nodeOne)
     })
 
+    // Update island accelerations. 
+    // TODO: This is O(n^2), so we should probably try to restrict it if there are many islands
+    for (let i = 0; i < nodeIslands.length; ++i) {
+      const islandOne = nodeIslands[i]
+      for (let j = i + 1; i !== j && j < nodeIslands.length; ++j) {
+        const islandTwo = nodeIslands[j]
+        const distanceX = islandOne.centroidX - islandTwo.centroidX
+        const distanceY = islandOne.centroidY - islandTwo.centroidY
+        const distance = Math.max(0.0001, Math.sqrt(distanceX * distanceX + distanceY * distanceY))
+        const distanceCubed = distance * distance * distance
+
+        if (distance > islandMaxSeparationThatYieldsForce) {
+          continue
+        }
+
+        islandOne.ax += islandRepulsionCoefficient * islandTwo.mass * distanceX / distanceCubed
+        islandOne.ay += islandRepulsionCoefficient * islandTwo.mass * distanceY / distanceCubed
+
+        islandTwo.ax += -islandRepulsionCoefficient * islandOne.mass * distanceX / distanceCubed
+        islandTwo.ay += -islandRepulsionCoefficient * islandOne.mass * distanceY / distanceCubed
+      }
+    }
+
+    // Update island velocities and centroids
+    nodeIslands.forEach(island => {
+      island.vx += island.ax
+      island.vy += island.ay
+
+      island.vx *= (1 - islandDamping)
+      island.vy *= (1 - islandDamping)
+
+      island.ax = 0
+      island.ay = 0
+
+      recalculateNodeIslandCentroid(island)
+    })
+
     // Update velocity and positions
     Object.values(nodes).forEach(node => {
-      // Abort if the node is currently being dragged, but reset acceleration
+      // Abort if the node is currently being dragged, but reset acceleration. Also make sure to reset island velocity.
       if (mouseInfo.userDragged === node.user.id) {
         node.ax = 0
         node.ay = 0 
+
+        const island = inverseNodeIslandLookups[node.user.id]
+        island.vx = 0
+        island.vy = 0
+
         return
       }
 
       node.vx += node.ax
       node.vy += node.ay
+
+      // Apply island velocity
+      const islandOfNode = inverseNodeIslandLookups[node.user.id]
+      node.vx += islandOfNode.vx
+      node.vy += islandOfNode.vy
 
       node.vx *= (1 - damping)
       node.vy *= (1 - damping)
