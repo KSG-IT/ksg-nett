@@ -7,7 +7,6 @@
 {% endblock %}
 {% block body_content %}
     <!--TODO: Clean up classnames in css file and remove unused parts and reformat and make cleaner-->
-    <!--TODO: Shift content more to the left -->
     <div class="profilepage">
         <div class="default-container default-top-offset">
             <div id="left-wrapper" class="default-left-panel profilepage__thumbwrapper text-right">
@@ -19,9 +18,9 @@
             <div class="default-right-panel" id="right-wrapper">
                 {% if pending|length != 0 %}
                     <h2>Ikke godkjente</h2>
-                    <div class="grid-container">
+                    <div class="quote-container">
                     {% for quote in pending %}
-                        <span class="grid-item">
+                        <span class="quote-item">
                 {{ quote.text }}<br>
            <button class="quote__approve" data-quote-id="{{ quote.id }}">Godkjenn sitat</button>
             <a class="btn btn-primary" href="/internal/quotes/{{ quote.id }}/edit">edit</a>
@@ -30,14 +29,13 @@
                 {% endif %}
                 </div>
 
-                <div class="grid-container">
-                <!--TODO: Find better solution than empty H2 tags in css-grid -->
-                <h2>Godkjente</h2>
-                <h2></h2>
-                <h2></h2>
+                <div class="quote-container">
+                <h2 class="quote-item" >Godkjente</h2>
+                <div class="quote-gap"></div>
+                <div class="quote-gap"></div>
                     {% for quote in quotes %}
                         {% if quote.get_semester_of_quote == 'H18' %}
-                            <div class="grid-item">
+                            <div class="quote-item">
                                 "{{ quote.text }}"
                                 <br> {{ quote.quoter.get_full_name }} {{ quote.get_semester_of_quote }} <br>
                                 <span class="quote__sum">Score: {{ quote.sum }}</span><br>
