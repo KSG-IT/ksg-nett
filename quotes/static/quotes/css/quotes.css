@@ -47,6 +47,10 @@
     appearance: none;
 }
 
+.quote__verifiedtitle {
+    padding-left: 10px;
+}
+
 a:link {
     color: black;
 }

@@ -17,23 +17,24 @@
             </div>
             <div class="default-right-panel" id="right-wrapper">
                 {% if pending|length != 0 %}
-                    <h2>Ikke godkjente</h2>
+                    <h2 clas="quote-item">Ikke godkjente</h2>
+
                     <div class="quote-container">
+
+
                     {% for quote in pending %}
                         <span class="quote-item">
-                {{ quote.text }}<br>
-           <button class="quote__approve" data-quote-id="{{ quote.id }}">Godkjenn sitat</button>
-            <a class="btn btn-primary" href="/internal/quotes/{{ quote.id }}/edit">edit</a>
-                </span>
+                            {{ quote.text }}<br>
+                            <button class="quote__approve" data-quote-id="{{ quote.id }}">Godkjenn sitat</button>
+                            <a class="btn btn-primary" href="/internal/quotes/{{ quote.id }}/edit">edit</a>
+                        </span>
                     {% endfor %}
+                    </div>
                 {% endif %}
-                </div>
-
+                <h2>Godkjente</h2>
                 <div class="quote-container">
-                <h2 class="quote-item" >Godkjente</h2>
-                <div class="quote-gap"></div>
-                <div class="quote-gap"></div>
                     {% for quote in quotes %}
+                        <!-- Check against get_semester_shorthand using current day-->
                         {% if quote.get_semester_of_quote == 'H18' %}
                             <div class="quote-item">
                                 "{{ quote.text }}"
@@ -52,6 +53,7 @@
                 </div>
             </div>
         </div>
+    </div>
     </div>
     {% load static %}
     <script src="{% static 'quotes/quotes_list.js' %}"></script>
