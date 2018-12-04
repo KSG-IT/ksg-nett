@@ -25,7 +25,10 @@
                     {% for quote in pending %}
                         <span class="quote__item">
                             {{ quote.text }}<br>
-                            <button class="quote__approve" data-quote-id="{{ quote.id }}">Godkjenn sitat</button>
+                            <form method="POST" action="/internal/quotes/{{ quote.id }}/approve">
+                                {% csrf_token %}<button type="submit">Godkjenn sitat</button>
+                            </form>
+
                             <a class="btn btn-primary" href="/internal/quotes/{{ quote.id }}/edit">edit</a>
                         </span>
                     {% endfor %}

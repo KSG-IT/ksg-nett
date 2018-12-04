@@ -16,18 +16,7 @@ document.addEventListener('DOMContentLoaded', function(){
 
         });
     });
-    var approveQuote = document.querySelectorAll(".quote__approve");
-    approveQuote.forEach(function(element){
-        var quoteId = element.getAttribute('data-quote-id');
-        element.addEventListener('click', function(){
-            axios('/internal/quotes/' + quoteId + '/approve', {method: 'POST'})
-                .then(function(response){
-                    // `element` is the vote down button, and its sibling with class .quote__sum contains
-                    // the actual quote sum data.
-                    location.reload();
-                })
-        });
-    });
+
     var voteDowns = document.querySelectorAll(".quote__votedown");
     voteDowns.forEach(function(element){
         var quoteId = element.getAttribute('data-quote-id');

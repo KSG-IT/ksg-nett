@@ -13,14 +13,10 @@ from quotes.serializers import QuoteSerializer, QuoteVoteSerializer
 def quotes_approve(request, quote_id):
     if request.method == "POST":
         quote = get_object_or_404(Quote, pk=quote_id)
-        # If quote is already verified
-        if quote.verified_by != None:
-            return render(request, template_name='quotes/quotes_list.html')
-        # Otherwise quote is not verified and gets verified
-        else:
+        if quote.verified_by is None:
             quote.verified_by = request.user
             quote.save()
-            return render(request, template_name='quotes/quotes_list.html')
+        return redirect(reverse(quotes_list))
 
 
 @login_required
