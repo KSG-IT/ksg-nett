@@ -18,9 +18,9 @@
             <div class="default-right-panel" id="right-wrapper">
                 {% if pending|length != 0 %}
                     <h2>Ikke godkjente</h2>
-                    <div class="quote__container">
+                    <div class="quote__gridcontainer">
                     {% for quote in pending %}
-                        <span class="quote__item">
+                        <span class="quote__griditem">
                             {{ quote.text }}<br>
                             <form method="POST" action="/internal/quotes/{{ quote.id }}/approve">
                                 {% csrf_token %}<button type="submit">Godkjenn sitat</button>
@@ -32,11 +32,11 @@
                 {% endif %}
 
                 <h2>Godkjente</h2>
-                <div class="quote__container">
+                <div class="quote__gridcontainer">
                     {% for quote in quotes %}
                         <!-- Check against get_semester_shorthand using current day-->
                         {% if quote.get_semester_of_quote == 'H18' %}
-                            <div class="quote__item">
+                            <div class="quote__griditem">
                                 "{{ quote.text }}"
                                 <br> {{ quote.quoter.get_full_name }} {{ quote.get_semester_of_quote }} <br>
                                 <span class="quote__sum">Score: {{ quote.sum }}</span><br>
