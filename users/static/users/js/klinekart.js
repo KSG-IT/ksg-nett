@@ -777,7 +777,7 @@ function transformPointFromScreenSpaceToWorldSpace(x, y){
 }
 
 function randomizePositions(){
-  nodes.forEach(node => {
+  Object.values(nodes).forEach(node => {
     node.x = Math.random() * width
     node.y = Math.random() * height
   })
