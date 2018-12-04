@@ -646,7 +646,9 @@ function render () {
   )
 
   // Render connections and nodes, in that order.
-  madeOutAssociations.forEach(assoc => renderConnection(assoc[0], assoc[1]))
+  renderConnections()
+
+  // madeOutAssociations.forEach(assoc => renderConnection(assoc[0], assoc[1]))
   Object.keys(nodes).forEach(i => {
     renderNode(nodes[i])
 
@@ -746,13 +748,20 @@ function renderNode (node) {
   //   ctx.restore()
 }
 
+// Render all connections. We do this in a single path call
+function renderConnections(lineWidth=1, strokeStyle="black") {
   ctx.save()
-  ctx.beginPath();
-  ctx.arc(node.x, node.y, correlatedSize/2, 0, Math.PI*2);
-  ctx.clip()
-  ctx.closePath();
+  ctx.beginPath()
+  ctx.lineWidth = lineWidth
+  ctx.strokeStyle = strokeStyle
+  madeOutAssociations.forEach(assoc => {
+    const firstNode = nodes[assoc[0]]
+    const secondNode = nodes[assoc[1]]
 
-  ctx.drawImage(node.img, xPos, yPos, correlatedSize, correlatedSize)
+    ctx.moveTo(firstNode.x, firstNode.y)
+    ctx.lineTo(secondNode.x, secondNode.y)
+  })
+  ctx.stroke()
   ctx.restore()
 }
 
