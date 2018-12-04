@@ -1,17 +1,4 @@
 
-.profilepage__thumbwrapper {
-    margin-top: 3em;
-}
-
-.profilepage__position {
-    margin-top: 2em;
-    margin-bottom: 0.25em;
-}
-
-.profilepage__ksginfo > p {
-    margin: 0.3em 0;
-}
-
 .quote__text {
     font-style: italic;
 }
@@ -20,18 +7,14 @@
     list-style-type: none;
 }
 
-.quote_box {
-
-}
-
-.quote-container {
+.quote__container {
     display: grid;
     grid-template-columns: auto auto auto;
     padding: 10px;
 
 }
 
-.quote-item {
+.quote__item {
     background-color: rgba(255, 255, 255, 0.8);
     padding: 10px;
     font-size: 14px;
@@ -41,15 +24,6 @@
     margin: 10px;
 }
 
-
-.quote-gap {
-    display: grid;
-    appearance: none;
-}
-
-.quote__verifiedtitle {
-    padding-left: 10px;
-}
 
 a:link {
     color: black;

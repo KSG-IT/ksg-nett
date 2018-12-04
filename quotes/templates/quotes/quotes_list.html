@@ -17,13 +17,13 @@
             </div>
             <div class="default-right-panel" id="right-wrapper">
                 {% if pending|length != 0 %}
-                    <h2 clas="quote-item">Ikke godkjente</h2>
+                    <h2>Ikke godkjente</h2>
 
-                    <div class="quote-container">
+                    <div class="quote__container">
 
 
                     {% for quote in pending %}
-                        <span class="quote-item">
+                        <span class="quote__item">
                             {{ quote.text }}<br>
                             <button class="quote__approve" data-quote-id="{{ quote.id }}">Godkjenn sitat</button>
                             <a class="btn btn-primary" href="/internal/quotes/{{ quote.id }}/edit">edit</a>
@@ -31,12 +31,13 @@
                     {% endfor %}
                     </div>
                 {% endif %}
+
                 <h2>Godkjente</h2>
-                <div class="quote-container">
+                <div class="quote__container">
                     {% for quote in quotes %}
                         <!-- Check against get_semester_shorthand using current day-->
                         {% if quote.get_semester_of_quote == 'H18' %}
-                            <div class="quote-item">
+                            <div class="quote__item">
                                 "{{ quote.text }}"
                                 <br> {{ quote.quoter.get_full_name }} {{ quote.get_semester_of_quote }} <br>
                                 <span class="quote__sum">Score: {{ quote.sum }}</span><br>
