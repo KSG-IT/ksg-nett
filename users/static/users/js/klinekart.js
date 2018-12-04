@@ -219,8 +219,8 @@ while(nodesRemaining.length > 0) {
   }
 
   // Island is complete
-  // Mass should be scaled as the logarithm of the sum all assoc counts
-  currentIsland.mass = Math.log2(currentIsland.mass)
+  // We scale the mass by the sqrt
+  currentIsland.mass = Math.sqrt(1 + currentIsland.mass)
   recalculateNodeIslandCentroid(currentIsland)
   nodeIslands.push(currentIsland)
 }
