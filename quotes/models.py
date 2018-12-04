@@ -68,7 +68,7 @@ class Quote(models.Model):
             # should thus be indexed.
             Index(fields=['verified_by'])
         ]
-        ordering = ['-created_at']
+        ordering = ['created_at']
 
 
 class QuoteVote(models.Model):

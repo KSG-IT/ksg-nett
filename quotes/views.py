@@ -22,8 +22,8 @@ def quotes_approve(request, quote_id):
 @login_required
 def quotes_list(request):
     ctx = {
-        'pending': Quote.pending_objects.all(),
-        'quotes': Quote.verified_objects.all()
+        'pending': Quote.pending_objects.all().order_by('-created_at'),
+        'quotes': Quote.verified_objects.all().order_by('-created_at')
     }
     return render(request, template_name='quotes/quotes_list.html', context=ctx)
 

@@ -18,17 +18,13 @@
             <div class="default-right-panel" id="right-wrapper">
                 {% if pending|length != 0 %}
                     <h2>Ikke godkjente</h2>
-
                     <div class="quote__container">
-
-
                     {% for quote in pending %}
                         <span class="quote__item">
                             {{ quote.text }}<br>
                             <form method="POST" action="/internal/quotes/{{ quote.id }}/approve">
                                 {% csrf_token %}<button type="submit">Godkjenn sitat</button>
                             </form>
-
                             <a class="btn btn-primary resetlink" href="/internal/quotes/{{ quote.id }}/edit">edit</a>
                         </span>
                     {% endfor %}
