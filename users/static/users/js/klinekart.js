@@ -602,6 +602,10 @@ function render () {
     ctx.fillText("1337 h4xx0r m0d3", 20, height - 20)
 
     ctx.fillText("Zoom: " + camera.zoom.toFixed(2), width - 350, height - 20)
+    ctx.fillText("Node count: " + userCount.toFixed(0), width - 350, height - 42)
+    ctx.fillText("Connection count: " + connectionCount.toFixed(0), width - 350, height - 64)
+    ctx.fillText("Island count: " + nodeIslands.length, width - 350, height - 86)
+    ctx.fillText("Average logic update time: " + logicUpdateTime, width - 350, height - 108)
   }
 
   // Restore the current zoom
@@ -675,10 +679,15 @@ function render () {
   lastFrameTimes.push(window.performance.now())
   ++frameCount;
 
-  if (frameCount % 10 === 0) {
+  // Get new framerate. We do this unconditonallity when we're in debug mode.
+  if (frameCount % 10 === 0 || debug) {
     frameRate = getCurrentFrameRate().toFixed(0)
   }
 
+  if (lastLogicUpdateTimes.length > 50) {
+    lastLogicUpdateTimes.shift()
+  }
+  logicUpdateTime = getCurrentLogicUpdateTime().toFixed(0)
 
   if (debug) {
     renderDebug()
@@ -966,6 +975,23 @@ function getCurrentFrameRate(){
   }
   return 1000.0 / frameLength
 }
+
+function getCurrentLogicUpdateTime(){
+  if (lastLogicUpdateTimes.length === 0) {
+    return 1000 / logicUpdatesPerSecond  // We assume that we are awesome
+  }
+
+  // Calculate median
+  const halfLength = Math.floor(lastLogicUpdateTimes.length / 2)
+  sorted = Array.from(lastLogicUpdateTimes).sort()
+
+  if (sorted.length % 2 === 0) {
+    return 0.5 * (sorted[halfLength] + sorted[halfLength - 1])
+  } else {
+    return sorted[halfLength]
+  }
+}
+
 
 function handleUserClicked(user) {
   if (user.id >= 0){
