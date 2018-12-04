@@ -686,6 +686,9 @@ function handleKeyup (event) {
     case 'p':
       debug = !debug
       break
+    case 'o':
+      resetCamera()
+      break
     case 'r':
       randomizePositions()
       break
@@ -781,6 +784,10 @@ function randomizePositions(){
     node.x = Math.random() * width
     node.y = Math.random() * height
   })
+}
+
+function resetCamera(){
+  ctx.setTransform(1, 0, 0, 1, 0, 0)
 }
 
 function getCurrentFrameRate(){
