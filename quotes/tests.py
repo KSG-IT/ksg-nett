@@ -411,9 +411,4 @@ class QuoteApproveTest(TestCase):
         self.quote.refresh_from_db()
         self.assertEqual(self.quote.verified_by, self.user)
 
-    def test_approving_approved_quote(self):
-        self.quote.verified_by = self.user
-        self.quote.id = 124
-        response = self.client.post(reverse(viewname=quotes_approve, kwargs={'quote_id': 124}),
-                                    data={'user': self.user})
-        self.assertTemplateUsed(response, 'quotes/quotes_list.html')
+
