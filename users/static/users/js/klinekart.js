@@ -6,6 +6,7 @@ ctx.globalCompositeOperation = 'destination-in'
 
 const thumbSize = 50
 
+// Render flags and variables
 let debug = false
 
 // Camera constants
@@ -177,6 +178,12 @@ madeOutAssociations.forEach(assoc => {
   nodes[secondUserId].assocCount += 1
 })
 
+// When assocCounts are found we create the user canvases
+Object.values(nodes).forEach(node => {
+  createNodeCanvas(node)
+})
+
+
 // Create node islands
 const nodeIslands = []
 const inverseNodeIslandLookups = {}
@@ -286,6 +293,7 @@ function createNode (user, x, y) {
   img.src = user.img
 
   return {
+    id: user.id,
     user: user,
     x: x || 0,
     y: y || 0,
@@ -297,6 +305,26 @@ function createNode (user, x, y) {
     canvas: null,
     assocCount: 0
   }
+}
+
+function createNodeCanvas(node) {
+  const correlatedSize = thumbSize + 6 * node.assocCount
+
+  const canvas = document.createElement("canvas")
+  canvas.width = correlatedSize
+  canvas.height = correlatedSize
+  const ctx = canvas.getContext("2d")
+
+
+  // Create a clip and render image into it
+  ctx.beginPath();
+  ctx.arc(correlatedSize/2, correlatedSize/2, correlatedSize/2, 0, Math.PI*2);
+  ctx.clip()
+  ctx.closePath();
+
+  ctx.drawImage(node.img, 0, 0, correlatedSize, correlatedSize)
+
+  node.canvas = canvas
 }
 
 function update () {
@@ -704,7 +732,20 @@ function renderNode (node) {
   const xPos = node.x - correlatedSize / 2 
   const yPos = node.y - correlatedSize / 2
 
-  // Create a clip and render image into it
+
+  ctx.drawImage(node.canvas, xPos, yPos)
+  //   ctx.save()
+  //   // Create a clip and render image into it
+  //   // ctx.save()
+  //   ctx.beginPath();
+  //   ctx.arc(node.x, node.y, correlatedSize/2, 0, Math.PI*2);
+  //   ctx.clip()
+  //   ctx.closePath();
+
+  //   ctx.drawImage(node.img, xPos, yPos, correlatedSize, correlatedSize)
+  //   ctx.restore()
+}
+
   ctx.save()
   ctx.beginPath();
   ctx.arc(node.x, node.y, correlatedSize/2, 0, Math.PI*2);
