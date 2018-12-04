@@ -12,16 +12,6 @@ let debug = false
 const cameraSpeed = 7
 const cameraZoomSpeed = 1.1
 
-// Physics constants
-const nodesEquilibrium = 150
-const springCoefficient = 0.005
-const siblingReplusionCoefficient = 0.08
-const islandRepulsionCoefficient = 3.5
-const springMaxSeparationLongerThanEquilibriumMax = -1000
-const islandMaxSeparationThatYieldsForce = 10000
-
-const damping = 0.1
-const islandDamping = 0.002
 
 // Get and set canvas size
 const width = canvasWrapperEl.scrollWidth
@@ -55,14 +45,16 @@ const mouseInfo = {
 
 // Frame and update specific variables. The three first are used to implement a fixed timestep logic loop
 let frameRate = 60
+let logicUpdateTime = 1000/30 // ms
 let lastUpdateFrame = 0
 const logicUpdatesPerSecond = 30
 const timeBetweenLogicUpdates = 1000 / logicUpdatesPerSecond
+const maximumNumberOfLogicUpdatesMissingBeforeWeSkip = 3 * logicUpdatesPerSecond
 
 let frameCount = 0
-let lastFrameTimes = [
-
-]
+let lastFrameTimes = []
+let lastLogicUpdateTimes = []
+let framesSinceLastLogicSkip = Math.Infinity
 
 // RANDOM USER GENERATION MODE
 // Load and transform data
@@ -136,21 +128,25 @@ madeOutData.forEach(association => {
   }
 
   // The magic in the brackets simply make sure that the ids are sorted, and then
-  // joined by a dash:
-  //    1, 2 => 1-2
-  //    2, 1 => 1-2
+  // joined by a pipe:
+  //    1, 2 => 1|2
+  //    2, 1 => 1|2
   madeOutAssociationsSet.add([firstUser.id, secondUser.id].sort().join('|'))
 })
 
 const madeOutAssociations = Array.from(madeOutAssociationsSet).map(assoc => assoc.split('|').map(x => parseInt(x)))
+const connectionCount = madeOutAssociations.length
+const userCount = Object.keys(users).length
 
 const associationSiblingLookup = {}
+const associationSiblingArrayLookup = {}
 const nodes = {}
 
 // Set up node objects
 Object.values(users).forEach(function (user) {
   nodes[user.id] = createNode(user, width * Math.random(), height * Math.random())
   associationSiblingLookup[user.id] = {}
+  associationSiblingArrayLookup[user.id] = []
 })
 
 // Set up sibling lookups and association counts
@@ -158,17 +154,22 @@ madeOutAssociations.forEach(assoc => {
   const firstUserId = assoc[0]
   const secondUserId = assoc[1]
 
-  associationSiblingLookup[firstUserId][secondUserId] = {
+  const firstUserObject = {
+    id: firstUserId,
+    node: nodes[firstUserId],
+    siblingNumber: nodes[secondUserId].assocCount
+  }
+  const secondUserObject = {
     id: secondUserId,
     node: nodes[secondUserId],
     siblingNumber: nodes[firstUserId].assocCount
   }
 
-  associationSiblingLookup[secondUserId][firstUserId] = {
-    id: firstUserId,
-    node: nodes[firstUserId],
-    siblingNumber: nodes[secondUserId].assocCount
-  }
+  associationSiblingLookup[firstUserId][secondUserId] = secondUserObject
+  associationSiblingArrayLookup[firstUserId].push(secondUserObject)
+
+  associationSiblingLookup[secondUserId][firstUserId] = firstUserObject
+  associationSiblingArrayLookup[secondUserId].push(firstUserObject)
 
   nodes[firstUserId].assocCount += 1
   nodes[secondUserId].assocCount += 1
@@ -224,6 +225,27 @@ while(nodesRemaining.length > 0) {
   recalculateNodeIslandCentroid(currentIsland)
   nodeIslands.push(currentIsland)
 }
+
+const OPTIMIZE_NONE = 0
+const OPTIMIZE_MILD = 1
+const OPTIMIZE_MEDIUM = 2
+const OPTIMIZE_AGGRESSIVE = 3
+
+let optimizeSiblingStrategy = connectionCount > 2000 ? OPTIMIZE_AGGRESSIVE : connectionCount > 2500 ? OPTIMIZE_MEDIUM : connectionCount > 1000 ? OPTIMIZE_MILD : OPTIMIZE_NONE
+let optimizeNodeStrategy = userCount > 10000 ? OPTIMIZE_AGGRESSIVE : userCount > 5000 ? OPTIMIZE_MEDIUM : userCount > 1000 ? OPTIMIZE_MILD : OPTIMIZE_NONE
+let optimizeIslandStrategy = nodeIslands.length > 1000 ? OPTIMIZE_AGGRESSIVE : nodeIslands.length > 500 ? OPTIMIZE_MEDIUM : nodeIslands.length > 100 ? OPTIMIZE_MILD : OPTIMIZE_NONE
+let optimizeRenderStrategy = userCount > 2000 ? OPTIMIZE_AGGRESSIVE : userCount > 1000 ? OPTIMIZE_MEDIUM : userCount > 500 ? OPTIMIZE_MILD : OPTIMIZE_NONE
+
+// Physics constants
+const nodesEquilibrium = 150
+const springCoefficient = 0.005
+const siblingRepulsionCoefficient = optimizeSiblingStrategy === OPTIMIZE_AGGRESSIVE ? 0.15 : 0.08
+const islandRepulsionCoefficient = optimizeIslandStrategy === OPTIMIZE_AGGRESSIVE ? 50 : 5.5 
+const springMaxSeparationLongerThanEquilibriumMax = -1000
+const islandMaxSeparationThatYieldsForce = 10000
+const islandMinSeparationForCalculation = 40
+const damping = 0.1
+const islandDamping = 0.005
 
 function recalculateNodeIslandCentroid(island) {
   let sumXPos = 0
@@ -284,55 +306,51 @@ function update () {
 function updateLogic () {
   const now = window.performance.now()
 
+  if (now - lastUpdateFrame > timeBetweenLogicUpdates * maximumNumberOfLogicUpdatesMissingBeforeWeSkip) {
+    framesSinceLastLogicSkip = 0
+    lastUpdateFrame = now
+  }
+
   // Catch up all necessary frames, we might be lagging behind multiple
   while(lastUpdateFrame < now) {
+
+    updateAssociations()
+
+    updateIslands()
+
+    updateNodes()
+
+    const updateTime = window.performance.now() - now
+
+    // Add one frame time to the lastUpdateFrame variable
+    lastLogicUpdateTimes.push(updateTime)
+
+    if (updateTime > timeBetweenLogicUpdates) {
+      const framesToSkip = Math.floor(updateTime / timeBetweenLogicUpdates)
+
+      console.error("Logic update took too long, unable to keep up. Skipping " + framesToSkip + " frames.")
+      lastUpdateFrame += framesToSkip * timeBetweenLogicUpdates
+    }
+
+    lastUpdateFrame += timeBetweenLogicUpdates
+  }
+}
+
+function updateAssociations(){
     // Perform spring calculations
     madeOutAssociations.forEach(assoc => {
       const nodeOne = nodes[assoc[0]]
       const nodeTwo = nodes[assoc[1]]
 
       applySpringForce(nodeOne, nodeTwo)
+
       applySiblingForce(nodeOne, nodeTwo)
       applySiblingForce(nodeTwo, nodeOne)
     })
 
-    // Update island accelerations. 
-    // TODO: This is O(n^2), so we should probably try to restrict it if there are many islands
-    for (let i = 0; i < nodeIslands.length; ++i) {
-      const islandOne = nodeIslands[i]
-      for (let j = i + 1; i !== j && j < nodeIslands.length; ++j) {
-        const islandTwo = nodeIslands[j]
-        const distanceX = islandOne.centroidX - islandTwo.centroidX
-        const distanceY = islandOne.centroidY - islandTwo.centroidY
-        const distance = Math.max(0.0001, Math.sqrt(distanceX * distanceX + distanceY * distanceY))
-        const distanceCubed = distance * distance * distance
-
-        if (distance > islandMaxSeparationThatYieldsForce) {
-          continue
         }
 
-        islandOne.ax += islandRepulsionCoefficient * islandTwo.mass * distanceX / distanceCubed
-        islandOne.ay += islandRepulsionCoefficient * islandTwo.mass * distanceY / distanceCubed
-
-        islandTwo.ax += -islandRepulsionCoefficient * islandOne.mass * distanceX / distanceCubed
-        islandTwo.ay += -islandRepulsionCoefficient * islandOne.mass * distanceY / distanceCubed
-      }
-    }
-
-    // Update island velocities and centroids
-    nodeIslands.forEach(island => {
-      island.vx += island.ax
-      island.vy += island.ay
-
-      island.vx *= (1 - islandDamping)
-      island.vy *= (1 - islandDamping)
-
-      island.ax = 0
-      island.ay = 0
-
-      recalculateNodeIslandCentroid(island)
-    })
-
+function updateNodes(){
     // Update velocity and positions
     Object.values(nodes).forEach(node => {
       // Abort if the node is currently being dragged, but reset acceleration. Also make sure to reset island velocity.
@@ -365,11 +383,114 @@ function updateLogic () {
       node.ax = 0
       node.ay = 0
     })
+}
 
-    // Add one frame time to the lastUpdateFrame variable
-    lastUpdateFrame += timeBetweenLogicUpdates
+function updateIslands(){
+
+  if (optimizeIslandStrategy === OPTIMIZE_AGGRESSIVE) {
+    applyIslandForcesOptimizeAggressive()
+  } else if (optimizeIslandStrategy > OPTIMIZE_MILD) {
+    applyIslandForcesOptimizeMild()
+  } else {
+    applyIslandForcesNoOptimization()
+  }
+
+  // Update island velocities and centroids
+  nodeIslands.forEach(island => {
+    island.vx += island.ax
+    island.vy += island.ay
+
+    island.vx *= (1 - islandDamping)
+    island.vy *= (1 - islandDamping)
+
+    island.ax = 0
+    island.ay = 0
+
+    recalculateNodeIslandCentroid(island)
+  })
+}
+
+function applyIslandForcesOptimizeAggressive(){
+  for (let i = 0; i < nodeIslands.length; ++i) {
+    const j = (i + 1) % nodeIslands.length
+
+    const islandOne = nodeIslands[i]
+    const islandTwo = nodeIslands[j]
+
+    const distanceX = islandOne.centroidX - islandTwo.centroidX
+    const distanceY = islandOne.centroidY - islandTwo.centroidY
+    const distance = Math.max(islandMinSeparationForCalculation, Math.sqrt(distanceX * distanceX + distanceY * distanceY))
+    const distanceCubed = distance * distance * distance
+
+    if (distance > islandMaxSeparationThatYieldsForce) {
+      continue
+    }
+
+    islandOne.ax += islandRepulsionCoefficient * islandTwo.mass * distanceX / distanceCubed
+    islandOne.ay += islandRepulsionCoefficient * islandTwo.mass * distanceY / distanceCubed
+
+    islandTwo.ax += -islandRepulsionCoefficient * islandOne.mass * distanceX / distanceCubed
+    islandTwo.ay += -islandRepulsionCoefficient * islandOne.mass * distanceY / distanceCubed
   }
 }
+
+function applyIslandForcesOptimizeMild(){
+  for (let i = 0; i < nodeIslands.length; ++i) {
+    // Ignore every second island
+    if (i % 2 === 0) {
+      continue
+    }
+    const islandOne = nodeIslands[i]
+    for (let j = i + 1; i !== j && j < nodeIslands.length; ++j) {
+      // Ignore every second island
+      if (j % 2 === 0) {
+        continue
+      }
+
+      const islandTwo = nodeIslands[j]
+      const distanceX = islandOne.centroidX - islandTwo.centroidX
+      const distanceY = islandOne.centroidY - islandTwo.centroidY
+      const distance = Math.max(islandMinSeparationForCalculation, Math.sqrt(distanceX * distanceX + distanceY * distanceY))
+      const distanceCubed = distance * distance * distance
+
+      if (distance > islandMaxSeparationThatYieldsForce) {
+        continue
+      }
+
+      islandOne.ax += islandRepulsionCoefficient * islandTwo.mass * distanceX / distanceCubed
+      islandOne.ay += islandRepulsionCoefficient * islandTwo.mass * distanceY / distanceCubed
+
+      islandTwo.ax += -islandRepulsionCoefficient * islandOne.mass * distanceX / distanceCubed
+      islandTwo.ay += -islandRepulsionCoefficient * islandOne.mass * distanceY / distanceCubed
+    }
+  }
+}
+
+function applyIslandForcesNoOptimization(){
+  for (let i = 0; i < nodeIslands.length; ++i) {
+
+    const islandOne = nodeIslands[i]
+    for (let j = i + 1; i !== j && j < nodeIslands.length; ++j) {
+
+      const islandTwo = nodeIslands[j]
+      const distanceX = islandOne.centroidX - islandTwo.centroidX
+      const distanceY = islandOne.centroidY - islandTwo.centroidY
+      const distance = Math.max(islandMinSeparationForCalculation, Math.sqrt(distanceX * distanceX + distanceY * distanceY))
+      const distanceCubed = distance * distance * distance
+
+      if (distance > islandMaxSeparationThatYieldsForce) {
+        continue
+      }
+
+      islandOne.ax += islandRepulsionCoefficient * islandTwo.mass * distanceX / distanceCubed
+      islandOne.ay += islandRepulsionCoefficient * islandTwo.mass * distanceY / distanceCubed
+
+      islandTwo.ax += -islandRepulsionCoefficient * islandOne.mass * distanceX / distanceCubed
+      islandTwo.ay += -islandRepulsionCoefficient * islandOne.mass * distanceY / distanceCubed
+    }
+  }
+}
+
 
 function applySpringForce (nodeOne, nodeTwo) {
   const distanceX = nodeOne.x - nodeTwo.x
@@ -406,13 +527,22 @@ function applySpringForce (nodeOne, nodeTwo) {
 }
 
 function applySiblingForce (node, parentNode) {
+  if (optimizeSiblingStrategy === OPTIMIZE_AGGRESSIVE) {
+    return applySiblingForceWithAggressiveOptimization(node, parentNode)
+  }
+
   const siblingRelations = associationSiblingLookup[parentNode.user.id]
 
-  Object.values(siblingRelations).forEach(sibling => {
-    // You are not your own sibling, this is not Alabama.
-    if (sibling.id === node.user.id) {
+  const keys = Object.keys(siblingRelations)
+  const indexOfNode = keys.indexOf(node.user.id)
+
+  keys.forEach((siblingId, i) => {
+    if (siblingId === node.user.id) {
       return
     }
+
+    const sibling = siblingRelations[siblingId]
+    // You are not your own sibling, this is not Alabama.
 
     const nodeSibling = nodes[sibling.id]
 
@@ -422,9 +552,32 @@ function applySiblingForce (node, parentNode) {
     // Make sure distance is not so small that the acceleration below blows up too much
     const distance = Math.max(0.001, Math.sqrt(distanceX * distanceX + distanceY * distanceY))
 
-    node.ax -= siblingReplusionCoefficient * distanceX / distance
-    node.ay -= siblingReplusionCoefficient * distanceY / distance
+    node.ax -= siblingRepulsionCoefficient * distanceX / distance
+    node.ay -= siblingRepulsionCoefficient * distanceY / distance
   })
+}
+
+function applySiblingForceWithAggressiveOptimization(node, parentNode) {
+  const siblingRelations = associationSiblingLookup[parentNode.user.id]
+  const nodeSiblingNumber = siblingRelations[node.user.id].siblingNumber
+  const siblingThatShouldAffectUsId = (nodeSiblingNumber + 1) % parentNode.assocCount
+  const siblingThatShouldAffectUs = associationSiblingArrayLookup[parentNode.user.id][siblingThatShouldAffectUsId]
+
+  applyNodeConstantRepulsionForce(node, siblingThatShouldAffectUs.node, siblingRepulsionCoefficient)
+}
+
+function applyNodeConstantRepulsionForce(nodeOne, nodeTwo, coefficient) {
+    const distanceX = nodeOne.x - nodeTwo.x
+    const distanceY = nodeOne.y - nodeTwo.y
+
+    // Make sure distance is not so small that the acceleration below blows up too much
+    const distance = Math.max(0.001, Math.sqrt(distanceX * distanceX + distanceY * distanceY))
+
+    nodeOne.ax += coefficient * distanceX / distance
+    nodeOne.ay += coefficient * distanceY / distance
+
+    nodeTwo.ax -= coefficient * distanceX / distance
+    nodeTwo.ay -= coefficient * distanceY / distance
 }
 
 function render () {
