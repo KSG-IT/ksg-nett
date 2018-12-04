@@ -839,6 +839,7 @@ function renderDebug() {
     ctx.fillText("Island " + (i + 1).toString(), island.centroidX, island.centroidY - 22)
     ctx.fillText("Centroid: (" + island.centroidX.toFixed(2) + ", " + island.centroidY.toFixed(2) +")", island.centroidX, island.centroidY)
     ctx.fillText("Velocity: (" + island.vx.toFixed(2) + ", " + island.vy.toFixed(2) +")", island.centroidX, island.centroidY + 22)
+    ctx.fillText("Mass: " + island.mass.toFixed(2), island.centroidX, island.centroidY + 44)
   })
   ctx.restore()
 }
