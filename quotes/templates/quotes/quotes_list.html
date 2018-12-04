@@ -6,7 +6,6 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
 {% endblock %}
 {% block body_content %}
-    <!--TODO: Clean up classnames in css file and remove unused parts and reformat and make cleaner-->
     <div class="profilepage">
         <div class="default-container default-top-offset">
             <div id="left-wrapper" class="default-left-panel profilepage__thumbwrapper text-right">
@@ -19,15 +18,16 @@
                 {% if pending|length != 0 %}
                     <h2>Ikke godkjente</h2>
                     <div class="quote__gridcontainer">
-                    {% for quote in pending %}
-                        <span class="quote__griditem">
-                            {{ quote.text }}<br>
-                            <form method="POST" action="/internal/quotes/{{ quote.id }}/approve">
-                                {% csrf_token %}<button type="submit">Godkjenn sitat</button>
-                            </form>
-                            <a class="btn btn-primary resetlink" href="/internal/quotes/{{ quote.id }}/edit">edit</a>
-                        </span>
-                    {% endfor %}
+                        {% for quote in pending %}
+                            <span class="quote__griditem">
+                                {{ quote.text }}<br>
+                                <form method="POST" action="/internal/quotes/{{ quote.id }}/approve">
+                                {% csrf_token %}
+                                <button type="submit">Godkjenn sitat</button>
+                                </form>
+                                <a class="btn btn-primary resetlink" href="/internal/quotes/{{ quote.id }}/edit">edit</a>
+                            </span>
+                        {% endfor %}
                     </div>
                 {% endif %}
 
