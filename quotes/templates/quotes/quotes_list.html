@@ -11,7 +11,7 @@
         <div class="default-container default-top-offset">
             <div id="left-wrapper" class="default-left-panel profilepage__thumbwrapper text-right">
                 <h3>SITATER</h3>
-                <p><a class="btn btn-primary" href="/internal/quotes/add/">Opprett</a></p>
+                <p><a class="btn btn-primary resetlink" href="/internal/quotes/add/">Opprett</a></p>
                 <p>Arkiv</p>
                 <p>Søk</p>
             </div>
@@ -29,7 +29,7 @@
                                 {% csrf_token %}<button type="submit">Godkjenn sitat</button>
                             </form>
 
-                            <a class="btn btn-primary" href="/internal/quotes/{{ quote.id }}/edit">edit</a>
+                            <a class="btn btn-primary resetlink" href="/internal/quotes/{{ quote.id }}/edit">edit</a>
                         </span>
                     {% endfor %}
                     </div>
@@ -50,7 +50,7 @@
                                 <button class="quote__votedown thumb" data-quote-id="{{ quote.id }}"
                                         style="color: red;"><i class="fa fa-thumbs-down"></i>
                                 </button>
-                                <a class="btn btn-primary" href="/internal/quotes/{{ quote.id }}/edit">#</a>
+                                <a class="btn btn-primary resetlink" href="/internal/quotes/{{ quote.id }}/edit">#</a>
                             </div>
                         {% endif %}
                     {% endfor %}
