@@ -989,7 +989,7 @@ function transformPointFromScreenSpaceToWorldSpace(x, y){
     // Standard matrix multiplication. Note that the matrix is really a 4x4 transformation matrix,
     // and with the fourth column contains the translation offsets.
     x: x * inverseTransformMatrix.m11 + y * inverseTransformMatrix.m12 + inverseTransformMatrix.m41,
-    y: y * inverseTransformMatrix.m21 + y * inverseTransformMatrix.m22 + inverseTransformMatrix.m42,
+    y: x * inverseTransformMatrix.m21 + y * inverseTransformMatrix.m22 + inverseTransformMatrix.m42,
   }
 }
 
