@@ -67,7 +67,7 @@ let framesSinceLastLogicSkip = Math.Infinity
 // const users = {}
 // const madeOutAssociationsSet = new Set()
 // 
-// const userCount = 1000
+// const userCount = 1500
 // const averageCons = 5
 // 
 // for (let i = 0; i < userCount; ++i){
@@ -78,18 +78,20 @@ let framesSinceLastLogicSkip = Math.Infinity
 //   }
 //   const madeOuts = Math.random() * averageCons
 //   for (let j = 0; j < madeOuts; ++j) {
-//     madeOutAssociationsSet.add([i, i + madeOuts * Math.random()].sort().join('-'))
+//     madeOutAssociationsSet.add([i, i + madeOuts * Math.random()].sort().join('|'))
 //   }
 // }
 // 
-// const superMan = Math.random() * userCount
-// for (let i = 0; i < 20; ++i){
-//   madeOutAssociationsSet.add([superMan, Math.random() * userCount].sort().join("-"))
-// }
+// // const superMan = Math.random() * userCount
+// // for (let i = 0; i < 20; ++i){
+// //   madeOutAssociationsSet.add([superMan, Math.random() * userCount].sort().join("|"))
+// // }
 // 
-// const madeOutAssociations = Array.from(madeOutAssociationsSet).map(assoc => assoc.split('-').map(x => parseInt(x)))
+// const madeOutAssociations = Array.from(madeOutAssociationsSet).map(assoc => assoc.split('|').map(x => parseInt(x)))
+// const connectionCount = madeOutAssociations.length
 // 
 // const associationSiblingLookup = {}
+// const associationSiblingArrayLookup =  {}
 // const nodes = {}
 // END RANDOM USER GENERATION MODE
 
