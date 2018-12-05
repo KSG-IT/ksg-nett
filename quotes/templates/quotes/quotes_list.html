@@ -1,27 +1,59 @@
 {% extends 'internal/base.html' %}
+{% load static %}
+{% load i18n %}
+{% block header %}
+    <link rel="stylesheet" href="{% static 'quotes/css/quotes.css' %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+{% endblock %}
 {% block body_content %}
-  <h2>Pending</h2>
-  <ul>
-    {% for quote in pending %}
-      <li>{{ quote.text }}</li>
-    {% endfor %}
-  </ul>
-  <h2>Quotes</h2>
-  <ul>
-    {% for quote in quotes %}
-      <li>
-        <span class="quote__text">
-          {{ quote.text }}
-        </span> -&nbsp;
-        <span class="quote__sum">
-          {{ quote.sum }}
-        </span>
-        &nbsp;
-        <button class="quote__voteup" data-quote-id="{{ quote.id }}">Vote up</button>
-        <button class="quote__votedown" data-quote-id="{{ quote.id }}">Vote down</button>
-      </li>
-    {% endfor %}
-  </ul>
-  {% load static %}
-  <script src="{% static 'quotes/quotes_list.js' %}"></script>
+    <div class="profilepage">
+        <div class="default-container default-top-offset">
+            <div id="left-wrapper" class="default-left-panel profilepage__thumbwrapper text-right">
+                <h3>SITATER</h3>
+                <p><a class="btn btn-primary resetlink" href="/internal/quotes/add/">Opprett</a></p>
+                <p>Arkiv</p>
+                <p>Søk</p>
+            </div>
+            <div class="default-right-panel" id="right-wrapper">
+                {% if pending|length != 0 %}
+                    <h2>Ikke godkjente</h2>
+                    <div class="quote__gridcontainer">
+                        {% for quote in pending %}
+                            <span class="quote__griditem">
+                                {{ quote.text }}<br>
+                                <form method="POST" action="/internal/quotes/{{ quote.id }}/approve">
+                                {% csrf_token %}
+                                <button type="submit">Godkjenn sitat</button>
+                                </form>
+                                <a class="btn btn-primary resetlink" href="/internal/quotes/{{ quote.id }}/edit">edit</a>
+                            </span>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
+                <h2>Godkjente</h2>
+                <div class="quote__gridcontainer">
+                    {% for quote in quotes %}
+                        <!-- Check against get_semester_shorthand using current day-->
+                        {% if quote.get_semester_of_quote == 'H18' %}
+                            <div class="quote__griditem">
+                                "{{ quote.text }}"
+                                <br> {{ quote.quoter.get_full_name }} {{ quote.get_semester_of_quote }} <br>
+                                <span class="quote__sum">Score: {{ quote.sum }}</span><br>
+                                <button class="quote__voteup thumb" data-quote-id="{{ quote.id }}"
+                                        style="color: #4cae4c;"><i class="fa fa-thumbs-up"></i>
+                                </button>
+                                <button class="quote__votedown thumb" data-quote-id="{{ quote.id }}"
+                                        style="color: red;"><i class="fa fa-thumbs-down"></i>
+                                </button>
+                                <a class="btn btn-primary resetlink" href="/internal/quotes/{{ quote.id }}/edit">#</a>
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% load static %}
+    <script src="{% static 'quotes/quotes_list.js' %}"></script>
 {% endblock %}

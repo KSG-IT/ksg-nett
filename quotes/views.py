@@ -10,10 +10,20 @@ from quotes.serializers import QuoteSerializer, QuoteVoteSerializer
 
 
 @login_required
+def quotes_approve(request, quote_id):
+    if request.method == "POST":
+        quote = get_object_or_404(Quote, pk=quote_id)
+        if quote.verified_by is None:
+            quote.verified_by = request.user
+            quote.save()
+        return redirect(reverse(quotes_list))
+
+
+@login_required
 def quotes_list(request):
     ctx = {
-        'pending': Quote.pending_objects.all(),
-        'quotes': Quote.verified_objects.all()
+        'pending': Quote.pending_objects.all().order_by('-created_at'),
+        'quotes': Quote.verified_objects.all().order_by('-created_at')
     }
     return render(request, template_name='quotes/quotes_list.html', context=ctx)
 
@@ -98,7 +108,7 @@ def vote_up(request, quote_id):
             ).save()
             return JsonResponse({'sum': quote.sum}, status=status.HTTP_200_OK)
     else:
-        return HttpResponse(status=status.HTTP_405_METHOD_NOT_ALLOWED)   # Method not supported
+        return HttpResponse(status=status.HTTP_405_METHOD_NOT_ALLOWED)  # Method not supported
 
 
 @login_required
