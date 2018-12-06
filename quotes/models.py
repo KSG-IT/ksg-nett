@@ -1,6 +1,5 @@
 from django.db import models
 from django.db.models import Sum, Index
-from django.utils import timezone
 import datetime
 
 from quotes.managers import QuotePendingManager, QuoteVerifiedManager

@@ -6,7 +6,6 @@ from django.test import TestCase
 from django.urls import reverse
 import datetime
 from rest_framework import status
-from django.utils import timezone
 import pytz
 
 from quotes.models import Quote, QuoteVote
