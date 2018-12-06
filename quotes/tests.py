@@ -4,8 +4,10 @@ from django.test import TestCase
 
 # Create your tests here.
 from django.urls import reverse
-from django.utils import timezone
+import datetime
 from rest_framework import status
+from django.utils import timezone
+import pytz
 
 from quotes.models import Quote, QuoteVote
 from quotes.views import quotes_list, vote_up, vote_down, quotes_add, quotes_edit, quotes_delete, quotes_approve
@@ -412,3 +414,37 @@ class QuoteApproveTest(TestCase):
         self.assertEqual(self.quote.verified_by, self.user)
 
 
+class QuotesGetThisSemesterTest(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = User(
+            username='test',
+            email='test@example.com',
+            first_name='Alex',
+            last_name='Orvik'
+        )
+        cls.user.set_password('password')
+        cls.user.save()
+
+        cls.quote_this_semester = Quote(
+            text='This semester',
+            quoter=cls.user,
+            id=224
+        )
+        cls.quote_not_this_semester = Quote(
+            text='Not this semester',
+            quoter=cls.user,
+            id=225
+        )
+        cls.quote_this_semester.save()
+        cls.quote_not_this_semester.save()
+
+    def setUp(self):
+        self.client.login(username='test', password='password')
+        # Forcing timestamp for last semester quote
+        Quote.objects.filter(id=225).update(created_at=datetime.datetime(2013, 11, 20, 20, 9, 26, 423063, tzinfo=pytz.UTC))
+
+    def test_returns_only_quotes_from_this_semester(self):
+        quotes = Quote.get_quotes_this_semester(self)
+        self.assertEquals(len(quotes), 1)
+        self.assertEquals(quotes[0].text, 'This semester')

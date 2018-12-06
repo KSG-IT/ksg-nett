@@ -1,8 +1,11 @@
 from django.db import models
 from django.db.models import Sum, Index
+from django.utils import timezone
+import datetime
 
 from quotes.managers import QuotePendingManager, QuoteVerifiedManager
 from users.models import User
+from common.templatetags.ksg_helpers import get_semester_year_shorthand
 
 
 class Quote(models.Model):
@@ -37,11 +40,28 @@ class Quote(models.Model):
             2018-01-01 => V18
             2014-08-30 => H14
             2012-12-30 => H12
-        :return: The "semester-year" display of the `createed_at` attribute.
+        :return: The "semester-year" display of the `created_at` attribute.
         """
         short_year_format = str(self.created_at.year)[2:]
         semester_prefix = "H" if self.created_at.month > 7 else "V"
         return f"{semester_prefix}{short_year_format}"
+
+    def get_quotes_this_semester(self):
+        """
+        Method for quotes created this semester, returns an Array containing said quotes
+        :return Array
+        """
+        current_semester = datetime.datetime.today()
+        current_semester_shorthand = get_semester_year_shorthand(current_semester)
+        all_quotes = Quote.objects.all()
+        quotes_this_semester = []
+
+        for quote in all_quotes:
+            semester_of_quote = get_semester_year_shorthand(quote.created_at)
+            if semester_of_quote == current_semester_shorthand:
+                quotes_this_semester.append(quote)
+
+        return quotes_this_semester
 
     @property
     def sum(self):
@@ -98,8 +118,6 @@ class QuoteVote(models.Model):
         unique_together = (
             ('quote', 'caster')
         )
-
-
 
     def __str__(self):
         if self.value > 0:
