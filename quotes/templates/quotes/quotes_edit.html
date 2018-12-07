@@ -1,6 +1,6 @@
 {% extends 'internal/base.html' %}
 {% block body_content %}
-  <form action="/internal/quotes/{{ quote.id }}/edit/" method="POST">
+  <form method="POST">
     {% csrf_token %}
     {{ quote_form }}
     <input type="submit">

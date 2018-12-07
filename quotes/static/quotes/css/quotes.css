@@ -1,0 +1,46 @@
+
+.quote__text {
+    font-style: italic;
+}
+
+.no-bullet {
+    list-style-type: none;
+}
+
+.quote__gridcontainer {
+    display: grid;
+    grid-template-columns: auto auto auto;
+    padding: 10px;
+
+}
+
+.quote__griditem {
+    background-color: rgba(255, 255, 255, 0.8);
+    padding: 10px;
+    font-size: 14px;
+    text-align: left;
+    font-style: italic;
+    width: 200px;
+    margin: 10px;
+}
+
+
+
+
+.thumb {
+    border: none; /* Remove borders */
+    color: white; /* White text */
+    padding: 12px 16px; /* Some padding */
+    font-size: 16px; /* Set a font size */
+    cursor: pointer; /* Mouse pointer on hover */
+}
+
+#left-wrapper {
+    width: 350px;
+    border-right: 1px solid black;
+    height: 300px;
+}
+
+#right-wrapper {
+    padding-left: 20px;
+}
