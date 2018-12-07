@@ -1,5 +1,0 @@
-Django==2.1.2
-djangorestframework==3.8.2
-pytz==2018.5
-drf-yasg==1.10.2
-Pillow==5.3.0
