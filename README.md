@@ -6,7 +6,7 @@ This repository contains the source code for [KSG](https://www.samfundet.no/kafe
 
 ## Quickstart
 
-1. Create a new pipenv with python 3.6 (instructions below)
+1. Create a new virtualenvironment with pipenv and python 3.6 (instructions below)
 2. Install dependencies
 3. **Carefully read** [Contribution.md](https://github.com/KSG-IT/ksg-nett/blob/develop/CONTRIBUTING.md) to aid both yourself and others!
 
