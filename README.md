@@ -42,7 +42,7 @@ pipenv shell
 Then commands can be run without the pipenv run command:
 ```bash
 python manage.py runserver
-
+```
 
 ## Contributing
 
