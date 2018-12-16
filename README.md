@@ -34,6 +34,16 @@ pipenv run python manage.py migrate
 pipenv run python manage.py runserver
 ```
 
+Alternatively one can initiate a pipenv shell session py running
+```bash
+pipenv shell
+```
+
+Then commands can be run without the pipenv run command:
+```bash
+python manage.py runserver
+
+
 ## Contributing
 
 First read [CONTRIBUTING.md](https://github.com/KSG-IT/ksg-nett/blob/develop/CONTRIBUTING.md) to understand the various project components. Then check out [SYSTEM.md](https://github.com/KSG-IT/ksg-nett/blob/develop/SYSTEM.md) to understand the various project components.
