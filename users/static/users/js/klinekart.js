@@ -2,7 +2,6 @@
 const canvasWrapperEl = document.getElementById('klinekart-wrapper')
 const canvas = document.getElementById('klinekart-canvas')
 const ctx = canvas.getContext('2d')
-ctx.globalCompositeOperation = 'destination-in'
 
 const thumbSize = 50
 
@@ -12,7 +11,6 @@ let debug = false
 // Camera constants
 const cameraSpeed = 7
 const cameraZoomSpeed = 1.1
-
 
 // Get and set canvas size
 const width = canvasWrapperEl.scrollWidth
@@ -100,7 +98,28 @@ let framesSinceLastLogicSkip = Math.Infinity
 // INITIALIZATION             //
 // ========================== //
 
-// Load and transform data
+// Load and transform data.
+// 
+// The format of the data is:
+//
+// [
+//    [
+//        User,
+//        User
+//    ],
+//    ...
+// ]
+// 
+// where each User object is
+//
+//   {
+//       id: Number,
+//       name: String,
+//       img: String,
+//       anonymous: Boolean
+//   }
+//
+// If the user is anonymous, the id will be a negative number, the name will be "Anonymous", and img will be null.
 const madeOutData = JSON.parse(
   document.querySelector(
     "meta[name='made-out-data']"
@@ -145,14 +164,23 @@ const associationSiblingLookup = {}
 const associationSiblingArrayLookup = {}
 const nodes = {}
 
-// Set up node objects
+// Set up node objects. Spawn the nodes at random locations.
 Object.values(users).forEach(function (user) {
   nodes[user.id] = createNode(user, width * Math.random(), height * Math.random())
   associationSiblingLookup[user.id] = {}
   associationSiblingArrayLookup[user.id] = []
 })
 
-// Set up sibling lookups and association counts
+// Set up sibling lookups and association counts.
+//
+// Association counts are used throughout the klinekart, primarily by affecting the
+// equilibrium distance of springs between nodes, as well as the size of the rendered images for every node.
+//
+// The associationSiblingLookup object is used to cache node sibling relations. E.g. if both Node1, Node2 are children of Node3,
+// Then associationSiblingLookup[Node3] will contain both Node1 and Node2 as keys, pointing to their respective nodes.
+// 
+// associationSiblingArrayLookup is a variant of the above, instead storing the nodes by integer indices. This allows us to quickly
+// get the "next" sibling. This is used only in aggressive optimization for sibling forces.
 madeOutAssociations.forEach(assoc => {
   const firstUserId = assoc[0]
   const secondUserId = assoc[1]
@@ -184,7 +212,6 @@ Object.values(nodes).forEach(node => {
 })
 
 
-// Create node islands
 const nodeIslands = []
 const inverseNodeIslandLookups = {}
 let currentIsland = null
@@ -193,6 +220,16 @@ const nodesRemaining = Array.from(Object.values(nodes).map(node => node.user.id)
 const bfsList = []
 let next = null
 
+// This loop below creates the different node islands. A node islands are defined as 
+// the different connected graphs of the klinekart.
+//
+// The loop works by iteratively removing nodes from the `nodesRemaining` array,
+// until there are no nodes remaining without an island.
+//
+// When a new node is removed, it is percecived the root of a tree, and a DFS-search 
+// is run on the tree. Every encountered node in the DFS-search is in the same connected graph
+// as the root, and hence belong to the same island. When the search is completed, we calculate
+// the centroid and mass of the island. We then pop a new node from `nodesRemaining` and repeat the routine.
 while(nodesRemaining.length > 0) {
   // This while loop is called once for every distinct island
   next = nodesRemaining.pop()
@@ -240,12 +277,16 @@ const OPTIMIZE_MILD = 1
 const OPTIMIZE_MEDIUM = 2
 const OPTIMIZE_AGGRESSIVE = 3
 
+// If we have too many nodes/connections/users/islands, we add some optimizations
 let optimizeSiblingStrategy = connectionCount > 2000 ? OPTIMIZE_AGGRESSIVE : connectionCount > 2500 ? OPTIMIZE_MEDIUM : connectionCount > 1000 ? OPTIMIZE_MILD : OPTIMIZE_NONE
 let optimizeNodeStrategy = userCount > 10000 ? OPTIMIZE_AGGRESSIVE : userCount > 5000 ? OPTIMIZE_MEDIUM : userCount > 1000 ? OPTIMIZE_MILD : OPTIMIZE_NONE
 let optimizeIslandStrategy = nodeIslands.length > 1000 ? OPTIMIZE_AGGRESSIVE : nodeIslands.length > 500 ? OPTIMIZE_MEDIUM : nodeIslands.length > 100 ? OPTIMIZE_MILD : OPTIMIZE_NONE
 let optimizeRenderStrategy = userCount > 2000 ? OPTIMIZE_AGGRESSIVE : userCount > 1000 ? OPTIMIZE_MEDIUM : userCount > 500 ? OPTIMIZE_MILD : OPTIMIZE_NONE
 
 // Physics constants
+// Some of the constants will be increased if we are optimizing aggressively.
+// The reason for this is that in aggresive optimization mode, less nodes will interact
+// meaning the overall forces will be much less unless we adjust some constants.
 const nodesEquilibrium = 150
 const springCoefficient = 0.005
 const siblingRepulsionCoefficient = optimizeSiblingStrategy === OPTIMIZE_AGGRESSIVE ? 0.15 : 0.08
@@ -255,6 +296,10 @@ const islandMaxSeparationThatYieldsForce = 10000
 const islandMinSeparationForCalculation = 40
 const damping = 0.1
 const islandDamping = 0.005
+
+// ========================== //
+// DATA HELPER METHODS        //
+// ========================== //
 
 function recalculateNodeIslandCentroid(island) {
   let sumXPos = 0
@@ -332,6 +377,10 @@ function createNodeCanvas(node) {
   }
 }
 
+// ================================ //
+// LOGIC ENGINE METHODS             //
+// ===============================  //
+
 function update () {
   updateLogic()
   render()
@@ -371,6 +420,10 @@ function updateLogic () {
   }
 }
 
+// ================================ //
+// LOGIC HELPER METHODS             //
+// ===============================  //
+
 function updateAssociations(){
   // Perform spring calculations
   madeOutAssociations.forEach(assoc => {
@@ -403,7 +456,7 @@ function updateNodes(){
     node.vx += node.ax
     node.vy += node.ay
 
-    // Apply island velocity
+    // Propagate velocity of island to node
     const islandOfNode = inverseNodeIslandLookups[node.user.id]
     node.vx += islandOfNode.vx
     node.vy += islandOfNode.vy
@@ -615,6 +668,10 @@ function applyNodeConstantRepulsionForce(nodeOne, nodeTwo, coefficient) {
     nodeTwo.ay -= coefficient * distanceY / distance
 }
 
+// ================================ //
+// RENDER ENGINE METHOD             //
+// ===============================  //
+
 function render () {
   // Save the current zoom, which we persist between renders
   ctx.save();
@@ -654,7 +711,6 @@ function render () {
   // Render connections and nodes, in that order.
   renderConnections()
 
-  // madeOutAssociations.forEach(assoc => renderConnection(assoc[0], assoc[1]))
   Object.keys(nodes).forEach(i => {
     renderNode(nodes[i])
 
@@ -687,9 +743,9 @@ function render () {
       document.body.style.cursor = "pointer"
 
       // Only perform the below actions if there is no currently dragged user
-
       if (mouseInfo.userDragged === null) {
         // User has been clicked
+        // TODO: Re-enable in some scenarios?
         if (mouseInfo.mouseUpLastFrame) {
           handleUserClicked(node.user)
         // User is now being dragged
@@ -720,6 +776,7 @@ function render () {
     frameRate = getCurrentFrameRate().toFixed(0)
   }
 
+  // Capture current logic update time.
   if (lastLogicUpdateTimes.length > 50) {
     lastLogicUpdateTimes.shift()
   }
@@ -729,10 +786,14 @@ function render () {
     renderDebug()
   }
 
-  // Reset pertinent values
+  // Reset some relevant values
   mouseInfo.intersectingUsersThisFrame = []
   mouseInfo.mouseUpLastFrame = false
 }
+
+// ================================ //
+// RENDER HELPER METHODS            //
+// ===============================  //
 
 function renderNode (node) {
   const correlatedSize = thumbSize + 6 * node.assocCount
@@ -749,13 +810,13 @@ function renderNode (node) {
     return
   }
 
-  // Draw canvas if the zoom is not too close. For close zooms we draw the full image
+  // Draw canvas if the zoom is not too close. For close zooms we draw the full image, 
+  // to avoid grainy pictures.
   if (camera.zoom < 0.85){
     ctx.drawImage(node.canvas, xPos, yPos)
   } else {
-    ctx.save()
     // Create a clip and render image into it
-    // ctx.save()
+    ctx.save()
     ctx.beginPath();
     ctx.arc(node.x, node.y, correlatedSize/2, 0, Math.PI*2);
     ctx.clip()
@@ -853,6 +914,7 @@ function renderDebug() {
   ctx.font = '18px Arial'
   ctx.textAlign="center"; 
 
+  // The below magic numbers are simply used to make sure the debug texts are offset by their approximate line heights, with some padding.
   nodeIslands.forEach((island, i) => {
     ctx.fillText("Island " + (i + 1).toString(), island.centroidX, island.centroidY - 22)
     ctx.fillText("Centroid: (" + island.centroidX.toFixed(2) + ", " + island.centroidY.toFixed(2) +")", island.centroidX, island.centroidY)
@@ -861,6 +923,10 @@ function renderDebug() {
   })
   ctx.restore()
 }
+
+// ================================ //
+// USER EVENT HELPER METHODS        //
+// ===============================  //
 
 function checkNodeIntersectionWithMouse(node) {
   const correlatedSize = (thumbSize + 6 * node.assocCount) / 2
@@ -944,6 +1010,7 @@ function handleScroll (event) {
     ctx.scale(zoom, zoom)
     ctx.translate(-transformedMousePos.x, -transformedMousePos.y)
   }
+  // Make sure the event does not propagate
   return event.preventDefault() && false
 }
 
@@ -953,6 +1020,7 @@ function handleMouseDown(event) {
 
 function handleMouseUp(event) {
   mouseInfo.mouseDown = false
+  // This variable will be reset on the next render call. Used to detect clicks.
   mouseInfo.mouseUpLastFrame = true
 }
 
@@ -964,7 +1032,9 @@ function handleMouseMove(event) {
 
   // Get last mouse position in current world-space
   // We cannot simply calculate differences in world-space coordinates, 
-  // as they should be almost stationary when we move the mouse; thats the whole idea.
+  // as they will be almost stationary when we move the mouse; thats the whole idea:
+  // Since we move the camera with our moving mouse, the mouse position
+  // should be stationary in world-space.
   const lastPosNowWorldSpace = transformPointFromScreenSpaceToWorldSpace(mouseInfo.lastPosX, mouseInfo.lastPosY)
   
   const deltaPos = {
@@ -997,6 +1067,17 @@ function getMousePos(event) {
     y: event.clientY - rect.top
   }
 }
+
+function handleUserClicked(user) {
+  if (user.id >= 0){
+    // Go to user page
+    window.location.href = '/internal/users/' + user.id
+  }
+}
+
+// ================================ //
+// USER EVENT HELPER METHODS        //
+// ===============================  //
 
 function transformPointFromScreenSpaceToWorldSpace(x, y){
   // Transforming the position from screen space to world-space is done consicely here by getting the current ctx matrix.
@@ -1061,15 +1142,9 @@ function getCurrentLogicUpdateTime(){
   }
 }
 
-
-function handleUserClicked(user) {
-  if (user.id >= 0){
-    // Go to user page
-    window.location.href = '/internal/users/' + user.id
-  }
-}
-
-requestAnimationFrame(update)
+// ================================ //
+// START AND SETUP LISTENERS        //
+// ===============================  //
 
 document.addEventListener('keydown', handleKeydown)
 document.addEventListener('keyup', handleKeyup)
@@ -1080,3 +1155,5 @@ canvas.addEventListener('mousewheel', handleScroll, false)
 canvas.addEventListener('mousedown', handleMouseDown)
 canvas.addEventListener('mousemove', handleMouseMove)
 canvas.addEventListener('mouseup', handleMouseUp)
+
+requestAnimationFrame(update)
