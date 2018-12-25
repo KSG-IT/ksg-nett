@@ -1,5 +1,5 @@
 MODULES="api,economy,internal,login,media,organization,quotes,schedules,users"
-coverage run --source=$MODULES manage.py test
+pipenv run coverage run --source=$MODULES manage.py test
 if [ $? -eq 0 ]
 then
     coverage report

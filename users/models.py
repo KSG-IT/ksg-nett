@@ -11,6 +11,7 @@ from django.db.models import QuerySet
 
 from commissions.models import Commission
 from users.managers import UsersHaveMadeOutManager
+from common.util import get_semester_year_shorthand
 
 KSG_STATUS_TYPES = (
     ("aktiv", "Aktiv"),  # Wants to stay in KSG
@@ -106,9 +107,7 @@ class User(AbstractUser):
             2012-12-30 => H12
         :return: The "semeter-year" display of the `start_ksg` attribute.
         """
-        short_year_format = str(self.start_ksg.year)[2:]
-        semester_prefix = "H" if self.start_ksg.month > 7 else "V"
-        return f"{semester_prefix}{short_year_format}"
+        return get_semester_year_shorthand(self.start_ksg)
 
     @property
     def profile_image_url(self) -> Optional[str]:
