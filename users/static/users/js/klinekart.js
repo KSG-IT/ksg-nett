@@ -367,52 +367,52 @@ function updateLogic () {
 }
 
 function updateAssociations(){
-    // Perform spring calculations
-    madeOutAssociations.forEach(assoc => {
-      const nodeOne = nodes[assoc[0]]
-      const nodeTwo = nodes[assoc[1]]
+  // Perform spring calculations
+  madeOutAssociations.forEach(assoc => {
+    const nodeOne = nodes[assoc[0]]
+    const nodeTwo = nodes[assoc[1]]
 
-      applySpringForce(nodeOne, nodeTwo)
+    applySpringForce(nodeOne, nodeTwo)
 
-      applySiblingForce(nodeOne, nodeTwo)
-      applySiblingForce(nodeTwo, nodeOne)
-    })
+    applySiblingForce(nodeOne, nodeTwo)
+    applySiblingForce(nodeTwo, nodeOne)
+  })
 
-        }
+}
 
 function updateNodes(){
-    // Update velocity and positions
-    Object.values(nodes).forEach(node => {
-      // Abort if the node is currently being dragged, but reset acceleration. Also make sure to reset island velocity.
-      if (mouseInfo.userDragged === node.user.id) {
-        node.ax = 0
-        node.ay = 0 
-
-        const island = inverseNodeIslandLookups[node.user.id]
-        island.vx = 0
-        island.vy = 0
-
-        return
-      }
-
-      node.vx += node.ax
-      node.vy += node.ay
-
-      // Apply island velocity
-      const islandOfNode = inverseNodeIslandLookups[node.user.id]
-      node.vx += islandOfNode.vx
-      node.vy += islandOfNode.vy
-
-      node.vx *= (1 - damping)
-      node.vy *= (1 - damping)
-
-      node.x += node.vx
-      node.y += node.vy
-
-      // Reset accelerations between each frame
+  // Update velocity and positions
+  Object.values(nodes).forEach(node => {
+    // Abort if the node is currently being dragged, but reset acceleration. Also make sure to reset island velocity.
+    if (mouseInfo.userDragged === node.user.id) {
       node.ax = 0
-      node.ay = 0
-    })
+      node.ay = 0 
+
+      const island = inverseNodeIslandLookups[node.user.id]
+      island.vx = 0
+      island.vy = 0
+
+      return
+    }
+
+    node.vx += node.ax
+    node.vy += node.ay
+
+    // Apply island velocity
+    const islandOfNode = inverseNodeIslandLookups[node.user.id]
+    node.vx += islandOfNode.vx
+    node.vy += islandOfNode.vy
+
+    node.vx *= (1 - damping)
+    node.vy *= (1 - damping)
+
+    node.x += node.vx
+    node.y += node.vy
+
+    // Reset accelerations between each frame
+    node.ax = 0
+    node.ay = 0
+  })
 }
 
 function updateIslands(){
@@ -625,6 +625,7 @@ function render () {
   const titleText = "Klinekart  " + frameRate + "fps"
   ctx.fillText(titleText, width - 20, height - 20)
 
+  // Static debug information
   if (debug) {
     ctx.textAlign = "left"
     ctx.fillText("1337 h4xx0r m0d3", 20, height - 20)
