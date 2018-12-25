@@ -68,15 +68,15 @@ def klinekart(request):
         user_one: User = association.user_one
         user_two: User = association.user_two
 
-        # This if, and the one below for user_two, overloads the id of the user in case the user is anonymous.
+        # This if-statement, and the one below for user_two, overloads the id of the user in case the user is anonymous.
         # The user is only assigned one fake id, which is cached in the anonymouse_fake_ids dict.
         if user_one.anonymize_in_made_out_map:
             if user_one.id in anonymous_fake_ids:
                 user_one_id = anonymous_fake_ids[user_one.id]
             else:
-                anonymous_users_counter -= 1
                 user_one_id = anonymous_users_counter
                 anonymous_fake_ids[user_one.id] = user_one_id
+                anonymous_users_counter -= 1
         else:
             user_one_id = user_one.id
 
@@ -84,9 +84,9 @@ def klinekart(request):
             if user_two.id in anonymous_fake_ids:
                 user_two_id = anonymous_fake_ids[user_two.id]
             else:
-                anonymous_users_counter -= 1
                 user_two_id = anonymous_users_counter
                 anonymous_fake_ids[user_two.id] = user_two_id
+                anonymous_users_counter -= 1
         else:
             user_two_id = user_two.id
 
