@@ -12,7 +12,7 @@ from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 from users.forms.user_form import UserForm
-from users.models import User, KSG_STATUS_TYPES
+from users.models import User, KSG_STATUS_TYPES, UsersHaveMadeOut
 from users.views import user_detail, update_user
 
 
@@ -225,6 +225,86 @@ class UserFormTest(TestCase):
         response = self.client.patch(reverse(update_user, kwargs={'user_id': self.user.id}))
         self.assertEqual(response.status_code, 405)
 
-
-
     # TODO add invalid view test and more comprehensive testing
+
+
+
+class UsersHaveMadeOutModelTest(TestCase):
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = User.objects.create(
+            username='username4',
+            email='user@example.com'
+        )
+        cls.user_two = User.objects.create(
+            username='username2',
+            email='user2@example.com'
+        )
+        cls.user_three = User.objects.create(
+            username='username3',
+            email='user3@example.com'
+        )
+
+    def test_str_and_repr__does_not_crash(self):
+        made_out = UsersHaveMadeOut.objects.create(
+            user_one=self.user,
+            user_two=self.user_two
+        )
+        str(made_out)
+        repr(made_out)
+
+
+class UsersHaveMadeOutManagerTest(TestCase):
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = User.objects.create(
+            username='username4',
+            email='user@example.com'
+        )
+        cls.user_two = User.objects.create(
+            username='username2',
+            email='user2@example.com'
+        )
+        cls.user_three = User.objects.create(
+            username='username3',
+            email='user3@example.com'
+        )
+        cls.made_out_this_semester = UsersHaveMadeOut.objects.create(
+            user_one=cls.user,
+            user_two=cls.user_two,
+        )
+        now = timezone.now()
+        cls.made_out_in_spring_last_year = UsersHaveMadeOut.objects.create(
+            user_one=cls.user,
+            user_two=cls.user_two,
+        )
+        cls.made_out_in_autumn_last_year = UsersHaveMadeOut.objects.create(
+            user_one=cls.user,
+            user_two=cls.user_two,
+        )
+        cls.made_out_in_spring_last_year.created_at = timezone.datetime(year=now.year - 1, month=3, day=1, tzinfo=now.tzinfo)
+        cls.made_out_in_autumn_last_year.created_at = timezone.datetime(year=now.year - 1, month=9, day=1, tzinfo=now.tzinfo)
+        cls.made_out_in_spring_last_year.save()
+        cls.made_out_in_autumn_last_year.save()
+
+    def test_this_semester__returns_made_outs_from_this_semester(self):
+        this_semester_made_outs = UsersHaveMadeOut.objects.this_semester()
+        self.assertEqual(this_semester_made_outs.count(), 1)
+        self.assertEqual(this_semester_made_outs.first(), self.made_out_this_semester)
+
+    def test_in_semester__this_semester_as_input__returns_made_outs_from_this_semester(self):
+        made_outs = UsersHaveMadeOut.objects.in_semester(self.made_out_this_semester.created_at)
+        self.assertEqual(made_outs.count(), 1)
+        self.assertEqual(made_outs.first(), self.made_out_this_semester)
+
+    def test_in_semester__specific_semester_in_spring_as_input__only_returns_relevant_made_outs(self):
+        made_outs = UsersHaveMadeOut.objects.in_semester(self.made_out_in_spring_last_year.created_at)
+        self.assertEqual(made_outs.count(), 1)
+        self.assertEqual(made_outs.first(), self.made_out_in_spring_last_year)
+
+    def test_in_semester__specific_semester_in_autumn_as_input__only_returns_relevant_made_outs(self):
+        made_outs = UsersHaveMadeOut.objects.in_semester(self.made_out_in_autumn_last_year.created_at)
+        self.assertEqual(made_outs.count(), 1)
+        self.assertEqual(made_outs.first(), self.made_out_in_autumn_last_year)
