@@ -302,29 +302,34 @@ function createNode (user, x, y) {
     ax: 0,
     ay: 0,
     img: img,
+    imgLoaded: false,
     canvas: null,
     assocCount: 0
   }
 }
 
 function createNodeCanvas(node) {
-  const correlatedSize = thumbSize + 6 * node.assocCount
+  // Wait until the image is loaded
+  node.img.onload = function(){
+    node.imgLoaded = true
+    const correlatedSize = thumbSize + 6 * node.assocCount
 
-  const canvas = document.createElement("canvas")
-  canvas.width = correlatedSize
-  canvas.height = correlatedSize
-  const ctx = canvas.getContext("2d")
+    const canvas = document.createElement("canvas")
+    canvas.width = correlatedSize
+    canvas.height = correlatedSize
+    const ctx = canvas.getContext("2d")
 
 
-  // Create a clip and render image into it
-  ctx.beginPath();
-  ctx.arc(correlatedSize/2, correlatedSize/2, correlatedSize/2, 0, Math.PI*2);
-  ctx.clip()
-  ctx.closePath();
+    // Create a clip and render image into it
+    ctx.beginPath();
+    ctx.arc(correlatedSize/2, correlatedSize/2, correlatedSize/2, 0, Math.PI*2);
+    ctx.clip()
+    ctx.closePath();
 
-  ctx.drawImage(node.img, 0, 0, correlatedSize, correlatedSize)
+    ctx.drawImage(node.img, 0, 0, correlatedSize, correlatedSize)
 
-  node.canvas = canvas
+    node.canvas = canvas
+  }
 }
 
 function update () {
@@ -735,18 +740,30 @@ function renderNode (node) {
   const xPos = node.x - correlatedSize / 2 
   const yPos = node.y - correlatedSize / 2
 
+  if (!node.imgLoaded){
+    // Draw a gray circle
+    ctx.beginPath();
+    ctx.arc(node.x, node.y, correlatedSize/2, 0, 2*Math.PI);
+    ctx.fillStyle = '#aaa';
+    ctx.fill();
+    return
+  }
 
-  ctx.drawImage(node.canvas, xPos, yPos)
-  //   ctx.save()
-  //   // Create a clip and render image into it
-  //   // ctx.save()
-  //   ctx.beginPath();
-  //   ctx.arc(node.x, node.y, correlatedSize/2, 0, Math.PI*2);
-  //   ctx.clip()
-  //   ctx.closePath();
+  // Draw canvas if the zoom is not too close. For close zooms we draw the full image
+  if (camera.zoom < 0.85){
+    ctx.drawImage(node.canvas, xPos, yPos)
+  } else {
+    ctx.save()
+    // Create a clip and render image into it
+    // ctx.save()
+    ctx.beginPath();
+    ctx.arc(node.x, node.y, correlatedSize/2, 0, Math.PI*2);
+    ctx.clip()
+    ctx.closePath();
 
-  //   ctx.drawImage(node.img, xPos, yPos, correlatedSize, correlatedSize)
-  //   ctx.restore()
+    ctx.drawImage(node.img, xPos, yPos, correlatedSize, correlatedSize)
+    ctx.restore()
+  }
 }
 
 // Render all connections. We do this in a single path call
