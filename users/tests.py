@@ -1,25 +1,27 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
 
+import json
 import shutil
 import tempfile
-from django.test import Client
 
 from django.conf import settings
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.http import HttpResponse
 from django.test import TestCase
 # Create your tests here.
 from django.urls import reverse
 from django.utils import timezone
 from users.forms.user_form import UserForm
 from users.models import User, KSG_STATUS_TYPES, UsersHaveMadeOut
-from users.views import user_detail, update_user
+from users.views import user_detail, update_user, klinekart
 
 
 class UserProfileTest(TestCase):
 
     @classmethod
     def tearDownClass(cls):
+        super(UserProfileTest, cls).tearDownClass()
         # Delete the temporary media root
         shutil.rmtree(cls.temp_media_root)
         # Restore
@@ -31,7 +33,7 @@ class UserProfileTest(TestCase):
         cls.temp_media_root = tempfile.mkdtemp()
         settings.MEDIA_ROOT = cls.temp_media_root
 
-        cls.user_1 = User(
+        cls.user_1 = User.objects.create(
             username='username',
             first_name="Ola",
             last_name="Nordmann",
@@ -42,7 +44,6 @@ class UserProfileTest(TestCase):
             study_address='Kråkeveien 5',
             home_address='Kråkeveien 4'
         )
-        cls.user_1.save()
 
     def test_str_and_repr_should_not_crash(self):
         str_representation = str(self.user_1)
@@ -234,7 +235,7 @@ class UsersHaveMadeOutModelTest(TestCase):
     @classmethod
     def setUpTestData(cls):
         cls.user = User.objects.create(
-            username='username4',
+            username='username',
             email='user@example.com'
         )
         cls.user_two = User.objects.create(
@@ -260,7 +261,7 @@ class UsersHaveMadeOutManagerTest(TestCase):
     @classmethod
     def setUpTestData(cls):
         cls.user = User.objects.create(
-            username='username4',
+            username='username',
             email='user@example.com'
         )
         cls.user_two = User.objects.create(
@@ -308,3 +309,115 @@ class UsersHaveMadeOutManagerTest(TestCase):
         made_outs = UsersHaveMadeOut.objects.in_semester(self.made_out_in_autumn_last_year.created_at)
         self.assertEqual(made_outs.count(), 1)
         self.assertEqual(made_outs.first(), self.made_out_in_autumn_last_year)
+
+
+class KlineKartViewTest(TestCase):
+
+    @classmethod
+    def tearDownClass(cls):
+        super(KlineKartViewTest, cls).tearDownClass()
+        # Delete the temporary media root
+        shutil.rmtree(cls.temp_media_root)
+        # Restore
+        settings.MEDIA_ROOT = "/media/"
+
+    @classmethod
+    def setUpTestData(cls):
+        # Set up mocking of the media root temporarily so we can create uploads
+        cls.temp_media_root = tempfile.mkdtemp()
+        settings.MEDIA_ROOT = cls.temp_media_root
+
+        cls.user = User.objects.create(
+            username='username',
+            email='user@example.com',
+            anonymize_in_made_out_map=False
+        )
+        cls.user.set_password('password')
+        image_file = SimpleUploadedFile(name="test_image.jpeg", content=b'', content_type='image/jpeg')
+        cls.user.profile_image = image_file
+        cls.user.save()
+
+        cls.user_two = User.objects.create(
+            username='username2',
+            email='user2@example.com',
+            anonymize_in_made_out_map=False
+        )
+        cls.user_three = User.objects.create(
+            username='username3',
+            email='user3@example.com',
+            anonymize_in_made_out_map=True
+        )
+        cls.user_four = User.objects.create(
+            username='username4',
+            email='user4@example.com',
+            anonymize_in_made_out_map=True
+        )
+
+    def setUp(self):
+        self.client.login(
+            username='username',
+            password='password'
+        )
+
+    def test_klinekart__renders_the_klinekart_template(self):
+        response = self.client.get(reverse(klinekart))
+        self.assertTemplateUsed(response, 'users/klinekart.html')
+
+    def test_klinekart__with_associations__sends_all_associations_properly_as_json(self):
+        UsersHaveMadeOut.objects.create(
+            user_one=self.user,
+            user_two=self.user_two,
+        )
+        UsersHaveMadeOut.objects.create(
+            user_one=self.user_two,
+            user_two=self.user_three,
+        )
+        UsersHaveMadeOut.objects.create(
+            user_one=self.user_three,
+            user_two=self.user,
+        )
+        UsersHaveMadeOut.objects.create(
+            user_one=self.user_four,
+            user_two=self.user_two,
+        )
+        UsersHaveMadeOut.objects.create(
+            user_one=self.user_four,
+            user_two=self.user_three,
+        )
+        # Duplicates are allowed
+        UsersHaveMadeOut.objects.create(
+            user_one=self.user_two,
+            user_two=self.user,
+        )
+
+        response: HttpResponse = self.client.get(reverse(klinekart))
+        self.assertTemplateUsed(response, 'users/klinekart.html')
+
+        data = json.loads(response.context['made_out_data'])
+        self.assertEqual(len(data), 6)
+
+        ids = set()
+        names = set()
+        imgs = set()
+
+        for tuple in data:
+            ids.add(tuple[0]['id'])
+            ids.add(tuple[1]['id'])
+
+            names.add(tuple[0]['name'])
+            names.add(tuple[1]['name'])
+
+            imgs.add(tuple[0]['img'])
+            imgs.add(tuple[1]['img'])
+
+        self.assertTrue(ids == {1, 2, -1, -2})
+        self.assertTrue(names == {
+            self.user.get_full_name(),
+            self.user_two.get_full_name(),
+            "Anonymous"
+        })
+        self.assertTrue(imgs == {
+            self.user.profile_image_url,
+            self.user_two.profile_image_url,
+            None
+        })
