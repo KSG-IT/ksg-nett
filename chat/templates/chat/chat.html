@@ -1,0 +1,36 @@
+{% extends 'internal/base.html' %}
+{% load static %}
+{% load i18n %}
+{% block header %}
+  <meta name="current-user-id" content="{{ user.id }}">
+  <link rel="stylesheet" href="{% static 'chat/css/chat.css' %}">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons"
+        rel="stylesheet">
+  <script src="//twemoji.maxcdn.com/2/twemoji.min.js?11.2"></script>
+{% endblock %}
+{% block body_content %}
+  <div class="chat">
+    <div class="chat__header">
+      <h1 class="chat__title">Chat</h1>
+    </div>
+    <div class="chat__roomoverview">
+      <h4 class="chat__roomtitle">
+        {% trans 'I chatten nå' %}
+      </h4>
+      <ul class="chat__roomlist">
+      </ul>
+    </div>
+    <div class="chat__contents">
+    </div>
+    <div class="chat__inputwrapper">
+      <textarea type="text" class="chat__input" autofocus placeholder="{% trans 'Skriv no skjit' %}"></textarea>
+      <div class="chat__inputsend">
+        <i class="material-icons">send</i>
+      </div>
+    </div>
+  </div>
+{% endblock %}
+{% block body_end %}
+  <script src="{% static 'chat/js/chat.js' %}"></script>
+{% endblock %}:W
+
