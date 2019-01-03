@@ -12,6 +12,9 @@ pytz = "*"
 drf-yasg = "*"
 Django = "*"
 Pillow = "*"
+channels = "*"
+redis = "*"
+channels-redis = "*"
 
 [requires]
 python_version = "3.6"
