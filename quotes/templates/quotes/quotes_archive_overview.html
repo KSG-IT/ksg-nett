@@ -1,0 +1,37 @@
+{% extends 'internal/base.html' %}
+{% load static %}
+{% load i18n %}
+{% block header %}
+    <link rel="stylesheet" href="{% static 'quotes/css/quotes.css' %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+{% endblock %}
+{% block body_content %}
+    <div class="profilepage">
+        <div class="default-container default-top-offset">
+            <div id="left-wrapper" class="default-left-panel profilepage__thumbwrapper text-right">
+                <h3>SITATER</h3>
+                <p><a class="btn btn-primary resetlink" href="/internal/quotes/add/">Opprett</a></p>
+                <p><a class="btn btn-primary resetlink" href="/internal/quotes/archive/">Arkiv</a></p>
+                <p>Søk</p>
+            </div>
+            <div class="default-right-panel" id="right-wrapper">
+
+                <h2>Godkjente</h2>
+                <div class="quote__gridcontainer">
+                    {% for quote in old_quotes %}
+                        <!-- Check against get_semester_shorthand using current day-->
+                        {% if quote.get_semester_of_quote == 'H18' %}
+                            <div class="quote__griditem">
+                                <a style="font-style: normal; font-size: 40px;" class="btn btn-primary resetlink quotes__semester" href="/internal/quotes/archive/{{ quote.get_semester_of_quote }}">
+                                    {{ quote.get_semester_of_quote }}
+                                </a>
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% load static %}
+    <script src="{% static 'quotes/quotes_list.js' %}"></script>
+{% endblock %}
