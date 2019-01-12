@@ -16,7 +16,10 @@
 .summaryupdate__editorheader{
     width: 100%;
     display: flex;
-    border: 1px solid #ccc;
+    display: grid;
+    grid-template-columns: 50% 50%;
+    border-top: 1px solid #ccc;
+    border-bottom: 1px solid #ccc;
 }
 
 .summaryupdate__editorheader > div{
@@ -41,16 +44,16 @@
 
 .summaryupdate__editorwrapper{
     height: calc(100% - 136px);
+    display: grid;
+    grid-template-columns: 50% 50%;
 }
 
 .summaryupdate__contents{
     height: 100%;
-    width: 50%;
 }
 
 .summaryupdate__preview{
     height: 100%;
-    width: 50%;
     border-left: 1px solid #ccc;
     padding-top: 1em;
     padding-left: 1em;
