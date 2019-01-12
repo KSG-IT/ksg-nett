@@ -16,7 +16,7 @@
         </a>
       {% endfor %}
       <h3 class="normal summary__lefttitle">Referent</h3>
-      <a href="/internal/users/{{ summary.reporter.id }}" title="{{ participant.get_full_name }}">
+      <a href="/internal/users/{{ summary.reporter.id }}" title="{{ summary.reporter.get_full_name }}">
         {% include 'components/thumb.html' with url=summary.reporter.profile_image_url size='smaller' %}
       </a>
     </div>
