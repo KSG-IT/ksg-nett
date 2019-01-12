@@ -1,3 +1,4 @@
+from django.db.models import Max, Subquery, OuterRef
 from django.http import HttpResponse, HttpRequest
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse
@@ -69,11 +70,27 @@ def summaries_delete(request, summary_id):
 
     return redirect(reverse(summaries_list))
 
-def summaries_ype(request: HttpRequest):
+def summaries_type(request: HttpRequest):
     return redirect(reverse(summaries_list))
 
+
 def summaries_last(request: HttpRequest):
-    return redirect(reverse(summaries_list))
+    # Unfortunately, this is the most pragmatic way to get the latest
+    # summary for each type, in a database-independent way, as far as I know.
+    latest_summary_dates_subquery = Summary.objects\
+        .filter(summary_type=OuterRef('summary_type'))\
+        .values('summary_type')\
+        .annotate(latest_date=Max('date'))\
+        .values('latest_date')[:1]
+    last_summaries = Summary.objects.filter(
+        date=Subquery(latest_summary_dates_subquery)
+    )
+    # Convert to list of tuples with display version of summary_type, and date.
+    ctx = {
+        'last_summaries': last_summaries
+    }
+
+    return render(request, template_name='summaries/summaries_last.html', context=ctx)
 
 
 def summaries_search(request: HttpRequest):
