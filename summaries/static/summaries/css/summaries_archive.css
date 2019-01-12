@@ -1,0 +1,10 @@
+.summariesarchive__semesters{
+    display: grid;
+    grid-template-columns: auto auto auto auto;
+    place-items: center;
+}
+
+.summariesarchive__semester{
+    padding: 1em;
+    font-size: 42px;
+}

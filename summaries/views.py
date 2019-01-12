@@ -4,6 +4,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse
 from rest_framework import status
 
+from common.util import get_semester_year_shorthands_by_count
 from summaries.consts import SUMMARY_TYPE_SHORT_NAMES
 from summaries.forms import SummaryForm
 from summaries.models import Summary
@@ -92,10 +93,13 @@ def summaries_last(request: HttpRequest):
 
     return render(request, template_name='summaries/summaries_last.html', context=ctx)
 
-
 def summaries_search(request: HttpRequest):
     return redirect(reverse(summaries_list))
 
 
 def summaries_archive(request: HttpRequest):
-    return redirect(reverse(summaries_list))
+    semesters = get_semester_year_shorthands_by_count(16)
+    ctx = {
+        'semesters': semesters
+    }
+    return render(request, template_name='summaries/summaries_archive.html', context=ctx)
