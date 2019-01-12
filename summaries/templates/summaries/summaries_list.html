@@ -3,20 +3,11 @@
 {% load static %}
 {% block header %}
   <link rel="stylesheet" href="{% static 'summaries/css/summaries_list.css' %}">
+  <link rel="stylesheet" href="{% static 'summaries/css/summaries_common.css' %}">
 {% endblock %}
 {% block body_content %}
   <div class="summaries default-container default-top-offset">
-    <div class="default-left-panel summaries__left">
-      <h1 class="text-uppercase bold darker-blue">
-        {% trans 'Summaries' %}
-      </h1>
-      <a class="summaries__leftbutton resetlink" href="{% url 'summaries_last' %}">{% trans 'Last' %}</a>
-      {% if perms.summaries.add_summary %}
-          <a class="summaries__leftbutton resetlink" href="{% url 'summaries_create' %}">{% trans 'Create' %}</a>
-      {% endif %}
-      <a class="summaries__leftbutton resetlink" href="{% url 'summaries_search' %}">{% trans 'Search' %}</a>
-      <a class="summaries__leftbutton resetlink" href="{% url 'summaries_archive' %}">{% trans 'Archive' %}</a>
-    </div>
+    {% include 'summaries/summaries_leftmenu.html' with active='summaries' %}
     <div class="default-right-panel summaries__right">
       {% for type in all_summary_types %}
         <a href="/internal/summaries/type/{{ type.0 }}/" class="summaries__type resetlink text-uppercase darker-blue">

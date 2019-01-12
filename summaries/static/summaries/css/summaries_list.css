@@ -5,7 +5,6 @@
 }
 
 .summaries__right{
-    border-left: 1px solid #103242;
     padding-left: 40px;
     display: grid;
     grid-template-columns: auto auto auto;
