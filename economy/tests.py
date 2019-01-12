@@ -1,7 +1,8 @@
 from django.conf import settings
 from django.test import TestCase
 
-from economy.models import Transfer, Deposit, SociBankAccount, Purchase, ProductOrder, SociProduct, PurchaseCollection
+from economy.models import Transfer, Deposit, SociBankAccount, Purchase, ProductOrder, SociProduct, PurchaseCollection, \
+    DepositComment
 from users.models import User
 
 
@@ -94,3 +95,32 @@ class DepositTest(TestCase):
 
     def test_deposit_status__correct_status(self):
         self.assertTrue(self.valid_deposit.is_valid)
+
+
+class DepositCommentTest(TestCase):
+    def setUp(self):
+        self.user = User.objects.create(username="user")
+        self.account = SociBankAccount.objects.create(user=self.user)
+        self.deposit = Deposit.objects.create(account=self.account, amount=10)
+        self.deposit_comment = DepositComment.objects.create(
+            deposit=self.deposit,
+            user=self.user,
+            comment="The receipt is invalid, pleb."
+        )
+
+    def test__str_and_repr_does_not_crash(self):
+        str(self.deposit_comment)
+        repr(self.deposit_comment)
+
+    def test__short_comment_value__does_not_render_ellipses(self):
+        self.deposit_comment.comment = "Short and sweet."
+        self.deposit_comment.save()
+
+        self.assertNotIn("..", str(self.deposit_comment))
+
+    def test__long_comment_value__renders_ellipses(self):
+        self.deposit_comment.comment = "This is definitely not short and sweet."
+        self.deposit_comment.save()
+
+        self.assertIn("..", str(self.deposit_comment))
+

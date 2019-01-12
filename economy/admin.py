@@ -1,9 +1,6 @@
 from django.contrib import admin
 
-from economy.models import Transfer, Deposit, SociBankAccount, SociProduct
-
-admin.site.register(Transfer)
-admin.site.register(Deposit)
+from economy.models import Transfer, Deposit, SociBankAccount, SociProduct, DepositComment
 
 
 class SociBankAccountAdmin(admin.ModelAdmin):
@@ -28,5 +25,8 @@ class PurchaseAdmin(admin.ModelAdmin):
         return self
 
 
+admin.site.register(Transfer)
+admin.site.register(Deposit)
+admin.site.register(DepositComment)
 admin.site.register(SociBankAccount, SociBankAccountAdmin)
 admin.site.register(SociProduct, SociProductAdmin)

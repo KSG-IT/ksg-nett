@@ -258,3 +258,36 @@ class Deposit(models.Model):
 
     def __repr__(self):
         return f"Deposit(person={self.account.user},amount={self.amount})"
+
+
+class DepositComment(models.Model):
+    deposit = models.ForeignKey(
+        Deposit,
+        null=False,
+        blank=False,
+        on_delete=models.CASCADE,
+        related_name="comments",
+    )
+    user = models.ForeignKey(
+        User,
+        null=False,
+        blank=False,
+        on_delete=models.CASCADE,
+        related_name="all_deposit_comments",
+    )
+    comment = models.TextField(null=False, blank=False)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        # Add ellipses for comments longer than 20 characters
+        shortened_comment = self.comment[0:20] + (self.comment[20:] and "..")
+        return f'Comment "{shortened_comment}" by {self.user.get_full_name()} ' \
+               f'on deposit by {self.deposit.account.user.get_full_name()}'
+
+    def __repr__(self):
+        return f"DepositComment(id={self.id},deposit={self.deposit.id},user={self.user.id},comment={self.comment})"
+
+    class Meta:
+        pass
