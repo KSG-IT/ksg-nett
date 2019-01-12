@@ -1,15 +1,17 @@
-from django.http import HttpResponse
+from django.http import HttpResponse, HttpRequest
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse
 from rest_framework import status
 
+from summaries.consts import SUMMARY_TYPE_SHORT_NAMES
 from summaries.forms import SummaryForm
 from summaries.models import Summary
 
 
 def summaries_list(request):
     ctx = {
-        'summaries': Summary.objects.all()
+        'summaries': Summary.objects.all(),
+        'all_summary_types': SUMMARY_TYPE_SHORT_NAMES
     }
     return render(request, template_name='summaries/summaries_list.html', context=ctx)
 
@@ -65,4 +67,18 @@ def summaries_delete(request, summary_id):
     summary = get_object_or_404(Summary, pk=summary_id)
     summary.delete()
 
+    return redirect(reverse(summaries_list))
+
+def summaries_ype(request: HttpRequest):
+    return redirect(reverse(summaries_list))
+
+def summaries_last(request: HttpRequest):
+    return redirect(reverse(summaries_list))
+
+
+def summaries_search(request: HttpRequest):
+    return redirect(reverse(summaries_list))
+
+
+def summaries_archive(request: HttpRequest):
     return redirect(reverse(summaries_list))

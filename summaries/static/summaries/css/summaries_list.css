@@ -1,0 +1,31 @@
+.summaries__left{
+    width: 300px;
+    text-align: right;
+    padding-right: 40px;
+}
+
+.summaries__right{
+    border-left: 1px solid #103242;
+    padding-left: 40px;
+    display: grid;
+    grid-template-columns: auto auto auto;
+}
+
+.summaries__type{
+    padding: 50px;
+    font-size: 24px;
+    cursor: pointer;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    font-weight: 600;
+    text-align: center;
+}
+
+
+.summaries__leftbutton{
+    display: block;
+    padding: 1em 0;
+    font-size: 18px;
+}
