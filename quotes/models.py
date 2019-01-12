@@ -30,6 +30,19 @@ class Quote(models.Model):
     pending_objects = QuotePendingManager()
     verified_objects = QuoteVerifiedManager()
 
+    def get_semester_of_quote(self) -> str:
+        """
+        get_semester_of_quote renders the `created_at` attribute into a "semester-year"-representation.
+        Examples:
+            2018-01-01 => V18
+            2014-08-30 => H14
+            2012-12-30 => H12
+        :return: The "semester-year" display of the `createed_at` attribute.
+        """
+        short_year_format = str(self.created_at.year)[2:]
+        semester_prefix = "H" if self.created_at.month > 7 else "V"
+        return f"{semester_prefix}{short_year_format}"
+
     @property
     def sum(self):
         """
@@ -55,6 +68,7 @@ class Quote(models.Model):
             # should thus be indexed.
             Index(fields=['verified_by'])
         ]
+        ordering = ['created_at']
 
 
 class QuoteVote(models.Model):
@@ -84,6 +98,8 @@ class QuoteVote(models.Model):
         unique_together = (
             ('quote', 'caster')
         )
+
+
 
     def __str__(self):
         if self.value > 0:

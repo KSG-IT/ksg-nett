@@ -1,4 +1,8 @@
 
+.profilepage{
+    position: relative;
+}
+
 .profilepage__thumbwrapper{
     margin-top: 3em;
 }
@@ -29,3 +33,9 @@
     margin-top: 2em;
 }
 
+.profilepage__editbutton{
+    position: absolute;
+    top: 0.2em;
+    right: 2em;
+    cursor: pointer;
+}

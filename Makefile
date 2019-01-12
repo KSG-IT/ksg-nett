@@ -1,6 +1,6 @@
 .PHONY: test
 test:
-	python manage.py test
+	pipenv run python manage.py test
 
 .PHONY: test-coverage
 test-coverage:
@@ -8,16 +8,16 @@ test-coverage:
 
 .PHONY: migrate
 migrate:
-	python manage.py migrate
+	pipenv run python manage.py migrate
 
 .PHONY: migrations
 migrations:
-	python manage.py makemigrations
+	pipenv run python manage.py makemigrations
 
 .PHONY: run
 run:
-	python manage.py runserver
+	pipenv run python manage.py runserver
 
 .PHONY: shell
 shell:
-	python manage.py shell
+	pipenv run python manage.py shell

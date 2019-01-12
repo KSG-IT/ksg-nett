@@ -236,7 +236,7 @@ class Deposit(models.Model):
         null=True,
         on_delete=models.SET_NULL
     )
-
+    comment = models.TextField(blank=True)
     amount = models.IntegerField(blank=False, null=False)
     receipt = models.ImageField(upload_to=_receipt_upload_location, blank=True, null=True, default=None)
 
