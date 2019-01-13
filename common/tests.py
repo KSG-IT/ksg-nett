@@ -180,3 +180,29 @@ class TestGetSemesterYearShorthandsByCount(TestCase):
                 ["V01", "H00", "V00", "H99", "V99"]
             )
 
+
+
+class TestIsValidSemesterYearShorthand(TestCase):
+    def test_is_valid_semester_year_shorthand__valid_spring_input__returns_true(self):
+        self.assertTrue(is_valid_semester_year_shorthand("V18"))
+        self.assertTrue(is_valid_semester_year_shorthand("V99"))
+        self.assertTrue(is_valid_semester_year_shorthand("V05"))
+        self.assertTrue(is_valid_semester_year_shorthand("V00"))
+
+    def test_is_valid_semester_year_shorthand__valid_autumn_input__returns_true(self):
+        self.assertTrue(is_valid_semester_year_shorthand("H18"))
+        self.assertTrue(is_valid_semester_year_shorthand("H99"))
+        self.assertTrue(is_valid_semester_year_shorthand("H05"))
+        self.assertTrue(is_valid_semester_year_shorthand("H00"))
+
+    def test_is_valid_semester_year_shorthand__invalid_input__returns_false(self):
+        self.assertFalse(is_valid_semester_year_shorthand("H0"))
+        self.assertFalse(is_valid_semester_year_shorthand("V0"))
+        self.assertFalse(is_valid_semester_year_shorthand("H013"))
+        self.assertFalse(is_valid_semester_year_shorthand("V013"))
+        self.assertFalse(is_valid_semester_year_shorthand("H1999"))
+        self.assertFalse(is_valid_semester_year_shorthand("V1999"))
+        self.assertFalse(is_valid_semester_year_shorthand("HV199"))
+        self.assertFalse(is_valid_semester_year_shorthand("VV199"))
+        self.assertFalse(is_valid_semester_year_shorthand("Kebab"))
+        self.assertFalse(is_valid_semester_year_shorthand("A18"))

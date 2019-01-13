@@ -1,5 +1,6 @@
+import re
 from datetime import datetime, date
-from typing import Union, List
+from typing import Union, List, Tuple
 
 from django.utils import timezone
 
@@ -89,3 +90,29 @@ def get_semester_year_shorthands_by_count(number: int) -> List[str]:
 
     return results
 
+
+
+def is_valid_semester_year_shorthand(shorthand: str) -> bool:
+    """
+    is_valid_semester_year_shorthand checks whether or not an input string is a valid
+    semester-year shorthand string.
+
+    Examples:
+        shorthand = H18
+        result: True
+
+        shorthand = H9
+        result: False
+
+        shorthand = H09
+        result: True
+
+        shorthand: Kebab
+        result: False
+    :param shorthand:
+    :return:
+    """
+    if len(shorthand) != 3:
+        return False
+
+    return re.match(r'[HV]\d{2}', shorthand) is not None
