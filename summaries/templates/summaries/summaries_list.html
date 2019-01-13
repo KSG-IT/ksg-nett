@@ -10,7 +10,7 @@
     {% include 'summaries/summaries_leftmenu.html' with active='summaries' %}
     <div class="default-right-panel summaries__right">
       {% for type in all_summary_types %}
-        <a href="/internal/summaries/type/{{ type.0 }}/" class="summaries__type resetlink text-uppercase darker-blue">
+        <a href="/internal/summaries/type/{{ type.0 }}" class="summaries__type resetlink text-uppercase darker-blue">
           {{ type.1 }}
         </a>
       {% endfor %}
