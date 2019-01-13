@@ -85,7 +85,7 @@ class TestGetSemesterYearShortHandFilter(TestCase):
 
 
 class TestGetSemesterYearShorthandsByDate(TestCase):
-    def get_semester_year_shorthands_by_date__argument_is_in_this_semester__returns_array_with_this_semester_only(self):
+    def test_get_semester_year_shorthands_by_date__argument_is_in_this_semester__returns_array_with_this_semester_only(self):
         # Patch timezone now, so we can make reliable tests without re-implementing the
         # method itself in the test
         with patch(
@@ -99,7 +99,7 @@ class TestGetSemesterYearShorthandsByDate(TestCase):
                 ["H18"]
             )
 
-    def get_semester_year_shorthands_by_date__argument_is_5_semesters_back__returns_correct_result(self):
+    def test_get_semester_year_shorthands_by_date__argument_is_5_semesters_back__returns_correct_result(self):
         with patch(
                 'django.utils.timezone.now',
                 return_value=datetime(2018, 1, 1, tzinfo=timezone.utc)
@@ -111,7 +111,7 @@ class TestGetSemesterYearShorthandsByDate(TestCase):
                 ["V18", "H17", "V17", "H16", "V16"]
             )
 
-    def get_semester_year_shorthands_by_date__argument_is_in_the_future__returns_empty_list(self):
+    def test_get_semester_year_shorthands_by_date__argument_is_in_the_future__returns_empty_list(self):
         with patch(
                 'django.utils.timezone.now',
                 return_value=datetime(2018, 1, 1, tzinfo=timezone.utc)
@@ -123,7 +123,7 @@ class TestGetSemesterYearShorthandsByDate(TestCase):
                 []
             )
 
-    def get_semester_year_shorthands_by_date__argument_is_around_century_change__returns_correct_result(self):
+    def test_get_semester_year_shorthands_by_date__argument_is_around_century_change__returns_correct_result(self):
         with patch(
                 'django.utils.timezone.now',
                 return_value=datetime(2001, 1, 1, tzinfo=timezone.utc)
@@ -138,7 +138,7 @@ class TestGetSemesterYearShorthandsByDate(TestCase):
 
 class TestGetSemesterYearShorthandsByCount(TestCase):
 
-    def get_semester_year_shorthands_by_count__argument_is_one__returns_correct_result(self):
+    def test_get_semester_year_shorthands_by_count__argument_is_one__returns_correct_result(self):
         # Patch timezone now, so we can make reliable tests without re-implementing the
         # method itself in the test
         with patch(
@@ -151,7 +151,7 @@ class TestGetSemesterYearShorthandsByCount(TestCase):
                 ["V18"]
             )
 
-    def get_semester_year_shorthands_by_count__regular_positive_integer__returns_correct_result(self):
+    def test_get_semester_year_shorthands_by_count__regular_positive_integer__returns_correct_result(self):
         with patch(
             'django.utils.timezone.now',
             return_value=datetime(2018, 1, 1, tzinfo=timezone.utc)
@@ -162,11 +162,11 @@ class TestGetSemesterYearShorthandsByCount(TestCase):
                 ["V18", "H17", "V17", "H16", "V16"]
             )
 
-    def get_semester_year_shorthands_by_count__negative_integer__returns_empty_list(self):
+    def test_get_semester_year_shorthands_by_count__negative_integer__returns_empty_list(self):
         results = get_semester_year_shorthands_by_count(-1)
         self.assertListEqual(results, [])
 
-    def get_semester_year_shorthands_by_count__timezone_now_around_century_change__returns_correct_result(self):
+    def test_get_semester_year_shorthands_by_count__timezone_now_around_century_change__returns_correct_result(self):
         # This test simultaneously tests that we can render numbers 0-9 with leading zeros
         # and that we handle the century change.
 
