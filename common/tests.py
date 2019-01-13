@@ -7,7 +7,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from common.util import get_semester_year_shorthand, get_semester_year_shorthands_by_count, \
-    get_semester_year_shorthands_by_date
+    get_semester_year_shorthands_by_date, get_semester_date_boundaries_from_shorthand, is_valid_semester_year_shorthand
 from common.views import index
 from users.models import User
 from internal.views import index as internal_index
@@ -180,6 +180,106 @@ class TestGetSemesterYearShorthandsByCount(TestCase):
                 ["V01", "H00", "V00", "H99", "V99"]
             )
 
+
+
+class TestGetSemesterDateBoundariesFromShorthand(TestCase):
+    def test_get_semester_date_boundaries_from_shorthand__input_in_spring_and_2000s__returns_correct_result(self):
+        start, end = get_semester_date_boundaries_from_shorthand("V18")
+        expected_tzinfo = timezone.now().tzinfo
+        self.assertEqual(
+            start,
+            timezone.datetime(
+                2018,
+                1,
+                1,
+                tzinfo=expected_tzinfo
+            )
+        )
+        self.assertEqual(
+            end,
+            timezone.datetime(
+                2018,
+                7,
+                1,
+                tzinfo=expected_tzinfo
+            )
+        )
+
+    def test_get_semester_date_boundaries_from_shorthand__input_in_autumn_and_2000s__returns_correct_result(self):
+        start, end = get_semester_date_boundaries_from_shorthand("H18")
+        expected_tzinfo = timezone.now().tzinfo
+        self.assertEqual(
+            start,
+            timezone.datetime(
+                2018,
+                7,
+                1,
+                tzinfo=expected_tzinfo
+            )
+        )
+        self.assertEqual(
+            end,
+            timezone.datetime(
+                2019,
+                1,
+                1,
+                tzinfo=expected_tzinfo
+            )
+        )
+
+    def test_get_semester_date_boundaries_from_shorthand__input_in_spring_and_1900s__returns_correct_result(self):
+        start, end = get_semester_date_boundaries_from_shorthand("V99")
+        expected_tzinfo = timezone.now().tzinfo
+        self.assertEqual(
+            start,
+            timezone.datetime(
+                1999,
+                1,
+                1,
+                tzinfo=expected_tzinfo
+            )
+        )
+        self.assertEqual(
+            end,
+            timezone.datetime(
+                1999,
+                7,
+                1,
+                tzinfo=expected_tzinfo
+            )
+        )
+
+    def test_get_semester_date_boundaries_from_shorthand__input_in_autumn_and_1900s__returns_correct_result(self):
+        start, end = get_semester_date_boundaries_from_shorthand("H99")
+        expected_tzinfo = timezone.now().tzinfo
+        self.assertEqual(
+            start,
+            timezone.datetime(
+                1999,
+                7,
+                1,
+                tzinfo=expected_tzinfo
+            )
+        )
+        self.assertEqual(
+            end,
+            timezone.datetime(
+                2000,
+                1,
+                1,
+                tzinfo=expected_tzinfo
+            )
+        )
+
+    def test_get_semester_date_boundaries_from_shorthand__invalid_input__raises_valueerror(self):
+        with self.assertRaises(ValueError):
+            get_semester_date_boundaries_from_shorthand("Kebab")
+
+        with self.assertRaises(ValueError):
+            get_semester_date_boundaries_from_shorthand("H0")
+
+        with self.assertRaises(ValueError):
+            get_semester_date_boundaries_from_shorthand("H1999")
 
 
 class TestIsValidSemesterYearShorthand(TestCase):

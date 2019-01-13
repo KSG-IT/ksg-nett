@@ -91,6 +91,53 @@ def get_semester_year_shorthands_by_count(number: int) -> List[str]:
     return results
 
 
+def get_semester_date_boundaries_from_shorthand(shorthand: str) -> Tuple[datetime, datetime]:
+    """
+    get_semester_date_boundaries_from_shorthand takes a semester-year shorthand string,
+    e.g. "H18", and returns the date boundaries of the semester.
+
+    This method assumes year values less than 90 refer to the twentyfirst century, and values
+    greater than 90 refer to the twentieth century.
+
+    Example:
+        shorthand = H18
+        result: datetime(2018, 7, 1), datetime(2019, 1, 1)
+
+        shorthand = V99
+        result: datetime(1999, 7, 1), datetime(2000, 1, 1)
+
+    :param shorthand:
+    :return:
+    """
+    if not is_valid_semester_year_shorthand(shorthand):
+        raise ValueError("Input to get_semester_date_boundaries_from_shorthand not a proper "
+                         "semester-year shorthand string.")
+
+    semester, year = shorthand[0], int(shorthand[1:])
+
+    if year > 90:
+        year += 1900
+    else:
+        year += 2000
+
+    # Get tzinfo
+    tzinfo = timezone.now().tzinfo
+
+    return (
+        timezone.datetime(
+            year=year,
+            month=1 if semester == "V" else 7,
+            day=1,
+            tzinfo=tzinfo
+        ),
+        timezone.datetime(
+            year=year+1 if semester == "H" else year,
+            month=1 if semester == "H" else 7,
+            day=1,
+            tzinfo=tzinfo
+        )
+    )
+
 
 def is_valid_semester_year_shorthand(shorthand: str) -> bool:
     """
