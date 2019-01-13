@@ -1,11 +1,15 @@
 from django.db.models import Max, Subquery, OuterRef
-from django.http import HttpResponse, HttpRequest
+from django.db.models.functions import TruncMonth
+from django.http import HttpResponse, HttpRequest, Http404
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse
+from django.utils import timezone
+from django.utils.translation import ugettext_lazy as _
 from rest_framework import status
 
-from common.util import get_semester_year_shorthands_by_count
-from summaries.consts import SUMMARY_TYPE_SHORT_NAMES
+from common.util import get_semester_year_shorthands_by_count, get_semester_year_shorthand, \
+    get_semester_date_boundaries_from_shorthand, is_valid_semester_year_shorthand
+from summaries.consts import SUMMARY_TYPE_SHORT_NAMES, SUMMARY_TYPE_CHOICES_DICT
 from summaries.forms import SummaryForm
 from summaries.models import Summary
 
@@ -71,8 +75,57 @@ def summaries_delete(request, summary_id):
 
     return redirect(reverse(summaries_list))
 
-def summaries_type(request: HttpRequest):
-    return redirect(reverse(summaries_list))
+def summaries_typedetail(request: HttpRequest, type: str):
+    semester = request.GET.get('semester')
+
+    # Default to current semester
+    if not semester or not is_valid_semester_year_shorthand(semester):
+        semester = get_semester_year_shorthand(timezone.now())
+
+    # Return 404 if type is not valid
+    if not type in SUMMARY_TYPE_CHOICES_DICT:
+        raise Http404()
+
+    semester_start, semester_end = get_semester_date_boundaries_from_shorthand(semester)
+    summaries = Summary.objects.filter(
+        summary_type=type,
+        date__gt=semester_start,
+        date__lt=semester_end,
+    )\
+        .annotate(month=TruncMonth('date'))\
+        .order_by('date')
+
+    # The structure we are going for is an array of month objects:
+    #  [
+    #     {
+    #        "month": String,
+    #        "summaries": Array
+    #     }, ...
+    #  ]
+    # They will automatically be sorted by month due to the order_by clause above.
+    summaries_grouped_by_month = []
+    for summary in summaries:
+        # Add month translations
+        month_name = _(summary.month.strftime("%B"))
+
+        if len(summaries_grouped_by_month) == 0 or summaries_grouped_by_month[-1]['month'] != month_name:
+            # Create new month object
+            summaries_grouped_by_month.append({
+                'month': month_name,
+                'summaries': [summary]
+            })
+        else:
+            # Append summary to current month object
+            summaries_grouped_by_month[-1]['summaries'].append(summary)
+
+    ctx = {
+        'current_type': type,
+        'types': SUMMARY_TYPE_SHORT_NAMES,
+        'current_semester': semester,
+        'semesters': get_semester_year_shorthands_by_count(12),
+        'summaries_grouped_by_month': summaries_grouped_by_month,
+    }
+    return render(request, template_name='summaries/summaries_typedetail.html', context=ctx)
 
 
 def summaries_last(request: HttpRequest):
