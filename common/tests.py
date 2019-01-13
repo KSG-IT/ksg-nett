@@ -96,7 +96,7 @@ class TestGetSemesterYearShorthandsByDate(TestCase):
             results = get_semester_year_shorthands_by_date(date)
             self.assertListEqual(
                 results,
-                ["H18"]
+                ["V18"]
             )
 
     def test_get_semester_year_shorthands_by_date__argument_is_5_semesters_back__returns_correct_result(self):
