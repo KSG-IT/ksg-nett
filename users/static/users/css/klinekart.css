@@ -1,0 +1,9 @@
+.klinekart__wrapper{
+    width: 100%;
+    overflow: hidden;
+    height: calc(100% - 60px);
+}
+
+.klinekart{
+    background-color: #eee;
+}
