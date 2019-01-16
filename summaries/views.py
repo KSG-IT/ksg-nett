@@ -89,7 +89,7 @@ def summaries_typedetail(request: HttpRequest, type: str):
     semester_start, semester_end = get_semester_date_boundaries_from_shorthand(semester)
     summaries = Summary.objects.filter(
         summary_type=type,
-        date__gt=semester_start,
+        date__gte=semester_start,
         date__lt=semester_end,
     )\
         .annotate(month=TruncMonth('date'))\
