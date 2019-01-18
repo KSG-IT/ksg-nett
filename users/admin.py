@@ -8,7 +8,7 @@ from django.contrib.auth.forms import UserChangeForm, UserCreationForm
 from django.utils.translation import ugettext_lazy as _
 
 from economy.models import SociBankAccount
-from users.models import User, Allergy
+from users.models import User, Allergy, UsersHaveMadeOut
 
 
 class MyUserChangeForm(UserChangeForm):
@@ -44,7 +44,7 @@ class MyUserAdmin(UserAdmin):
         ('Contact', {'fields': ('phone', 'study_address', 'home_address',)}),
         ('KSG options', {'fields': ('ksg_status', 'ksg_role', 'commission',)}),
         ('Media', {'fields': ('profile_image',)}),
-        ('Additional info', {'fields': ('biography', 'in_relationship', 'allergies',)})
+        ('Additional info', {'fields': ('biography', 'in_relationship', 'allergies', 'anonymize_in_made_out_map')})
     )
     inlines = [SociBankAccountInline]
     add_fieldsets = (
@@ -59,5 +59,11 @@ class MyUserAdmin(UserAdmin):
         return obj.get_full_name()
 
 
+class UsersHaveMadeOutAdmin(admin.ModelAdmin):
+    readonly_fields = ('created_at',)
+    list_display = ('user_one', 'user_two', 'created_at',)
+
+
 admin.site.register(User, MyUserAdmin)
 admin.site.register(Allergy, AllergyAdmin)
+admin.site.register(UsersHaveMadeOut, UsersHaveMadeOutAdmin)

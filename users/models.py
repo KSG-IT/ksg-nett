@@ -7,7 +7,10 @@ from django.contrib.auth.models import AbstractUser
 from django.db import models
 
 # KSG choices
+from django.db.models import QuerySet
+
 from commissions.models import Commission
+from users.managers import UsersHaveMadeOutManager
 from common.util import get_semester_year_shorthand
 
 KSG_STATUS_TYPES = (
@@ -79,6 +82,9 @@ class User(AbstractUser):
         related_name='users'
     )
 
+    have_made_out_with = models.ManyToManyField('self', through='UsersHaveMadeOut', symmetrical=False)
+    anonymize_in_made_out_map = models.BooleanField(default=True, null=False)
+
     def __str__(self):
         return f"User {self.get_full_name()}"
 
@@ -118,8 +124,37 @@ class User(AbstractUser):
             return self.profile_image.url
         return None
 
+    @property
+    def all_having_made_out_with(self) -> QuerySet:
+        return self.made_out_with_left_side.all() | self.made_out_with_right_side.all()
+
     active.boolean = True
 
     class Meta:
         default_related_name = 'users'
         verbose_name_plural = 'Users'
+
+
+class UsersHaveMadeOut(models.Model):
+    """
+    UsersHaveMadeOut is a model representing a pair of users having made out. We model this with an
+    explicit model to associate extra data to it.
+    """
+    user_one = models.ForeignKey(User, on_delete=models.CASCADE, related_name='made_out_with_left_side')
+    user_two = models.ForeignKey(User, on_delete=models.CASCADE, related_name='made_out_with_right_side')
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    objects = UsersHaveMadeOutManager()
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['user_one', 'user_two']),
+            models.Index(fields=['user_two', 'user_one'])
+        ]
+
+    def __str__(self):
+        return f"User {self.user_one.get_full_name()} have made out with {self.user_two.get_full_name()}"
+
+    def __repr__(self):
+        return f"UsersHaveMadeOut(user_one={self.user_one.id}, user_two={self.user_two.id})"

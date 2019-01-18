@@ -6,7 +6,7 @@ html, body{
 }
 
 /* Make body and html fill page height*/
-html,body{
+html, body {
     height: 100%;
 }
 
