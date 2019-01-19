@@ -142,7 +142,7 @@ USE_L10N = True
 USE_TZ = True
 
 # Override in production
-LOCALE_PATHS = ['locales/',]
+LOCALE_PATHS = ['locales/', ]
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/1.10/howto/static-files/
@@ -169,12 +169,17 @@ REST_FRAMEWORK = {
 STATIC_ROOT = 'static/'
 MEDIA_ROOT = 'media/'
 
+# API DOCS
+# ------------------------------
+SWAGGER_SETTINGS = {
+    'DEFAULT_AUTO_SCHEMA_CLASS': 'api.api_docs.CustomSwaggerAutoSchema',
+}
+
 # ECONOMY SETTINGS
 # ------------------------------
 MINIMUM_SOCI_AMOUNT = 0
 SOCI_MASTER_ACCOUNT_CARD_ID = 0xBADCAFEBABE  # Real card ids are 10 digits, while this is 14, meaning no collisions
 DIRECT_CHARGE_SKU = "X-BELOP"
-
 
 # Load local and production settings
 try:

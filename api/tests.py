@@ -14,7 +14,7 @@ from users.models import User
 
 class SociProductsViewTest(APITestCase):
     def setUp(self):
-        self.url = reverse('products')
+        self.url = reverse('api:products')
         self.client = APIClient()
         self.user = User.objects.create(username='admin')
         self.client.force_authenticate(user=self.user)
@@ -45,7 +45,7 @@ class SociProductsViewTest(APITestCase):
 
 class CheckBalanceViewTest(APITestCase):
     def setUp(self):
-        self.url = reverse('check-balance')
+        self.url = reverse('api:check-balance')
         self.client = APIClient()
         self.user = User.objects.create(username='Christian')
         self.client.force_authenticate(user=self.user)
@@ -92,7 +92,7 @@ class CheckBalanceViewTest(APITestCase):
 
 class ChargeSociBankAccountViewTest(APITestCase):
     def setUp(self):
-        self.url = reverse('charge')
+        self.url = reverse('api:charge')
         self.client = APIClient()
         self.user = User.objects.create(username='User', email='user@samfundet.no', first_name='user')
         self.soci = User.objects.create(username='Soci', email='soci@samfundet.no', first_name='soci')
