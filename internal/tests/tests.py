@@ -1,13 +1,13 @@
 from django.test import TestCase, Client
-from users.models import User
+
+from users.tests.factories import UserFactory
 
 
-# Create your tests here.
 class InternalRouteTests(TestCase):
 
     @classmethod
     def setUpTestData(cls):
-        user = User(username='me', email='my@email.com')
+        user = UserFactory(username='me')
         user.set_password('pw')
         user.save()
 

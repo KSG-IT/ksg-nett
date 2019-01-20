@@ -12,6 +12,7 @@ pytz = "*"
 drf-yasg = "*"
 Django = "*"
 Pillow = "*"
+factory-boy = "*"
 
 [requires]
 python_version = "3.6"

@@ -3,28 +3,21 @@ from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase, APIClient
 
-from economy.models import SociBankAccount, SociProduct
-from users.models import User
-
-
-# ===============================
-# ECONOMY
-# ===============================
+from economy.tests.factories import SociProductFactory, SociBankAccountFactory
+from users.tests.factories import UserFactory
 
 
 class SociProductsViewTest(APITestCase):
-    def setUp(self):
-        self.url = reverse('products')
-        self.client = APIClient()
-        self.user = User.objects.create(username='admin')
-        self.client.force_authenticate(user=self.user)
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.url = reverse('products')
+        cls.client = APIClient()
+        cls.client.force_authenticate(UserFactory())
 
-        SociProduct.objects.create(sku_number='DAHLS', name="Dahls", price=30,
-                                   description="En gammel slager. Nytes lunken.", icon="beverage-can-small")
-        SociProduct.objects.create(sku_number='ICE', name="Smirnoff ICE", price=35,
-                                   description="Når du føler for å imponere.", icon="bottle-small")
-        SociProduct.objects.create(sku_number='LYCHE-PIZZABOLLE', name="Pizzabolle", price=20,
-                                   description="Kjøkkenet har Soci. Hurra!", icon="food-item")
+        SociProductFactory(name="Dahls", description="En gammel slager. Nytes lunken.")
+        SociProductFactory(name="Smirnoff ICE", description="Når du føler for å imponere.")
+        SociProductFactory(name="Pizzabolle", description="Kjøkkenet har Soci. Hurra!")
 
     def test_get__valid_request__ok(self):
         response = self.client.get(self.url)
@@ -34,7 +27,7 @@ class SociProductsViewTest(APITestCase):
         self.assertEqual((len(response.data[0])), 6)
 
     def test_get__product_without_description__description_blank(self):
-        SociProduct.objects.create(sku_number='NORDLANDS', name="Nordlands Pils", price=30)
+        SociProductFactory(name="Nordlands Pils", description=None)
 
         response = self.client.get(self.url)
 
@@ -44,12 +37,15 @@ class SociProductsViewTest(APITestCase):
 
 
 class CheckBalanceViewTest(APITestCase):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.url = reverse('check-balance')
+        cls.client = APIClient()
+
     def setUp(self):
-        self.url = reverse('check-balance')
-        self.client = APIClient()
-        self.user = User.objects.create(username='Christian')
-        self.client.force_authenticate(user=self.user)
-        self.soci_account = SociBankAccount.objects.create(user=self.user, card_uuid=1234567890)
+        self.soci_account = SociBankAccountFactory()
+        self.client.force_authenticate(self.soci_account.user)
         self.client.credentials(HTTP_CARD_NUMBER=self.soci_account.card_uuid)
 
     def test_get_balance__positive_amount__ok(self):
@@ -91,22 +87,20 @@ class CheckBalanceViewTest(APITestCase):
 
 
 class ChargeSociBankAccountViewTest(APITestCase):
-    def setUp(self):
-        self.url = reverse('charge')
-        self.client = APIClient()
-        self.user = User.objects.create(username='User', email='user@samfundet.no', first_name='user')
-        self.soci = User.objects.create(username='Soci', email='soci@samfundet.no', first_name='soci')
-        self.client.force_authenticate(user=self.soci)
-        SociBankAccount.objects.create(user=self.soci, card_uuid=settings.SOCI_MASTER_ACCOUNT_CARD_ID)
-        self.soci_account = SociBankAccount.objects.create(user=self.user, balance=1000, card_uuid=1234567890)
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.url = reverse('charge')
+        cls.client = APIClient()
+        cls.soci_account = SociBankAccountFactory(card_uuid=settings.SOCI_MASTER_ACCOUNT_CARD_ID)
+        cls.dahls = SociProductFactory(name="Dahls", price=30)
+        cls.smirre = SociProductFactory(name="Smirnoff ICE", price=35)
+        cls.direct_charge = SociProductFactory(sku_number=settings.DIRECT_CHARGE_SKU, price=0)
 
-        self.dahls = SociProduct.objects.create(sku_number='DAHLS', name="Dahls", price=30,
-                                                description="En gammel slager. Nytes lunken.")
-        self.smirre = SociProduct.objects.create(sku_number='ICE', name="Smirnoff ICE", price=35,
-                                                 description="Når du føler for å imponere.")
-        self.direct_charge = SociProduct.objects.create(sku_number=settings.DIRECT_CHARGE_SKU, name="Direct charge",
-                                                        price=0, description="Kryss direkte beløp her.")
-        self.client.credentials(HTTP_CARD_NUMBER=self.soci_account.card_uuid)
+    def setUp(self):
+        self.user_account = SociBankAccountFactory(balance=1000)
+        self.client.force_authenticate(self.soci_account.user)
+        self.client.credentials(HTTP_CARD_NUMBER=self.user_account.card_uuid)
 
     def test_charge_valid_products__sufficient_balance__created_and_charged_correctly(self):
         data = [
@@ -121,11 +115,11 @@ class ChargeSociBankAccountViewTest(APITestCase):
         self.assertEquals(3, len(response.data))
         self.assertEqual(405, response.data['amount_charged'])
         self.assertFalse(response.data['amount_remaining'])  # Balance hidden
-        self.assertTrue(self.user.bank_account.transaction_history['purchases'].last().is_valid)
+        self.assertTrue(self.user_account.transaction_history['purchases'].last().is_valid)
 
     def test_charge__user_wants_balance_shown__created_and_return_balance(self):
-        self.soci_account.display_balance_at_soci = True
-        self.soci_account.save()
+        self.user_account.display_balance_at_soci = True
+        self.user_account.save()
         data = [
             {"sku": self.smirre.sku_number}
         ]
@@ -136,7 +130,7 @@ class ChargeSociBankAccountViewTest(APITestCase):
         self.assertEqual(965, response.data['amount_remaining'])
 
     def test_charge__insufficient_balance__payment_required(self):
-        self.soci_account.remove_funds(1000)
+        self.user_account.remove_funds(1000)
         data = [
             {"sku": self.smirre.sku_number}
         ]

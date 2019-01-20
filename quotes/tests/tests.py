@@ -1,48 +1,26 @@
 from urllib.parse import urlencode
 
 from django.test import TestCase
-
-# Create your tests here.
 from django.urls import reverse
-from django.utils import timezone
+from factory import Iterator
 from rest_framework import status
 
-from quotes.models import Quote, QuoteVote
+from quotes.models import Quote
+from quotes.tests.factories import QuoteFactory, QuoteVoteFactory
 from quotes.views import quotes_list, vote_up, vote_down, quotes_add, quotes_edit, quotes_delete, quotes_approve
 from users.models import User
+from users.tests.factories import UserFactory
 
 
 class QuoteModelTest(TestCase):
 
     @classmethod
     def setUpTestData(cls):
-        cls.user = User(
-            username='test',
-            email='test@example.com'
-        )
-        cls.user.save()
-        cls.quote = Quote(
-            text='Lorem Ipsum',
-            quoter=cls.user
-        )
-        cls.quote.save()
-        cls.quote_without_votes = Quote(
-            text='Lorem Ipsum',
-            quoter=cls.user
-        )
-        cls.quote_without_votes.save()
-        User.objects.bulk_create([
-            User(username='user%d' % 1, email='user%d@example.com' % 1),
-            User(username='user%d' % 2, email='user%d@example.com' % 2),
-            User(username='user%d' % 3, email='user%d@example.com' % 3),
-            User(username='user%d' % 4, email='user%d@example.com' % 4),
-        ])
-        QuoteVote.objects.bulk_create([
-            QuoteVote(quote=cls.quote, caster_id=cls.user.id + 1, value=1),
-            QuoteVote(quote=cls.quote, caster_id=cls.user.id + 2, value=-1),
-            QuoteVote(quote=cls.quote, caster_id=cls.user.id + 3, value=1),
-            QuoteVote(quote=cls.quote, caster_id=cls.user.id + 4, value=1),
-        ])
+        cls.user = UserFactory()
+        cls.quote = QuoteFactory(quoter=cls.user)
+        cls.quote_without_votes = QuoteFactory(quoter=cls.user)
+        QuoteVoteFactory.create_batch(
+            4, quote=cls.quote, caster=Iterator(UserFactory.create_batch(4)), value=Iterator([1, -1, 1, 1]))
 
     def test_str_and_repr_should_not_fail(self):
         str(self.quote)
@@ -54,11 +32,7 @@ class QuoteModelTest(TestCase):
     def test_sum_should_return_correct_when_votes_exist(self):
         self.assertEqual(self.quote.sum, 2)
 
-        QuoteVote(
-            quote=self.quote,
-            caster=self.user,
-            value=-1
-        ).save()
+        QuoteVoteFactory(quote=self.quote, caster=self.user, value=-1)
         self.assertEqual(self.quote.sum, 1)
 
 
@@ -66,22 +40,7 @@ class QuoteVoteModelTest(TestCase):
 
     @classmethod
     def setUpTestData(cls):
-        cls.user = User(
-            username='test',
-            email='test@example.com'
-        )
-        cls.user.save()
-        cls.quote = Quote(
-            text='Lorem Ipsum',
-            quoter=cls.user
-        )
-        cls.quote.save()
-        cls.quote_vote = QuoteVote(
-            quote=cls.quote,
-            value=-1,
-            caster=cls.user
-        )
-        cls.quote_vote.save()
+        cls.quote_vote = QuoteVoteFactory()
 
     def test_str_and_repr_should_not_fail(self):
         str(self.quote_vote)
@@ -98,19 +57,8 @@ class QuoteManagersTest(TestCase):
 
     @classmethod
     def setUpTestData(cls):
-        cls.user = User(
-            username='test',
-            email='test@example.com'
-        )
-        cls.user.save()
-        Quote.objects.bulk_create([
-            Quote(text='Quote', quoter=cls.user),
-            Quote(text='Quote', quoter=cls.user),
-            Quote(text='Quote', quoter=cls.user, verified_by=cls.user),
-            Quote(text='Quote', quoter=cls.user),
-            Quote(text='Quote', quoter=cls.user),
-            Quote(text='Quote', quoter=cls.user, verified_by=cls.user),
-        ])
+        cls.verified_quotes = QuoteFactory.create_batch(2)
+        cls.unverified_quotes = QuoteFactory.create_batch(4, verified_by=None)
 
     def test_quote_pending_objects__returns_correct_count(self):
         self.assertEqual(Quote.pending_objects.count(), 4)
@@ -123,18 +71,11 @@ class QuotePresentationViewsTest(TestCase):
 
     @classmethod
     def setUpTestData(cls):
-        cls.user = User(
-            username='test',
-            email='test@example.com'
-        )
+        cls.user = UserFactory(username='test')
         cls.user.set_password('password')
         cls.user.save()
-        Quote.objects.bulk_create([
-            Quote(text='Quote', quoter=cls.user),
-            Quote(text='Quote', quoter=cls.user, verified_by=cls.user),
-            Quote(text='Quote', quoter=cls.user, verified_by=cls.user),
-            Quote(text='Quote', quoter=cls.user, verified_by=cls.user),
-        ])
+        cls.verified_quotes = QuoteFactory.create_batch(3, quoter=cls.user)
+        cls.unverified_quote = QuoteFactory(quoter=cls.user, verified_by=None)
 
     def test_list_view__renders_template_with_correct_context(self):
         self.client.login(username='test', password='password')
@@ -149,23 +90,13 @@ class QuoteVoteUpTest(TestCase):
 
     @classmethod
     def setUpTestData(cls):
-        cls.user = User(
-            username='test',
-            email='test@example.com'
-        )
+        cls.user = UserFactory(username='test')
         cls.user.set_password('password')
         cls.user.save()
-        Quote.objects.bulk_create([
-            Quote(text='Quote', quoter=cls.user),
-            Quote(text='Quote', quoter=cls.user, verified_by=cls.user),
-            Quote(text='Quote', quoter=cls.user, verified_by=cls.user),
-            Quote(text='Quote', quoter=cls.user, verified_by=cls.user),
-        ])
-
-        QuoteVote.objects.bulk_create([
-            QuoteVote(caster=cls.user, quote_id=3, value=1),
-            QuoteVote(caster=cls.user, quote_id=4, value=-1)
-        ])
+        cls.unverified_quote = QuoteFactory(quoter=cls.user, verified_by=None)
+        cls.verified_quotes = QuoteFactory.create_batch(3, quoter=cls.user)
+        QuoteVoteFactory.create_batch(
+            2, caster=cls.user, quote=Iterator(cls.verified_quotes[1:]), value=Iterator([1, -1]))
 
     def test_vote_up__user_has_not_voted_yet__quote_sum_changes(self):
         self.client.login(username='test', password='password')
@@ -207,23 +138,13 @@ class QuoteVoteDownTest(TestCase):
 
     @classmethod
     def setUpTestData(cls):
-        cls.user = User(
-            username='test',
-            email='test@example.com'
-        )
+        cls.user = UserFactory(username='test')
         cls.user.set_password('password')
         cls.user.save()
-        Quote.objects.bulk_create([
-            Quote(text='Quote', quoter=cls.user),
-            Quote(text='Quote', quoter=cls.user, verified_by=cls.user),
-            Quote(text='Quote', quoter=cls.user, verified_by=cls.user),
-            Quote(text='Quote', quoter=cls.user, verified_by=cls.user),
-        ])
-
-        QuoteVote.objects.bulk_create([
-            QuoteVote(caster=cls.user, quote_id=3, value=1),
-            QuoteVote(caster=cls.user, quote_id=4, value=-1)
-        ])
+        cls.unverified_quote = QuoteFactory(quoter=cls.user, verified_by=None)
+        cls.verified_quotes = QuoteFactory.create_batch(3, quoter=cls.user)
+        QuoteVoteFactory.create_batch(
+            2, caster=cls.user, quote=Iterator(cls.verified_quotes[1:]), value=Iterator([1, -1]))
 
     def test_vote_down__user_has_not_voted_yet__quote_sum_changes(self):
         self.client.login(username='test', password='password')
@@ -266,10 +187,7 @@ class QuoteAddTest(TestCase):
 
     @classmethod
     def setUpTestData(cls):
-        cls.user = User(
-            username='test',
-            email='test@example.com'
-        )
+        cls.user = UserFactory(username='test')
         cls.user.set_password('password')
         cls.user.save()
 
@@ -307,18 +225,11 @@ class QuoteEditTest(TestCase):
 
     @classmethod
     def setUpTestData(cls):
-        cls.user = User(
-            username='test',
-            email='test@example.com'
-        )
+        cls.user = UserFactory(username='test')
         cls.user.set_password('password')
         cls.user.save()
 
-        cls.quote = Quote(
-            text='Some quote text',
-            quoter=cls.user
-        )
-        cls.quote.save()
+        cls.quote = QuoteFactory(quoter=cls.user)
 
     def setUp(self):
         self.client.login(username='test', password='password')
@@ -354,18 +265,11 @@ class QuoteEditTest(TestCase):
 class QuoteDeleteTest(TestCase):
     @classmethod
     def setUpTestData(cls):
-        cls.user = User(
-            username='test',
-            email='test@example.com'
-        )
+        cls.user = UserFactory(username='test')
         cls.user.set_password('password')
         cls.user.save()
 
-        cls.quote = Quote(
-            text='Some quote text',
-            quoter=cls.user
-        )
-        cls.quote.save()
+        cls.quote = QuoteFactory(quoter=cls.user)
 
     def setUp(self):
         self.client.login(username='test', password='password')
@@ -410,5 +314,3 @@ class QuoteApproveTest(TestCase):
         self.client.post(reverse(viewname=quotes_approve, kwargs={'quote_id': 124}), data={'user': self.user})
         self.quote.refresh_from_db()
         self.assertEqual(self.quote.verified_by, self.user)
-
-
