@@ -11,7 +11,7 @@ class SociProductsViewTest(APITestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.url = reverse('products')
+        cls.url = reverse('api:products')
         cls.client = APIClient()
         cls.client.force_authenticate(UserFactory())
 
@@ -40,7 +40,7 @@ class CheckBalanceViewTest(APITestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.url = reverse('check-balance')
+        cls.url = reverse('api:check-balance')
         cls.client = APIClient()
 
     def setUp(self):
@@ -90,7 +90,7 @@ class ChargeSociBankAccountViewTest(APITestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.url = reverse('charge')
+        cls.url = reverse('api:charge')
         cls.client = APIClient()
         cls.soci_account = SociBankAccountFactory(card_uuid=settings.SOCI_MASTER_ACCOUNT_CARD_ID)
         cls.dahls = SociProductFactory(name="Dahls", price=30)
