@@ -19,7 +19,7 @@ from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import path
 
-from api.views import schema_view
+from api.api_docs import SchemaView
 
 urlpatterns = [
     # Website
@@ -32,8 +32,14 @@ urlpatterns = [
 
     # Developer
     path('admin/', admin.site.urls),
-    path('api/', include('api.urls')),
-    path('docs/', schema_view.with_ui('redoc', cache_timeout=None), name='schema-redoc'),
-] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    path('api/', include(
+        ([
+             path('', include('api.urls')),
+             path('docs/', SchemaView.with_ui('redoc', cache_timeout=None), name='schema-redoc'),
+         ], 'api'), namespace='api')),
+]
+
+urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
 # TODO: When we are ready to move to production, we should consider moving media serving
 # to a service such as AWS s3

@@ -185,7 +185,7 @@ class PurchaseCollection(models.Model):
 
     def __str__(self):
         return f"PurchaseCollection {self.name} containing {self.purchases.count()} purchases " \
-               f"between {self.start_period} and {self.end_period}"
+            f"between {self.start_period} and {self.end_period}"
 
     def __repr__(self):
         return f"PurchaseCollection(name={self.name},start={self.start_period},end={self.end_period})"
@@ -261,6 +261,10 @@ class Deposit(models.Model):
 
 
 class DepositComment(models.Model):
+    """
+    A comment made by some user on a deposit.
+    This is useful in cases where a deposit is incomplete by missing a receipt or similar.
+    """
     deposit = models.ForeignKey(
         Deposit,
         null=False,
@@ -284,7 +288,7 @@ class DepositComment(models.Model):
         # Add ellipses for comments longer than 20 characters
         shortened_comment = self.comment[0:20] + (self.comment[20:] and "..")
         return f'Comment "{shortened_comment}" by {self.user.get_full_name()} ' \
-               f'on deposit by {self.deposit.account.user.get_full_name()}'
+            f'on deposit by {self.deposit.account.user.get_full_name()}'
 
     def __repr__(self):
         return f"DepositComment(id={self.id},deposit={self.deposit.id},user={self.user.id},comment={self.comment})"
