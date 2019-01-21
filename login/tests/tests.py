@@ -1,13 +1,13 @@
 from django.test import TestCase
 
-from users.models import User
+from users.tests.factories import UserFactory
 
 
 class LoginViewTest(TestCase):
 
     @classmethod
     def setUpTestData(cls):
-        user = User(username='user')
+        user = UserFactory(username='user')
         user.set_password('password')
         user.save()
 
@@ -50,4 +50,3 @@ class LoginViewTest(TestCase):
             k: v.value for k, v in response.client.cookies.items()
         }
         self.assertEqual(cookies['sessionid'], '')
-

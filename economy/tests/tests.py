@@ -1,15 +1,14 @@
 from django.conf import settings
 from django.test import TestCase
+from factory import Iterator
 
-from economy.models import Transfer, Deposit, SociBankAccount, Purchase, ProductOrder, SociProduct, PurchaseCollection, \
-    DepositComment
-from users.models import User
+from economy.tests.factories import SociBankAccountFactory, DepositFactory, PurchaseFactory, TransferFactory, \
+    ProductOrderFactory, PurchaseCollectionFactory, DepositCommentFactory
 
 
 class SociBankAccountTest(TestCase):
     def setUp(self):
-        self.user = User.objects.create(username='admin')
-        self.soci_account = SociBankAccount.objects.create(user=self.user, balance=500)
+        self.soci_account = SociBankAccountFactory(balance=500)
 
     def test_soci_bank_account__correct_status(self):
         self.assertTrue(self.soci_account.has_sufficient_funds)
@@ -22,15 +21,12 @@ class SociBankAccountTest(TestCase):
         self.assertTrue(self.soci_account.display_balance_at_soci)
 
     def test_account_with_transactions__transaction_history_retrieved_correctly(self):
-        SociBankAccount.objects.create(
-            user=User.objects.create(username='Soci', email='soci@samfundet.no', first_name='soci'),
-            card_uuid=settings.SOCI_MASTER_ACCOUNT_CARD_ID)
-        extra_account = SociBankAccount.objects.create(
-            user=User.objects.create(username='user', email="realuser@samfundet.no"), balance=2000)
+        SociBankAccountFactory(card_uuid=settings.SOCI_MASTER_ACCOUNT_CARD_ID)
+        extra_account = SociBankAccountFactory(balance=2000)
 
-        Deposit.objects.create(account=self.soci_account, amount=1000)
-        Purchase.objects.create(source=self.soci_account)
-        Transfer.objects.create(source=extra_account, destination=self.soci_account, amount=500)
+        DepositFactory(account=self.soci_account, amount=1000)
+        PurchaseFactory(source=self.soci_account)
+        TransferFactory(source=extra_account, destination=self.soci_account, amount=500)
         history = self.soci_account.transaction_history
 
         self.assertEqual(3, len(history))
@@ -55,13 +51,14 @@ class SociBankAccountTest(TestCase):
 
 
 class PurchaseTest(TestCase):
-    def setUp(self):
-        self.admin = User.objects.create(username='admin')
-        self.purchase = Purchase.objects.create(signed_off_by=self.admin)
-        ProductOrder.objects.create(product=SociProduct.objects.create(sku_number="1", name='first', price=100),
-                                    amount=100, purchase=self.purchase)
-        ProductOrder.objects.create(product=SociProduct.objects.create(sku_number="2", name='second', price=200),
-                                    amount=200, purchase=self.purchase)
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        SociBankAccountFactory(card_uuid=settings.SOCI_MASTER_ACCOUNT_CARD_ID)
+        cls.purchase = PurchaseFactory()
+        ProductOrderFactory.create_batch(
+            2, product__name=Iterator(['first', 'second']), product__price=Iterator([100, 200]),
+            order_size=1, amount=Iterator([100, 200]), purchase=cls.purchase)
 
     def test_valid_purchase__is_valid(self):
         self.assertTrue(self.purchase.is_valid)
@@ -74,12 +71,13 @@ class PurchaseTest(TestCase):
 
 
 class PurchaseCollectionTest(TestCase):
-    def setUp(self):
-        self.collection = PurchaseCollection.objects.create()
-        ProductOrder.objects.create(product=SociProduct.objects.create(sku_number="1", name='first', price=100),
-                                    amount=100, purchase=Purchase.objects.create(collection=self.collection))
-        ProductOrder.objects.create(product=SociProduct.objects.create(sku_number="2", name='second', price=200),
-                                    amount=200, purchase=Purchase.objects.create(collection=self.collection))
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        SociBankAccountFactory(card_uuid=settings.SOCI_MASTER_ACCOUNT_CARD_ID)
+        cls.collection = PurchaseCollectionFactory()
+        ProductOrderFactory(amount=100, purchase__collection=cls.collection)
+        ProductOrderFactory(amount=200, purchase__collection=cls.collection)
 
     def test_total_purchases__correct_amount_returned(self):
         self.assertEqual(2, self.collection.total_purchases)
@@ -89,9 +87,10 @@ class PurchaseCollectionTest(TestCase):
 
 
 class DepositTest(TestCase):
-    def setUp(self):
-        self.user = User.objects.create(username='admin')
-        self.valid_deposit = Deposit.objects.create(amount=69, signed_off_by=self.user)
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.valid_deposit = DepositFactory()
 
     def test_deposit_status__correct_status(self):
         self.assertTrue(self.valid_deposit.is_valid)
@@ -99,14 +98,7 @@ class DepositTest(TestCase):
 
 class DepositCommentTest(TestCase):
     def setUp(self):
-        self.user = User.objects.create(username="user")
-        self.account = SociBankAccount.objects.create(user=self.user)
-        self.deposit = Deposit.objects.create(account=self.account, amount=10)
-        self.deposit_comment = DepositComment.objects.create(
-            deposit=self.deposit,
-            user=self.user,
-            comment="The receipt is invalid, pleb."
-        )
+        self.deposit_comment = DepositCommentFactory()
 
     def test__str_and_repr_does_not_crash(self):
         str(self.deposit_comment)
@@ -123,4 +115,3 @@ class DepositCommentTest(TestCase):
         self.deposit_comment.save()
 
         self.assertIn("..", str(self.deposit_comment))
-

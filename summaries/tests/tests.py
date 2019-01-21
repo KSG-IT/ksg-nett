@@ -1,37 +1,21 @@
 from urllib.parse import urlencode
 
 from django.test import TestCase
-
-# Create your tests here.
 from django.urls import reverse
 from django.utils import timezone
 from rest_framework import status
 
 from summaries.consts import SUMMARY_TYPE_BARSJEF, SUMMARY_TYPE_OTHER
 from summaries.models import Summary
+from summaries.tests.factories import SummaryFactory
 from summaries.views import summaries_delete, summaries_create, summaries_update, summaries_list
-from users.models import User
+from users.tests.factories import UserFactory
 
 
 class TestSummaryModel(TestCase):
     @classmethod
     def setUpTestData(cls):
-        cls.users = [
-            User(username='user_one', email='user_one@example.com'),
-            User(username='user_two', email='user_two@example.com'),
-            User(username='user_three', email='user_three@example.com')
-        ]
-        for user in cls.users:
-            user.save()
-        cls.summary = Summary(
-            summary_type=SUMMARY_TYPE_BARSJEF,
-            contents="Kjersti falt av stolen.",
-            date=timezone.now(),
-            reporter=cls.users[0]
-        )
-        cls.summary.save()
-        cls.summary.participants.add(*cls.users)
-        cls.summary.save()
+        cls.summary = SummaryFactory(summary_type=SUMMARY_TYPE_BARSJEF, contents="Kjersti falt av stolen! 😂")
 
     def test_str_and_repr_does_not_fail(self):
         str(self.summary)
@@ -42,18 +26,10 @@ class SummaryPresentationViewsTest(TestCase):
 
     @classmethod
     def setUpTestData(cls):
-        cls.user = User(
-            username='test',
-            email='test@example.com'
-        )
+        cls.user = UserFactory(username='test')
         cls.user.set_password('password')
         cls.user.save()
-        Summary.objects.bulk_create([
-            Summary(summary_type=SUMMARY_TYPE_BARSJEF, contents='Summary', reporter=cls.user, date=timezone.now()),
-            Summary(summary_type=SUMMARY_TYPE_BARSJEF, contents='Summary', reporter=cls.user, date=timezone.now()),
-            Summary(summary_type=SUMMARY_TYPE_BARSJEF, contents='Summary', reporter=cls.user, date=timezone.now()),
-            Summary(summary_type=SUMMARY_TYPE_BARSJEF, contents='Summary', reporter=cls.user, date=timezone.now())
-        ])
+        SummaryFactory.create_batch(4)
 
     def test_list_view__renders_a_template_with_context(self):
         self.client.login(username='test', password='password')
@@ -66,10 +42,7 @@ class SummaryCreateTest(TestCase):
 
     @classmethod
     def setUpTestData(cls):
-        cls.user = User(
-            username='test',
-            email='test@example.com'
-        )
+        cls.user = UserFactory(username='test')
         cls.user.set_password('password')
         cls.user.save()
 
@@ -109,19 +82,11 @@ class SummaryUpdateTest(TestCase):
 
     @classmethod
     def setUpTestData(cls):
-        cls.user = User(
-            username='test',
-            email='test@example.com'
-        )
+        cls.user = UserFactory(username='test')
         cls.user.set_password('password')
         cls.user.save()
 
-        cls.summary = Summary(
-            contents="Some very cool contents",
-            reporter=cls.user,
-            date=timezone.now(),
-        )
-        cls.summary.save()
+        cls.summary = SummaryFactory(reporter=cls.user)
 
     def setUp(self):
         self.client.login(username='test', password='password')
@@ -160,19 +125,11 @@ class SummaryDeleteTest(TestCase):
 
     @classmethod
     def setUpTestData(cls):
-        cls.user = User(
-            username='test',
-            email='test@example.com'
-        )
+        cls.user = UserFactory(username='test')
         cls.user.set_password('password')
         cls.user.save()
 
-        cls.summary = Summary(
-            contents="Some very cool contents",
-            reporter=cls.user,
-            date=timezone.now(),
-        )
-        cls.summary.save()
+        cls.summary = SummaryFactory(reporter=cls.user)
 
     def setUp(self):
         self.client.login(username='test', password='password')
