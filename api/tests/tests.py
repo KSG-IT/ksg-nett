@@ -40,57 +40,60 @@ class CheckBalanceViewTest(APITestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.url = reverse('api:check-balance')
         cls.client = APIClient()
 
     def setUp(self):
-        self.soci_account = SociBankAccountFactory()
-        self.client.force_authenticate(self.soci_account.user)
-        self.client.credentials(HTTP_CARD_NUMBER=self.soci_account.card_uuid)
+        self.user_account = SociBankAccountFactory()
+        self.client.force_authenticate(self.user_account.user)
+        self.url = reverse('api:balance')
 
     def test_get_balance__positive_amount__ok(self):
-        self.soci_account.add_funds(amount=1337)
+        self.user_account.add_funds(amount=1337)
 
-        response = self.client.get(self.url)
+        response = self.client.get(self.url, {'card_uuid': self.user_account.card_uuid})
 
         self.assertEquals(response.status_code, status.HTTP_200_OK)
-        self.assertEquals(len(response.data), 3)
+        self.assertEquals(len(response.data), 4)
         self.assertFalse(response.data['balance'])
         self.assertTrue(response.data['has_sufficient_funds'])
 
     def test_get_balance__negative_amount__payment_required(self):
-        self.soci_account.remove_funds(amount=2000)
+        self.user_account.remove_funds(amount=2000)
 
-        response = self.client.get(self.url)
+        response = self.client.get(self.url, {'card_uuid': self.user_account.card_uuid})
 
         self.assertEquals(response.status_code, status.HTTP_402_PAYMENT_REQUIRED)
-        self.assertEquals(len(response.data), 3)
+        self.assertEquals(len(response.data), 4)
         self.assertFalse(response.data['balance'])
         self.assertFalse(response.data['has_sufficient_funds'])
 
     def test_get_balance__user_wants_amount_shown__ok_and_amount_shown(self):
-        self.soci_account.add_funds(amount=1337)
-        self.soci_account.display_balance_at_soci = True
-        self.soci_account.save()
+        self.user_account.add_funds(amount=1337)
+        self.user_account.display_balance_at_soci = True
+        self.user_account.save()
 
-        response = self.client.get(self.url)
+        response = self.client.get(self.url, {'card_uuid': self.user_account.card_uuid})
 
         self.assertEquals(response.status_code, status.HTTP_200_OK)
-        self.assertEquals(len(response.data), 3)
+        self.assertEquals(len(response.data), 4)
         self.assertTrue(response.data['has_sufficient_funds'])
 
     def test_get_balance__invalid_card__not_found(self):
-        self.client.credentials(HTTP_CARD_NUMBER='01189998819991197253')
-        response = self.client.get(self.url)
+        response = self.client.get(self.url, {'card_uuid': '01189998819991197253'})
 
         self.assertEquals(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_get_balance__no_card_provided__bad_request(self):
+        self.url = reverse('api:balance')
+        response = self.client.get(self.url, {})
+
+        self.assertEquals(response.status_code, status.HTTP_400_BAD_REQUEST)
 
 
 class ChargeSociBankAccountViewTest(APITestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.url = reverse('api:charge')
         cls.client = APIClient()
         cls.soci_account = SociBankAccountFactory(card_uuid=settings.SOCI_MASTER_ACCOUNT_CARD_ID)
         cls.dahls = SociProductFactory(name="Dahls", price=30)
@@ -100,7 +103,7 @@ class ChargeSociBankAccountViewTest(APITestCase):
     def setUp(self):
         self.user_account = SociBankAccountFactory(balance=1000)
         self.client.force_authenticate(self.soci_account.user)
-        self.client.credentials(HTTP_CARD_NUMBER=self.user_account.card_uuid)
+        self.url = reverse('api:charge', args=[self.user_account.id])
 
     def test_charge_valid_products__sufficient_balance__created_and_charged_correctly(self):
         data = [
@@ -138,16 +141,6 @@ class ChargeSociBankAccountViewTest(APITestCase):
         response = self.client.post(self.url, data, format="json")
 
         self.assertEquals(response.status_code, status.HTTP_402_PAYMENT_REQUIRED)
-
-    def test_charge__incorrect_card_id__not_found(self):
-        self.client.credentials(HTTP_CARD_NUMBER="01189998819991197253")
-        data = [
-            {"sku": self.smirre.sku_number}
-        ]
-
-        response = self.client.post(self.url, data, format="json")
-
-        self.assertEquals(response.status_code, status.HTTP_404_NOT_FOUND)
 
     def test_charge__invalid_sku__bad_request(self):
         data = [
