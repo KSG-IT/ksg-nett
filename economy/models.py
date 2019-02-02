@@ -23,7 +23,7 @@ class SociBankAccount(models.Model):
     )
 
     balance = models.IntegerField(default=0, editable=False)
-    card_uuid = models.BigIntegerField(blank=True, null=True, default=None, unique=True)
+    card_uuid = models.CharField(max_length=50, blank=True, null=True, default=None, unique=True)
     display_balance_at_soci = models.BooleanField(default=False)
 
     objects = SociBankAccountManager()

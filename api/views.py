@@ -4,11 +4,24 @@ from rest_framework import status
 from rest_framework.exceptions import ValidationError
 from rest_framework.generics import ListAPIView, RetrieveAPIView, get_object_or_404
 from rest_framework.response import Response
+from rest_framework_simplejwt.views import TokenObtainSlidingView, TokenRefreshSlidingView, TokenVerifyView
 
 from api.serializers import CheckBalanceSerializer, SociProductSerializer, ChargeSociBankAccountDeserializer, \
     PurchaseSerializer
 from api.view_mixins import CustomCreateAPIView
 from economy.models import SociBankAccount, SociProduct, Purchase
+
+
+class CustomTokenObtainSlidingView(TokenObtainSlidingView):
+    swagger_schema = None
+
+
+class CustomTokenRefreshSlidingView(TokenRefreshSlidingView):
+    swagger_schema = None
+
+
+class CustomTokenVerifyView(TokenVerifyView):
+    swagger_schema = None
 
 
 class SociProductListView(ListAPIView):

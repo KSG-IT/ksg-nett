@@ -140,7 +140,7 @@ class UserFormTest(TestCase):
         self.assertFalse(form.is_valid())
 
     def test_update_user_view_valid(self):
-        self.client.login(email=self.user.email, password='password')
+        self.client.login(username=self.user.email, password='password')
         response = self.client.post('/users/142/update', {
             'first_name': "Alexander", 'last_name': "Orvik",
             'phone': "45087749", 'study': "Samf", 'biography': "Nå er det endret", 'email': "alexaor@stud.ntnu.no"})

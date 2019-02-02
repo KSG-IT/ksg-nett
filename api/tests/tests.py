@@ -2,22 +2,111 @@ from django.conf import settings
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase, APIClient
+from rest_framework_simplejwt.tokens import SlidingToken
 
 from economy.tests.factories import SociProductFactory, SociBankAccountFactory
 from users.tests.factories import UserFactory
 
 
-class SociProductsViewTest(APITestCase):
+class CustomObtainJwtTokenViewTest(APITestCase):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.client = APIClient()
+        cls.user = SociBankAccountFactory(user__is_staff=True).user
+        cls.user.set_password('password')
+        cls.user.save()
+        cls.url = reverse('api:obtain-token')
+
+    def test_obtain_token__with_valid_user_credentials__token_obtained_successfully(self):
+        data = {'username': self.user.bank_account.card_uuid, 'password': 'password'}
+
+        response = self.client.post(self.url, data)
+
+        self.assertEqual(200, response.status_code)
+        self.assertIsNotNone(response.data.get('token'))
+
+    def test_obtain_token__with_invalid_user_credentials__bad_request(self):
+        data = {'username': self.user.bank_account.card_uuid, 'password': 'wrong_password'}
+
+        response = self.client.post(self.url, data)
+
+        self.assertEqual(400, response.status_code)
+        self.assertIsNone(response.data.get('token'))
+
+
+class CustomRefreshJwtTokenViewTest(APITestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.client = APIClient()
+        cls.url = reverse('api:refresh-token')
+
+    def setUp(self):
+        self.token = SlidingToken.for_user(UserFactory())
+
+    def test_refresh_token__valid_token__token_refreshed_successfully(self):
+        data = {'token': str(self.token)}
+
+        response = self.client.post(self.url, data)
+
+        self.assertEqual(200, response.status_code)
+        self.assertIsNotNone(response.data.get('token'))
+
+    def test_refresh_token__token_has_expired__unauthorized(self):
+        self.token.payload['exp'] -= 100000
+        data = {'token': str(self.token)}
+
+        response = self.client.post(self.url, data)
+
+        self.assertEqual(401, response.status_code)
+        self.assertIsNone(response.data.get('token'))
+        self.assertEqual('token_not_valid', response.data.get('code'))
+
+
+class CustomVerifyJwtTokenViewTest(APITestCase):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.client = APIClient()
+        cls.url = reverse('api:verify-token')
+
+    def setUp(self):
+        self.token = SlidingToken.for_user(UserFactory())
+
+    def test_verify_token__valid_token__return_valid_token(self):
+        data = {'token': str(self.token)}
+
+        response = self.client.post(self.url, data)
+
+        self.assertEqual(200, response.status_code)
+        self.assertEqual({}, response.data)
+
+    def test_verify_token__token_has_expired__unauthorized(self):
+        self.token.payload['exp'] -= 100000
+        data = {'token': str(self.token)}
+
+        response = self.client.post(self.url, data)
+
+        self.assertEqual(401, response.status_code)
+        self.assertIsNone(response.data.get('token'))
+        self.assertEqual('token_not_valid', response.data.get('code'))
+
+
+class SociProductListViewTest(APITestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
         cls.url = reverse('api:products')
         cls.client = APIClient()
-        cls.client.force_authenticate(UserFactory())
 
         SociProductFactory(name="Dahls", description="En gammel slager. Nytes lunken.")
         SociProductFactory(name="Smirnoff ICE", description="Når du føler for å imponere.")
         SociProductFactory(name="Pizzabolle", description="Kjøkkenet har Soci. Hurra!")
+
+    def setUp(self):
+        self.client.force_authenticate(UserFactory(is_staff=True))
 
     def test_get__valid_request__ok(self):
         response = self.client.get(self.url)
@@ -36,14 +125,14 @@ class SociProductsViewTest(APITestCase):
         self.assertFalse(response.data[-1]['description'])
 
 
-class CheckBalanceViewTest(APITestCase):
+class SociBankAccountBalanceDetailViewTest(APITestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
         cls.client = APIClient()
 
     def setUp(self):
-        self.user_account = SociBankAccountFactory()
+        self.user_account = SociBankAccountFactory(user__is_staff=True)
         self.client.force_authenticate(self.user_account.user)
         self.url = reverse('api:balance')
 
@@ -90,12 +179,12 @@ class CheckBalanceViewTest(APITestCase):
         self.assertEquals(response.status_code, status.HTTP_400_BAD_REQUEST)
 
 
-class ChargeSociBankAccountViewTest(APITestCase):
+class SociBankAccountChargeViewTest(APITestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
         cls.client = APIClient()
-        cls.soci_account = SociBankAccountFactory(card_uuid=settings.SOCI_MASTER_ACCOUNT_CARD_ID)
+        cls.soci_account = SociBankAccountFactory(card_uuid=settings.SOCI_MASTER_ACCOUNT_CARD_ID, user__is_staff=True)
         cls.dahls = SociProductFactory(name="Dahls", price=30)
         cls.smirre = SociProductFactory(name="Smirnoff ICE", price=35)
         cls.direct_charge = SociProductFactory(sku_number=settings.DIRECT_CHARGE_SKU, price=0)

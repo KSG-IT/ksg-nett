@@ -19,7 +19,7 @@ class SociBankAccountFactory(DjangoModelFactory):
     @sequence
     def card_uuid(n):
         fake_number = Faker('ean13').evaluate(None, None, {})
-        return int(fake_number[9:] + str(n))
+        return fake_number[9:] + str(n)
 
 
 class SociProductFactory(DjangoModelFactory):
