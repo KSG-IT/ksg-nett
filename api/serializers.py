@@ -8,6 +8,9 @@ from economy.models import SociProduct, ProductOrder
 # ===============================
 # ECONOMY
 # ===============================
+from sensors.consts import MEASUREMENT_TYPE_CHOICES
+from sensors.models import SensorMeasurement
+
 
 class SociProductSerializer(serializers.Serializer):
     sku_number = serializers.CharField(read_only=True, label="Product SKU number")
@@ -96,3 +99,19 @@ class PurchaseSerializer(serializers.Serializer):
 
     products_purchased = serializers.ListField(read_only=True, child=serializers.CharField(),
                                                help_text="The products that were purchased")
+
+
+class SensorMeasurementSerializer(serializers.Serializer):
+    type = serializers.ChoiceField(
+        choices=MEASUREMENT_TYPE_CHOICES,
+        label="The type of measurement.",
+    )
+    value = serializers.FloatField(
+        label="The value of the measurement",
+    )
+    created_at = serializers.DateTimeField(
+        label="The time of the measurement",
+    )
+
+    def create(self, validated_data):
+        return SensorMeasurement.objects.create(**validated_data)

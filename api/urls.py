@@ -1,7 +1,8 @@
 from django.urls import path, include
 
-from api.views import SociProductListView, SociBankAccountBalanceDetailView, SociBankAccountChargeView, \
+from api.views import SociBankAccountChargeView, \
     CustomTokenObtainSlidingView, CustomTokenRefreshSlidingView, CustomTokenVerifyView
+from api.views import SociProductListView, SociBankAccountBalanceDetailView, SensorMeasurementView
 
 urlpatterns = [
     path('authentication/', include([
@@ -16,4 +17,7 @@ urlpatterns = [
             path('<int:id>/charge', SociBankAccountChargeView.as_view(), name='charge'),
         ])),
     ])),
+    path('sensors/', include([
+        path('measurements/', SensorMeasurementView.as_view(), name='measurements')
+    ]))
 ]
