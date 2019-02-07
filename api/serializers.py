@@ -26,6 +26,8 @@ class SociProductSerializer(serializers.Serializer):
 
 
 class CheckBalanceSerializer(serializers.Serializer):
+    id = serializers.IntegerField(read_only=True, label="This soci bank account ID")
+
     user = serializers.CharField(read_only=True, label="User´s full name")
 
     balance = serializers.IntegerField(source='public_balance', read_only=True, allow_null=True, label="Balance in NOK",

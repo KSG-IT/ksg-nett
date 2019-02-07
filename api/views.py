@@ -1,13 +1,27 @@
-from drf_yasg.openapi import Parameter, IN_HEADER, TYPE_INTEGER
+from drf_yasg.openapi import Parameter, IN_QUERY, TYPE_STRING
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import status
-from rest_framework.generics import get_object_or_404, ListAPIView, RetrieveAPIView
+from rest_framework.exceptions import ValidationError
+from rest_framework.generics import ListAPIView, RetrieveAPIView, get_object_or_404
 from rest_framework.response import Response
+from rest_framework_simplejwt.views import TokenObtainSlidingView, TokenRefreshSlidingView, TokenVerifyView
 
 from api.serializers import CheckBalanceSerializer, SociProductSerializer, ChargeSociBankAccountDeserializer, \
     PurchaseSerializer
 from api.view_mixins import CustomCreateAPIView
 from economy.models import SociBankAccount, SociProduct, Purchase
+
+
+class CustomTokenObtainSlidingView(TokenObtainSlidingView):
+    swagger_schema = None
+
+
+class CustomTokenRefreshSlidingView(TokenRefreshSlidingView):
+    swagger_schema = None
+
+
+class CustomTokenVerifyView(TokenVerifyView):
+    swagger_schema = None
 
 
 class SociProductListView(ListAPIView):
@@ -17,7 +31,10 @@ class SociProductListView(ListAPIView):
     serializer_class = SociProductSerializer
     queryset = SociProduct.objects.all()
 
-    @swagger_auto_schema(operation_summary="List SociProducts")
+    @swagger_auto_schema(
+        tags=['Soci Products'],
+        operation_summary="List SociProducts"
+    )
     def get(self, request, *args, **kwargs):
         soci_products = self.get_queryset()
         serializer = self.get_serializer(soci_products, many=True)
@@ -30,15 +47,17 @@ class SociBankAccountBalanceDetailView(RetrieveAPIView):
     """
     Checks the available balance of an account, based on the provided RFID card number.
     """
+    queryset = SociBankAccount.objects.all()
     serializer_class = CheckBalanceSerializer
 
     @swagger_auto_schema(
+        tags=['Soci Bank Accounts'],
         operation_summary="Retrieve SociBankAccount balance",
         manual_parameters=[Parameter(
-            name='card-number',
-            in_=IN_HEADER,
+            name='card_uuid',
+            in_=IN_QUERY,
             description="The RFID card id connected to a user's Soci bank account",
-            type=TYPE_INTEGER,
+            type=TYPE_STRING,
             required=True
         )],
         responses={
@@ -47,8 +66,7 @@ class SociBankAccountBalanceDetailView(RetrieveAPIView):
         },
     )
     def get(self, request, *args, **kwargs):
-        card_uuid = self.request.META.get('HTTP_CARD_NUMBER', None)
-        soci_bank_account: SociBankAccount = self._get_account_from_card_id(card_uuid=card_uuid)
+        soci_bank_account = self.get_object()
         serializer = self.get_serializer(soci_bank_account)
         data = serializer.data
 
@@ -58,28 +76,28 @@ class SociBankAccountBalanceDetailView(RetrieveAPIView):
 
         return Response(data, status=response_status)
 
-    @staticmethod
-    def _get_account_from_card_id(card_uuid) -> SociBankAccount:
-        soci_bank_account = get_object_or_404(queryset=SociBankAccount.objects.all(), card_uuid=card_uuid)
+    def get_object(self) -> SociBankAccount:
+        card_uuid = self.request.query_params.get('card_uuid', None)
+        if card_uuid is None:
+            raise ValidationError("You need to provide a card uuid as a query parameter.")
 
-        return soci_bank_account
+        return get_object_or_404(queryset=self.get_queryset(), card_uuid=card_uuid)
 
 
-class ChargeSociBankAccountView(CustomCreateAPIView):
+class SociBankAccountChargeView(CustomCreateAPIView):
     """
     Charges the specified account for the total amount of the products associated with provided SKU numbers.
     If the SKU is the direct charge, a direct charge amount needs to be provided as well.
     """
+    queryset = SociBankAccount.objects.all()
+    lookup_url_kwarg = 'id'
     deserializer_class = ChargeSociBankAccountDeserializer
     serializer_class = PurchaseSerializer
 
     @swagger_auto_schema(
+        tags=['Soci Bank Accounts'],
         request_body=deserializer_class(many=True),
         operation_summary="Charge SociBankAccount",
-        manual_parameters=[Parameter(
-            name='card-number', in_=IN_HEADER, description="The RFID card id connected to a user's Soci bank account",
-            type=TYPE_INTEGER, required=True
-        )],
         responses={
             "201": serializer_class,
             "400": ": Illegal input",
@@ -88,8 +106,7 @@ class ChargeSociBankAccountView(CustomCreateAPIView):
         },
     )
     def post(self, request, *args, **kwargs):
-        card_uuid = self.request.META.get('HTTP_CARD_NUMBER', None)
-        soci_bank_account: SociBankAccount = self._get_account_from_card_id(card_uuid=card_uuid)
+        soci_bank_account: SociBankAccount = self.get_object()
 
         deserializer = self.get_deserializer(
             data=request.data, context={'soci_bank_account': soci_bank_account}, many=True, allow_empty=False)
@@ -103,9 +120,3 @@ class ChargeSociBankAccountView(CustomCreateAPIView):
         data = serializer.data
 
         return Response(data, status=status.HTTP_201_CREATED)
-
-    @staticmethod
-    def _get_account_from_card_id(card_uuid) -> SociBankAccount:
-        soci_bank_account = get_object_or_404(queryset=SociBankAccount.objects.all(), card_uuid=card_uuid)
-
-        return soci_bank_account
