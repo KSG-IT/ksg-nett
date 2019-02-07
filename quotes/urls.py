@@ -5,6 +5,8 @@ from quotes import views
 urlpatterns = [
     path('', views.quotes_list),
     path('add/', views.quotes_add),
+    path('archive/', views.quotes_archive_overview),
+    path('archive/<str:quote_semester>', views.quotes_archive_specific),
 
     path('<int:quote_id>/vote-up', views.vote_up),
     path('<int:quote_id>/vote-down', views.vote_down),
