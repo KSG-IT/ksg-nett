@@ -1,18 +1,13 @@
-from datetime import datetime
 from urllib.parse import urlencode
-import pytz
+
 from django.test import TestCase
 from django.urls import reverse
 from factory import Iterator
 from rest_framework import status
-from django.utils import timezone
-
-from quotes.models import Quote, QuoteVote
 
 from quotes.models import Quote
 from quotes.tests.factories import QuoteFactory, QuoteVoteFactory
-from quotes.views import quotes_list, vote_up, vote_down, quotes_add, quotes_edit, quotes_delete, quotes_approve, \
-    quotes_archive_specific
+from quotes.views import quotes_list, vote_up, vote_down, quotes_add, quotes_edit, quotes_delete, quotes_approve
 from users.models import User
 from users.tests.factories import UserFactory
 
@@ -319,70 +314,3 @@ class QuoteApproveTest(TestCase):
         self.client.post(reverse(viewname=quotes_approve, kwargs={'quote_id': 124}), data={'user': self.user})
         self.quote.refresh_from_db()
         self.assertEqual(self.quote.verified_by, self.user)
-
-
-class QuoteSemesterTest(TestCase):
-    @classmethod
-    def setUpTestData(cls):
-        cls.user = UserFactory(username='test')
-        cls.user.set_password('password')
-        cls.user.save()
-        cls.quoteH18 = QuoteFactory(text='This is a quote from H18')
-        cls.quoteH18.created_at = timezone.now().replace(year=2018, month=10, day=4)
-        cls.quoteH18.save()
-        cls.quoteH17 = QuoteFactory(text='This is a quote from H17')
-        cls.quoteH17.created_at = timezone.now().replace(year=2017, month=10, day=4)
-        cls.quoteH17.save()
-
-    def setUp(self):
-        self.client.login(username='test', password='password')
-
-    def test_returns_valid_quote_for_given_semester(self):
-        response = self.client.get(reverse(
-            viewname=quotes_archive_specific,
-            kwargs={'quote_semester': 'H18'}
-        ))
-        print(response.context['semester_quotes'])
-        self.assertEqual(response.context['semester_quotes'].count(), 1)
-
-
-class QuoteSemesterTest(TestCase):
-    @classmethod
-    def setUpTestData(cls):
-        cls.user = User(
-            username='test',
-            email='test@example.com',
-            first_name='Alex',
-            last_name='Orvik'
-        )
-        cls.user.set_password('password')
-        cls.user.save()
-
-        cls.quoteH18 = Quote(
-            text='Quote from H18',
-            quoter=cls.user,
-            id=124
-        )
-
-        cls.quoteH17 = Quote(
-            text='Quote from semester H17',
-            quoter=cls.user,
-            id=125,
-            created_at='2016-12-30 03:17:04.738255+00:00'
-        )
-        cls.quoteH18.save()
-        cls.quoteH17.save()
-
-    def setUp(self):
-        self.client.login(username='test', password='password')
-
-    """
-    Test doesnt work as long as i cant overwrite the created_at field in any given quote. 
-    """
-
-    def test_returns_valid_quote_for_given_semester(self):
-        response = self.client.get(reverse(
-            viewname=quotes_archive_specific,
-            kwargs={'quote_semester': 'H18'}
-        ))
-        self.assertEqual(response.context['semester_quotes'].count(), 1)
