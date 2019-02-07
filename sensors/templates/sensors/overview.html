@@ -1,0 +1,30 @@
+{% extends 'internal/base.html' %}
+{% load i18n %}
+{% load static %}
+{% block header %}
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.3/Chart.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.24.0/moment.min.js"></script>
+  <link rel="stylesheet" href="{% static 'sensors/css/overview.css' %}">
+{% endblock %}
+{% block body_content %}
+  <div class="sensoroverview default-container default-top-offset">
+    <h1 class="dark-blue">{% trans 'Soci nå' %}</h1>
+    <div class="sensoroverview__grid">
+      <div class="sensoroverview__graphwrapper">
+        <h3 class="dark-blue">Temperature</h3>
+        <canvas id="temperatureCanvas"></canvas>
+      </div>
+      <div class="sensoroverview__graphwrapper">
+        <h3 class="dark-blue">Humidity</h3>
+        <canvas id="humidityCanvas"></canvas>
+      </div>
+      <div class="sensoroverview__graphwrapper">
+        <h3 class="dark-blue">Sound</h3>
+        <canvas id="soundCanvas"></canvas>
+      </div>
+    </div>
+  </div>
+{% endblock %}
+{% block body_end %}
+  <script src="{% static 'sensors/js/overview.js' %}"></script>
+{% endblock %}
