@@ -337,7 +337,6 @@ class QuoteSemesterTest(TestCase):
     def setUp(self):
         self.client.login(username='test', password='password')
 
-
     def test_returns_valid_quote_for_given_semester(self):
         response = self.client.get(reverse(
             viewname=quotes_archive_specific,
@@ -345,6 +344,8 @@ class QuoteSemesterTest(TestCase):
         ))
         print(response.context['semester_quotes'])
         self.assertEqual(response.context['semester_quotes'].count(), 1)
+
+
 class QuoteSemesterTest(TestCase):
     @classmethod
     def setUpTestData(cls):

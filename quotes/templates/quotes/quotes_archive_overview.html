@@ -16,17 +16,16 @@
             </div>
             <div class="default-right-panel" id="right-wrapper">
 
-                <h2>Godkjente</h2>
+                <h2>Arkiv</h2>
                 <div class="quote__gridcontainer">
-                    {% for quote in old_quotes %}
-                        <!-- Check against get_semester_shorthand using current day-->
-                        {% if quote.get_semester_of_quote == 'H18' %}
-                            <div class="quote__griditem">
-                                <a style="font-style: normal; font-size: 40px;" class="btn btn-primary resetlink quotes__semester" href="/internal/quotes/archive/{{ quote.get_semester_of_quote }}">
-                                    {{ quote.get_semester_of_quote }}
-                                </a>
-                            </div>
-                        {% endif %}
+                    <!-- Check against get_semester_shorthand using current day-->
+                    {% for semester in semesters %}
+                        <div class="archived_quote__griditem">
+
+
+                            <a href="/internal/quotes/archive/{{ semester }}" class="btn btn-primary resetlink">{{ semester }}</a>
+
+                        </div>
                     {% endfor %}
                 </div>
             </div>

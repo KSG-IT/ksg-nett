@@ -7,6 +7,7 @@ from django.utils import timezone
 from quotes.forms import QuoteForm
 from quotes.models import Quote, QuoteVote
 from quotes.serializers import QuoteSerializer, QuoteVoteSerializer
+from common.util import get_semester_year_shorthands_by_count, get_semester_year_shorthand
 
 
 @login_required
@@ -21,8 +22,9 @@ def quotes_approve(request, quote_id):
 
 @login_required
 def quotes_archive_overview(request):
+    semesters = get_semester_year_shorthands_by_count(15)
     ctx = {
-        'old_quotes': Quote.verified_objects.all().order_by('-created_at')
+        'semesters': semesters
     }
     return render(request, template_name='quotes/quotes_archive_overview.html', context=ctx)
 
@@ -53,6 +55,7 @@ def quotes_archive_specific(request, quote_semester):
 
     print(semester_datetime_object)
     ctx = {
+        'semester_specific': get_semester_year_shorthand(semester_datetime_object),
         'semester_quotes': Quote.semester_objects.in_semester(semester_datetime_object).order_by('-created_at')
     }
     for quote in Quote.semester_objects.in_semester(semester_datetime_object):
