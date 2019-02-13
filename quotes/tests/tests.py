@@ -63,10 +63,10 @@ class QuoteManagersTest(TestCase):
         cls.unverified_quotes = QuoteFactory.create_batch(4, verified_by=None)
 
     def test_quote_pending_objects__returns_correct_count(self):
-        self.assertEqual(Quote.pending_objects.count(), 4)
+        self.assertEqual(Quote.objects.pending().count(), 4)
 
     def test_quote_verified_objects__returns_correct_count(self):
-        self.assertEqual(Quote.verified_objects.count(), 2)
+        self.assertEqual(Quote.objects.verified().count(), 2)
 
 
 class QuotePresentationViewsTest(TestCase):
@@ -355,7 +355,7 @@ class QuoteHighscoreTest(TestCase):
         QuoteVoteFactory.create_batch(10, quote__text="Love on top", value=1)
 
     def test_return_highscore_descending(self):
-        quotes = Quote.highscore_object.semester_highest_score(timezone.now())
+        quotes = Quote.objects.semester_highest_score(timezone.now())
         print(quotes)
         flag = True
         for i in range((len(quotes) - 1)):
@@ -365,6 +365,6 @@ class QuoteHighscoreTest(TestCase):
         self.assertTrue(flag)
 
     def test_return_only_from_given_semester(self):
-        quotes = Quote.highscore_object.semester_highest_score(timezone.now().replace(year=2017, month=10, day=15))
+        quotes = Quote.objects.semester_highest_score(timezone.now().replace(year=2017, month=10, day=15))
         for quote in quotes:
             self.assertEqual(quote.text, 'This is a quote from H17')

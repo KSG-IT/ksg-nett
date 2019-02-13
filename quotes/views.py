@@ -56,9 +56,9 @@ def quotes_archive_specific(request, quote_semester):
     print(semester_datetime_object)
     ctx = {
         'semester_specific': get_semester_year_shorthand(semester_datetime_object),
-        'semester_quotes': Quote.semester_objects.in_semester(semester_datetime_object).order_by('-created_at')
+        'semester_quotes': Quote.objects.in_semester(semester_datetime_object).order_by('-created_at')
     }
-    for quote in Quote.semester_objects.in_semester(semester_datetime_object):
+    for quote in Quote.objects.in_semester(semester_datetime_object):
         print(quote.text)
         print(quote.created_at)
 
@@ -68,8 +68,8 @@ def quotes_archive_specific(request, quote_semester):
 @login_required
 def quotes_list(request):
     ctx = {
-        'pending': Quote.pending_objects.all().order_by('-created_at'),
-        'quotes': Quote.verified_objects.all().order_by('-created_at'),
+        'pending': Quote.objects.pending().order_by('-created_at'),
+        'quotes': Quote.objects.verified().order_by('-created_at'),
         'current_semester': get_semester_year_shorthand(timezone.now())
     }
     return render(request, template_name='quotes/quotes_list.html', context=ctx)
@@ -130,7 +130,7 @@ def quotes_delete(request, quote_id):
 @login_required
 def vote_up(request, quote_id):
     if request.method == "POST":
-        quote = get_object_or_404(Quote.verified_objects, pk=quote_id)
+        quote = get_object_or_404(Quote.objects.verified(), pk=quote_id)
         user = request.user
         quote_vote = QuoteVote.objects.filter(
             quote=quote,
@@ -161,7 +161,7 @@ def vote_up(request, quote_id):
 @login_required
 def vote_down(request, quote_id):
     if request.method == "POST":
-        quote = get_object_or_404(Quote.verified_objects, pk=quote_id)
+        quote = get_object_or_404(Quote.objects.verified(), pk=quote_id)
         user = request.user
         quote_vote = QuoteVote.objects.filter(
             quote=quote,
