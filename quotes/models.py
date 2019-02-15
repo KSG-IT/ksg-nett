@@ -1,7 +1,7 @@
 from django.db import models
 from django.db.models import Sum, Index
 
-from quotes.managers import QuotePendingManager, QuoteVerifiedManager
+from quotes.managers import QuotePendingManager, QuoteVerifiedManager, QuoteSemesterManager
 from users.models import User
 
 
@@ -29,6 +29,7 @@ class Quote(models.Model):
     objects = models.Manager()
     pending_objects = QuotePendingManager()
     verified_objects = QuoteVerifiedManager()
+    semester_objects = QuoteSemesterManager()
 
     def get_semester_of_quote(self) -> str:
         """
@@ -98,8 +99,6 @@ class QuoteVote(models.Model):
         unique_together = (
             ('quote', 'caster')
         )
-
-
 
     def __str__(self):
         if self.value > 0:
