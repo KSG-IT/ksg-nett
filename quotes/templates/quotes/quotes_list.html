@@ -36,7 +36,7 @@
                 <div class="quote__gridcontainer">
                     {% for quote in quotes %}
                         <!-- Check against get_semester_shorthand using current day-->
-                        {% if quote.get_semester_of_quote == 'V19' %}
+                        {% if quote.get_semester_of_quote == current_semester %}
                             <div class="quote__griditem">
                                 "{{ quote.text }}"
                                 <br> {{ quote.quoter.get_full_name }} {{ quote.get_semester_of_quote }} <br>

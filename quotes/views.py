@@ -69,7 +69,8 @@ def quotes_archive_specific(request, quote_semester):
 def quotes_list(request):
     ctx = {
         'pending': Quote.pending_objects.all().order_by('-created_at'),
-        'quotes': Quote.verified_objects.all().order_by('-created_at')
+        'quotes': Quote.verified_objects.all().order_by('-created_at'),
+        'current_semester': get_semester_year_shorthand(timezone.now())
     }
     return render(request, template_name='quotes/quotes_list.html', context=ctx)
 
