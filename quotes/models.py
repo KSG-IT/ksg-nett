@@ -24,6 +24,7 @@ class Quote(models.Model):
         on_delete=models.SET_NULL
     )
     created_at = models.DateTimeField(auto_now_add=True)
+    context = models.CharField(max_length=200, null=True, blank=True)
 
     # Managers
     objects = models.Manager()

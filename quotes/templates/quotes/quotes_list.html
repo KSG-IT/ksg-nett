@@ -41,11 +41,11 @@
                                 "{{ quote.text }}"
                                 <br> {{ quote.quoter.get_full_name }} {{ quote.get_semester_of_quote }} <br>
                                 <span class="quote__sum">Score: {{ quote.sum }}</span><br>
-                                <button class="quote__voteup" data-quote-id="{{ quote.id }}"
-                                        style="color: #4cae4c;"><i class="material-icons">thumb_up</i>
+                                <button class="quote__voteup thumb" data-quote-id="{{ quote.id }}"
+                                        style="color: #4cae4c;"><i class="fa fa-thumbs-up"></i>
                                 </button>
-                                <button class="quote__votedown" data-quote-id="{{ quote.id }}"
-                                        style="color: red;"><i class="material-icons">thumb_down</i>
+                                  <button class="quote__votedown thumb" data-quote-id="{{ quote.id }}"
+                                        style="color: red;"><i class="fa fa-thumbs-down"></i>
                                 </button>
                                 <a class="btn btn-primary resetlink" href="/internal/quotes/{{ quote.id }}/edit">#</a>
                             </div>
