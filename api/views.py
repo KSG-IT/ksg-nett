@@ -1,3 +1,4 @@
+from django.utils import timezone
 from drf_yasg.openapi import Parameter, IN_QUERY, TYPE_STRING
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import status
@@ -36,7 +37,13 @@ class SociProductListView(ListAPIView):
         operation_summary="List SociProducts"
     )
     def get(self, request, *args, **kwargs):
-        soci_products = self.get_queryset()
+        now = timezone.now()
+        soci_products = (
+            self.get_queryset()
+                .exclude(expiry_date__lt=now)
+                .exclude(valid_from__gt=now)
+                .order_by('sku_number')
+        )
         serializer = self.get_serializer(soci_products, many=True)
         data = serializer.data
 

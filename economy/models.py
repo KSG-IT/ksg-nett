@@ -1,9 +1,11 @@
 import os
+from datetime import datetime
 from typing import Union, Optional, Dict, List
 
 from django.conf import settings
 from django.db import models
 from django.db.models import QuerySet
+from django.utils import timezone
 
 from economy.managers import SociBankAccountManager
 from users.models import User
@@ -76,6 +78,7 @@ class SociProduct(models.Model):
     description = models.TextField(blank=True, null=True, default=None, max_length=200)
     icon = models.CharField(max_length=100, blank=True, null=True)
     expiry_date = models.DateTimeField(blank=True, null=True, default=None)
+    valid_from = models.DateTimeField(blank=True, null=True, default=timezone.now)
 
     def __str__(self):
         return f"SociProduct {self.name} costing {self.price} kr"
