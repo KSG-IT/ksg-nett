@@ -1,5 +1,8 @@
+from datetime import timedelta
+
 from django.conf import settings
 from django.urls import reverse
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APITestCase, APIClient
 from rest_framework_simplejwt.tokens import SlidingToken
@@ -101,9 +104,9 @@ class SociProductListViewTest(APITestCase):
         cls.url = reverse('api:products')
         cls.client = APIClient()
 
-        SociProductFactory(name="Dahls", description="En gammel slager. Nytes lunken.")
-        SociProductFactory(name="Smirnoff ICE", description="Når du føler for å imponere.")
-        SociProductFactory(name="Pizzabolle", description="Kjøkkenet har Soci. Hurra!")
+        SociProductFactory(sku_number="dahls", name="Dahls", description="En gammel slager. Nytes lunken.")
+        SociProductFactory(sku_number="ice", name="Smirnoff ICE", description="Når du føler for å imponere.")
+        SociProductFactory(sku_number="pizzabolle", name="Pizzabolle", description="Kjøkkenet har Soci. Hurra!")
 
     def setUp(self):
         self.client.force_authenticate(UserFactory(is_staff=True))
@@ -116,13 +119,40 @@ class SociProductListViewTest(APITestCase):
         self.assertEqual((len(response.data[0])), 6)
 
     def test_get__product_without_description__description_blank(self):
-        SociProductFactory(name="Nordlands Pils", description=None)
+        SociProductFactory(sku_number="z", name="Nordlands Pils", description=None)
 
         response = self.client.get(self.url)
 
         self.assertEquals(response.status_code, status.HTTP_200_OK)
         self.assertEquals(len(response.data), 4)
         self.assertFalse(response.data[-1]['description'])
+
+    def test_get__expired_product__do_not_include_in_response(self):
+        expired_product = SociProductFactory(expiry_date=timezone.now() - timedelta(hours=1))
+
+        response = self.client.get(self.url)
+
+        self.assertEquals(response.status_code, status.HTTP_200_OK)
+        self.assertNotIn(expired_product.sku_number, [product['sku_number'] for product in response.data])
+
+    def test_get__not_available_product__do_not_include_in_response(self):
+        future_available_product = SociProductFactory(valid_from=timezone.now() + timedelta(hours=1))
+
+        response = self.client.get(self.url)
+
+        self.assertEquals(response.status_code, status.HTTP_200_OK)
+        self.assertNotIn(future_available_product.sku_number, [product['sku_number'] for product in response.data])
+
+    def test_get__sorted_by_sku_number(self):
+        first_product = SociProductFactory(sku_number="a")
+
+        response = self.client.get(self.url)
+
+        self.assertEquals(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(first_product.sku_number, response.data[0]['sku_number'])
+        self.assertEqual('dahls', response.data[1]['sku_number'])
+        self.assertEqual('ice', response.data[2]['sku_number'])
+        self.assertEqual('pizzabolle', response.data[3]['sku_number'])
 
 
 class SociBankAccountBalanceDetailViewTest(APITestCase):
