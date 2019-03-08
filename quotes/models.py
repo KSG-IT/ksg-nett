@@ -1,7 +1,8 @@
 from django.db import models
 from django.db.models import Sum, Index
 
-from quotes.managers import QuotePendingManager, QuoteVerifiedManager, QuoteSemesterManager
+from quotes.managers import QuotePendingManager, QuoteVerifiedManager, QuoteSemesterManager, \
+    QuoteSemesterHighestScoreManager
 from users.models import User
 
 
@@ -31,6 +32,7 @@ class Quote(models.Model):
     pending_objects = QuotePendingManager()
     verified_objects = QuoteVerifiedManager()
     semester_objects = QuoteSemesterManager()
+    highscore_object = QuoteSemesterHighestScoreManager()
 
     def get_semester_of_quote(self) -> str:
         """

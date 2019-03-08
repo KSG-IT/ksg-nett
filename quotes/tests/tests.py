@@ -341,3 +341,30 @@ class QuoteSemesterTest(TestCase):
         ))
         print(response.context['semester_quotes'])
         self.assertEqual(response.context['semester_quotes'].count(), 1)
+
+
+class QuoteHighscoreTest(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.quotesH17 = QuoteFactory.create_batch(10, text='This is a quote from H17')
+        for quote in cls.quotesH17:
+            quote.created_at = timezone.now().replace(year=2017, month=10, day=15)
+            quote.save()
+        cls.quotes_this_semester = QuoteFactory.create_batch(10, text='This is a quote from this semester')
+
+        QuoteVoteFactory.create_batch(10, quote__text="Love on top", value=1)
+
+    def test_return_highscore_descending(self):
+        quotes = Quote.highscore_object.semester_highest_score(timezone.now())
+        print(quotes)
+        flag = True
+        for i in range((len(quotes) - 1)):
+            if quotes[i].sum < quotes[i + 1].sum:
+                flag = False
+
+        self.assertTrue(flag)
+
+    def test_return_only_from_given_semester(self):
+        quotes = Quote.highscore_object.semester_highest_score(timezone.now().replace(year=2017, month=10, day=15))
+        for quote in quotes:
+            self.assertEqual(quote.text, 'This is a quote from H17')

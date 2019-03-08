@@ -1,4 +1,5 @@
 from django.db import models
+from django.db.models import Sum
 from django.utils import timezone
 
 
@@ -95,3 +96,13 @@ class QuoteSemesterManager(models.Manager):
         return self.get_queryset().filter(
             created_at__gte=start_of_semester, created_at__lt=end_of_semester
         )
+
+
+class QuoteSemesterHighestScoreManager(QuoteSemesterManager):
+    """
+    This class renders quotes with the highest score in descending order of a given semester
+    """
+
+    def semester_highest_score(self, some_semester: timezone.datetime):
+        semester_queryset = self.in_semester(some_datetime_in_semester=some_semester)
+        return semester_queryset.annotate(total_votes=Sum('votes')).order_by('-total_votes')
