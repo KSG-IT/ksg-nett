@@ -2,6 +2,7 @@
 from __future__ import unicode_literals
 
 import json
+import re
 import shutil
 import tempfile
 
@@ -61,7 +62,12 @@ class UserProfileTest(TestCase):
     def test_profile_image_url__image_exists__returns_url(self):
         image_file = SimpleUploadedFile(name="test_image.jpeg", content=b'', content_type='image/jpeg')
         user = UserFactory(profile_image=image_file)
-        self.assertEqual(user.profile_image_url, '/media/profiles/test_image.jpeg')
+        self.assertIsNotNone(
+            re.match(
+                r'/media/profiles/test_image([_]\w*)?.jpeg',
+                user.profile_image_url
+            )
+        )
 
     def test_active__status_is_active__returns_true(self):
         user = UserFactory(ksg_status=KSG_STATUS_TYPES[0][0])
