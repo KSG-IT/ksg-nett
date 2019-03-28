@@ -11,10 +11,38 @@
     display: grid;
     grid-template-columns: auto auto auto;
     padding: 10px;
+    alignment: center;
 
 }
 
+.quote_pending__gridcontainer {
+    display: grid;
+    grid-template-columns: auto;
+    padding: 10px;
+    alignment: center;
+    margin-left:230px;
+    margin-right: 230px;
+    padding:20px;
+}
+
+.pending_title {
+    display: grid;
+    grid-template-columns: auto;
+}
+
 .quote__griditem {
+    background-color: rgba(255, 255, 255, 0.8);
+    padding: 10px;
+    font-size: 14px;
+    text-align: left;
+    font-style: italic;
+    width: 200px;
+    margin: 10px;
+}
+
+.quote_pending__griditem {
+    display: grid;
+    grid-template-rows: auto auto auto;
     background-color: rgba(255, 255, 255, 0.8);
     padding: 10px;
     font-size: 14px;

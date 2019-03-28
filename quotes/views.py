@@ -76,6 +76,16 @@ def quotes_list(request):
 
 
 @login_required
+def quotes_pending(request):
+    ctx = {
+        'pending': Quote.pending_objects.all().order_by('-created_at'),
+        'current_semester':get_semester_year_shorthand(timezone.now())
+    }
+    print(ctx)
+    return render(request, template_name='quotes/quotes_pending.html', context=ctx)
+
+
+@login_required
 def quotes_add(request):
     if request.method == "GET":
         ctx = {
