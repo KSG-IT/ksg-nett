@@ -3,32 +3,19 @@ from django.db.models import Sum
 from django.utils import timezone
 
 
-class QuotePendingManager(models.Manager):
+class QuoteDefaultQuerySet(models.QuerySet):
     """
-    This class returns the pending quotes.
+    This class returns quotes as a function of the semester they were submitted.
     """
+    def pending(self):
+        return self.filter(
+            verified_by__isnull=True
+        )
 
-    def get_queryset(self):
-        return super(QuotePendingManager, self) \
-            .get_queryset() \
-            .filter(verified_by__isnull=True)
-
-
-class QuoteVerifiedManager(models.Manager):
-    """
-    This class returns the verified quotes.
-    """
-
-    def get_queryset(self):
-        return super(QuoteVerifiedManager, self) \
-            .get_queryset() \
-            .filter(verified_by__isnull=False)
-
-
-class QuoteSemesterManager(models.Manager):
-    """
-    This class returns quotes as a function of the semester they were submitted
-    """
+    def verified(self):
+        return self.filter(
+            verified_by__isnull=False
+        )
 
     def this_semester(self):
         """
@@ -45,7 +32,7 @@ class QuoteSemesterManager(models.Manager):
                 current_time.year, 1, 1, tzinfo=current_time.tzinfo
             )
 
-            return self.get_queryset().filter(created_at__gte=start_of_semester)
+            return self.filter(created_at__gte=start_of_semester)
 
     def previous_semesters(self):
         """
@@ -61,7 +48,7 @@ class QuoteSemesterManager(models.Manager):
                 current_time.year, 1, 1, tzinfo=current_time.tzinfo
             )
 
-        return self.get_queryset().filter(created_at__lt=start_of_semester)
+        return self.filter(created_at__lt=start_of_semester)
 
     def in_semester(self, some_datetime_in_semester: timezone.datetime):
         # Case where we are in the autumn
@@ -77,7 +64,7 @@ class QuoteSemesterManager(models.Manager):
                 1,  # January
                 1,  # First of
                 tzinfo=some_datetime_in_semester.tzinfo,
-            )
+                )
         # Case where we are in the spring
         else:
             start_of_semester = timezone.datetime(
@@ -93,16 +80,11 @@ class QuoteSemesterManager(models.Manager):
                 tzinfo=some_datetime_in_semester.tzinfo,
             )
 
-        return self.get_queryset().filter(
+        return self.filter(
             created_at__gte=start_of_semester, created_at__lt=end_of_semester
         )
-
-
-class QuoteSemesterHighestScoreManager(QuoteSemesterManager):
-    """
-    This class renders quotes with the highest score in descending order of a given semester
-    """
 
     def semester_highest_score(self, some_semester: timezone.datetime):
         semester_queryset = self.in_semester(some_datetime_in_semester=some_semester)
         return semester_queryset.annotate(total_votes=Sum('votes')).order_by('-total_votes')
+
