@@ -4,10 +4,12 @@ const measurementUrl = '/api/sensors/measurements/'
 const temperatureCanvas = document.getElementById("temperatureCanvas")
 const humidityCanvas = document.getElementById("humidityCanvas")
 const soundCanvas = document.getElementById("soundCanvas")
+const peopleCanvas = document.getElementById("peopleCanvas")
 
 const temperatureCtx = temperatureCanvas.getContext("2d")
 const humidityCtx = humidityCanvas.getContext("2d")
 const soundCtx = soundCanvas.getContext("2d")
+const peopleCtx = peopleCanvas.getContext("2d")
 
 const temperatureGradient = temperatureCtx.createLinearGradient(0, 0, 0, 600)
 temperatureGradient.addColorStop(0, 'rgba(244, 66, 66, 1)')
@@ -22,6 +24,10 @@ const soundGradient = soundCtx.createLinearGradient(0, 0, 0, 600)
 soundGradient.addColorStop(0, 'rgba(244, 66, 66, 1)')
 soundGradient.addColorStop(0.25, 'rgb(38, 38, 38)')
 soundGradient.addColorStop(1, 'rgba(200, 200, 200, 0.25)')
+
+const peopleGradient = peopleCtx.createLinearGradient(0, 0, 0, 600)
+peopleGradient.addColorStop(0, 'rgba(7, 49, 99, 1)')
+peopleGradient.addColorStop(1, 'rgba(130, 232, 255, 0.25)')
 
 const temperatureChart = new Chart(temperatureCtx, {
   type: "line",
@@ -104,6 +110,33 @@ const soundChart = new Chart(soundCtx, {
     }
   }
 })
+const peopleChart = new Chart(peopleCtx, {
+  type: "line",
+  data: {
+    datasets: [{
+      backgroundColor: peopleGradient,
+      label: "People"
+    }]
+  },
+  options: {
+    scales: {
+      yAxes: [{
+        ticks: {
+          callback: function(value, index, values) {
+            return value + " people";
+          }
+        }
+      }]
+    },
+    tooltips: {
+      callbacks: {
+        label: function(tooltipItem, data){
+          return "Number of people: " + tooltipItem.yLabel.toFixed(0)
+        }
+      }
+    }
+  }
+})
 
 function getTemperatureData(){
   return fetch(measurementUrl + `?type=temperature`)
@@ -141,10 +174,24 @@ function getSoundData(){
     })
 }
 
+function getPeopleData(){
+  return fetch(measurementUrl + `?type=people`)
+    .then(response => response.json())
+    .then(jsonData => {
+      const dataValues = jsonData.map(x => x.value)
+      const dataLabels = jsonData.map(x => moment(x.created_at).format("HH:mm"))
+      peopleChart.data.labels = dataLabels
+      peopleChart.data.datasets[0].data = dataValues
+      peopleChart.update()
+    })
+}
+
 getTemperatureData()
 getHumidityData()
 getSoundData()
+getPeopleData()
 
-setInterval(getTemperatureData, 60 * 1000)
-setInterval(getHumidityData, 60 * 1000)
-setInterval(getSoundData, 60 * 1000)
+setInterval(getTemperatureData, 20 * 1000)
+setInterval(getHumidityData, 20 * 1000)
+setInterval(getSoundData, 20 * 1000)
+setInterval(getPeopleData, 20 * 1000)
