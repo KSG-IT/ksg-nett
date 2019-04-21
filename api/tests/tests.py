@@ -34,7 +34,7 @@ class CustomObtainJwtTokenViewTest(APITestCase):
 
         response = self.client.post(self.url, data)
 
-        self.assertEqual(400, response.status_code)
+        self.assertEqual(401, response.status_code)
         self.assertIsNone(response.data.get('token'))
 
 
