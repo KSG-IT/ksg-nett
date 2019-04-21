@@ -185,6 +185,11 @@ SWAGGER_SETTINGS = {
     'DEFAULT_AUTO_SCHEMA_CLASS': 'api.api_docs.CustomSwaggerAutoSchema',
 }
 
+REDOC_SETTINGS = {
+    'PATH_IN_MIDDLE': True,
+    'REQUIRED_PROPS_FIRST': True
+}
+
 # ECONOMY SETTINGS
 # ------------------------------
 MINIMUM_SOCI_AMOUNT = 0
