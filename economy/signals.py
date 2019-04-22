@@ -8,4 +8,4 @@ from economy.models import SociBankAccount, Purchase
 def my_handler(instance: Purchase, **_kwargs):
     if instance.source:
         instance.source.remove_funds(amount=instance.total_amount)
-        SociBankAccount.objects.soci_master_account().add_funds(amount=instance.total_amount)
+        SociBankAccount.soci_master_account.get().add_funds(amount=instance.total_amount)

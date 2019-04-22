@@ -60,8 +60,8 @@ class MyUserAdmin(UserAdmin):
 
 
 class UsersHaveMadeOutAdmin(admin.ModelAdmin):
-    readonly_fields = ('created_at',)
-    list_display = ('user_one', 'user_two', 'created_at',)
+    readonly_fields = ('created',)
+    list_display = ('user_one', 'user_two', 'created',)
 
 
 admin.site.register(User, MyUserAdmin)

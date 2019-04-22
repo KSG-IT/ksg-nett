@@ -77,7 +77,7 @@ class ShiftSlotDayRuleFactory(DjangoModelFactory):
     class Meta:
         model = ShiftSlotDayRule
 
-    rule = random.choice(ShiftSlotDayRule.DAY_RULES[0])
+    rule = random.choice(ShiftSlotDayRule.STATUS.mo)
     shift_slot_template = SubFactory(ShiftSlotGroupTemplateFactory)
 
 

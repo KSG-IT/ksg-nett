@@ -23,8 +23,8 @@ class UserFactory(DjangoModelFactory):
     study_address = Faker('address')
     home_address = Faker('address')
     start_ksg = Faker('past_date')
-    ksg_status = random.choice(KSG_STATUS_TYPES)[0]
-    ksg_role = random.choice(KSG_ROLES)[0]
+    ksg_status = random.choice(list(KSG_STATUS_TYPES))[0]
+    ksg_role = random.choice(list(KSG_ROLES))[0]
     biography = Faker('sentence')
     in_relationship = False
     anonymize_in_made_out_map = False
