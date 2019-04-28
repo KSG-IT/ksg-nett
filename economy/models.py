@@ -137,7 +137,7 @@ class Purchase(TimeStampedModel):
         related_name='verified_purchases',
         on_delete=models.DO_NOTHING
     )
-    signed_off_time = MonitorField(monitor='signed_off_by')
+    signed_off_time = MonitorField(monitor='signed_off_by', null=True, default=None)
 
     collection = models.ForeignKey(
         'PurchaseCollection',
@@ -257,7 +257,7 @@ class Deposit(TimeStampedModel):
         related_name='verified_deposits',
         on_delete=models.DO_NOTHING
     )
-    signed_off_time = MonitorField(monitor='signed_off_by')
+    signed_off_time = MonitorField(monitor='signed_off_by', null=True, default=None)
 
     @property
     def is_valid(self):

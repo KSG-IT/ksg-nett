@@ -65,12 +65,12 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='deposit',
             name='signed_off_time',
-            field=model_utils.fields.MonitorField(default=django.utils.timezone.now, monitor='signed_off_by'),
+            field=model_utils.fields.MonitorField(default=None, monitor='signed_off_by', null=True),
         ),
         migrations.AlterField(
             model_name='purchase',
             name='signed_off_time',
-            field=model_utils.fields.MonitorField(default=django.utils.timezone.now, monitor='signed_off_by'),
+            field=model_utils.fields.MonitorField(default=None, monitor='signed_off_by', null=True),
         ),
         migrations.RenameField(
             model_name='purchasecollection',
