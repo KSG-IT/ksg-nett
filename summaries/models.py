@@ -1,17 +1,16 @@
 from django.db import models
+from model_utils.fields import StatusField
 
-# Create your models here.
-from summaries.consts import SUMMARY_TYPE_CHOICES, SUMMARY_TYPE_OTHER, SUMMARY_TYPE_CHOICES_DICT, \
-    SUMMARY_TYPE_SHORT_NAMES_DICT
+from summaries.consts import SUMMARY_TYPE_CHOICES, SUMMARY_TYPE_SHORT_NAMES
 from users.models import User
 
 
 class Summary(models.Model):
-    summary_type = models.CharField(
+    STATUS = SUMMARY_TYPE_CHOICES
+
+    summary_type = StatusField(
         max_length=16,
         null=False,
-        choices=SUMMARY_TYPE_CHOICES,
-        default=SUMMARY_TYPE_OTHER
     )
     contents = models.TextField(null=False, blank=True)
     participants = models.ManyToManyField(
@@ -29,11 +28,11 @@ class Summary(models.Model):
     date = models.DateTimeField(null=False, blank=False)
 
     def get_short_summary_type_name(self):
-        return SUMMARY_TYPE_SHORT_NAMES_DICT.get(self.summary_type)
+        return SUMMARY_TYPE_SHORT_NAMES[self.summary_type]
 
     def __str__(self):
         return "%s at %s" % (
-            SUMMARY_TYPE_CHOICES_DICT[self.summary_type],
+            self.STATUS[self.summary_type],
             self.date.strftime("%Y-%m-%d")
         )
 

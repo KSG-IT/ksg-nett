@@ -128,7 +128,7 @@ class SociProductListViewTest(APITestCase):
         self.assertFalse(response.data[-1]['description'])
 
     def test_get__expired_product__do_not_include_in_response(self):
-        expired_product = SociProductFactory(expiry_date=timezone.now() - timedelta(hours=1))
+        expired_product = SociProductFactory(end=timezone.now() - timedelta(hours=1))
 
         response = self.client.get(self.url)
 
@@ -136,7 +136,7 @@ class SociProductListViewTest(APITestCase):
         self.assertNotIn(expired_product.sku_number, [product['sku_number'] for product in response.data])
 
     def test_get__not_available_product__do_not_include_in_response(self):
-        future_available_product = SociProductFactory(valid_from=timezone.now() + timedelta(hours=1))
+        future_available_product = SociProductFactory(start=timezone.now() + timedelta(hours=1))
 
         response = self.client.get(self.url)
 

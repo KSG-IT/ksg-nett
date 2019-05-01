@@ -40,8 +40,8 @@ class SociProductListView(ListAPIView):
         now = timezone.now()
         soci_products = (
             self.get_queryset()
-                .exclude(expiry_date__lt=now)
-                .exclude(valid_from__gt=now)
+                .exclude(end__lt=now)
+                .exclude(start__gt=now)
                 .order_by('sku_number')
         )
         serializer = self.get_serializer(soci_products, many=True)

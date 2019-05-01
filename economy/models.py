@@ -1,13 +1,14 @@
 import os
-from datetime import datetime
 from typing import Union, Optional, Dict, List
 
 from django.conf import settings
 from django.db import models
 from django.db.models import QuerySet
 from django.utils import timezone
+from model_utils.fields import MonitorField
+from model_utils.managers import QueryManager
+from model_utils.models import TimeStampedModel, TimeFramedModel
 
-from economy.managers import SociBankAccountManager
 from users.models import User
 
 
@@ -28,7 +29,8 @@ class SociBankAccount(models.Model):
     card_uuid = models.CharField(max_length=50, blank=True, null=True, default=None, unique=True)
     display_balance_at_soci = models.BooleanField(default=False)
 
-    objects = SociBankAccountManager()
+    objects = models.Manager()
+    soci_master_account = QueryManager(card_uuid=settings.SOCI_MASTER_ACCOUNT_CARD_ID)
 
     @property
     def has_sufficient_funds(self) -> bool:
@@ -66,7 +68,7 @@ class SociBankAccount(models.Model):
         self.save()
 
 
-class SociProduct(models.Model):
+class SociProduct(TimeFramedModel):
     """
     A product for sale at Soci.
     Each product must have a unique SKU (stock keeping unit) identifier that enables us
@@ -77,14 +79,17 @@ class SociProduct(models.Model):
     price = models.IntegerField()
     description = models.TextField(blank=True, null=True, default=None, max_length=200)
     icon = models.CharField(max_length=100, blank=True, null=True)
-    expiry_date = models.DateTimeField(blank=True, null=True, default=None)
-    valid_from = models.DateTimeField(blank=True, null=True, default=timezone.now)
 
     def __str__(self):
         return f"SociProduct {self.name} costing {self.price} kr"
 
     def __repr__(self):
         return f"SociProduct(name={self.name},price={self.price})"
+
+    def save(self, force_insert=False, force_update=False, using=None, update_fields=None):
+        if self._state.adding:
+            self.start = self.start or timezone.now()
+        super().save(force_insert=force_insert, force_update=force_update, using=using, update_fields=update_fields)
 
 
 class ProductOrder(models.Model):
@@ -113,7 +118,7 @@ class ProductOrder(models.Model):
         return f"Order(product={self.product}, order_size={self.order_size})"
 
 
-class Purchase(models.Model):
+class Purchase(TimeStampedModel):
     """
     A transfer from a personal Soci bank account to the Soci master account.
     Each purchase object can contain multiple ProductOrders.
@@ -132,7 +137,7 @@ class Purchase(models.Model):
         related_name='verified_purchases',
         on_delete=models.DO_NOTHING
     )
-    signed_off_time = models.DateTimeField(auto_now_add=True)
+    signed_off_time = MonitorField(monitor='signed_off_by', null=True, default=None)
 
     collection = models.ForeignKey(
         'PurchaseCollection',
@@ -165,14 +170,11 @@ class Purchase(models.Model):
         return f"Purchase(user={self.source.user},amount={self.total_amount})"
 
 
-class PurchaseCollection(models.Model):
+class PurchaseCollection(TimeFramedModel):
     """
     A collection of Purchases made within a specified time period.
     """
     name = models.CharField(max_length=50, blank=True, null=True)
-
-    start_period = models.DateTimeField(auto_now_add=True)
-    end_period = models.DateTimeField(blank=True, null=True, default=None)
 
     @property
     def total_purchases(self) -> int:
@@ -188,13 +190,18 @@ class PurchaseCollection(models.Model):
 
     def __str__(self):
         return f"PurchaseCollection {self.name} containing {self.purchases.count()} purchases " \
-            f"between {self.start_period} and {self.end_period}"
+            f"between {self.start} and {self.end}"
 
     def __repr__(self):
-        return f"PurchaseCollection(name={self.name},start={self.start_period},end={self.end_period})"
+        return f"PurchaseCollection(name={self.name},start={self.start},end={self.end})"
+
+    def save(self, force_insert=False, force_update=False, using=None, update_fields=None):
+        if self._state.adding:
+            self.start = timezone.now()
+        super().save(force_insert=force_insert, force_update=force_update, using=using, update_fields=update_fields)
 
 
-class Transfer(models.Model):
+class Transfer(TimeStampedModel):
     """
     A transfer between two personal Soci bank accounts.
     """
@@ -223,7 +230,7 @@ class Transfer(models.Model):
         return f"Transfer(from={self.source.user},to={self.destination.user},amount={self.amount})"
 
 
-class Deposit(models.Model):
+class Deposit(TimeStampedModel):
     """
     A deposit of money into a Soci bank account.
     Deposits need a valid receipt in order to be approved.
@@ -250,7 +257,7 @@ class Deposit(models.Model):
         related_name='verified_deposits',
         on_delete=models.DO_NOTHING
     )
-    signed_off_time = models.DateTimeField(auto_now_add=True, null=True, blank=True)
+    signed_off_time = MonitorField(monitor='signed_off_by', null=True, default=None)
 
     @property
     def is_valid(self):
@@ -263,7 +270,7 @@ class Deposit(models.Model):
         return f"Deposit(person={self.account.user},amount={self.amount})"
 
 
-class DepositComment(models.Model):
+class DepositComment(TimeStampedModel):
     """
     A comment made by some user on a deposit.
     This is useful in cases where a deposit is incomplete by missing a receipt or similar.
@@ -283,9 +290,6 @@ class DepositComment(models.Model):
         related_name="all_deposit_comments",
     )
     comment = models.TextField(null=False, blank=False)
-
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         # Add ellipses for comments longer than 20 characters

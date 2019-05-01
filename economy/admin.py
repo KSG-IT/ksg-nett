@@ -13,7 +13,8 @@ class SociBankAccountAdmin(admin.ModelAdmin):
 
 
 class SociProductAdmin(admin.ModelAdmin):
-    list_display = ['sku_number', 'name', 'price', 'description', 'valid_from']
+    list_display = ['sku_number', 'name', 'price', 'description', 'start']
+
 
 class PurchaseAdmin(admin.ModelAdmin):
     list_display = ['user', 'sum', 'signed_off_time']

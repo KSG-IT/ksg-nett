@@ -12,7 +12,7 @@ class SummaryFactory(DjangoModelFactory):
     class Meta:
         model = Summary
 
-    summary_type = random.choice(SUMMARY_TYPE_SHORT_NAMES)[0]
+    summary_type = random.choice(list(SUMMARY_TYPE_SHORT_NAMES))[0]
     contents = Faker('text')
     participants = RelatedFactory('users.tests.factories.UserFactory')
     reporter = SubFactory('users.tests.factories.UserFactory')

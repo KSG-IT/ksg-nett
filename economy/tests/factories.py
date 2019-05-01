@@ -31,7 +31,7 @@ class SociProductFactory(DjangoModelFactory):
     price = Faker('random_number', digits=4, fix_len=True)
     description = Faker('sentence')
     icon = Faker('word')
-    expiry_date = Faker('future_datetime', tzinfo=pytz.timezone(settings.TIME_ZONE))
+    end = Faker('future_datetime', tzinfo=pytz.timezone(settings.TIME_ZONE))
 
 
 class PurchaseCollectionFactory(DjangoModelFactory):
@@ -39,8 +39,8 @@ class PurchaseCollectionFactory(DjangoModelFactory):
         model = PurchaseCollection
 
     name = Faker('sentence')
-    start_period = Faker('past_datetime', tzinfo=pytz.timezone(settings.TIME_ZONE))
-    end_period = timezone.now()
+    start = Faker('past_datetime', tzinfo=pytz.timezone(settings.TIME_ZONE))
+    end = timezone.now()
 
 
 class PurchaseFactory(DjangoModelFactory):

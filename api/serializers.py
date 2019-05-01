@@ -21,7 +21,7 @@ class SociProductSerializer(serializers.Serializer):
 
     icon = serializers.CharField(read_only=True, label="Product icon descriptor")
 
-    expiry_date = serializers.DateTimeField(read_only=True, allow_null=True,
+    expiry_date = serializers.DateTimeField(source='end', read_only=True, allow_null=True,
                                             label="Product only available for purchase until this date")
 
 
