@@ -24,9 +24,11 @@ SchemaView = get_schema_view(
             "* Each user has their own `SociBankAccount`, which keeps track of that user's balance.\n"
             "* Users deposit money into their SociBankAccount by creating a `Deposit`.\n"
             "* A `SociProduct` is a product for sale at Soci.\n"
+            "* Whenever someone ''opens'' Soci, a `SociSession` is created, which tracks the time period in which Soci "
+            "was open.\n"
             "* Products can be ordered by creating a `ProductOrder`. "
-            "This order is then fulfilled by creating a `Purchase`.\n"
-            "* Multiple purchases can be bundled together in a `PurchaseCollection`.\n"
+            "One or multiple orders are then fulfilled by creating a `Purchase`. "
+            "All purchases made are automatically linked to the active SociSession. \n"
             "* Users can also move money between two SociBankAccounts by creating a `Transfer`.\n\n"
             "The API is fully browsable, so you can start using it by opening the endpoints in your web browser."
         )),
