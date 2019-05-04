@@ -30,7 +30,7 @@ class SociProductFactory(DjangoModelFactory):
     name = Faker('word')
     price = Faker('random_number', digits=4, fix_len=True)
     description = Faker('sentence')
-    icon = Faker('word')
+    icon = "🤖"
     end = Faker('future_datetime', tzinfo=pytz.timezone(settings.TIME_ZONE))
 
 

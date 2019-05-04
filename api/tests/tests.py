@@ -308,6 +308,31 @@ class SociBankAccountChargeViewTest(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_402_PAYMENT_REQUIRED)
 
+    def test_charge__sum_of_same_product_exceeds_balance__payment_required(self):
+        """
+        Regression test
+        """
+        data = [
+            {'sku': self.smirre.sku_number, 'order_size': 30},
+        ]
+
+        response = self.client.post(self.url, data, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_402_PAYMENT_REQUIRED)
+
+    def test_charge__sum_of_multiple_products_exceed_balance__payment_required(self):
+        """
+        Regression test
+        """
+        data = [
+            {'sku': self.smirre.sku_number, 'order_size': 15},
+            {'sku': self.dahls.sku_number, 'order_size': 17}
+        ]
+
+        response = self.client.post(self.url, data, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_402_PAYMENT_REQUIRED)
+
     def test_charge__invalid_sku__bad_request(self):
         data = [
             {"sku": "ABSINTHE"}
