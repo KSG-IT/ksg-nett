@@ -72,7 +72,8 @@ class ChargeSociBankAccountDeserializer(serializers.Serializer):
             raise serializers.ValidationError('Amount must be set when charging a direct amount.')
 
         attrs['amount'] = attrs.pop('direct_charge_amount', SociProduct.objects.get(sku_number=attrs['sku']).price)
-        if attrs['amount'] > self.context['soci_bank_account'].chargeable_balance:
+        self.context['total'] = self.context.get('total', 0) + attrs['amount'] * attrs.get('order_size', 1)
+        if self.context['total'] > self.context['soci_bank_account'].chargeable_balance:
             raise InsufficientFundsException()
 
         return attrs
