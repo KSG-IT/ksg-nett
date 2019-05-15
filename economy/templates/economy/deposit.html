@@ -2,9 +2,20 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Title</title>
+    <title>Innskudd</title>
 </head>
 <body>
 This is deposit
+
+<form method="POST" action=" {% url 'deposit' %}">
+    {% csrf_token %}
+    {{ deposit_form }}
+    <input type="submit">
+</form>
+
+{% for deposit in deposit_history %}
+    {{ deposit }}
+{% endfor %}
+
 </body>
 </html>
