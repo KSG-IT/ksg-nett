@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+This is specific deposit view
+<br>
+lj
+
+Deposit amount: {{ deposit.amount }}
+<br>
+Deposit is valid: {{ deposit.is_valid }}
+<br>
+
+{% for comment in deposit_comment %}
+    {{ comment.user.get_full_name }}: {{ comment.comment }}
+    <br>
+{% endfor %}
+<form method="POST">
+    {% csrf_token %}
+    {{ comment_form }}
+    <input type="submit">
+</form>
+</body>
+</html>

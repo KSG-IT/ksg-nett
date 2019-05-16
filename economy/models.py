@@ -270,8 +270,6 @@ class Deposit(TimeStampedModel):
         return f"Deposit(person={self.account.user},amount={self.amount})"
 
 
-
-
 class DepositComment(TimeStampedModel):
     """
     A comment made by some user on a deposit.

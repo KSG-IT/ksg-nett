@@ -8,12 +8,11 @@
 This is deposit:
 User {{ current_user }} has a balance of {{ current_user.bank_account.balance }} kr
 
-<form method="POST" action=" {% url 'deposit' %}" enctype="multipart/form-data">
+<form method="POST" enctype="multipart/form-data">
     {% csrf_token %}
     {{ deposit_form.as_p }}
     <input type="submit">
 </form>
-
 {% for deposit in deposit_history %}
 
     Deposit:
