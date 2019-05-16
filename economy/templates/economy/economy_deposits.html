@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+This is approval of deposits
+<br>
+
+Not approved: <br>
+{% for not_approved in deposits_not_approved %}
+    {{ not_approved }}
+    <br>
+{% endfor %}
+
+Approved:
+<br>
+{% for  approved in deposits_approved %}
+    {{ approved }}
+    <br>
+{% endfor %}
+</body>
+</html>
