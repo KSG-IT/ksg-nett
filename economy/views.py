@@ -1,6 +1,6 @@
 from django.shortcuts import render
 from economy.forms import DepositForm, DepositCommentForm
-from economy.models import Deposit, DepositComment
+from economy.models import Deposit, DepositComment, SociBankAccount
 from django.shortcuts import render, get_object_or_404, redirect, HttpResponse
 from django.urls import reverse
 import datetime
@@ -42,6 +42,8 @@ def deposits(request):
 def deposit_approve(request, deposit_id):
     if request.method == "POST":
         deposit = get_object_or_404(Deposit, pk=deposit_id)
+        soci_account = get_object_or_404(SociBankAccount, pk=deposit.account.id)
+        soci_account.add_funds(deposit.amount)
         deposit.signed_off_by = request.user
         deposit.signed_off_time = datetime.datetime.now()
         deposit.save()
@@ -51,6 +53,8 @@ def deposit_approve(request, deposit_id):
 def deposit_invalidate(request, deposit_id):
     if request.method == "POST":
         deposit = get_object_or_404(Deposit, pk=deposit_id)
+        soci_account = get_object_or_404(SociBankAccount, pk=deposit.account.id)
+        soci_account.remove_funds(deposit.amount)
         deposit.signed_off_by = None
         deposit.signed_off_time = None
         deposit.save()
