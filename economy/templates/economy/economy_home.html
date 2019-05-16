@@ -13,16 +13,21 @@ User {{ current_user }} has a balance of {{ current_user.bank_account.balance }}
     {{ deposit_form.as_p }}
     <input type="submit">
 </form>
-{% for deposit in deposit_history %}
+<table style="border-style: solid">
+    {% for deposit in deposit_history %}
+        <td>
+            Deposit:
+            <td>{{ deposit.amount }}</td>
+            <td>{{ deposit.description }}</td>
+            <td>{{ deposit.receipt }}</td>
+            <td>Valid: {{ deposit.is_valid }}</td>
 
-    Deposit:
-    {{ deposit }}
-    <br>
-    Kvittering: <img src="/media/{{ deposit.receipt }}">
-    <br>
-    Valid: {{ deposit.is_valid }}
-    <br>
-{% endfor %}
 
+        </tr>
+    {% endfor %}
+</table>
+<form method="GET" action="deposit">
+    <input type="submit">
+</form>
 </body>
 </html>

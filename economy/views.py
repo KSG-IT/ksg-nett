@@ -3,6 +3,7 @@ from economy.forms import DepositForm, DepositCommentForm
 from economy.models import Deposit, DepositComment
 from django.shortcuts import render, get_object_or_404, redirect, HttpResponse
 from django.urls import reverse
+import datetime
 
 
 def economy_home(request):
@@ -13,21 +14,20 @@ def economy_home(request):
             'current_user': request.user
         }
         return render(request, template_name='economy/economy_home.html', context=ctx)
-    elif request.method == "POST":
 
+    elif request.method == "POST":
         form = DepositForm(request.POST, request.FILES)
         if form.is_valid():
             obj = form.save(commit=False)
             obj.account = request.user.bank_account
             obj.save()
-            return HttpResponse('Success')
 
-        ctx = {
-            'deposit_form': DepositForm(),
-            'deposit_history': Deposit.objects.filter(account=request.user.bank_account),
-            'current_user': request.user
-        }
-        return render(request, template_name='economy/economy_home.html', context=ctx)
+            ctx = {
+                'deposit_form': DepositForm(),
+                'deposit_history': Deposit.objects.filter(account=request.user.bank_account),
+                'current_user': request.user
+            }
+            return render(request, template_name='economy/economy_home.html', context=ctx)
 
 
 def deposits(request):
@@ -39,7 +39,18 @@ def deposits(request):
         return render(request, template_name='economy/economy_deposits.html', context=ctx)
 
 
+def deposit_approve(request, deposit_id):
+    if request.method == "POST":
+        deposit = get_object_or_404(Deposit, pk=deposit_id)
+        deposit.signed_off_by = request.user
+        deposit.signed_off_time = datetime.datetime.now()
+        deposit.save()
+        return redirect(reverse(deposits))
+
+
+# TODO: Refactor so it looks cleaner
 def deposit_detail(request, deposit_id):
+    """Is a lot the code here reduntant? Can the logic be simplified somewhat?"""
     if request.method == "GET":
         deposit = get_object_or_404(Deposit, pk=deposit_id)
         deposit_comment = DepositComment.objects.filter(deposit=deposit)
@@ -49,6 +60,7 @@ def deposit_detail(request, deposit_id):
             'comment_form': DepositCommentForm()
         }
         return render(request, template_name='economy/economy_deposit_detail.html', context=ctx)
+
     elif request.method == "POST":
         deposit = get_object_or_404(Deposit, pk=deposit_id)
         deposit_comment = DepositCommentForm(request.POST)

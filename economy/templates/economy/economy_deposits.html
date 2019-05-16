@@ -5,20 +5,31 @@
     <title>Title</title>
 </head>
 <body>
-This is approval of deposits
-<br>
 
 Not approved: <br>
-{% for not_approved in deposits_not_approved %}
-    {{ not_approved }}
-    <br>
-{% endfor %}
-
+<table style="border-style: solid">
+    {% for not_approved in deposits_not_approved %}
+        <form method="POST" action="/internal/economy/deposit/{{ not_approved.id }}/approve">
+            {% csrf_token %}
+        <tr>
+            <td>{{ not_approved.amount }}</td>
+            <td>{{ not_approved.description }}</td>
+            <td><button type="submit">Godkjenn innskudd</button></td>
+        </tr>
+        </form>
+    {% endfor %}
+</table>
 Approved:
-<br>
-{% for  approved in deposits_approved %}
-    {{ approved }}
-    <br>
-{% endfor %}
+<table style="border-style: solid">
+    {% for  approved in deposits_approved %}
+        <tr>
+            <td>Amount: {{ approved.amount }}</td>
+            <td>Account: {{ approved.account.user.first_name }}</td>
+            <td>Approved by: {{ approved.signed_off_by }}</td>
+
+        </tr>
+
+    {% endfor %}
+</table>
 </body>
 </html>
