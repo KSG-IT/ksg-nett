@@ -7,21 +7,33 @@
 <body>
 This is specific deposit view
 <br>
-lj
 
 Deposit amount: {{ deposit.amount }}
 <br>
 Deposit is valid: {{ deposit.is_valid }}
 <br>
 
-{% for comment in deposit_comment %}
-    {{ comment.user.get_full_name }}: {{ comment.comment }}
-    <br>
-{% endfor %}
-<form method="POST">
-    {% csrf_token %}
-    {{ comment_form }}
-    <input type="submit">
-</form>
+<table>
+    {% for comment in deposit_comment %}
+        <tr>
+            <td>
+                {{ comment.user.get_full_name }}: {{ comment.comment }}
+            </td>
+        </tr>
+    {% endfor %}
+    <form method="POST">
+        <tr>
+            <td>
+                {% csrf_token %}
+                {{ comment_form.comment }}
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <input type="submit">
+            </td>
+        </tr>
+    </form>
+</table>
 </body>
 </html>

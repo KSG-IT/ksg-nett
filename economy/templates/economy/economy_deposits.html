@@ -17,8 +17,14 @@ Not approved: <br>
                 <td>
                     <button type="submit">Godkjenn innskudd</button>
                 </td>
-            </tr>
         </form>
+        <td>
+            <form method="GET" action="deposit/{{ not_approved.id }}">
+                <input type="submit" value="Se info">
+            </form>
+        </td>
+        </tr>
+
     {% endfor %}
 </table>
 Approved:
