@@ -11,24 +11,30 @@ Not approved: <br>
     {% for not_approved in deposits_not_approved %}
         <form method="POST" action="/internal/economy/deposit/{{ not_approved.id }}/approve">
             {% csrf_token %}
-        <tr>
-            <td>{{ not_approved.amount }}</td>
-            <td>{{ not_approved.description }}</td>
-            <td><button type="submit">Godkjenn innskudd</button></td>
-        </tr>
+            <tr>
+                <td>{{ not_approved.amount }}</td>
+                <td>{{ not_approved.description }}</td>
+                <td>
+                    <button type="submit">Godkjenn innskudd</button>
+                </td>
+            </tr>
         </form>
     {% endfor %}
 </table>
 Approved:
 <table style="border-style: solid">
     {% for  approved in deposits_approved %}
-        <tr>
-            <td>Amount: {{ approved.amount }}</td>
-            <td>Account: {{ approved.account.user.first_name }}</td>
-            <td>Approved by: {{ approved.signed_off_by }}</td>
-
-        </tr>
-
+        <form method="POST" action="/internal/economy/deposit/{{ approved.id }}/invalidate">
+            {% csrf_token %}
+            <tr>
+                <td>Amount: {{ approved.amount }}</td>
+                <td>Account: {{ approved.account.user.first_name }}</td>
+                <td>Approved by: {{ approved.signed_off_by }}</td>
+                <td>
+                    <button type="submit">Underkjenn innskudd</button>
+                </td>
+            </tr>
+        </form>
     {% endfor %}
 </table>
 </body>
