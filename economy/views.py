@@ -48,9 +48,18 @@ def deposit_approve(request, deposit_id):
         return redirect(reverse(deposits))
 
 
+def deposit_invalidate(request, deposit_id):
+    if request.method == "POST":
+        deposit = get_object_or_404(Deposit, pk=deposit_id)
+        deposit.signed_off_by = None
+        deposit.signed_off_time = None
+        deposit.save()
+        return redirect(reverse(deposits))
+
+
 # TODO: Refactor so it looks cleaner
 def deposit_detail(request, deposit_id):
-    """Is a lot the code here reduntant? Can the logic be simplified somewhat?"""
+    """Is a lot the code here redundant? Can the logic be simplified somewhat?"""
     if request.method == "GET":
         deposit = get_object_or_404(Deposit, pk=deposit_id)
         deposit_comment = DepositComment.objects.filter(deposit=deposit)
