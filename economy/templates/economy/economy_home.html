@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Innskudd</title>
+</head>
+<body>
+This is deposit:
+User {{ current_user }} has a balance of {{ current_user.bank_account.balance }} kr
+
+<form method="POST" action=" {% url 'deposit' %}" enctype="multipart/form-data">
+    {% csrf_token %}
+    {{ deposit_form.as_p }}
+    <input type="submit">
+</form>
+
+{% for deposit in deposit_history %}
+
+    Deposit:
+    {{ deposit }}
+    <br>
+    Kvittering: <img src="/media/{{ deposit.receipt }}">
+    <br>
+    Valid: {{ deposit.is_valid }}
+    <br>
+{% endfor %}
+
+</body>
+</html>
