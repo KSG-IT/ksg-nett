@@ -15,9 +15,9 @@ def economy_home(request):
         }
         return render(request, template_name='economy/economy_home.html', context=ctx)
 
-    elif request.method == "POST":
+    elif request.method == "POST":  # Should this maybe be handled in a different view?
         form = DepositForm(request.POST, request.FILES)
-        if form.is_valid():
+        if form.is_valid(): # needs handling for when form.is_valid() is False
             obj = form.save(commit=False)
             obj.account = request.user.bank_account
             obj.save()
@@ -82,8 +82,9 @@ def deposit_detail(request, deposit_id):
             obj.deposit = deposit
             obj.user = request.user
             obj.save()
-            deposit = get_object_or_404(Deposit, pk=deposit_id)
-            deposit_comment = DepositComment.objects.filter(deposit=deposit)
+
+            deposit = get_object_or_404(Deposit, pk=deposit_id)  # wtf am i doing here
+            deposit_comment = DepositComment.objects.filter(deposit=deposit).order_by('created_at')
             ctx = {
                 'deposit': deposit,
                 'deposit_comment': deposit_comment,
