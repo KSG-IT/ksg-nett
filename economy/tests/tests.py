@@ -188,7 +188,7 @@ class DepositApproveViewTest(TestCase):
 
     def test__approve_view__returns_status_code_302(self):
         self.client.force_login(self.signing_user)
-        response = self.client.post(reverse(viewname=deposit_approve(), kwargs={'deposit_id': DepositFactory().id}))
+        response = self.client.post(reverse(viewname=deposit_approve, kwargs={'deposit_id': DepositFactory().id}))
         self.assertEqual(302, response.status_code)
 
 
