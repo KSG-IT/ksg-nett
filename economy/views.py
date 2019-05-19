@@ -84,7 +84,7 @@ def deposit_detail(request, deposit_id):
             obj.save()
 
             deposit = get_object_or_404(Deposit, pk=deposit_id)  # wtf am i doing here
-            deposit_comment = DepositComment.objects.filter(deposit=deposit).order_by('created_at')
+            deposit_comment = DepositComment.objects.order_by('created').filter(deposit=deposit)
             ctx = {
                 'deposit': deposit,
                 'deposit_comment': deposit_comment,

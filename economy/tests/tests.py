@@ -9,7 +9,7 @@ from economy.tests.factories import SociBankAccountFactory, DepositFactory, Purc
 from economy.forms import DepositForm, DepositCommentForm
 from users.tests.factories import UserFactory
 from django.urls import reverse
-from economy.views import deposit_approve, deposit_invalidate, economy_home, deposits
+from economy.views import deposit_approve, deposit_invalidate, economy_home, deposits, deposit_detail
 
 
 class SociBankAccountTest(TestCase):
@@ -295,4 +295,57 @@ class DepositsViewTest(TestCase):
     def test__deposits_view__returns_status_code_200(self):
         self.client.force_login(self.user)
         response = self.client.get(reverse(deposits))
+        self.assertEqual(200, response.status_code)
+
+
+class DepositDetailViewTest(TestCase):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.user = UserFactory()
+        cls.bank_account = SociBankAccountFactory(user=cls.user)
+        cls.user_deposit_no_comment = DepositFactory(account=cls.bank_account)
+        cls.deposit_comment = DepositCommentFactory()
+        cls.deposit_ten_comments = DepositFactory()
+        DepositCommentFactory.create_batch(10, deposit=cls.deposit_ten_comments)
+        cls.deposit_ten_comments.save()
+
+    def test__deposit_detail_view_GET_request__renders_correct_template(self):
+        self.client.force_login(self.user)
+        response = self.client.get(reverse(deposit_detail, kwargs={'deposit_id': self.user_deposit_no_comment.id}))
+        self.assertTemplateUsed(response, 'economy/economy_deposit_detail.html')
+
+    def test__deposit_detail_view_POST_request__renders_correct_template(self):
+        self.client.force_login(self.user)
+        response = self.client.post(reverse(deposit_detail, kwargs={'deposit_id': self.user_deposit_no_comment.id}),
+                                    urlencode({
+                                        'comment': self.deposit_comment.comment}
+                                    ),
+                                    content_type="application/x-www-form-urlencoded")
+        self.assertTemplateUsed(response, 'economy/economy_deposit_detail.html')
+
+    def test__deposit_detail_view_POST_deposit_comment__saves_comment_in_db(self):
+        self.client.force_login(self.user)
+        comments_before_POST = self.deposit_ten_comments.comments.count()
+        response = self.client.post(reverse(deposit_detail, kwargs={'deposit_id': self.deposit_ten_comments.id}),
+                                    urlencode({
+                                        'comment': self.deposit_comment}
+                                    ),
+                                    content_type="application/x-www-form-urlencoded")
+        self.deposit_ten_comments.refresh_from_db()
+        comments_after_POST = self.deposit_ten_comments.comments.count()
+        self.assertEqual(1, comments_after_POST - comments_before_POST)
+
+    def test__deposit_detail_view_GET_request__returns_status_code_200(self):
+        self.client.force_login(self.user)
+        response = self.client.get(reverse(deposit_detail, kwargs={'deposit_id': self.user_deposit_no_comment.id}))
+        self.assertEqual(200, response.status_code)
+
+    def test__deposit_detail_view_POST_request__returns_status_code_200(self):
+        self.client.force_login(self.user)
+        response = self.client.post(reverse(deposit_detail, kwargs={'deposit_id': self.user_deposit_no_comment.id}),
+                                    urlencode({
+                                        'comment': self.deposit_comment.comment}
+                                    ),
+                                    content_type="application/x-www-form-urlencoded")
         self.assertEqual(200, response.status_code)
