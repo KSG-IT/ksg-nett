@@ -1,7 +1,6 @@
-from django.shortcuts import render
 from economy.forms import DepositForm, DepositCommentForm
 from economy.models import Deposit, DepositComment, SociBankAccount
-from django.shortcuts import render, get_object_or_404, redirect, HttpResponse
+from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse
 import datetime
 
