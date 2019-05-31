@@ -3,6 +3,8 @@ from economy.models import Deposit, DepositComment, SociBankAccount
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse
 import datetime
+from rest_framework import status
+from django.http import HttpResponse
 
 
 def economy_home(request):
@@ -16,7 +18,7 @@ def economy_home(request):
 
     elif request.method == "POST":  # Should this maybe be handled in a different view?
         form = DepositForm(request.POST, request.FILES)
-        if form.is_valid(): # needs handling for when form.is_valid() is False
+        if form.is_valid():  # needs handling for when form.is_valid() is False
             obj = form.save(commit=False)
             obj.account = request.user.bank_account
             obj.save()
@@ -58,6 +60,23 @@ def deposit_invalidate(request, deposit_id):
         deposit.signed_off_time = None
         deposit.save()
         return redirect(reverse(deposits))
+
+
+def deposit_edit(request, deposit_id):
+    deposit = get_object_or_404(Deposit, pk=deposit_id)
+    form = DepositForm(request.POST or None, instance=deposit)
+    ctx = {
+        'deposit_form': form,
+        'deposit': deposit
+    }
+    if request.method == "GET":
+        return render(request, template_name='economy/economy_deposit_edit.html', context=ctx)
+    elif request.method == "POST":
+        if form.is_valid:
+            form.save()
+            return redirect(reverse(economy_home))
+    else:
+        return HttpResponse(status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
 
 # TODO: Refactor so it looks cleaner
