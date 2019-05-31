@@ -1,11 +1,7 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
+{% extends 'internal/base.html' %}
 
+
+{% block body_content %}
 Not approved: <br>
 <table style="border-style: solid">
     {% for not_approved in deposits_not_approved %}
@@ -19,7 +15,7 @@ Not approved: <br>
                 </td>
         </form>
         <td>
-            <form method="GET" action="deposit/{{ not_approved.id }}">
+            <form method="GET" action="/internal/economy/deposit/{{ not_approved.id }}">
                 <input type="submit" value="Se info">
             </form>
         </td>
@@ -43,5 +39,4 @@ Approved:
         </form>
     {% endfor %}
 </table>
-</body>
-</html>
+{% endblock %}

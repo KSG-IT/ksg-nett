@@ -1,10 +1,7 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
+{% extends 'internal/base.html' %}
+
+
+{% block body_content %}
 This is specific deposit view
 <br>
 
@@ -35,5 +32,4 @@ Deposit is valid: {{ deposit.is_valid }}
         </tr>
     </form>
 </table>
-</body>
-</html>
+{% endblock %}
