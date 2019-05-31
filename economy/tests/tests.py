@@ -8,7 +8,7 @@ from economy.tests.factories import SociBankAccountFactory, DepositFactory, Purc
 from economy.forms import DepositForm, DepositCommentForm
 from users.tests.factories import UserFactory
 from django.urls import reverse
-from economy.views import deposit_approve, deposit_invalidate, economy_home, deposits, deposit_detail
+from economy.views import deposit_approve, deposit_invalidate, economy_home, deposits, deposit_detail, deposit_edit
 
 
 class SociBankAccountTest(TestCase):
@@ -352,3 +352,41 @@ class DepositDetailViewTest(TestCase):
                                     ),
                                     content_type="application/x-www-form-urlencoded")
         self.assertEqual(200, response.status_code)
+
+
+class DepositEditViewTest(TestCase):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.deposit_user = UserFactory()
+        cls.bank_account = SociBankAccountFactory(user=cls.deposit_user)
+        cls.deposit = DepositFactory(account=cls.deposit_user.bank_account, amount=420,
+                                     description='lol vipps uten gebyr')
+        cls.deposit_GET_request = DepositFactory(account=cls.deposit_user.bank_account, amount=1337)
+        cls.deposit_POST_request = DepositFactory()
+
+    def test__deposit_edit_view_POST_request__changes_are_saved(self):
+        self.client.force_login(self.deposit_user)
+        self.client.post(reverse(deposit_edit, kwargs={'deposit_id': self.deposit.id}), urlencode({
+            'amount': 400
+        }), content_type="application/x-www-form-urlencoded")
+        self.deposit.refresh_from_db()
+        self.assertEqual(400, self.deposit.amount)
+
+    def test__deposit_edit_view_GET_request__returns_correct_instance_values(self):
+        self.client.force_login(self.deposit_user)
+        response = self.client.get(reverse(deposit_edit, kwargs={'deposit_id': self.deposit_GET_request.id}))
+        response_deposit = response.context['deposit']
+        self.assertEqual(self.deposit_GET_request, response_deposit)
+
+    def test__deposit_edit_view_GET_request__returns_correct_template(self):
+        self.client.force_login(self.deposit_user)
+        response = self.client.get(reverse(deposit_edit, kwargs={'deposit_id': self.deposit_GET_request.id}))
+        self.assertTemplateUsed(response, template_name='economy/economy_deposit_edit.html')
+
+    def test__deposit_edit_view_POST_request__correct_redirect(self):
+        self.client.force_login(self.deposit_user)
+        response = self.client.post(reverse(deposit_edit, kwargs={'deposit_id': self.deposit_POST_request.id}),
+                                    urlencode({'amount': self.deposit_POST_request.amount}),
+                                    content_type="application/x-www-form-urlencoded")
+        self.assertRedirects(response, reverse(economy_home))
