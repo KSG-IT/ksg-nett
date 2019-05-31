@@ -8,6 +8,7 @@ from django.http import HttpResponse
 
 
 def economy_home(request):
+    """Renders the economy homepage for a user. Includes list of deposits and a form for submitting a new deposit"""
     if request.method == "GET":
         ctx = {
             'deposit_form': DepositForm(),
@@ -32,6 +33,7 @@ def economy_home(request):
 
 
 def deposits(request):
+    """Renders all deposits seperated by approved and not approved"""
     if request.method == "GET":
         ctx = {
             'deposits_not_approved': Deposit.objects.filter(signed_off_by=None),
@@ -81,6 +83,7 @@ def deposit_edit(request, deposit_id):
 
 # TODO: Refactor so it looks cleaner
 def deposit_detail(request, deposit_id):
+    """Renders a detailed view of a deposit, handles sumbission of a deposit comment if the request method is POST"""
     """Is a lot the code here redundant? Can the logic be simplified somewhat?"""
     if request.method == "GET":
         deposit = get_object_or_404(Deposit, pk=deposit_id)
