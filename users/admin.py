@@ -30,8 +30,9 @@ class AllergyAdmin(admin.ModelAdmin):
 
 class SociBankAccountInline(admin.StackedInline):
     model = SociBankAccount
-    fields = ['card_uuid', 'display_balance_at_soci']
-    verbose_name_plural = 'Soci Bank Account'
+    fields = ['card_uuid']
+    verbose_name = 'Soci Bank Account'
+    verbose_name_plural = 'Soci Bank Accounts'
     can_delete = False
 
 
