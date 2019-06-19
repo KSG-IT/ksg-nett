@@ -11,5 +11,4 @@ class DepositForm(forms.ModelForm):
 class DepositCommentForm(forms.ModelForm):
     class Meta:
         model = DepositComment
-        fields = ('comment', 'user', 'deposit')
-        exclude = ('user', 'deposit')
+        fields = ('comment',)
