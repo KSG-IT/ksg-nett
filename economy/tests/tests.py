@@ -150,7 +150,7 @@ class DepositCommentFormTest(TestCase):
         form = DepositCommentForm(data={'comment': self.deposit_comment.comment})
         self.assertTrue(form.is_valid())
 
-    def test__invalid_deposit_comment_form__is_valid_returns_false(self):
+    def test__deposit_comment_form_empty_data_set__is_valid_returns_false(self):
         form = DepositCommentForm(data={})
         self.assertFalse(form.is_valid())
 
