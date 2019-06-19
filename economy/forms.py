@@ -5,8 +5,7 @@ from economy.models import Deposit, DepositComment
 class DepositForm(forms.ModelForm):
     class Meta:
         model = Deposit
-        fields = ('amount', 'receipt', 'description', 'account')
-        exclude = ('account',)
+        fields = ('amount', 'receipt', 'description')
 
 
 class DepositCommentForm(forms.ModelForm):
