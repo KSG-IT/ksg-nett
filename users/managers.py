@@ -36,7 +36,7 @@ class UsersHaveMadeOutManager(UserManager):
         end_of_semester = some_datetime_in_semester
 
         # Case where we are in the autumn
-        if some_datetime_in_semester.month > 7:
+        if some_datetime_in_semester.month >= 7:
             start_of_semester = timezone.datetime(
                 some_datetime_in_semester.year,
                 7,  # July
