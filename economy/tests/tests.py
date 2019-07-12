@@ -5,7 +5,7 @@ from urllib.parse import urlencode
 from economy.models import Deposit
 
 from economy.tests.factories import SociBankAccountFactory, DepositFactory, PurchaseFactory, TransferFactory, \
-    ProductOrderFactory, DepositCommentFactory, SociSessionFactory
+ ProductOrderFactory, DepositCommentFactory, SociSessionFactory
 from economy.forms import DepositForm, DepositCommentForm
 from django.urls import reverse
 from economy.views import deposit_approve, deposit_invalidate, economy_home, deposits, deposit_detail, deposit_edit
@@ -165,8 +165,13 @@ class DepositApproveViewTest(TestCase):
         super().setUpClass()
         cls.not_approved_deposit = DepositFactory(signed_off_by=None)
         cls.signing_user = UserFactory()
-        cls.user_getting_funds = UserFactory(bank_account=SociBankAccountFactory())
+        cls.soci_bank_account = SociBankAccountFactory()
+        cls.user_getting_funds = cls.soci_bank_account.user
+
         cls.deposit_from_user_getting_funds = DepositFactory(account=cls.user_getting_funds.bank_account, amount=200)
+
+    def test_lol(self):
+        self.assertEqual("", "")
 
     def test__not_signed_deposit_approve_view__is_valid(self):
         self.client.force_login(self.signing_user)
@@ -202,7 +207,8 @@ class DepositInvalidateViewTest(TestCase):
         super().setUpClass()
         cls.signing_user = UserFactory()
         cls.approved_deposit = DepositFactory(signed_off_by=cls.signing_user)
-        cls.user_losing_funds = UserFactory(bank_account=SociBankAccountFactory())
+        cls.soci_bank_acount = SociBankAccountFactory()
+        cls.user_losing_funds = cls.soci_bank_acount.user
         cls.deposit_from_user_losing_funds = DepositFactory(account=cls.user_losing_funds.bank_account, amount=400,
                                                             signed_off_by=cls.signing_user)
 

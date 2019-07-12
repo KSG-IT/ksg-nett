@@ -13,7 +13,7 @@ class SociBankAccountFactory(DjangoModelFactory):
     class Meta:
         model = SociBankAccount
 
-    user = SubFactory('users.tests.factories.UserFactory')
+    user = SubFactory(UserFactory)
     balance = 0
 
     @sequence
