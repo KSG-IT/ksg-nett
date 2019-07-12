@@ -5,26 +5,16 @@ from urllib.parse import urlencode
 from economy.models import Deposit
 
 from economy.tests.factories import SociBankAccountFactory, DepositFactory, PurchaseFactory, TransferFactory, \
-    ProductOrderFactory, PurchaseCollectionFactory, DepositCommentFactory
+    ProductOrderFactory, DepositCommentFactory, SociSessionFactory
 from economy.forms import DepositForm, DepositCommentForm
-from users.tests.factories import UserFactory
 from django.urls import reverse
 from economy.views import deposit_approve, deposit_invalidate, economy_home, deposits, deposit_detail, deposit_edit
+from users.tests.factories import UserFactory
 
 
 class SociBankAccountTest(TestCase):
     def setUp(self):
         self.soci_account = SociBankAccountFactory(balance=500)
-
-    def test_soci_bank_account__correct_status(self):
-        self.assertTrue(self.soci_account.has_sufficient_funds)
-        self.assertFalse(self.soci_account.public_balance)
-
-    def test_account_with_public_balance__display_balance(self):
-        self.soci_account.display_balance_at_soci = True
-        self.soci_account.save()
-
-        self.assertTrue(self.soci_account.display_balance_at_soci)
 
     def test_account_with_transactions__transaction_history_retrieved_correctly(self):
         SociBankAccountFactory(card_uuid=settings.SOCI_MASTER_ACCOUNT_CARD_ID)
@@ -39,11 +29,6 @@ class SociBankAccountTest(TestCase):
         self.assertEqual(1, history['deposits'].count())
         self.assertEqual(1, history['purchases'].count())
         self.assertEqual(1, history['transfers'].count())
-
-    def test_account_with_balance_larger_than_soci_limit__return_balance_as_chargeable_balance(self):
-        chargeable_balance = self.soci_account.chargeable_balance
-
-        self.assertEqual(500, chargeable_balance)
 
     def test_account__add_funds__added_correctly(self):
         self.soci_account.add_funds(500)
@@ -66,8 +51,8 @@ class PurchaseTest(TestCase):
             2, product__name=Iterator(['first', 'second']), product__price=Iterator([100, 200]),
             order_size=1, amount=Iterator([100, 200]), purchase=cls.purchase)
 
-    def test_valid_purchase__is_valid(self):
-        self.assertTrue(self.purchase.is_valid)
+    def test_valid_purchase__has_session(self):
+        self.assertTrue(self.purchase.session)
 
     def test_total_amount__correct_amount_returned(self):
         self.assertEqual(300, self.purchase.total_amount)
@@ -76,20 +61,20 @@ class PurchaseTest(TestCase):
         self.assertEqual(['first', 'second'], self.purchase.products_purchased)
 
 
-class PurchaseCollectionTest(TestCase):
+class SociSessionTest(TestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
         SociBankAccountFactory(card_uuid=settings.SOCI_MASTER_ACCOUNT_CARD_ID)
-        cls.collection = PurchaseCollectionFactory()
-        ProductOrderFactory(amount=100, purchase__collection=cls.collection)
-        ProductOrderFactory(amount=200, purchase__collection=cls.collection)
+        cls.session = SociSessionFactory()
+        ProductOrderFactory(amount=100, purchase__session=cls.session)
+        ProductOrderFactory(amount=200, purchase__session=cls.session)
 
     def test_total_purchases__correct_amount_returned(self):
-        self.assertEqual(2, self.collection.total_purchases)
+        self.assertEqual(2, self.session.total_purchases)
 
     def test_total_amount__correct_amount_returned(self):
-        self.assertEqual(300, self.collection.total_amount)
+        self.assertEqual(300, self.session.total_amount)
 
 
 class DepositTest(TestCase):
@@ -98,8 +83,27 @@ class DepositTest(TestCase):
         super().setUpClass()
         cls.valid_deposit = DepositFactory()
 
-    def test_deposit_status__correct_status(self):
-        self.assertTrue(self.valid_deposit.is_valid)
+    def test__approve_deposit__mark_as_valid_and_transfer_funds(self):
+        invalid_deposit = DepositFactory(signed_off_by=None)
+        self.assertFalse(invalid_deposit.is_valid)
+        self.assertIsNone(invalid_deposit.signed_off_time)
+        self.assertEqual(0, invalid_deposit.account.balance)
+
+        invalid_deposit.signed_off_by = UserFactory()
+        invalid_deposit.save()
+
+        self.assertTrue(invalid_deposit.is_valid)
+        self.assertIsNotNone(invalid_deposit.signed_off_time)
+        self.assertEqual(invalid_deposit.amount, invalid_deposit.account.balance)
+
+    def test__update_approved_deposit__do_not_transfer_funds_again(self):
+        original_amount = self.valid_deposit.amount
+        self.assertEqual(original_amount, self.valid_deposit.account.balance)
+
+        self.valid_deposit.amount = 1337
+        self.valid_deposit.save()
+
+        self.assertEqual(original_amount, self.valid_deposit.account.balance)
 
 
 class DepositCommentTest(TestCase):

@@ -7,11 +7,12 @@ from rest_framework import status
 from rest_framework.test import APITestCase, APIClient
 from rest_framework_simplejwt.tokens import SlidingToken
 
-from economy.tests.factories import SociProductFactory, SociBankAccountFactory
+from economy.models import SociSession
+from economy.tests.factories import SociProductFactory, SociBankAccountFactory, SociSessionFactory
 from users.tests.factories import UserFactory
 
 
-class CustomObtainJwtTokenViewTest(APITestCase):
+class CustomTokenObtainSlidingViewTest(APITestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
@@ -37,9 +38,21 @@ class CustomObtainJwtTokenViewTest(APITestCase):
         self.assertEqual(401, response.status_code)
         self.assertIsNone(response.data.get('token'))
 
+    def test_obtain_token__start_soci_session_and_terminate_previous(self):
+        unterminated_session = SociSessionFactory()
+        data = {'username': self.user.bank_account.card_uuid, 'password': 'password'}
 
-class CustomRefreshJwtTokenViewTest(APITestCase):
+        response = self.client.post(self.url, data)
 
+        self.assertEqual(200, response.status_code)
+        unterminated_session.refresh_from_db()
+        self.assertIsNotNone(unterminated_session.end)
+        self.assertTrue(SociSession.objects.filter(
+            start__gt=unterminated_session.end, end__isnull=True, signed_off_by=self.user).exists())
+
+
+
+class CustomTokenRefreshSlidingViewTest(APITestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
@@ -68,7 +81,7 @@ class CustomRefreshJwtTokenViewTest(APITestCase):
         self.assertEqual('token_not_valid', response.data.get('code'))
 
 
-class CustomVerifyJwtTokenViewTest(APITestCase):
+class CustomTokenVerifyViewTest(APITestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
@@ -97,6 +110,39 @@ class CustomVerifyJwtTokenViewTest(APITestCase):
         self.assertEqual('token_not_valid', response.data.get('code'))
 
 
+class TerminateSociSessionViewTest(APITestCase):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.client = APIClient()
+        cls.url = reverse('api:terminate-session')
+
+    def setUp(self):
+        self.client.force_authenticate(UserFactory(is_staff=True))
+        now = timezone.now()
+        SociSessionFactory(start=now - timedelta(days=3), end=now - timedelta(days=2))
+        SociSessionFactory(start=now - timedelta(days=2), end=now - timedelta(days=1))
+        self.active_session = SociSessionFactory(start=now - timedelta(days=1))
+
+    def test_delete__active_session__ok_and_update_session_with_end_date(self):
+        response = self.client.delete(self.url)
+
+        self.assertEqual(200, response.status_code)
+        self.active_session.refresh_from_db()
+        self.assertIsNotNone(self.active_session.end)
+
+    def test_delete__no_active_session__ok_and_update_nothing(self):
+        now = timezone.now()
+        self.active_session.end = now
+        self.active_session.save()
+
+        response = self.client.delete(self.url)
+
+        self.assertEqual(200, response.status_code)
+        self.active_session.refresh_from_db()
+        self.assertEqual(self.active_session.end, now)
+
+
 class SociProductListViewTest(APITestCase):
     @classmethod
     def setUpClass(cls):
@@ -114,17 +160,17 @@ class SociProductListViewTest(APITestCase):
     def test_get__valid_request__ok(self):
         response = self.client.get(self.url)
 
-        self.assertEquals(response.status_code, status.HTTP_200_OK)
-        self.assertEquals(len(response.data), 3)
-        self.assertEqual((len(response.data[0])), 6)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 3)
+        self.assertEqual((len(response.data[0])), 5)
 
     def test_get__product_without_description__description_blank(self):
         SociProductFactory(sku_number="z", name="Nordlands Pils", description=None)
 
         response = self.client.get(self.url)
 
-        self.assertEquals(response.status_code, status.HTTP_200_OK)
-        self.assertEquals(len(response.data), 4)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 4)
         self.assertFalse(response.data[-1]['description'])
 
     def test_get__expired_product__do_not_include_in_response(self):
@@ -132,7 +178,7 @@ class SociProductListViewTest(APITestCase):
 
         response = self.client.get(self.url)
 
-        self.assertEquals(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertNotIn(expired_product.sku_number, [product['sku_number'] for product in response.data])
 
     def test_get__not_available_product__do_not_include_in_response(self):
@@ -140,7 +186,7 @@ class SociProductListViewTest(APITestCase):
 
         response = self.client.get(self.url)
 
-        self.assertEquals(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertNotIn(future_available_product.sku_number, [product['sku_number'] for product in response.data])
 
     def test_get__sorted_by_sku_number(self):
@@ -148,7 +194,7 @@ class SociProductListViewTest(APITestCase):
 
         response = self.client.get(self.url)
 
-        self.assertEquals(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(first_product.sku_number, response.data[0]['sku_number'])
         self.assertEqual('dahls', response.data[1]['sku_number'])
         self.assertEqual('ice', response.data[2]['sku_number'])
@@ -171,42 +217,29 @@ class SociBankAccountBalanceDetailViewTest(APITestCase):
 
         response = self.client.get(self.url, {'card_uuid': self.user_account.card_uuid})
 
-        self.assertEquals(response.status_code, status.HTTP_200_OK)
-        self.assertEquals(len(response.data), 4)
-        self.assertFalse(response.data['balance'])
-        self.assertTrue(response.data['has_sufficient_funds'])
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 3)
+        self.assertEqual(1337, response.data['balance'])
 
-    def test_get_balance__negative_amount__payment_required(self):
+    def test_get_balance__negative_amount__ok(self):
         self.user_account.remove_funds(amount=2000)
 
         response = self.client.get(self.url, {'card_uuid': self.user_account.card_uuid})
 
-        self.assertEquals(response.status_code, status.HTTP_402_PAYMENT_REQUIRED)
-        self.assertEquals(len(response.data), 4)
-        self.assertFalse(response.data['balance'])
-        self.assertFalse(response.data['has_sufficient_funds'])
-
-    def test_get_balance__user_wants_amount_shown__ok_and_amount_shown(self):
-        self.user_account.add_funds(amount=1337)
-        self.user_account.display_balance_at_soci = True
-        self.user_account.save()
-
-        response = self.client.get(self.url, {'card_uuid': self.user_account.card_uuid})
-
-        self.assertEquals(response.status_code, status.HTTP_200_OK)
-        self.assertEquals(len(response.data), 4)
-        self.assertTrue(response.data['has_sufficient_funds'])
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 3)
+        self.assertEqual(-2000, response.data['balance'])
 
     def test_get_balance__invalid_card__not_found(self):
         response = self.client.get(self.url, {'card_uuid': '01189998819991197253'})
 
-        self.assertEquals(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
     def test_get_balance__no_card_provided__bad_request(self):
         self.url = reverse('api:balance')
         response = self.client.get(self.url, {})
 
-        self.assertEquals(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
 
 class SociBankAccountChargeViewTest(APITestCase):
@@ -218,6 +251,7 @@ class SociBankAccountChargeViewTest(APITestCase):
         cls.dahls = SociProductFactory(name="Dahls", price=30)
         cls.smirre = SociProductFactory(name="Smirnoff ICE", price=35)
         cls.direct_charge = SociProductFactory(sku_number=settings.DIRECT_CHARGE_SKU, price=0)
+        SociSessionFactory()
 
     def setUp(self):
         self.user_account = SociBankAccountFactory(balance=1000)
@@ -233,23 +267,11 @@ class SociBankAccountChargeViewTest(APITestCase):
 
         response = self.client.post(self.url, data, format="json")
 
-        self.assertEquals(response.status_code, status.HTTP_201_CREATED)
-        self.assertEquals(3, len(response.data))
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(3, len(response.data))
         self.assertEqual(405, response.data['amount_charged'])
-        self.assertFalse(response.data['amount_remaining'])  # Balance hidden
-        self.assertTrue(self.user_account.transaction_history['purchases'].last().is_valid)
-
-    def test_charge__user_wants_balance_shown__created_and_return_balance(self):
-        self.user_account.display_balance_at_soci = True
-        self.user_account.save()
-        data = [
-            {"sku": self.smirre.sku_number}
-        ]
-
-        response = self.client.post(self.url, data, format="json")
-
-        self.assertEquals(response.status_code, status.HTTP_201_CREATED)
-        self.assertEqual(965, response.data['amount_remaining'])
+        self.assertEqual(595, response.data['amount_remaining'])
+        self.assertEqual(1, self.user_account.transaction_history['purchases'].count())
 
     def test_charge__insufficient_balance__payment_required(self):
         self.user_account.remove_funds(1000)
@@ -259,7 +281,57 @@ class SociBankAccountChargeViewTest(APITestCase):
 
         response = self.client.post(self.url, data, format="json")
 
-        self.assertEquals(response.status_code, status.HTTP_402_PAYMENT_REQUIRED)
+        self.assertEqual(response.status_code, status.HTTP_402_PAYMENT_REQUIRED)
+
+    def test_charge__sum_of_same_product_exceeds_balance__payment_required(self):
+        """
+        Regression test
+        """
+        data = [
+            {'sku': self.smirre.sku_number, 'order_size': 30},
+        ]
+
+        response = self.client.post(self.url, data, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_402_PAYMENT_REQUIRED)
+
+    def test_charge__sum_of_multiple_products_exceed_balance__payment_required(self):
+        """
+        Regression test
+        """
+        data = [
+            {'sku': self.smirre.sku_number, 'order_size': 15},
+            {'sku': self.dahls.sku_number, 'order_size': 17}
+        ]
+
+        response = self.client.post(self.url, data, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_402_PAYMENT_REQUIRED)
+
+    def test_charge__sum_of_same_product_exceeds_balance__payment_required(self):
+        """
+        Regression test
+        """
+        data = [
+            {'sku': self.smirre.sku_number, 'order_size': 30},
+        ]
+
+        response = self.client.post(self.url, data, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_402_PAYMENT_REQUIRED)
+
+    def test_charge__sum_of_multiple_products_exceed_balance__payment_required(self):
+        """
+        Regression test
+        """
+        data = [
+            {'sku': self.smirre.sku_number, 'order_size': 15},
+            {'sku': self.dahls.sku_number, 'order_size': 17}
+        ]
+
+        response = self.client.post(self.url, data, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_402_PAYMENT_REQUIRED)
 
     def test_charge__invalid_sku__bad_request(self):
         data = [
@@ -268,7 +340,7 @@ class SociBankAccountChargeViewTest(APITestCase):
 
         response = self.client.post(self.url, data, format="json")
 
-        self.assertEquals(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_charge__negative_direct_charge_amount__bad_request(self):
         data = [
@@ -277,7 +349,7 @@ class SociBankAccountChargeViewTest(APITestCase):
 
         response = self.client.post(self.url, data, format="json")
 
-        self.assertEquals(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_charge__amount_but_not_direct_charge__bad_request(self):
         data = [
@@ -286,18 +358,26 @@ class SociBankAccountChargeViewTest(APITestCase):
 
         response = self.client.post(self.url, data, format="json")
 
-        self.assertEquals(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_charge__direct_charge_but_not_amount__bad_request(self):
         data = [{"sku": self.direct_charge.sku_number}]
 
         response = self.client.post(self.url, data, format="json")
 
-        self.assertEquals(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_charge__non_list_as_body__bad_request(self):
         data = {"sku": self.direct_charge.sku_number}
 
         response = self.client.post(self.url, data, format="json")
 
-        self.assertEquals(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_charge__no_active_session__failed_dependency(self):
+        SociSession.objects.all().delete()
+        data = [{"sku": self.smirre.sku_number}]
+
+        response = self.client.post(self.url, data, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_424_FAILED_DEPENDENCY)

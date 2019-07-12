@@ -1,11 +1,12 @@
 import pytz
 from django.utils import timezone
-from factory import DjangoModelFactory, SubFactory, Faker, sequence, Sequence
+from factory import DjangoModelFactory, SubFactory, Faker, sequence, Sequence, post_generation
 from factory.django import ImageField
 
-from economy.models import SociBankAccount, SociProduct, ProductOrder, Purchase, PurchaseCollection, Transfer, Deposit, \
+from economy.models import SociBankAccount, SociProduct, ProductOrder, Purchase, SociSession, Transfer, Deposit, \
     DepositComment
 from ksg_nett import settings
+from users.tests.factories import UserFactory
 
 
 class SociBankAccountFactory(DjangoModelFactory):
@@ -14,7 +15,6 @@ class SociBankAccountFactory(DjangoModelFactory):
 
     user = SubFactory('users.tests.factories.UserFactory')
     balance = 0
-    display_balance_at_soci = False
 
     @sequence
     def card_uuid(n):
@@ -30,17 +30,17 @@ class SociProductFactory(DjangoModelFactory):
     name = Faker('word')
     price = Faker('random_number', digits=4, fix_len=True)
     description = Faker('sentence')
-    icon = Faker('word')
+    icon = "🤖"
     end = Faker('future_datetime', tzinfo=pytz.timezone(settings.TIME_ZONE))
 
 
-class PurchaseCollectionFactory(DjangoModelFactory):
+class SociSessionFactory(DjangoModelFactory):
     class Meta:
-        model = PurchaseCollection
+        model = SociSession
 
     name = Faker('sentence')
     start = Faker('past_datetime', tzinfo=pytz.timezone(settings.TIME_ZONE))
-    end = timezone.now()
+    signed_off_by = SubFactory(UserFactory)
 
 
 class PurchaseFactory(DjangoModelFactory):
@@ -48,8 +48,7 @@ class PurchaseFactory(DjangoModelFactory):
         model = Purchase
 
     source = SubFactory(SociBankAccountFactory)
-    signed_off_by = SubFactory('users.tests.factories.UserFactory')
-    collection = SubFactory(PurchaseCollectionFactory)
+    session = SubFactory(SociSessionFactory)
 
 
 class ProductOrderFactory(DjangoModelFactory):
@@ -81,6 +80,12 @@ class DepositFactory(DjangoModelFactory):
     receipt = ImageField()
 
     signed_off_by = SubFactory('users.tests.factories.UserFactory')
+    signed_off_time = None
+
+    @post_generation
+    def signed_off_time(self, _create, _extracted, **_kwargs):
+        if self.signed_off_by:
+            self.signed_off_time = timezone.now()
 
 
 class DepositCommentFactory(DjangoModelFactory):
