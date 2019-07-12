@@ -143,6 +143,10 @@ class DepositFormTest(TestCase):
                                  'receipt': self.deposit.receipt})
         self.assertFalse(form.is_valid())
 
+    def test__invalid_inputs__is_valid_returns_false(self):
+        form = DepositForm(data={"description": 123154, "amount": "Wrong string"})
+        self.assertFalse(form.is_valid())
+
 
 class DepositCommentFormTest(TestCase):
     @classmethod
@@ -170,8 +174,6 @@ class DepositApproveViewTest(TestCase):
 
         cls.deposit_from_user_getting_funds = DepositFactory(account=cls.user_getting_funds.bank_account, amount=200)
 
-    def test_lol(self):
-        self.assertEqual("", "")
 
     def test__not_signed_deposit_approve_view__is_valid(self):
         self.client.force_login(self.signing_user)
