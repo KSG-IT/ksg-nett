@@ -6,7 +6,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
 {% endblock %}
 {% block body_content %}
-    <div class="profilepage">
+    <div class="quotes">
         <div class="default-container default-top-offset">
             <div id="left-wrapper" class="default-left-panel profilepage__thumbwrapper text-right">
                 <h3><a class="btn btn-primary resetlink" href="/internal/quotes/">SITATER</a></h3>
@@ -23,8 +23,6 @@
                             <div class="quote__griditem">
                                 <div class="quote__text">
                                     <strong>"{{ quote.text }}"</strong> -{{ quote.quoter.get_full_name }}
-
-
                                 </div>
                                 <div class="quote_item__footer">
                                     <div class="quote_item_footer__left">
@@ -41,13 +39,10 @@
 
                                     </div>
 
-                                    <div class="quote_item_footer__left" >
+                                    <div class="quote_item_footer__right" >
                                         {% include "components/thumb.html" with size="tiny" url=user.profile_image_url %}
                                     </div>
-
                                 </div>
-
-
                             </div>
                         {% endif %}
                     {% endfor %}

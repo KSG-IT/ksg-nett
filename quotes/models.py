@@ -7,6 +7,14 @@ from users.models import User
 
 class Quote(models.Model):
     text = models.TextField()
+    reported_by = models.ForeignKey(
+        User,
+        null=False,
+        blank=False,
+        related_name="reported_quotes",
+        on_delete=models.DO_NOTHING
+    )
+
     quoter = models.ForeignKey(
         User,
         null=False,

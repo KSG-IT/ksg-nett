@@ -77,11 +77,11 @@ def quotes_list(request):
 
 @login_required
 def quotes_pending(request):
+    print(Quote.objects.pending().order_by('-created_at'))
     ctx = {
-        'pending': Quote.pending_objects.all().order_by('-created_at'),
-        'current_semester':get_semester_year_shorthand(timezone.now())
+        'pending': Quote.objects.pending().order_by('-created_at'),
+        'current_semester': get_semester_year_shorthand(timezone.now())
     }
-    print(ctx)
     return render(request, template_name='quotes/quotes_pending.html', context=ctx)
 
 
@@ -94,7 +94,10 @@ def quotes_add(request):
         return render(request, template_name='quotes/quotes_add.html', context=ctx)
     elif request.method == "POST":
         form = QuoteForm(request.POST)
+        form.reported_by = request.user
         if form.is_valid():
+            form = form.save(commit=False)
+            form.reported_by = request.user
             form.save()
             return redirect(reverse(quotes_list))
         else:
