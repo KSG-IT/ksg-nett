@@ -1,6 +1,5 @@
 
 .quote__text {
-    font-style: italic;
 }
 
 .no-bullet {
@@ -12,6 +11,17 @@
     grid-template-columns: auto auto auto;
     padding: 10px;
     alignment: center;
+
+}
+
+
+.quote_item_footer__left{
+    display: flex;
+    flex-direction: row;
+
+}
+
+.quote_item_footer__right {
 
 }
 
@@ -31,19 +41,20 @@
 }
 
 .quote__griditem {
-    background-color: rgba(255, 255, 255, 0.8);
-    padding: 10px;
-    font-size: 14px;
-    text-align: left;
-    font-style: italic;
-    width: 200px;
     margin: 10px;
+}
+
+.quote_item__footer {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+
 }
 
 .quote_pending__griditem {
     display: grid;
     grid-template-rows: auto auto auto;
-    background-color: rgba(255, 255, 255, 0.8);
+    background-color: red;
     padding: 10px;
     font-size: 14px;
     text-align: left;

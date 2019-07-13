@@ -15,38 +15,39 @@
                 <p>Søk</p>
             </div>
             <div class="default-right-panel" id="right-wrapper">
-                {% if pending|length != 0 %}
-                    <h2>Ikke godkjente</h2>
-                    <div class="quote__gridcontainer">
-                        {% for quote in pending %}
-                            <span class="quote__griditem">
-                                {{ quote.text }}<br>
-                                <form method="POST" action="/internal/quotes/{{ quote.id }}/approve">
-                                {% csrf_token %}
-                                <button type="submit">Godkjenn sitat</button>
-                                </form>
-                                <a class="btn btn-primary resetlink"
-                                   href="/internal/quotes/{{ quote.id }}/edit">edit</a>
-                            </span>
-                        {% endfor %}
-                    </div>
-                {% endif %}
 
                 <h2>Godkjente</h2>
                 <div class="quote__gridcontainer">
                     {% for quote in quotes %}
                         {% if quote.get_semester_of_quote == current_semester %}
                             <div class="quote__griditem">
-                                "{{ quote.text }}"
-                                <br> {{ quote.quoter.get_full_name }} {{ quote.get_semester_of_quote }} <br>
-                                <span class="quote__sum">Score: {{ quote.sum }}</span><br>
-                                <button class="quote__voteup thumb" data-quote-id="{{ quote.id }}"
-                                        style="color: #4cae4c;"><i class="fa fa-thumbs-up"></i>
-                                </button>
-                                  <button class="quote__votedown thumb" data-quote-id="{{ quote.id }}"
+                                <div class="quote__text">
+                                    <strong>"{{ quote.text }}"</strong> -{{ quote.quoter.get_full_name }}
+
+
+                                </div>
+                                <div class="quote_item__footer">
+                                    <div class="quote_item_footer__left">
+                                   <button
+                                        class="quote__voteup thumb"
+                                        data-quote-id="{{ quote.id }}"
+                                        style="color: #4cae4c;">
+                                        <i class="fa fa-thumbs-up"></i>
+                                    </button>
+                                    <div class="quote_item__score">{{ quote.sum }}</div>
+                                    <button class="quote__votedown thumb" data-quote-id="{{ quote.id }}"
                                         style="color: red;"><i class="fa fa-thumbs-down"></i>
-                                </button>
-                                <a class="btn btn-primary resetlink" href="/internal/quotes/{{ quote.id }}/edit">#</a>
+                                    </button>
+
+                                    </div>
+
+                                    <div class="quote_item_footer__left" >
+                                        {% include "components/thumb.html" with size="tiny" url=user.profile_image_url %}
+                                    </div>
+
+                                </div>
+
+
                             </div>
                         {% endif %}
                     {% endfor %}
