@@ -64,7 +64,8 @@
 .quote_pending_item__header {
     display: grid;
     grid-template-columns: 100%;
-    padding: 36px;
+        padding: 0 0 10px;
+
 }
 
 .quote__pending_container {
@@ -72,6 +73,7 @@
     flex-direction: column;
     justify-content: center;
     align-items: center;
+
 
 }
 
@@ -92,4 +94,6 @@
     display: flex;
     align-items: center;
     justify-content: center;
+        border-radius: 5px;
+    height: 32px;
 }

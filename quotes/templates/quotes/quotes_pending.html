@@ -22,7 +22,8 @@
                     {% for pending_quote in pending %}
                         <div class="quote__pending_item">
                             <div class="quote_pending_item__header">
-                                {{ pending_quote.text }}
+                                <div><strong>"{{ pending_quote.text }}"</strong>
+                                    - {{ pending_quote.quoter.get_full_name }}</div>
                             </div>
                             <div class="quote_pending_item__section">
                                 <div>Sendt inn av</div>
@@ -37,8 +38,12 @@
                                 <div>{% include "components/thumb.html" with size="tiny" url=user.profile_image_url %}</div>
                             </div>
                             <div class="quote_pending_item__section">
-                                <div class="quote_pending_footer_left"><button style="width:100%; color:white">Godkjenn</button></div>
-                                <div class="quote_pending_footer_right"> <button style="width:100%;">Slett</button></div>
+                                <div class="quote_pending_footer_left">
+                                    <button style="width:100%; color:white">Godkjenn</button>
+                                </div>
+                                <div class="quote_pending_footer_right">
+                                    <button style="width:100%;">Slett</button>
+                                </div>
                             </div>
                         </div>
                     {% endfor %}
