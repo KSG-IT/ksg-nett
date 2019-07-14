@@ -1,0 +1,63 @@
+{% extends 'internal/base.html' %}
+{% load static %}
+{% block header %}
+  <link rel="stylesheet" href="{% static 'summaries/css/summaries_common.css' %}">
+  <link rel="stylesheet" href="{% static 'summaries/css/summaries_typedetail.css' %}">
+{% endblock %}
+{% block body_content %}
+  <div class="summariestypedetail default-container default-fill-height-container">
+    <div class="summariestypedetail__header">
+      <a href="{% url 'summaries_list' %}" class="resetlink summariestypedetail__back">
+        <i class="material-icons">arrow_back</i>
+      </a>
+      <div class="summariestypedetail__semesterselect">
+        <h1 class="summariestypedetail__currentsemester darker-blue">
+          <span>
+            {{ current_semester }}
+          </span>
+          <span class="summariestypedetail__semesterarrow">
+            <i class="material-icons">arrow_right</i>
+          </span>
+        </h1>
+        <ul class="semesterselect__list">
+          {% for semester in semesters %}
+            {% if semester != current_semester %}
+              <a href="{% url 'summaries_typedetail' current_type %}?semester={{ semester }}" class="resetlink">
+                <li class="semesterselect__listitem darker-blue light">
+                  {{ semester }}
+                </li>
+              </a>
+            {% endif %}
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+    <div class="summariestypedetail__grid">
+      {% for month_group in summaries_grouped_by_month %}
+        <div class="summariestypedetail__summarymonthgroup">
+          <div class="summarymonthgroup__month bold darker-blue">{{ month_group.month }}</div>
+          <div class="summarymonthgroup__summaries">
+            {% for summary in month_group.summaries %}
+              <div class="summarymonthgroup__cardwrapper">
+                {% include 'summaries/summary_simplecard.html' with summary=summary  %}
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+    <div class="summariestypedetail__footer">
+      {# The types array is the SHORT_NAMES tuple list, hence the index of the type is 0, and the "short name" is 1 #}
+      {% for type in types %}
+        <a
+            href="{% url 'summaries_typedetail' type.0 %}?semester={{ current_semester }}"
+            class="summariestypedetail__typelink resetlink darker-blue {% if type.0 == current_type %}active{% endif %}">
+          {{ type.1 }}
+        </a>
+      {% endfor %}
+    </div>
+  </div>
+{% endblock %}
+{% block body_end %}
+  <script src="{% static 'summaries/js/summaries_typedetail.js' %}"></script>
+{% endblock %}

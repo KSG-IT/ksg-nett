@@ -14,6 +14,22 @@
     height: 21px;
 }
 
+.thumb__smaller{
+    display: inline-block;
+    width: 31px;
+    height: 31px;
+    border-radius: 50%;
+    overflow: hidden;
+}
+
+.thumb__smaller .thumb__inner{
+    display: inline-block;
+    background-size: cover;
+    background-position: center;
+    width: 31px;
+    height: 31px;
+}
+
 .thumb__small{
     display: inline-block;
     width: 42px;

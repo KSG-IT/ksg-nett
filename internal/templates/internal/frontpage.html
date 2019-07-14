@@ -13,9 +13,9 @@
       <div class="frontpage__column">
         <h2 class="normal text-center darker-blue">{% trans 'Siste referater' %}</h2>
         {% for summary in last_summaries %}
-          <a href="/internal/summaries/{{ summary.id }}" class="frontpage__summary resetlink">
+          <a href="/internal/summaries/{{ summary.id }}" class="frontpage__summary resetlink block">
             <span class="light">
-              {{ summary.date | date:"m.d.Y" }}
+              {{ summary.date | date:"d.m.Y" }}
             </span>
             <span class="bold">
               {% trans summary.get_short_summary_type_name %}
