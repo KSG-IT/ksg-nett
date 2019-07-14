@@ -5,12 +5,14 @@
     <link rel="stylesheet" href="{% static 'quotes/css/quotes.css' %}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
 {% endblock %}
+
 {% block body_content %}
     <div class="quotes">
         <div class="default-container default-top-offset">
             <div id="left-wrapper" class="default-left-panel profilepage__thumbwrapper text-right">
                 <h3><a class="btn btn-primary resetlink" href="/internal/quotes/">SITATER</a></h3>
-                <p><a class="btn btn-primary resetlink" href="/internal/quotes/pending/">{{ pending | length }} Til Godkjennning</a></p>
+                <p><a class="btn btn-primary resetlink" href="/internal/quotes/pending/">{{ pending | length }} Til
+                    Godkjennning</a></p>
                 <p><a class="btn btn-primary resetlink" href="/internal/quotes/add/">Opprett</a></p>
                 <p><a class="btn btn-primary resetlink" href="/internal/quotes/archive/">Arkiv</a></p>
                 <p>Søk</p>
@@ -27,20 +29,23 @@
                                 </div>
                                 <div class="quote_item__footer">
                                     <div class="quote_item_footer__left">
-                                   <button
-                                        class="quote__voteup thumb"
-                                        data-quote-id="{{ quote.id }}"
-                                        style="color: #4cae4c;">
-                                        <i class="fa fa-thumbs-up"></i>
-                                    </button>
-                                    <div class="quote_item__score">{{ quote.sum }}</div>
-                                    <button class="quote__votedown thumb" data-quote-id="{{ quote.id }}"
-                                        style="color: red;"><i class="fa fa-thumbs-down"></i>
-                                    </button>
+                                        <button
+                                                class="quote__voteup"
+                                                data-quote-id="{{ quote.id }}"
+                                                style="color: #4cae4c;">
+                                            <i class="fa fa-thumbs-up"></i>
+                                        </button>
+                                        <div class="quote_item__score">{{ quote.sum }}</div>
+                                        <button
+                                                class="quote__votedown thumb"
+                                                data-quote-id="{{ quote.id }}"
+                                                style="color: red;">
+                                            <i class="fa fa-thumbs-down"></i>
+                                        </button>
 
                                     </div>
 
-                                    <div class="quote_item_footer__right" >
+                                    <div class="quote_item_footer__right">
                                         {% include "components/thumb.html" with size="tiny" url=user.profile_image_url %}
                                     </div>
                                 </div>
@@ -51,6 +56,8 @@
             </div>
         </div>
     </div>
+
+
     {% load static %}
-    <script src="{% static 'quotes/quotes_list.js' %}"></script>
+    <script src="{% static 'quotes/js//quotes_list.js' %}"></script>
 {% endblock %}
