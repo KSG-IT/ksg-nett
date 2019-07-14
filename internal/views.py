@@ -7,9 +7,8 @@ from summaries.models import Summary
 
 @login_required
 def index(request):
-
     last_summaries = Summary.objects.order_by('-date')[0:10]
-    last_quotes = Quote.objects.verified().order_by('-created_at')[0:10]
+    last_quotes = Quote.verified_objects.all().order_by('-created')[0:10]
 
     ctx = {
         'last_summaries': last_summaries,

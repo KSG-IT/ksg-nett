@@ -9,7 +9,7 @@ from django.utils import timezone
 from quotes.models import Quote
 from quotes.tests.factories import QuoteFactory, QuoteVoteFactory
 from quotes.views import quotes_list, vote_up, vote_down, quotes_add, quotes_edit, quotes_delete, \
-    quotes_approve, quotes_archive_specific, quotes_pending
+    quotes_approve, quotes_pending
 from users.models import User
 from users.tests.factories import UserFactory
 
@@ -63,10 +63,10 @@ class QuoteManagersTest(TestCase):
         cls.unverified_quotes = QuoteFactory.create_batch(4, verified_by=None)
 
     def test_quote_pending_objects__returns_correct_count(self):
-        self.assertEqual(Quote.objects.pending().count(), 4)
+        self.assertEqual(Quote.pending_objects.all().count(), 4)
 
     def test_quote_verified_objects__returns_correct_count(self):
-        self.assertEqual(Quote.objects.verified().count(), 2)
+        self.assertEqual(Quote.verified_objects.all().count(), 2)
 
 
 class QuotePresentationViewsTest(TestCase):
@@ -319,43 +319,20 @@ class QuoteApproveTest(TestCase):
         self.assertEqual(self.quote.verified_by, self.user)
 
 
-class QuoteSemesterTest(TestCase):
-    @classmethod
-    def setUpTestData(cls):
-        cls.user = UserFactory(username='test')
-        cls.user.set_password('password')
-        cls.user.save()
-        cls.quoteH18 = QuoteFactory(text='This is a quote from H18')
-        cls.quoteH18.created_at = timezone.now().replace(year=2018, month=10, day=4)
-        cls.quoteH18.save()
-        cls.quoteH17 = QuoteFactory(text='This is a quote from H17')
-        cls.quoteH17.created_at = timezone.now().replace(year=2017, month=10, day=4)
-        cls.quoteH17.save()
-
-    def setUp(self):
-        self.client.login(username='test', password='password')
-
-    def test_returns_valid_quote_for_given_semester(self):
-        response = self.client.get(reverse(
-            viewname=quotes_archive_specific,
-            kwargs={'quote_semester': 'H18'}
-        ))
-        self.assertEqual(response.context['semester_quotes'].count(), 1)
-
 
 class QuoteHighscoreTest(TestCase):
     @classmethod
     def setUpTestData(cls):
         cls.quotesH17 = QuoteFactory.create_batch(10, text='This is a quote from H17')
         for quote in cls.quotesH17:
-            quote.created_at = timezone.now().replace(year=2017, month=10, day=15)
+            quote.created = timezone.now().replace(year=2017, month=10, day=15)
             quote.save()
         cls.quotes_this_semester = QuoteFactory.create_batch(10, text='This is a quote from this semester')
 
         QuoteVoteFactory.create_batch(10, quote__text="Love on top", value=1)
 
     def test_return_highscore_descending(self):
-        quotes = Quote.objects.semester_highest_score(timezone.now())
+        quotes = Quote.highscore_objects.semester_highest_score(timezone.now())
         flag = True
         for i in range((len(quotes) - 1)):
             if quotes[i].sum < quotes[i + 1].sum:
@@ -364,7 +341,7 @@ class QuoteHighscoreTest(TestCase):
         self.assertTrue(flag)
 
     def test_return_only_from_given_semester(self):
-        quotes = Quote.objects.semester_highest_score(timezone.now().replace(year=2017, month=10, day=15))
+        quotes = Quote.highscore_objects.semester_highest_score(timezone.now().replace(year=2017, month=10, day=15))
         for quote in quotes:
             self.assertEqual(quote.text, 'This is a quote from H17')
 

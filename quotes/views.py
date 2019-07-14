@@ -40,31 +40,31 @@ has to be implemented before committing anything to develop.
 The view also renders pending objects as of now which it shouldn't. 
 """
 
-
-@login_required
-def quotes_archive_specific(request, quote_semester):
-    # Need to create timezone object, could extract the prefix and generate a datetime object from that
-    # Error handling for wrong format, either too long or not valid semester
-    semester_prefix = quote_semester[0]
-    year = int('20' + quote_semester[1:3])
-    semester_datetime_object = timezone.now()
-    if semester_prefix == 'H':
-        semester_datetime_object = semester_datetime_object.replace(year=year, month=10, day=4)
-    elif semester_prefix == 'V':
-        semester_datetime_object = semester_datetime_object.replace(year=year, month=3, day=4)
-
-    ctx = {
-        'semester_specific': get_semester_year_shorthand(semester_datetime_object),
-        'semester_quotes': Quote.objects.in_semester(semester_datetime_object).order_by('-created_at')
-    }
-    return render(request, template_name='quotes/quotes_archive_specific.html', context=ctx)
+# Deprecated until further notice
+# @login_required
+# def quotes_archive_specific(request, quote_semester):
+#     # Need to create timezone object, could extract the prefix and generate a datetime object from that
+#     # Error handling for wrong format, either too long or not valid semester
+#     semester_prefix = quote_semester[0]
+#     year = int('20' + quote_semester[1:3])
+#     semester_datetime_object = timezone.now()
+#     if semester_prefix == 'H':
+#         semester_datetime_object = semester_datetime_object.replace(year=year, month=10, day=4)
+#     elif semester_prefix == 'V':
+#         semester_datetime_object = semester_datetime_object.replace(year=year, month=3, day=4)
+#
+#     ctx = {
+#         'semester_specific': get_semester_year_shorthand(semester_datetime_object),
+#         'semester_quotes': Quote.objects.in_semester(semester_datetime_object).order_by('-created')
+#     }
+#     return render(request, template_name='quotes/quotes_archive_specific.html', context=ctx)
 
 
 @login_required
 def quotes_list(request):
     ctx = {
-        'pending': Quote.objects.pending().order_by('-created_at'),
-        'quotes': Quote.objects.verified().order_by('-created_at'),
+        'pending': Quote.pending_objects.all().order_by('-created'),
+        'quotes': Quote.verified_objects.all().order_by('-created'),
         'current_semester': get_semester_year_shorthand(timezone.now())
     }
     return render(request, template_name='quotes/quotes_list.html', context=ctx)
@@ -73,7 +73,7 @@ def quotes_list(request):
 @login_required
 def quotes_pending(request):
     ctx = {
-        'pending': Quote.objects.pending().order_by('-created_at'),
+        'pending': Quote.pending_objects.all().order_by('-created'),
         'current_semester': get_semester_year_shorthand(timezone.now())
     }
     return render(request, template_name='quotes/quotes_pending.html', context=ctx)
@@ -137,7 +137,7 @@ def quotes_delete(request, quote_id):
 @login_required
 def vote_up(request, quote_id):
     if request.method == "POST":
-        quote = get_object_or_404(Quote.objects.verified(), pk=quote_id)
+        quote = get_object_or_404(Quote.verified_objects, pk=quote_id)
         user = request.user
         quote_vote = QuoteVote.objects.filter(
             quote=quote,
@@ -168,7 +168,7 @@ def vote_up(request, quote_id):
 @login_required
 def vote_down(request, quote_id):
     if request.method == "POST":
-        quote = get_object_or_404(Quote.objects.verified(), pk=quote_id)
+        quote = get_object_or_404(Quote.verified_objects, pk=quote_id)
         user = request.user
         quote_vote = QuoteVote.objects.filter(
             quote=quote,

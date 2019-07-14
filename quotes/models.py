@@ -1,11 +1,13 @@
 from django.db import models
 from django.db.models import Sum, Index
-
+from model_utils.managers import QueryManager
+from model_utils.models import TimeStampedModel
 from quotes.managers import QuoteDefaultQuerySet
+
 from users.models import User
 
 
-class Quote(models.Model):
+class Quote(TimeStampedModel):
     text = models.TextField()
     reported_by = models.ForeignKey(
         User,
@@ -31,23 +33,26 @@ class Quote(models.Model):
         related_name='verified_quotes',
         on_delete=models.SET_NULL
     )
-    created_at = models.DateTimeField(auto_now_add=True)
     context = models.CharField(max_length=200, null=True, blank=True)
 
+
     # Managers
-    objects = QuoteDefaultQuerySet.as_manager()
+    objects = models.Manager()
+    pending_objects = QueryManager(verified_by__isnull=True)
+    verified_objects = QueryManager(verified_by__isnull=False)
+    highscore_objects= QuoteDefaultQuerySet.as_manager()
 
     def get_semester_of_quote(self) -> str:
         """
-        get_semester_of_quote renders the `created_at` attribute into a "semester-year"-representation.
+        get_semester_of_quote renders the `created` attribute into a "semester-year"-representation.
         Examples:
             2018-01-01 => V18
             2014-08-30 => H14
             2012-12-30 => H12
-        :return: The "semester-year" display of the `createed_at` attribute.
+        :return: The "semester-year" display of the `created` attribute.
         """
-        short_year_format = str(self.created_at.year)[2:]
-        semester_prefix = "H" if self.created_at.month > 7 else "V"
+        short_year_format = str(self.created.year)[2:]
+        semester_prefix = "H" if self.created.month > 7 else "V"
         return f"{semester_prefix}{short_year_format}"
 
     @property
@@ -75,7 +80,7 @@ class Quote(models.Model):
             # should thus be indexed.
             Index(fields=['verified_by'])
         ]
-        ordering = ['created_at']
+        ordering = ['created']
 
 
 class QuoteVote(models.Model):
