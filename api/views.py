@@ -159,8 +159,9 @@ class SociBankAccountChargeView(CustomCreateAPIView):
         return Response(data, status=status.HTTP_201_CREATED)
 
 
-class SensorMeasurementView(generics.CreateAPIView, generics.ListAPIView):
+class SensorMeasurementView(CustomCreateAPIView, generics.ListAPIView):
     serializer_class = SensorMeasurementSerializer
+    deserializer_class = SensorMeasurementSerializer
 
     def get_permissions(self):
         if self.request.method == "POST":
@@ -178,7 +179,7 @@ class SensorMeasurementView(generics.CreateAPIView, generics.ListAPIView):
         )
 
     @swagger_auto_schema(
-        request_body=serializer_class(many=True),
+        request_body=deserializer_class(many=True),
         operation_summary="Create measurements",
         responses={
             "201": serializer_class(many=True),
@@ -187,9 +188,9 @@ class SensorMeasurementView(generics.CreateAPIView, generics.ListAPIView):
         },
     )
     def post(self, request: Request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data, many=True)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
+        deserializer = self.get_deserializer(data=request.data, many=True, context={})
+        deserializer.is_valid(raise_exception=True)
+        deserializer.save()
 
         # Try to clear out old entries.
         try:
@@ -198,7 +199,7 @@ class SensorMeasurementView(generics.CreateAPIView, generics.ListAPIView):
             # Should we do something?
             pass
 
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(deserializer.data, status=status.HTTP_201_CREATED)
 
     @swagger_auto_schema(
         operation_summary="Get measurement data for the last 24 hours.",
