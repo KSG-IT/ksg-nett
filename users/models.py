@@ -5,12 +5,17 @@ from typing import Optional
 
 from django.contrib.auth.models import AbstractUser
 from django.db import models
+from django.db.models import QuerySet
+from model_utils import Choices
+from model_utils.fields import StatusField
+from model_utils.models import TimeStampedModel
 
-# KSG choices
 from commissions.models import Commission
 from common.util import get_semester_year_shorthand
+from users.managers import UsersHaveMadeOutManager
 
-KSG_STATUS_TYPES = (
+# KSG choices
+KSG_STATUS_TYPES = Choices(
     ("aktiv", "Aktiv"),  # Wants to stay in KSG
     ("inaktiv", "Ikke aktiv"),  # Finished with KSG duties, but want to leave
     ("permittert", "Permittert"),  # Implicitly inactive, wants to continue
@@ -18,7 +23,7 @@ KSG_STATUS_TYPES = (
 )
 
 # Roles in the KSG hierarchy
-KSG_ROLES = (
+KSG_ROLES = Choices(
     ("gjengis", "Gjengis"),
     ("funk", "Funksjonær"),
     ("hangaround", "Hangaround"),
@@ -49,6 +54,9 @@ class User(AbstractUser):
     """
     A KSG user
     """
+    STATUS = KSG_STATUS_TYPES
+    ROLES = KSG_ROLES
+
     email = models.EmailField(unique=True)
     date_of_birth = models.DateField(blank=True, null=True)
     study = models.CharField(default="", blank=True, max_length=100)
@@ -59,8 +67,8 @@ class User(AbstractUser):
     home_address = models.CharField(default="", blank=True, max_length=100)
 
     start_ksg = models.DateField(auto_now_add=True)
-    ksg_status = models.CharField(max_length=32, choices=KSG_STATUS_TYPES, default=KSG_STATUS_TYPES[0])
-    ksg_role = models.CharField(max_length=32, choices=KSG_ROLES, default=KSG_ROLES[0])
+    ksg_status = StatusField()
+    ksg_role = StatusField(choices_name='ROLES')
 
     biography = models.TextField(blank=True, default="", max_length=200)
     in_relationship = models.BooleanField(null=True, default=False)
@@ -79,6 +87,9 @@ class User(AbstractUser):
         related_name='users'
     )
 
+    have_made_out_with = models.ManyToManyField('self', through='UsersHaveMadeOut', symmetrical=False)
+    anonymize_in_made_out_map = models.BooleanField(default=True, null=False)
+
     def __str__(self):
         return f"User {self.get_full_name()}"
 
@@ -90,7 +101,7 @@ class User(AbstractUser):
         return f"{self.commission.name}" if self.commission else None
 
     def active(self):
-        return self.ksg_status == KSG_STATUS_TYPES[0][0]
+        return self.ksg_status == self.STATUS.aktiv
 
     def get_start_ksg_display(self) -> str:
         """
@@ -118,8 +129,35 @@ class User(AbstractUser):
             return self.profile_image.url
         return None
 
+    @property
+    def all_having_made_out_with(self) -> QuerySet:
+        return self.made_out_with_left_side.all() | self.made_out_with_right_side.all()
+
     active.boolean = True
 
     class Meta:
         default_related_name = 'users'
         verbose_name_plural = 'Users'
+
+
+class UsersHaveMadeOut(TimeStampedModel):
+    """
+    UsersHaveMadeOut is a model representing a pair of users having made out. We model this with an
+    explicit model to associate extra data to it.
+    """
+    user_one = models.ForeignKey(User, on_delete=models.CASCADE, related_name='made_out_with_left_side')
+    user_two = models.ForeignKey(User, on_delete=models.CASCADE, related_name='made_out_with_right_side')
+
+    objects = UsersHaveMadeOutManager()
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['user_one', 'user_two']),
+            models.Index(fields=['user_two', 'user_one'])
+        ]
+
+    def __str__(self):
+        return f"User {self.user_one.get_full_name()} have made out with {self.user_two.get_full_name()}"
+
+    def __repr__(self):
+        return f"UsersHaveMadeOut(user_one={self.user_one.id}, user_two={self.user_two.id})"

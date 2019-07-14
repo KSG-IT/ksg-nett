@@ -6,6 +6,10 @@
     font-family: 'Open Sans', sans-serif;
 }
 
+html, body {
+    height: 100%;
+}
+
 /* Button reset */
 button{
     background: none;

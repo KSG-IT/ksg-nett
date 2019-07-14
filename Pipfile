@@ -15,6 +15,9 @@ Pillow = "*"
 channels = "*"
 redis = "*"
 channels-redis = "*"
+factory-boy = "*"
+djangorestframework-simplejwt = "*"
+django-model-utils = "*"
 
 [requires]
 python_version = "3.6"
