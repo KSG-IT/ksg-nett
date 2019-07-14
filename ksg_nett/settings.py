@@ -189,9 +189,13 @@ SWAGGER_SETTINGS = {
     'DEFAULT_AUTO_SCHEMA_CLASS': 'api.api_docs.CustomSwaggerAutoSchema',
 }
 
+REDOC_SETTINGS = {
+    'PATH_IN_MIDDLE': True,
+    'REQUIRED_PROPS_FIRST': True
+}
+
 # ECONOMY SETTINGS
 # ------------------------------
-MINIMUM_SOCI_AMOUNT = 0
 SOCI_MASTER_ACCOUNT_CARD_ID = 0xBADCAFEBABE  # Real card ids are 10 digits, while this is 14, meaning no collisions
 DIRECT_CHARGE_SKU = "X-BELOP"
 

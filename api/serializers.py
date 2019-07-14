@@ -1,8 +1,8 @@
 from django.conf import settings
 from rest_framework import serializers
 
-from api.exceptions import InsufficientFundsException
-from economy.models import SociProduct, ProductOrder
+from api.exceptions import InsufficientFundsException, NoSociSessionError
+from economy.models import SociProduct, ProductOrder, SociSession
 
 
 # ===============================
@@ -24,20 +24,14 @@ class SociProductSerializer(serializers.Serializer):
 
     icon = serializers.CharField(read_only=True, label="Product icon descriptor")
 
-    expiry_date = serializers.DateTimeField(read_only=True, allow_null=True,
-                                            label="Product only available for purchase until this date")
-
 
 class CheckBalanceSerializer(serializers.Serializer):
     id = serializers.IntegerField(read_only=True, label="This soci bank account ID")
 
-    user = serializers.CharField(read_only=True, label="User´s full name")
+    user = serializers.CharField(source='user.get_full_name', read_only=True, label="User´s full name")
 
-    balance = serializers.IntegerField(source='public_balance', read_only=True, allow_null=True, label="Balance in NOK",
-                                       help_text="Returns `null` if user has disabled public display of balance")
-
-    has_sufficient_funds = serializers.BooleanField(read_only=True,
-                                                    label="Whether the user has enough funds left to charge or not")
+    balance = serializers.IntegerField(read_only=True, label="Balance in NOK",
+                                       help_text="Should not be displayed publicly")
 
 
 class ChargeSociBankAccountDeserializer(serializers.Serializer):
@@ -75,8 +69,12 @@ class ChargeSociBankAccountDeserializer(serializers.Serializer):
             raise serializers.ValidationError('Amount must be set when charging a direct amount.')
 
         attrs['amount'] = attrs.pop('direct_charge_amount', SociProduct.objects.get(sku_number=attrs['sku']).price)
-        if attrs['amount'] > self.context['soci_bank_account'].chargeable_balance:
+        self.context['total'] = self.context.get('total', 0) + attrs['amount'] * attrs.get('order_size', 1)
+        if self.context['total'] > self.context['soci_bank_account'].balance:
             raise InsufficientFundsException()
+
+        if SociSession.get_active_session() is None:
+            raise NoSociSessionError()
 
         return attrs
 
@@ -92,10 +90,9 @@ class PurchaseSerializer(serializers.Serializer):
     amount_charged = serializers.IntegerField(read_only=True, source='total_amount',
                                               label="Amount that was charged from user´s Soci account")
 
-    amount_remaining = serializers.IntegerField(read_only=True, source='source.public_balance', allow_null=True,
+    amount_remaining = serializers.IntegerField(read_only=True, source='source.balance',
                                                 label="Remaining balance in user´s Soci account",
-                                                help_text="Returns `null` if user has disabled public display of "
-                                                          "balance")
+                                                help_text="Should not be displayed publicly")
 
     products_purchased = serializers.ListField(read_only=True, child=serializers.CharField(),
                                                help_text="The products that were purchased")

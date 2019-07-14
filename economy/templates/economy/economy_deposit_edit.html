@@ -1,0 +1,12 @@
+{% extends 'internal/base.html' %}
+
+
+{% block body_content %}
+
+    <form method="POST">
+        {% csrf_token %}
+        {{ deposit_form.as_table }}
+        <button type="submit">Rediger</button>
+    </form>
+
+{% endblock %}
