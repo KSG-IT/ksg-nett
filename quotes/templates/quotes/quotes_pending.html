@@ -47,7 +47,7 @@
                                 </div>
                                 <div class="quote_pending_footer_right">
                                     <div>
-                                        <form action="quotes/approve">
+                                        <form action="/internal/quotes/{{ pending_quote.id }}/delete" method="POST">
                                             {% csrf_token %}
                                             <button style="width:100%;">Slett</button>
                                         </form>
