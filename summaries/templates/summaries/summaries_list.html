@@ -6,7 +6,7 @@
   <link rel="stylesheet" href="{% static 'summaries/css/summaries_common.css' %}">
 {% endblock %}
 {% block body_content %}
-  <div class="summaries default-container default-top-offset">
+  <div class="summaries default-container default-top-offset default-two-col-grid">
     {% include 'summaries/summaries_leftmenu.html' with active='summaries' %}
     <div class="default-right-panel summaries__right">
       {% for type in all_summary_types %}

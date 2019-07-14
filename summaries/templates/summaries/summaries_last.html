@@ -6,18 +6,19 @@
   <link rel="stylesheet" href="{% static 'summaries/css/summaries_last.css' %}">
 {% endblock %}
 {% block body_content %}
-  <div class="summaries__last default-container default-top-offset">
+  <div class="summaries__last default-container default-top-offset default-two-col-grid">
     {% include 'summaries/summaries_leftmenu.html' with active='last' %}
-
-    <div class="summarieslast__gridtitlewrapper">
-      <h2 class="summarieslast__gridtitle bold darker-blue">
-        {% trans 'Last summaries' %}
-      </h2>
-    </div>
-    <div class="summaries__defaultgrid">
-      {% for summary in last_summaries %}
-        {% include 'summaries/summary_simplecard.html' with summary=summary %}
-      {% endfor %}
+    <div>
+      <div class="summarieslast__gridtitlewrapper">
+        <h2 class="summarieslast__gridtitle bold darker-blue">
+          {% trans 'Last summaries' %}
+        </h2>
+      </div>
+      <div class="summaries__defaultgrid">
+        {% for summary in last_summaries %}
+          {% include 'summaries/summary_simplecard.html' with summary=summary %}
+        {% endfor %}
+      </div>
     </div>
   </div>
 {% endblock %}

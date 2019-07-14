@@ -5,7 +5,7 @@
   <link rel="stylesheet" href="{% static 'summaries/css/summaries_common.css' %}">
 {% endblock %}
 {% block body_content %}
-  <div class="summariesarchive default-container default-top-offset">
+  <div class="summariesarchive default-container default-top-offset default-two-col-grid">
     {% include 'summaries/summaries_leftmenu.html' with active='archive'  %}
     <div class="summariesarchive__semesters default-right-panel">
       {% for semester in semesters %}
