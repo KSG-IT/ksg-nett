@@ -39,10 +39,20 @@
                             </div>
                             <div class="quote_pending_item__section">
                                 <div class="quote_pending_footer_left">
-                                    <button style="width:100%; color:white">Godkjenn</button>
+                                    <form method="POST" action="/internal/quotes/{{ pending_quote.id }}/approve">
+                                        {% csrf_token %}
+                                        <button style="width:100%; color:white">Godkjenn</button>
+                                    </form>
+
                                 </div>
                                 <div class="quote_pending_footer_right">
-                                    <button style="width:100%;">Slett</button>
+                                    <div>
+                                        <form action="quotes/approve">
+                                            {% csrf_token %}
+                                            <button style="width:100%;">Slett</button>
+                                        </form>
+                                    </div>
+
                                 </div>
                             </div>
                         </div>
