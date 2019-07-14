@@ -191,7 +191,9 @@ getHumidityData()
 getSoundData()
 getPeopleData()
 
-setInterval(getTemperatureData, 20 * 1000)
-setInterval(getHumidityData, 20 * 1000)
-setInterval(getSoundData, 20 * 1000)
-setInterval(getPeopleData, 20 * 1000)
+const refetchIntervalInSeconds = 20
+
+setInterval(getTemperatureData, refetchIntervalInSeconds * 1000)
+setInterval(getHumidityData, refetchIntervalInSeconds * 1000)
+setInterval(getSoundData, refetchIntervalInSeconds * 1000)
+setInterval(getPeopleData, refetchIntervalInSeconds * 1000)
