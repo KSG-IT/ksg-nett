@@ -1,4 +1,4 @@
-from django.db.models import Max, Subquery, OuterRef
+from django.db.models import Max, Subquery, OuterRef, Q
 from django.db.models.functions import TruncMonth
 from django.http import HttpResponse, HttpRequest, Http404
 from django.shortcuts import render, get_object_or_404, redirect
@@ -146,8 +146,26 @@ def summaries_last(request: HttpRequest):
 
     return render(request, template_name='summaries/summaries_last.html', context=ctx)
 
+
 def summaries_search(request: HttpRequest):
-    return redirect(reverse(summaries_list))
+    summaries = Summary.objects.all()
+    search = request.GET.get('search')
+
+    if search:
+        summaries = summaries.filter(
+            Q(participants__first_name__startswith=search) |
+            Q(participants__last_name__startswith=search) |
+            Q(contents__icontains=search)
+        )
+
+
+    summaries = summaries.order_by('-date')[:10]
+    ctx = {
+        'summaries': summaries,
+        'search': search
+    }
+
+    return render(request, template_name='summaries/summaries_search.html', context=ctx)
 
 
 def summaries_archive(request: HttpRequest):
