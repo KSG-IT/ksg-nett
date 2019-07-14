@@ -1,0 +1,36 @@
+{% extends 'internal/base.html' %}
+
+
+{% block body_content %}
+    This is deposit:
+    User {{ current_user }} has a balance of {{ current_user.bank_account.balance }} kr
+
+    <form method="POST" enctype="multipart/form-data">
+        {% csrf_token %}
+        {{ deposit_form.as_p }}
+        <input type="submit">
+    </form>
+    <table style="border-style: solid">
+        {% for deposit in deposit_history %}
+            <td>
+                Deposit:
+            <td>{{ deposit.amount }}</td>
+            <td>{{ deposit.description }}</td>
+            <td>{{ deposit.receipt }}</td>
+            <td>Valid: {{ deposit.is_valid }}</td>
+            <td>Signert av: {{ deposit.signed_off_by.first_name }}</td>
+            {% if not deposit.is_valid %}
+                <td>
+                    <form method="GET" action="/internal/economy/deposit/{{ deposit.id }}/edit">
+                        <input type="submit" value="Edit">
+                    </form>
+
+                </td>
+            {% endif %}
+            </tr>
+        {% endfor %}
+    </table>
+    <form method="GET" action="/internal/economy/deposit/">
+        <input type="submit">
+    </form>
+{% endblock %}
