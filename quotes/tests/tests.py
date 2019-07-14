@@ -9,7 +9,7 @@ from django.utils import timezone
 from quotes.models import Quote
 from quotes.tests.factories import QuoteFactory, QuoteVoteFactory
 from quotes.views import quotes_list, vote_up, vote_down, quotes_add, quotes_edit, quotes_delete, \
-    quotes_approve, quotes_archive_specific
+    quotes_approve, quotes_archive_specific, quotes_pending
 from users.models import User
 from users.tests.factories import UserFactory
 
@@ -367,3 +367,19 @@ class QuoteHighscoreTest(TestCase):
         quotes = Quote.objects.semester_highest_score(timezone.now().replace(year=2017, month=10, day=15))
         for quote in quotes:
             self.assertEqual(quote.text, 'This is a quote from H17')
+
+
+class QuotePendingViewTest(TestCase):
+    def setUp(self):
+        QuoteFactory.create_batch(10, verified_by=None)
+        self.user = UserFactory.create()
+        self.client.force_login(self.user)
+
+    def test__pending_presentation_view__returns_correct_template(self):
+        response = self.client.get(reverse(quotes_pending))
+        self.assertTemplateUsed(response, 'quotes/quotes_pending.html')
+
+    def test__pending_view__returns_pending_quotes(self):
+        respone = self.client.get(reverse(quotes_pending))
+        pending_quotes = respone.context["pending"]
+        self.assertEqual(10, len(pending_quotes))
