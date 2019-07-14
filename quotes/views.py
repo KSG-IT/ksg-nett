@@ -53,15 +53,10 @@ def quotes_archive_specific(request, quote_semester):
     elif semester_prefix == 'V':
         semester_datetime_object = semester_datetime_object.replace(year=year, month=3, day=4)
 
-    print(semester_datetime_object)
     ctx = {
         'semester_specific': get_semester_year_shorthand(semester_datetime_object),
         'semester_quotes': Quote.objects.in_semester(semester_datetime_object).order_by('-created_at')
     }
-    for quote in Quote.objects.in_semester(semester_datetime_object):
-        print(quote.text)
-        print(quote.created_at)
-
     return render(request, template_name='quotes/quotes_archive_specific.html', context=ctx)
 
 
@@ -77,7 +72,6 @@ def quotes_list(request):
 
 @login_required
 def quotes_pending(request):
-    print(Quote.objects.pending().order_by('-created_at'))
     ctx = {
         'pending': Quote.objects.pending().order_by('-created_at'),
         'current_semester': get_semester_year_shorthand(timezone.now())

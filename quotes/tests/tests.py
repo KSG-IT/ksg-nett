@@ -340,7 +340,6 @@ class QuoteSemesterTest(TestCase):
             viewname=quotes_archive_specific,
             kwargs={'quote_semester': 'H18'}
         ))
-        print(response.context['semester_quotes'])
         self.assertEqual(response.context['semester_quotes'].count(), 1)
 
 
@@ -357,7 +356,6 @@ class QuoteHighscoreTest(TestCase):
 
     def test_return_highscore_descending(self):
         quotes = Quote.objects.semester_highest_score(timezone.now())
-        print(quotes)
         flag = True
         for i in range((len(quotes) - 1)):
             if quotes[i].sum < quotes[i + 1].sum:
