@@ -7,3 +7,14 @@
     top: 1em;
     right: 1em;
 }
+
+.summary-left-panel{
+    width: 300px;
+    display: inline-block;
+    padding-right: 50px;
+    vertical-align: top;
+}
+
+.summary-right-panel{
+    display: inline-block;
+}
