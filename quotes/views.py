@@ -21,6 +21,14 @@ def quotes_approve(request, quote_id):
 
 
 @login_required
+def quotes_delete(request, quote_id):
+    if request.method == "POST":
+        quote = get_object_or_404(Quote, pk=quote_id)
+        quote.delete
+        return reverse(quotes_list)
+
+
+@login_required
 def quotes_archive_overview(request):
     semesters = get_semester_year_shorthands_by_count(15)
     ctx = {
