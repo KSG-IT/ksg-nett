@@ -13,7 +13,6 @@ urlpatterns = [
     path('<int:quote_id>/vote-down', views.vote_down),
     path('<int:quote_id>/edit', views.quotes_edit),
     path('<int:quote_id>/delete', views.quotes_delete),
-    path('<int:quote_id>/approve', views.quotes_approve),
-    path('<int:quote_id>/delete', views.quotes_delete)
+    path('<int:quote_id>/approve', views.quotes_approve)
 
 ]
