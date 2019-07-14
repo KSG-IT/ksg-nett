@@ -158,12 +158,6 @@ class SociBankAccountChargeView(CustomCreateAPIView):
 
         return Response(data, status=status.HTTP_201_CREATED)
 
-    @staticmethod
-    def _get_account_from_card_id(card_uuid) -> SociBankAccount:
-        soci_bank_account = get_object_or_404(queryset=SociBankAccount.objects.all(), card_uuid=card_uuid)
-
-        return soci_bank_account
-
 
 class SensorMeasurementView(generics.CreateAPIView, generics.ListAPIView):
     serializer_class = SensorMeasurementSerializer
