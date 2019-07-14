@@ -1,4 +1,7 @@
 from django.db import models
+from model_utils import Choices
+from model_utils.fields import StatusField
+from model_utils.models import TimeFramedModel
 
 from organization.models import InternalGroup
 from users.models import User
@@ -212,7 +215,7 @@ class ShiftSlotDayRule(models.Model):
     """
     This model represents a rule for what days a ShiftSlotGroup can occur
     """
-    DAY_RULES = (
+    STATUS = Choices(
         ('mo', 'Monday'),
         ('tu', 'Tuesday'),
         ('we', 'Wednesday'),
@@ -225,7 +228,7 @@ class ShiftSlotDayRule(models.Model):
         ('fu', 'Full weekends'),  # Friday, Saturday, Sunday
     )
 
-    rule = models.CharField(max_length=2, choices=DAY_RULES)
+    rule = StatusField(max_length=2)
 
     shift_slot_template = models.ForeignKey(
         ShiftSlotGroupTemplate,

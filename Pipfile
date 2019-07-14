@@ -12,6 +12,9 @@ pytz = "*"
 drf-yasg = "*"
 Django = "*"
 Pillow = "*"
+factory-boy = "*"
+djangorestframework-simplejwt = "*"
+django-model-utils = "*"
 
 [requires]
 python_version = "3.6"

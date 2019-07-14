@@ -721,6 +721,7 @@ function render () {
   // User is currently being dragged. Move the user
   if (mouseInfo.userDragged !== null && !mouseInfo.mouseUpLastFrame) {
     const node = nodes[mouseInfo.userDragged]
+    renderNodeBeingHoveredOver(node)
 
     node.x = mouseInfo.lastPosWorldSpaceX
     node.y = mouseInfo.lastPosWorldSpaceY

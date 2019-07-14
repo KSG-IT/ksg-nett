@@ -2,6 +2,7 @@
 from __future__ import unicode_literals
 
 import json
+import re
 import shutil
 import tempfile
 
@@ -9,11 +10,12 @@ from django.conf import settings
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.http import HttpResponse
 from django.test import TestCase
-# Create your tests here.
 from django.urls import reverse
 from django.utils import timezone
+
 from users.forms.user_form import UserForm
-from users.models import User, KSG_STATUS_TYPES, UsersHaveMadeOut
+from users.models import KSG_STATUS_TYPES, UsersHaveMadeOut
+from users.tests.factories import UserFactory, UsersHaveMadeOutFactory
 from users.views import user_detail, update_user, klinekart
 
 
@@ -33,95 +35,60 @@ class UserProfileTest(TestCase):
         cls.temp_media_root = tempfile.mkdtemp()
         settings.MEDIA_ROOT = cls.temp_media_root
 
-        cls.user_1 = User.objects.create(
-            username='username',
-            first_name="Ola",
-            last_name="Nordmann",
-            date_of_birth=timezone.now(),
-            study='Gløshaugen',
-            email='ola@nordmann.com',
-            phone=19393113,
-            study_address='Kråkeveien 5',
-            home_address='Kråkeveien 4'
-        )
-
     def test_str_and_repr_should_not_crash(self):
-        str_representation = str(self.user_1)
-        repr_representation = repr(self.user_1)
+        self.user = UserFactory()
+        str_representation = str(self.user)
+        repr_representation = repr(self.user)
 
         self.assertIsInstance(str_representation, str)
         self.assertIsInstance(repr_representation, str)
 
     def test_get_start_ksg_display__user_in_spring__returns_v_prefix_and_correct_year(self):
-        user = User.objects.create(
-            username='username2',
-            email='user2@example.com',
-            start_ksg=timezone.datetime(year=2018, month=3, day=1)
-        )
+        user = UserFactory()
         user.start_ksg = timezone.datetime(year=2018, month=3, day=1)
         user.save()
         self.assertEqual(user.get_start_ksg_display(), "V18")
 
     def test_get_start_ksg_display__user_in_autumn__returns_h_prefix_and_correct_year(self):
-        user = User.objects.create(
-            username='username2',
-            email='user2@example.com',
-            start_ksg=timezone.datetime(year=2018, month=3, day=1)
-        )
+        user = UserFactory()
         user.start_ksg = timezone.datetime(year=2018, month=8, day=1)
         user.save()
         self.assertEqual(user.get_start_ksg_display(), "H18")
 
     def test_profile_image_url__no_image__returns_none(self):
-        user = User.objects.create(
-            username='username2',
-            email='user2@example.com'
-        )
+        user = UserFactory(profile_image=None)
         self.assertEqual(user.profile_image_url, None)
 
     def test_profile_image_url__image_exists__returns_url(self):
-        user = User.objects.create(
-            username='username2',
-            email='user2@example.com'
-        )
         image_file = SimpleUploadedFile(name="test_image.jpeg", content=b'', content_type='image/jpeg')
-        user.profile_image = image_file
-        user.save()
-        self.assertEqual(user.profile_image_url, '/media/profiles/test_image.jpeg')
+        user = UserFactory(profile_image=image_file)
+        self.assertIsNotNone(
+            re.match(
+                r'/media/profiles/test_image([_]\w*)?.jpeg',
+                user.profile_image_url
+            )
+        )
 
     def test_active__status_is_active__returns_true(self):
-        user = User.objects.create(
-            username='username2',
-            email='user2@example.com',
-            ksg_status=KSG_STATUS_TYPES[0][0]
-        )
+        user = UserFactory(ksg_status=KSG_STATUS_TYPES.aktiv)
         self.assertEqual(user.active(), True)
 
     def test_active__status_is_not_active__returns_false(self):
-        user = User.objects.create(
-            username='username2',
-            email='user2@example.com',
-            ksg_status=KSG_STATUS_TYPES[1][0]
-        )
+        user = UserFactory(ksg_status=KSG_STATUS_TYPES.inaktiv)
         self.assertEqual(user.active(), False)
-        user.ksg_status = KSG_STATUS_TYPES[2][0]
+        user.ksg_status = KSG_STATUS_TYPES.permittert
         user.save()
         self.assertEqual(user.active(), False)
-        user.ksg_status = KSG_STATUS_TYPES[3][0]
+        user.ksg_status = KSG_STATUS_TYPES.sluttet
         user.save()
         self.assertEqual(user.active(), False)
 
 
 class UserDetailViewTest(TestCase):
-
     @classmethod
     def setUpTestData(cls):
-        cls.user = User(
-            username='username',
-            email='user@example.com',
-            first_name='Tormod',
-            last_name='Haugland'
-        )
+        cls.user = UserFactory(username='username')
+        cls.url = reverse('user_detail', kwargs={'user_id': cls.user.id})
         cls.user.set_password('password')
         cls.user.save()
         cls.user_detail_url = reverse(user_detail, kwargs={'user_id': cls.user.id})
@@ -160,19 +127,8 @@ class UserFormTest(TestCase):
 
     @classmethod
     def setUpTestData(cls):
-        cls.user = User(
-            username='username',
-            email='user@example.com',
-            first_name='Example',
-            last_name='Exampleson',
-            phone='12345678',
-            biography='Before the bio has been changed',
-            study='Informatikk'
-
-        )
-
+        cls.user = UserFactory()
         cls.user.set_password('password')
-        cls.user.id = 142
         cls.user.save()
         cls.user_detail_url = reverse(user_detail, kwargs={'user_id': cls.user.id})
 
@@ -190,7 +146,7 @@ class UserFormTest(TestCase):
         self.assertFalse(form.is_valid())
 
     def test_update_user_view_valid(self):
-        self.client.login(email=self.user.email, password='password')
+        self.client.login(username=self.user.email, password='password')
         response = self.client.post('/users/142/update', {
             'first_name': "Alexander", 'last_name': "Orvik",
             'phone': "45087749", 'study': "Samf", 'biography': "Nå er det endret", 'email': "alexaor@stud.ntnu.no"})
@@ -229,26 +185,16 @@ class UserFormTest(TestCase):
     # TODO add invalid view test and more comprehensive testing
 
 
-
 class UsersHaveMadeOutModelTest(TestCase):
 
     @classmethod
     def setUpTestData(cls):
-        cls.user = User.objects.create(
-            username='username',
-            email='user@example.com'
-        )
-        cls.user_two = User.objects.create(
-            username='username2',
-            email='user2@example.com'
-        )
-        cls.user_three = User.objects.create(
-            username='username3',
-            email='user3@example.com'
-        )
+        cls.user = UserFactory()
+        cls.user_two = UserFactory()
+        cls.user_three = UserFactory()
 
     def test_str_and_repr__does_not_crash(self):
-        made_out = UsersHaveMadeOut.objects.create(
+        made_out = UsersHaveMadeOutFactory(
             user_one=self.user,
             user_two=self.user_two
         )
@@ -260,35 +206,24 @@ class UsersHaveMadeOutManagerTest(TestCase):
 
     @classmethod
     def setUpTestData(cls):
-        cls.user = User.objects.create(
-            username='username',
-            email='user@example.com'
-        )
-        cls.user_two = User.objects.create(
-            username='username2',
-            email='user2@example.com'
-        )
-        cls.user_three = User.objects.create(
-            username='username3',
-            email='user3@example.com'
-        )
-        cls.made_out_this_semester = UsersHaveMadeOut.objects.create(
+        cls.user = UserFactory()
+        cls.user_two = UserFactory()
+        cls.user_three = UserFactory()
+        cls.made_out_this_semester = UsersHaveMadeOutFactory(
             user_one=cls.user,
             user_two=cls.user_two,
         )
         now = timezone.now()
-        cls.made_out_in_spring_last_year = UsersHaveMadeOut.objects.create(
+        cls.made_out_in_spring_last_year = UsersHaveMadeOutFactory(
             user_one=cls.user,
             user_two=cls.user_two,
+            created=now.replace(year=now.year - 1, month=3, day=1)
         )
-        cls.made_out_in_autumn_last_year = UsersHaveMadeOut.objects.create(
+        cls.made_out_in_autumn_last_year = UsersHaveMadeOutFactory(
             user_one=cls.user,
             user_two=cls.user_two,
+            created=now.replace(year=now.year - 1, month=9, day=1)
         )
-        cls.made_out_in_spring_last_year.created_at = timezone.datetime(year=now.year - 1, month=3, day=1, tzinfo=now.tzinfo)
-        cls.made_out_in_autumn_last_year.created_at = timezone.datetime(year=now.year - 1, month=9, day=1, tzinfo=now.tzinfo)
-        cls.made_out_in_spring_last_year.save()
-        cls.made_out_in_autumn_last_year.save()
 
     def test_this_semester__returns_made_outs_from_this_semester(self):
         this_semester_made_outs = UsersHaveMadeOut.objects.this_semester()
@@ -296,17 +231,17 @@ class UsersHaveMadeOutManagerTest(TestCase):
         self.assertEqual(this_semester_made_outs.first(), self.made_out_this_semester)
 
     def test_in_semester__this_semester_as_input__returns_made_outs_from_this_semester(self):
-        made_outs = UsersHaveMadeOut.objects.in_semester(self.made_out_this_semester.created_at)
+        made_outs = UsersHaveMadeOut.objects.in_semester(self.made_out_this_semester.created)
         self.assertEqual(made_outs.count(), 1)
         self.assertEqual(made_outs.first(), self.made_out_this_semester)
 
     def test_in_semester__specific_semester_in_spring_as_input__only_returns_relevant_made_outs(self):
-        made_outs = UsersHaveMadeOut.objects.in_semester(self.made_out_in_spring_last_year.created_at)
+        made_outs = UsersHaveMadeOut.objects.in_semester(self.made_out_in_spring_last_year.created)
         self.assertEqual(made_outs.count(), 1)
         self.assertEqual(made_outs.first(), self.made_out_in_spring_last_year)
 
     def test_in_semester__specific_semester_in_autumn_as_input__only_returns_relevant_made_outs(self):
-        made_outs = UsersHaveMadeOut.objects.in_semester(self.made_out_in_autumn_last_year.created_at)
+        made_outs = UsersHaveMadeOut.objects.in_semester(self.made_out_in_autumn_last_year.created)
         self.assertEqual(made_outs.count(), 1)
         self.assertEqual(made_outs.first(), self.made_out_in_autumn_last_year)
 
@@ -327,35 +262,17 @@ class KlineKartViewTest(TestCase):
         cls.temp_media_root = tempfile.mkdtemp()
         settings.MEDIA_ROOT = cls.temp_media_root
 
-        cls.user = User.objects.create(
-            username='username',
-            email='user@example.com',
-            anonymize_in_made_out_map=False
-        )
+        cls.user = UserFactory(anonymize_in_made_out_map=False)
         cls.user.set_password('password')
-        image_file = SimpleUploadedFile(name="test_image.jpeg", content=b'', content_type='image/jpeg')
-        cls.user.profile_image = image_file
         cls.user.save()
 
-        cls.user_two = User.objects.create(
-            username='username2',
-            email='user2@example.com',
-            anonymize_in_made_out_map=False
-        )
-        cls.user_three = User.objects.create(
-            username='username3',
-            email='user3@example.com',
-            anonymize_in_made_out_map=True
-        )
-        cls.user_four = User.objects.create(
-            username='username4',
-            email='user4@example.com',
-            anonymize_in_made_out_map=True
-        )
+        cls.user_two = UserFactory(anonymize_in_made_out_map=False)
+        cls.user_three = UserFactory(anonymize_in_made_out_map=True)
+        cls.user_four = UserFactory(anonymize_in_made_out_map=True)
 
     def setUp(self):
         self.client.login(
-            username='username',
+            username=self.user.username,
             password='password'
         )
 
@@ -364,28 +281,28 @@ class KlineKartViewTest(TestCase):
         self.assertTemplateUsed(response, 'users/klinekart.html')
 
     def test_klinekart__with_associations__sends_all_associations_properly_as_json(self):
-        UsersHaveMadeOut.objects.create(
+        UsersHaveMadeOutFactory(
             user_one=self.user,
             user_two=self.user_two,
         )
-        UsersHaveMadeOut.objects.create(
+        UsersHaveMadeOutFactory(
             user_one=self.user_two,
             user_two=self.user_three,
         )
-        UsersHaveMadeOut.objects.create(
+        UsersHaveMadeOutFactory(
             user_one=self.user_three,
             user_two=self.user,
         )
-        UsersHaveMadeOut.objects.create(
+        UsersHaveMadeOutFactory(
             user_one=self.user_four,
             user_two=self.user_two,
         )
-        UsersHaveMadeOut.objects.create(
+        UsersHaveMadeOutFactory(
             user_one=self.user_four,
             user_two=self.user_three,
         )
         # Duplicates are allowed
-        UsersHaveMadeOut.objects.create(
+        UsersHaveMadeOutFactory(
             user_one=self.user_two,
             user_two=self.user,
         )

@@ -1,10 +1,14 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
+
 from django.db import models
+from model_utils import Choices
+from model_utils.fields import StatusField
 
 from users.models import User
+
 # Internal groups in KSG
-KSG_INTERNAL_GROUPS = (
+KSG_INTERNAL_GROUPS = Choices(
     ("arrangement", "Arrangement"),
     ("bar", "Bargjengen"),
     ("bryggeriet", "Daglighallen mikrobryggeri"),
@@ -19,7 +23,7 @@ KSG_INTERNAL_GROUPS = (
 
 # Positions that can be held while in KSG
 # Note: Should only be available if you are aktiv
-KSG_POSITIONS = (
+KSG_POSITIONS = Choices(
     # Arrangement
     ("arrangementsansvarlig", "Arrangementsansvarlig"),
     ("arrangementsbartender", "Arrangementsbartender"),
@@ -55,7 +59,9 @@ class InternalGroup(models.Model):
     """
     An internal group within KSG, e.g. Lyche bar
     """
-    name = models.CharField(max_length=32, choices=KSG_INTERNAL_GROUPS, unique=True)
+    STATUS = KSG_INTERNAL_GROUPS
+
+    name = StatusField(unique=True)
 
     description = models.CharField(max_length=1024, blank=True, null=True)
 
@@ -81,7 +87,9 @@ class InternalGroupPosition(models.Model):
     """
     A position for an internal group, e.g. Hovmester
     """
-    name = models.CharField(max_length=32, choices=KSG_POSITIONS, unique=True)
+    STATUS = KSG_POSITIONS
+
+    name = StatusField(unique=True)
 
     description = models.CharField(max_length=1024, blank=True, null=True)
 

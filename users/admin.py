@@ -30,8 +30,9 @@ class AllergyAdmin(admin.ModelAdmin):
 
 class SociBankAccountInline(admin.StackedInline):
     model = SociBankAccount
-    fields = ['card_uuid', 'display_balance_at_soci']
-    verbose_name_plural = 'Soci Bank Account'
+    fields = ['card_uuid']
+    verbose_name = 'Soci Bank Account'
+    verbose_name_plural = 'Soci Bank Accounts'
     can_delete = False
 
 
@@ -60,8 +61,8 @@ class MyUserAdmin(UserAdmin):
 
 
 class UsersHaveMadeOutAdmin(admin.ModelAdmin):
-    readonly_fields = ('created_at',)
-    list_display = ('user_one', 'user_two', 'created_at',)
+    readonly_fields = ('created',)
+    list_display = ('user_one', 'user_two', 'created',)
 
 
 admin.site.register(User, MyUserAdmin)

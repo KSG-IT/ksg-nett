@@ -1,4 +1,5 @@
 # coding: utf-8
+from model_utils import Choices
 
 SUMMARY_TYPE_OTHER = 'other'
 SUMMARY_TYPE_KAFE_ANSVARLIG = 'kafeansvarlig'
@@ -12,7 +13,7 @@ SUMMARY_TYPE_DRIFT = 'drift'
 SUMMARY_TYPE_DAGLIGHALLEN = 'daglighallen'
 SUMMARY_TYPE_KSG_IT = 'kit'
 
-SUMMARY_TYPE_CHOICES = (
+SUMMARY_TYPE_CHOICES = Choices(
     (SUMMARY_TYPE_OTHER, 'Other summary'),
     (SUMMARY_TYPE_KAFE_ANSVARLIG, 'Kafeansvarlig summary'),
     (SUMMARY_TYPE_HOVMESTER, 'Hovmester summary'),
@@ -26,7 +27,7 @@ SUMMARY_TYPE_CHOICES = (
     (SUMMARY_TYPE_KSG_IT, 'KSG-IT summary')
 )
 
-SUMMARY_TYPE_SHORT_NAMES = (
+SUMMARY_TYPE_SHORT_NAMES = Choices(
     (SUMMARY_TYPE_OTHER, 'Other'),
     (SUMMARY_TYPE_KAFE_ANSVARLIG, 'Kafeansvarlig'),
     (SUMMARY_TYPE_HOVMESTER, 'Hovmester'),
@@ -39,6 +40,3 @@ SUMMARY_TYPE_SHORT_NAMES = (
     (SUMMARY_TYPE_DAGLIGHALLEN, 'Daglighallen'),
     (SUMMARY_TYPE_KSG_IT, 'KSG-IT')
 )
-
-SUMMARY_TYPE_CHOICES_DICT = dict(SUMMARY_TYPE_CHOICES)
-SUMMARY_TYPE_SHORT_NAMES_DICT = dict(SUMMARY_TYPE_SHORT_NAMES)

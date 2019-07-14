@@ -3,24 +3,16 @@ from __future__ import unicode_literals
 
 from django.test import TestCase
 
-# Create your tests here.
-from organization.models import InternalGroup
-from users.models import User
+from organization.tests.factories import InternalGroupFactory
+from users.tests.factories import UserFactory
 
 
 class GroupTest(TestCase):
 
     @classmethod
     def setUpTestData(cls):
-        cls.group_1 = InternalGroup(
-            name='Group 1'
-        )
-        cls.group_1.save()
-
-        cls.user_1 = User(
-            username='User 1'
-        )
-        cls.user_1.save()
+        cls.group_1 = InternalGroupFactory()
+        cls.user_1 = UserFactory()
         cls.group_1.members.add(cls.user_1)
 
     def test_group_str_and_repr_should_not_fail(self):

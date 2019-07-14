@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/1.10/ref/settings/
 """
 
 import os
+from datetime import timedelta
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -125,6 +126,10 @@ if not DEBUG:
 # Custom user
 AUTH_USER_MODEL = 'users.User'
 
+AUTHENTICATION_BACKENDS = [
+    'ksg_nett.custom_authentication.UsernameOrEmailOrCardNumberAuthenticationBackend'
+]
+
 # Default login_required return url
 LOGIN_URL = '/'
 
@@ -142,7 +147,7 @@ USE_L10N = True
 USE_TZ = True
 
 # Override in production
-LOCALE_PATHS = ['locales/',]
+LOCALE_PATHS = ['locales/', ]
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/1.10/howto/static-files/
@@ -153,28 +158,42 @@ MEDIA_URL = '/media/'
 # Django REST framework
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework.authentication.TokenAuthentication',
-        'rest_framework.authentication.SessionAuthentication',
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
         'rest_framework.authentication.BasicAuthentication',
     ),
-    'DEFAULT_PERMISSIONS_CLASSES': (
-        'rest_framework.permissions.IsAdminUser'
+    'DEFAULT_PERMISSION_CLASSES': (
+        'rest_framework.permissions.IsAdminUser',
     ),
-    'DEFAULT_PAGINATION_CLASS': (
-        'rest_framework.pagination.PageNumberPagination'
-    ),
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 20
 }
 
 STATIC_ROOT = 'static/'
 MEDIA_ROOT = 'media/'
 
+# Simple JWT SETTINGS
+# ------------------------------
+SIMPLE_JWT = {
+    'AUTH_TOKEN_CLASSES': ('rest_framework_simplejwt.tokens.SlidingToken',),
+    'SLIDING_TOKEN_LIFETIME': timedelta(hours=24),  # Should cover even the most hardcore Soci sessions
+    'AUTH_HEADER_TYPES': ('JWT',),
+}
+
+# API DOCS
+# ------------------------------
+SWAGGER_SETTINGS = {
+    'DEFAULT_AUTO_SCHEMA_CLASS': 'api.api_docs.CustomSwaggerAutoSchema',
+}
+
+REDOC_SETTINGS = {
+    'PATH_IN_MIDDLE': True,
+    'REQUIRED_PROPS_FIRST': True
+}
+
 # ECONOMY SETTINGS
 # ------------------------------
-MINIMUM_SOCI_AMOUNT = 0
 SOCI_MASTER_ACCOUNT_CARD_ID = 0xBADCAFEBABE  # Real card ids are 10 digits, while this is 14, meaning no collisions
 DIRECT_CHARGE_SKU = "X-BELOP"
-
 
 # Load local and production settings
 try:
