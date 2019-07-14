@@ -3,15 +3,17 @@
 document.addEventListener('DOMContentLoaded', function(){
     // Register click listeners to all vote up and vote down buttons we can find.
     // The quote ids are stored as data attributes on the button elements themselves.
-    var voteUps = document.querySelectorAll(".quote__voteup");
+    var voteUps = document.querySelectorAll(".quote__voteup")
+    console.log(1)
     voteUps.forEach(function(element){
         var quoteId = element.getAttribute('data-quote-id');
+        console.log(2)
         element.addEventListener('click', function(){
             axios('/internal/quotes/' + quoteId + '/vote-up', {method: 'POST'})
                 .then(function(response){
                     // `element` is the vote up button, and its sibling with class .quote__sum contains
                     // the actual quote sum data.
-                    element.parentNode.querySelector('.quote__sum').innerHTML = "Score: " + response.data.sum;
+                    element.parentNode.querySelector('.quote__sum').innerHTML = response.data.sum;
                 })
 
         });
@@ -25,7 +27,7 @@ document.addEventListener('DOMContentLoaded', function(){
                 .then(function(response){
                     // `element` is the vote down button, and its sibling with class .quote__sum contains
                     // the actual quote sum data.
-                    element.parentNode.querySelector('.quote__sum').innerHTML = "Score: " + response.data.sum;
+                    element.parentNode.querySelector('.quote__sum').innerHTML = response.data.sum;
                 })
         });
     });

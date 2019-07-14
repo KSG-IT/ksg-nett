@@ -79,21 +79,25 @@
 
 .quote_pending_footer_left {
     background-color: #0D2C39;
-    width: 40%;
+    width: 100%;
     display: flex;
     align-items: center;
     justify-content: center;
     color: #ffffff;
     border-radius: 5px;
     height: 32px;
+    margin-right: 10px;
 }
 
 .quote_pending_footer_right {
     background-color: #6E0D30;
-    width: 40%;
+    width: 100%;
+    margin-left: 10px;
     display: flex;
     align-items: center;
     justify-content: center;
-        border-radius: 5px;
+    border-radius: 5px;
     height: 32px;
+    color:white;
+
 }

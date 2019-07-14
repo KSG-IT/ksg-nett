@@ -35,16 +35,14 @@
                                                 style="color: #4cae4c;">
                                             <i class="fa fa-thumbs-up"></i>
                                         </button>
-                                        <div class="quote_item__score">{{ quote.sum }}</div>
+                                        <div class="quote_item__score quote__sum">{{ quote.sum }}</div>
                                         <button
                                                 class="quote__votedown thumb"
                                                 data-quote-id="{{ quote.id }}"
                                                 style="color: red;">
                                             <i class="fa fa-thumbs-down"></i>
                                         </button>
-
                                     </div>
-
                                     <div class="quote_item_footer__right">
                                         {% include "components/thumb.html" with size="tiny" url=user.profile_image_url %}
                                     </div>
