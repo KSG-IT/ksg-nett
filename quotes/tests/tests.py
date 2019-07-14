@@ -304,6 +304,7 @@ class QuoteApproveTest(TestCase):
         cls.quote = Quote(
             text='Some quote text',
             quoter=cls.user,
+            reported_by=cls.user,
             id=124
         )
         cls.quote.save()
