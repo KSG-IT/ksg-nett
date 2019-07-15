@@ -17,7 +17,7 @@ def quotes_approve(request, quote_id):
         if quote.verified_by is None:
             quote.verified_by = request.user
             quote.save()
-        return redirect(reverse(quotes_list))
+        return redirect(reverse(quotes_pending))
 
 
 @login_required
