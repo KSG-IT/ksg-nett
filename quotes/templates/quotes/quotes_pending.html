@@ -33,11 +33,11 @@
                             </div>
                             <div class="quote_pending_item__section">
                                 <div>Sendt inn klokkeslett:</div>
-                                <div>{{ pending_quote.created_at }}</div>
+                                <div>{{ pending_quote.created }}</div>
                             </div>
                             <div class="quote_pending_item__section">
                                 <div>Tagget</div>
-                                <div>{% include "components/thumb.html" with size="tiny" url=user.profile_image_url %}</div>
+                                <div>{% include "components/thumb.html" with size="tiny" url=panding_quote.quoter.profile_image_url %}</div>
                             </div>
                             <div class="quote_pending_item__section">
                                 <div class="quote_pending_footer_left">
