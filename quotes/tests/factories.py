@@ -12,8 +12,8 @@ class QuoteFactory(DjangoModelFactory):
         model = Quote
 
     text = Faker('text')
-    quoter = SubFactory('users.tests.factories.UserFactory')
-    verified_by = SubFactory('users.tests.factories.UserFactory')
+    quoter = SubFactory(UserFactory)
+    verified_by = SubFactory(UserFactory)
     reported_by = SubFactory(UserFactory)
     # created_at = Faker('past_datetime', tzinfo=pytz.timezone(settings.TIME_ZONE))
 
@@ -24,4 +24,4 @@ class QuoteVoteFactory(DjangoModelFactory):
 
     quote = SubFactory(QuoteFactory)
     value = random.choice([-1, 1])
-    caster = SubFactory('users.tests.factories.UserFactory')
+    caster = SubFactory(UserFactory)
