@@ -1,19 +1,35 @@
+import jwt
+from django.utils import timezone
 from drf_yasg.openapi import Parameter, IN_QUERY, TYPE_STRING
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import status
 from rest_framework.exceptions import ValidationError
-from rest_framework.generics import ListAPIView, RetrieveAPIView, get_object_or_404
+from rest_framework.generics import ListAPIView, RetrieveAPIView, get_object_or_404, DestroyAPIView
 from rest_framework.response import Response
 from rest_framework_simplejwt.views import TokenObtainSlidingView, TokenRefreshSlidingView, TokenVerifyView
 
 from api.serializers import CheckBalanceSerializer, SociProductSerializer, ChargeSociBankAccountDeserializer, \
     PurchaseSerializer
 from api.view_mixins import CustomCreateAPIView
-from economy.models import SociBankAccount, SociProduct, Purchase
+from economy.models import SociBankAccount, SociProduct, Purchase, SociSession
 
 
 class CustomTokenObtainSlidingView(TokenObtainSlidingView):
     swagger_schema = None
+
+    def post(self, request, *args, **kwargs):
+        response = super().post(request, *args, **kwargs)
+        self._start_new_soci_session(token=response.data['token'])
+        return response
+
+    @staticmethod
+    def _start_new_soci_session(token):
+        # In case XApp was hindered from terminating the active session manually,
+        # we terminate any currently active session before starting a new one.
+        SociSession.terminate_active_session()
+
+        card_user_id = jwt.decode(token, verify=False)['user_id']
+        SociSession.objects.create(signed_off_by_id=card_user_id)
 
 
 class CustomTokenRefreshSlidingView(TokenRefreshSlidingView):
@@ -22,6 +38,22 @@ class CustomTokenRefreshSlidingView(TokenRefreshSlidingView):
 
 class CustomTokenVerifyView(TokenVerifyView):
     swagger_schema = None
+
+
+class TerminateSociSessionView(DestroyAPIView):
+    """
+    Terminates the current SociSession by setting an end date.
+    """
+
+    @swagger_auto_schema(
+        tags=['Soci Sessions'],
+        operation_summary="Terminate SociSession",
+        responses={'200': ''}
+    )
+    def delete(self, request, *args, **kwargs):
+        SociSession.terminate_active_session()
+
+        return Response(status=status.HTTP_200_OK)
 
 
 class SociProductListView(ListAPIView):
@@ -36,7 +68,13 @@ class SociProductListView(ListAPIView):
         operation_summary="List SociProducts"
     )
     def get(self, request, *args, **kwargs):
-        soci_products = self.get_queryset()
+        now = timezone.now()
+        soci_products = (
+            self.get_queryset()
+                .exclude(end__lt=now)
+                .exclude(start__gt=now)
+                .order_by('sku_number')
+        )
         serializer = self.get_serializer(soci_products, many=True)
         data = serializer.data
 
@@ -61,7 +99,6 @@ class SociBankAccountBalanceDetailView(RetrieveAPIView):
             required=True
         )],
         responses={
-            "402": ": This SociBankAccount cannot be charged due to insufficient funds",
             "404": ": Could not retrieve SociBankAccount from the provided card number",
         },
     )
@@ -70,11 +107,7 @@ class SociBankAccountBalanceDetailView(RetrieveAPIView):
         serializer = self.get_serializer(soci_bank_account)
         data = serializer.data
 
-        response_status = status.HTTP_200_OK
-        if not soci_bank_account.has_sufficient_funds:
-            response_status = status.HTTP_402_PAYMENT_REQUIRED
-
-        return Response(data, status=response_status)
+        return Response(data, status=status.HTTP_200_OK)
 
     def get_object(self) -> SociBankAccount:
         card_uuid = self.request.query_params.get('card_uuid', None)
@@ -112,9 +145,8 @@ class SociBankAccountChargeView(CustomCreateAPIView):
             data=request.data, context={'soci_bank_account': soci_bank_account}, many=True, allow_empty=False)
         deserializer.is_valid(raise_exception=True)
 
-        purchase = Purchase.objects.create(source=soci_bank_account, signed_off_by=request.user)
+        purchase = Purchase.objects.create(source=soci_bank_account)
         deserializer.save(purchase=purchase)
-        purchase.save()  # Trigger signal
 
         serializer = self.get_serializer(purchase)
         data = serializer.data

@@ -3,50 +3,98 @@
 {% load static %}
 
 {% block header %}
-  <link rel="stylesheet" href="{% static 'internal/css/frontpage.css'%}">
+    <link rel="stylesheet" href="{% static 'internal/css/frontpage.css' %}">
+    <script src="https://kit.fontawesome.com/ce26cfd6f4.js"></script>
 {% endblock %}
 
 {# TODO: Contemplate splitting the below into multiple reusable sub-templates. #}
 {% block body_content %}
-  <div class="frontpage">
-    <div class="frontpage__section">
-      <div class="frontpage__column">
-        <h2 class="normal text-center darker-blue">{% trans 'Siste referater' %}</h2>
-        {% for summary in last_summaries %}
-          <a href="/internal/summaries/{{ summary.id }}" class="frontpage__summary resetlink">
-            <span class="light">
-              {{ summary.date | date:"m.d.Y" }}
-            </span>
-            <span class="bold">
-              {% trans summary.get_short_summary_type_name %}
-            </span>
-          </a>
-        {% endfor %}
-        <a class="resetlink block frontpage__columnallmarker" href="/internal/summaries/">Alle</a>
-      </div>
-      <div class="frontpage__column">
-        <h2 class="normal text-center darker-blue">{% trans 'Siste sitater' %}</h2>
-        {% for quote in last_quotes %}
-          <div class="frontpage__quote">
+    <div class="frontpage">
+        <div class="frontpage__top_row">
+            <div class="frontpage__slideshow_container">
+                <i class="fas fa-chevron-left"></i>
+                <div class="frontpage__image">
+                    <img>
+                </div>
+                <i class="fas fa-chevron-right"></i>
+            </div>
+            <div class="frontpage__top_right_container">
+                <div class="frontpage__column" style="width: 300px">
+                    <h2 class="normal text-center darker-blue">{% trans 'Siste sitater' %}</h2>
+                    {% for quote in last_quotes %}
+                        <div class="frontpage__quote">
             <span class="bold">
               "{{ quote.text | truncatechars:30 }}"
             </span>
-              -
-            <span class="light">
+                            -
+                            <span class="light">
               <a href="/internal/users/{{ quote.quoter.id }}" class="resetlink">
                 {{ quote.quoter.get_full_name }}
               </a>
             </span>
-          </div>
-        {% endfor %}
-        <a class="resetlink block frontpage__columnallmarker" href="/internal/quotes/">Alle</a>
-      </div>
-      <div class="frontpage__column">
-        <h2 class="normal text-center darker-blue">{% trans 'Siste album' %}</h2>
-      </div>
-      <div class="frontpage__column">
-        <h2 class="normal text-center darker-blue">{% trans 'Gjengen' %}</h2>
-      </div>
+                        </div>
+                    {% endfor %}
+                    <a class="resetlink block frontpage__columnallmarker" href="/internal/quotes/">Alle</a>
+                </div>
+                <div class="frontpage__column" style="width: auto">
+                    <h2 class="normal text-center darker-blue">{% trans 'Siste sitater' %}</h2>
+                    {% for quote in last_quotes %}
+                        <div class="frontpage__quote">
+            <span class="bold">
+              "{{ quote.text | truncatechars:30 }}"
+            </span>
+                            -
+                            <span class="light">
+              <a href="/internal/users/{{ quote.quoter.id }}" class="resetlink">
+                {{ quote.quoter.get_full_name }}
+              </a>
+            </span>
+                        </div>
+                    {% endfor %}
+                    <a class="resetlink block frontpage__columnallmarker" href="/internal/quotes/">Alle</a>
+                </div>
+
+            </div>
+
+        </div>
+        <div class="frontpage__section">
+            <div class="frontpage__column">
+                <h2 class="normal text-center darker-blue">{% trans 'Siste referater' %}</h2>
+                {% for summary in last_summaries %}
+                    <a href="/internal/summaries/{{ summary.id }}" class="frontpage__summary resetlink">
+            <span class="light">
+              {{ summary.date | date:"m.d.Y" }}
+            </span>
+                        <span class="bold">
+              {% trans summary.get_short_summary_type_name %}
+            </span>
+                    </a>
+                {% endfor %}
+                <a class="resetlink block frontpage__columnallmarker" href="/internal/summaries/">Alle</a>
+            </div>
+            <div class="frontpage__column">
+                <h2 class="normal text-center darker-blue">{% trans 'Siste sitater' %}</h2>
+                {% for quote in last_quotes %}
+                    <div class="frontpage__quote">
+            <span class="bold">
+              "{{ quote.text | truncatechars:30 }}"
+            </span>
+                        -
+                        <span class="light">
+              <a href="/internal/users/{{ quote.quoter.id }}" class="resetlink">
+                {{ quote.quoter.get_full_name }}
+              </a>
+            </span>
+                    </div>
+                {% endfor %}
+                <a class="resetlink block frontpage__columnallmarker" href="/internal/quotes/">Alle</a>
+            </div>
+            <div class="frontpage__column">
+                <h2 class="normal text-center darker-blue">{% trans 'Siste album' %}</h2>
+            </div>
+            <div class="frontpage__column">
+                <h2 class="normal text-center darker-blue">{% trans 'Gjengen' %}</h2>
+            </div>
+        </div>
     </div>
-  </div>
 {% endblock %}

@@ -2,6 +2,7 @@
 from __future__ import unicode_literals
 
 import json
+import re
 import shutil
 import tempfile
 
@@ -59,21 +60,26 @@ class UserProfileTest(TestCase):
         self.assertEqual(user.profile_image_url, None)
 
     def test_profile_image_url__image_exists__returns_url(self):
-        image_file = SimpleUploadedFile(name="test_image_fix.jpeg", content=b'', content_type='image/jpeg')
+        image_file = SimpleUploadedFile(name="test_image.jpeg", content=b'', content_type='image/jpeg')
         user = UserFactory(profile_image=image_file)
-        self.assertEqual(user.profile_image_url, '/media/profiles/test_image_fix.jpeg')
+        self.assertIsNotNone(
+            re.match(
+                r'/media/profiles/test_image([_]\w*)?.jpeg',
+                user.profile_image_url
+            )
+        )
 
     def test_active__status_is_active__returns_true(self):
-        user = UserFactory(ksg_status=KSG_STATUS_TYPES[0][0])
+        user = UserFactory(ksg_status=KSG_STATUS_TYPES.aktiv)
         self.assertEqual(user.active(), True)
 
     def test_active__status_is_not_active__returns_false(self):
-        user = UserFactory(ksg_status=KSG_STATUS_TYPES[1][0])
+        user = UserFactory(ksg_status=KSG_STATUS_TYPES.inaktiv)
         self.assertEqual(user.active(), False)
-        user.ksg_status = KSG_STATUS_TYPES[2][0]
+        user.ksg_status = KSG_STATUS_TYPES.permittert
         user.save()
         self.assertEqual(user.active(), False)
-        user.ksg_status = KSG_STATUS_TYPES[3][0]
+        user.ksg_status = KSG_STATUS_TYPES.sluttet
         user.save()
         self.assertEqual(user.active(), False)
 
@@ -211,17 +217,13 @@ class UsersHaveMadeOutManagerTest(TestCase):
         cls.made_out_in_spring_last_year = UsersHaveMadeOutFactory(
             user_one=cls.user,
             user_two=cls.user_two,
+            created=now.replace(year=now.year - 1, month=3, day=1)
         )
         cls.made_out_in_autumn_last_year = UsersHaveMadeOutFactory(
             user_one=cls.user,
             user_two=cls.user_two,
+            created=now.replace(year=now.year - 1, month=9, day=1)
         )
-        cls.made_out_in_spring_last_year.created_at = timezone.datetime(year=now.year - 1, month=3, day=1,
-                                                                        tzinfo=now.tzinfo)
-        cls.made_out_in_autumn_last_year.created_at = timezone.datetime(year=now.year - 1, month=9, day=1,
-                                                                        tzinfo=now.tzinfo)
-        cls.made_out_in_spring_last_year.save()
-        cls.made_out_in_autumn_last_year.save()
 
     def test_this_semester__returns_made_outs_from_this_semester(self):
         this_semester_made_outs = UsersHaveMadeOut.objects.this_semester()
@@ -229,17 +231,17 @@ class UsersHaveMadeOutManagerTest(TestCase):
         self.assertEqual(this_semester_made_outs.first(), self.made_out_this_semester)
 
     def test_in_semester__this_semester_as_input__returns_made_outs_from_this_semester(self):
-        made_outs = UsersHaveMadeOut.objects.in_semester(self.made_out_this_semester.created_at)
+        made_outs = UsersHaveMadeOut.objects.in_semester(self.made_out_this_semester.created)
         self.assertEqual(made_outs.count(), 1)
         self.assertEqual(made_outs.first(), self.made_out_this_semester)
 
     def test_in_semester__specific_semester_in_spring_as_input__only_returns_relevant_made_outs(self):
-        made_outs = UsersHaveMadeOut.objects.in_semester(self.made_out_in_spring_last_year.created_at)
+        made_outs = UsersHaveMadeOut.objects.in_semester(self.made_out_in_spring_last_year.created)
         self.assertEqual(made_outs.count(), 1)
         self.assertEqual(made_outs.first(), self.made_out_in_spring_last_year)
 
     def test_in_semester__specific_semester_in_autumn_as_input__only_returns_relevant_made_outs(self):
-        made_outs = UsersHaveMadeOut.objects.in_semester(self.made_out_in_autumn_last_year.created_at)
+        made_outs = UsersHaveMadeOut.objects.in_semester(self.made_out_in_autumn_last_year.created)
         self.assertEqual(made_outs.count(), 1)
         self.assertEqual(made_outs.first(), self.made_out_in_autumn_last_year)
 

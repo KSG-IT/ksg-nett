@@ -1,5 +1,4 @@
 from django.contrib.auth.models import UserManager
-from django.db import models
 from django.utils import timezone
 
 
@@ -21,7 +20,7 @@ class UsersHaveMadeOutManager(UserManager):
                 current_time.year, 1, 1, tzinfo=current_time.tzinfo
             )
 
-        return self.get_queryset().filter(created_at__gte=start_of_semester)
+        return self.get_queryset().filter(created__gte=start_of_semester)
 
     def in_semester(self, some_datetime_in_semester: timezone.datetime):
         """
@@ -65,5 +64,5 @@ class UsersHaveMadeOutManager(UserManager):
             )
 
         return self.get_queryset().filter(
-            created_at__gte=start_of_semester, created_at__lt=end_of_semester
+            created__gte=start_of_semester, created__lt=end_of_semester
         )

@@ -1,7 +1,43 @@
 {% extends 'internal/base.html' %}
+{% load static %}
+{% load i18n %}
+{% block header %}
+  {# Add ace editor and showdown rendering #}
+  {% include 'imports/ace.html'  %}
+  {% include 'imports/showdown.html'  %}
+
+  <meta name="summary-create-contents" content="{{ summary_form.contents.value|default:"" }}">
+  <link rel="stylesheet" href="{% static 'summaries/css/summaries_create.css' %}">
+{% endblock %}
 {% block body_content %}
-  <form method="POST">
-    {% csrf_token %}
-    {{ summary_form }}
-  </form>
+  <div class="summarycreate default-fill-height-container">
+    <form id="summarycreate-form" class="summarycreate__form" method="POST">
+      {% csrf_token %}
+      <div class="summarycreate__header">
+        {{ summary_form.errors }}
+        {{ summary_form.participants }}
+        {{ summary_form.reporter }}
+        {{ summary_form.summary_type }}
+        {{ summary_form.date }}
+        <span id="summarycreate-submit" class="summarycreate__submit bg-dark-blue white">{% trans 'Save' %}</span>
+      </div>
+      <div class="summarycreate__editorheader">
+        <div class="text-uppercase">
+          {% trans 'Input' %}
+        </div>
+        <div class="text-uppercase">
+          {% trans 'Preview' %}
+        </div>
+      </div>
+      <div class="summarycreate__editorwrapper">
+        {# We use this to store the contents of the ACE editor in an input so we can send it. #}
+        <input type="hidden" name="contents" id="summarycreate-contentsinput">
+        <div id="summarycreate-contents" class="summarycreate__contents">{{ summary_form.contents.value|default:"# Referat" }}</div>
+        <div class="summarycreate__preview" id="summarycreate-preview"></div>
+      </div>
+    </form>
+  </div>
+{% endblock %}
+{% block body_end %}
+  <script src="{% static 'summaries/js/summaries_create.js' %}"></script>
 {% endblock %}
