@@ -1,10 +1,92 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
+{% extends 'internal/base.html' %}
+{% load static %}
+{% load i18n %}
+{% block header %}
+    <link rel="stylesheet" href="{% static 'quotes/css/quotes_highscore.css' %}">
+    <link rel="stylesheet" href="{% static 'quotes/css/quotes.css' %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+{% endblock %}
+{% block body_content %}
+    <div class="profilepage">
+        <div class="default-container default-top-offset">
+            <div id="left-wrapper" class="default-left-panel profilepage__thumbwrapper text-right">
+                <h3><a class="btn btn-primary resetlink" href="/internal/quotes/">SITATER</a></h3>
+                <p><a class="btn btn-primary resetlink" href="/internal/quotes/pending/">{{ pending | length }} Til
+                    Godkjennning</a></p>
+                <p><a class="btn btn-primary resetlink" href="/internal/quotes/add/">Opprett</a></p>
+                <p><a class="btn btn-primary resetlink" href="/internal/quotes/highscore/">Topplista</a></p>
+                <p>Søk</p>
+            </div>
+            <div class="default-right-panel" id="right-wrapper">
+                <div class="highscore__main_wrapper">
+                    <div class="highscore__column_wrapper">
+                        <div class="highscore_this_semester_wrapper">
+                            <h2>Dette semesteret</h2>
+                            {% for quote in highscore_this_semester %}
+                                <div class="quote__griditem">
+                                    <div class="quote__text">
+                                        <strong>"{{ quote.text }}"</strong> -{{ quote.quoter.get_full_name }}
+                                    </div>
+                                    <div class="quote_item__footer">
+                                        <div class="quote_item_footer__left">
+                                            <button
+                                                    class="quote__voteup"
+                                                    data-quote-id="{{ quote.id }}"
+                                                    style="color: #4cae4c;">
+                                                <i class="fa fa-thumbs-up"></i>
+                                            </button>
+                                            <div class="quote_item__score quote__sum">{{ quote.sum }}</div>
+                                            <button
+                                                    class="quote__votedown thumb"
+                                                    data-quote-id="{{ quote.id }}"
+                                                    style="color: red;">
+                                                <i class="fa fa-thumbs-down"></i>
+                                            </button>
+                                        </div>
+                                        <div class="quote_item_footer__right">
+                                            {% include "components/thumb.html" with size="tiny" url=quote.quoter.profile_image_url %}
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                        <div class="highscore_all_time_wrapper">
+                            <h2>Gjennom tidene</h2>
+                            {% for quote in highscore_all_time %}
+                                <div class="quote__griditem">
+                                    <div class="quote__text">
+                                        <strong>"{{ quote.text }}"</strong> -{{ quote.quoter.get_full_name }}
+                                    </div>
+                                    <div class="quote_item__footer">
+                                        <div class="quote_item_footer__left">
+                                            <button
+                                                    class="quote__voteup"
+                                                    data-quote-id="{{ quote.id }}"
+                                                    style="color: #4cae4c;">
+                                                <i class="fa fa-thumbs-up"></i>
+                                            </button>
+                                            <div class="quote_item__score quote__sum">{{ quote.sum }}</div>
+                                            <button
+                                                    class="quote__votedown thumb"
+                                                    data-quote-id="{{ quote.id }}"
+                                                    style="color: red;">
+                                                <i class="fa fa-thumbs-down"></i>
+                                            </button>
+                                        </div>
+                                        <div class="quote_item_footer__right">
+                                            {% include "components/thumb.html" with size="tiny" url=quote.quoter.profile_image_url %}
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
 
-</body>
-</html>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+    {% load static %}
+    <script src="{% static 'quotes/js/quotes_list.js' %}"></script>
+{% endblock %}

@@ -29,6 +29,19 @@ def quotes_archive_overview(request):
     return render(request, template_name='quotes/quotes_archive_overview.html', context=ctx)
 
 
+@login_required
+def quotes_highscore(request):
+    if request.method == "GET":
+        this_semester = Quote.highscore_objects.semester_highest_score(timezone.now())
+        all_time = Quote.highscore_objects.highest_score_all_time()
+        combined_list = list(zip(this_semester, all_time))
+        ctx = {
+            "highscore_this_semester": Quote.highscore_objects.semester_highest_score(timezone.now()),
+            "highscore_all_time": Quote.highscore_objects.highest_score_all_time(),
+            "highscore_combined": combined_list # Can be used in the future so we can style the rows together
+        }
+        return render(request, template_name="quotes/quotes_highscore.html", context=ctx)
+
 """
 As of now this method works by extracting the time of year in terms of spring or autumn from the input
 which comes at the format like V18 or H17. The view then generates a datetime object in an interval such that

@@ -13,7 +13,7 @@
                 <p><a class="btn btn-primary resetlink" href="/internal/quotes/pending/">{{ pending | length }} Til
                     Godkjennning</a></p>
                 <p><a class="btn btn-primary resetlink" href="/internal/quotes/add/">Opprett</a></p>
-                <p><a class="btn btn-primary resetlink" href="/internal/quotes/archive/">Topplista</a></p>
+                <p><a class="btn btn-primary resetlink" href="/internal/quotes/highscore/">Topplista</a></p>
                 <p>Søk</p>
             </div>
             <div class="default-right-panel" id="right-wrapper">
@@ -40,22 +40,17 @@
                                 <div>{% include "components/thumb.html" with size="tiny" url=panding_quote.quoter.profile_image_url %}</div>
                             </div>
                             <div class="quote_pending_item__section">
-                                <div class="quote_pending_footer_left">
                                     <form method="POST" action="/internal/quotes/{{ pending_quote.id }}/approve">
                                         {% csrf_token %}
-                                        <button style="width:100%; color:white">Godkjenn</button>
+                                        <button class="pending__submit_button">Godkjenn</button>
                                     </form>
 
-                                </div>
-                                <div class="quote_pending_footer_right">
-                                    <div>
-                                        <form action="/internal/quotes/{{ pending_quote.id }}/delete" method="POST">
-                                            {% csrf_token %}
-                                            <button style="width:100%;">Slett</button>
-                                        </form>
-                                    </div>
+                                    <form action="/internal/quotes/{{ pending_quote.id }}/delete" method="POST">
+                                        {% csrf_token %}
+                                        <button class="pending__delete_button">Slett</button>
+                                    </form>
 
-                                </div>
+
                             </div>
                         </div>
                     {% endfor %}

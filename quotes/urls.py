@@ -8,6 +8,7 @@ urlpatterns = [
     path('archive/', views.quotes_archive_overview),
 #    path('archive/<str:quote_semester>', views.quotes_archive_specific),
     path('pending/', views.quotes_pending),
+    path("highscore/", views.quotes_highscore),
 
     path('<int:quote_id>/vote-up', views.vote_up),
     path('<int:quote_id>/vote-down', views.vote_down),
