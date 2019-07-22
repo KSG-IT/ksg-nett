@@ -23,7 +23,6 @@ def index(request):
         'economy:': result_list[:10],
         'next_shifts': request.user.shift_set.filter(slot__group__meet_time__gte=timezone.now())[:2],
     }
-    print(result_list)
     return render(request, 'internal/frontpage.html', context=ctx)
 
 
