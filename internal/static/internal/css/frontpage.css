@@ -3,6 +3,7 @@
     display: flex;
     flex-flow: column;
     padding: 0 20px;
+    box-sizing: border-box;
 }
 
 .frontpage__section {
@@ -11,6 +12,7 @@
     margin: 0 auto;
     flex-wrap: wrap;
     justify-content: left;
+    box-sizing: border-box;
 }
 
 
@@ -24,23 +26,39 @@
 }
 
 .frontpage__top_right_container {
+    box-sizing: border-box;
     display: flex;
     flex-flow: column;
+    height: 100%;
+    width: 400px;
 
+}
+
+.frontpage__image_outer_container {
+    display: flex;
+    flex-flow: column;
 }
 
 .frontpage__image {
     width: 650px;
+    margin: 0 10px;
     height: 380px;
-    background-color: red;
+    background-image: url("http://i.stack.imgur.com/2OrtT.jpg");
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-position: 50% 50%;
 }
 
 .frontpage__top_row {
     margin-top: 25px;
+    -webkit-box-sizing: border-box;
+    -moz-box-sizing: border-box;
+    box-sizing: border-box;
     display: flex;
     flex-flow: row;
-    justify-content: space-between;
+    justify-content: space-evenly;
     align-items: center;
+    box-sizing: border-box;
 }
 
 .frontpage__bottom_row {
@@ -49,11 +67,45 @@
 }
 
 .frontpage__column {
+    box-sizing: border-box;
     width: 25%;
     padding: 0.5em;
     -webkit-box-sizing: border-box;
     -moz-box-sizing: border-box;
     box-sizing: border-box;
+}
+
+.frontpage__shift_row {
+    display: flex;
+    flex-flow: row;
+    justify-content: space-between;
+    margin: 10px 0;
+
+}
+
+.frontpage__information_row {
+    display: flex;
+    flex-flow: row;
+    justify-content: space-between;
+    -webkit-box-sizing: border-box;
+    -moz-box-sizing: border-box;
+    box-sizing: border-box;
+    margin: 5px 0;
+}
+
+.frontpage__column_rework {
+    display: flex;
+    flex-flow: column;
+    -webkit-box-sizing: border-box;
+    -moz-box-sizing: border-box;
+    box-sizing: border-box;
+    margin: 0.4em;
+}
+
+.frontpage__shift_coworkers_inline {
+    display: flex;
+    flex-flow: row;
+    justify-content: flex-start;
 }
 
 .frontpage__columnallmarker {
@@ -66,4 +118,5 @@
 
 .frontpage__quote {
     margin-bottom: 0.4em;
+    box-sizing: border-box;
 }
