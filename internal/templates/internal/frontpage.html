@@ -10,15 +10,15 @@
 {# TODO: Contemplate splitting the below into multiple reusable sub-templates. #}
 {% block body_content %}
     <div class="frontpage">
-        <div class="frontpage__top_row">
-            <div class="frontpage__slideshow_container">
-                <i class="fas fa-chevron-left"></i>
-                <div class="frontpage__image">
-
+            <div class="frontpage__slideshow grid-area">
+                <div class="frontpage__slideshow_container">
+                    <span><</span>
+                    <div class="frontpage__image">
+                    </div>
+                    <span>> </span>
                 </div>
-                <i class="fas fa-chevron-right"></i>
             </div>
-            <div class="frontpage__top_right_container">
+            <div class="frontpage__shifts grid-area">
                 <div class="frontpage__column_rework" style="width: 450px">
                     <h2 class="normal text-left darker-blue">{% trans 'Dine vakter' %}</h2>
                     {% for shift in next_shifts %}
@@ -40,55 +40,59 @@
                         </div>
                     {% endfor %}
                 </div>
-                <div class="frontpage__column" style="width: 450px">
-                    <h2 class="normal text-left darker-blue">{% trans 'Info' %}</h2>
-                    <div class="frontpage__information_row">
-                        <span> Kontonummer soci </span>
-                        <span> 12345678 </span>
-                    </div>
-                    <div class="frontpage__information_row">
-                        <span>Vipps Org. nr</span>
-                        <span>95034 </span>
-                    </div>
-                    <div class="frontpage__information_row">
-                        <span> E-post ksg-styret </span>
-                        <span>ksg-styret@samfundet.no </span>
-                    </div>
-                    <div class="frontpage__information_row">
-                        <span> Noen å snakke med? </span>
-                        <span> baksida@samfundet.no</span>
-                    </div>
-                    <div class="frontpage__information_row">
-                        <span>Webproblemer?</span>
-                        <span>ksg-it@samfundet.no</span>
-                    </div>
+            </div>
+            <div class="frontpage__info grid-area" style="width: 450px">
+                <h2 class="normal text-left darker-blue">{% trans 'Info' %}</h2>
+                <div class="frontpage__information_row">
+                    <span> Kontonummer soci </span>
+                    <span> 12345678 </span>
                 </div>
-
+                <div class="frontpage__information_row">
+                    <span>Vipps Org. nr</span>
+                    <span>95034 </span>
+                </div>
+                <div class="frontpage__information_row">
+                    <span> E-post ksg-styret </span>
+                    <span>ksg-styret@samfundet.no </span>
+                </div>
+                <div class="frontpage__information_row">
+                    <span> Noen å snakke med? </span>
+                    <span> baksida@samfundet.no</span>
+                </div>
+                <div class="frontpage__information_row">
+                    <span>Webproblemer?</span>
+                    <span>ksg-it@samfundet.no</span>
+                </div>
             </div>
 
-        </div>
-        <div class="frontpage__section">
-            <div class="frontpage__column">
+
+            <div class="frontpage__summaries grid-area">
                 <h2 class="normal text-left darker-blue">{% trans 'Siste referater' %}</h2>
                 {% for summary in last_summaries %}
                     <a href="/internal/summaries/{{ summary.id }}" class="frontpage__summary resetlink">
-            <span class="light">
-              {{ summary.date | date:"m.d.Y" }}
-            </span>
+                    <div class="frontpage__information_row">
                         <span class="bold">
               {% trans summary.get_short_summary_type_name %}
             </span>
+                                <span class="light">
+              {{ summary.date | date:"m.d.Y" }}
+            </span>
+
+                    </div>
+
                     </a>
                 {% endfor %}
                 <a class="resetlink block frontpage__columnallmarker" href="/internal/summaries/">Alle</a>
             </div>
-            <div class="frontpage__column">
+
+
+            <div class="frontpage__quotes grid-area">
                 <h2 class="normal text-left darker-blue">{% trans 'Siste sitater' %}</h2>
                 {% for quote in last_quotes %}
-                    <div class="frontpage__quote">
-            <span class="bold">
-              "{{ quote.text | truncatechars:30 }}"
-            </span>
+                        <div class="frontpage__quote">
+                        <span class="bold">
+                            "{{ quote.text | truncatechars:30 }}"
+                         </span>
                         -
                         <span class="light">
               <a href="/internal/users/{{ quote.quoter.id }}" class="resetlink">
@@ -99,22 +103,13 @@
                 {% endfor %}
                 <a class="resetlink block frontpage__columnallmarker" href="/internal/quotes/">Alle</a>
             </div>
-            <div class="frontpage__column">
+
+            <div class="frontpage__economy grid-area">
                 <h2 class="normal text-left darker-blue">{% trans 'Økonomi' %}</h2>
-                {% for purchase in last_summaries %}
-                    <span>Placehodlder text until context acutally returns something</span>
+                {% for purchase in economy %}
+                    <span>{{ purchase }}</span>
                 {% endfor %}
+            <a class="resetlink block frontpage__columnallmarker" href="/internal/economy/">Alle</a>
             </div>
-            <div class="frontpage__column">
-                <h2 class="normal text-left darker-blue">{% trans 'Nyheter' %}</h2>
-                {% for summary in last_summaries %}
-                    <a href="/internal/summaries/{{ summary.id }}" class="frontpage__summary resetlink">
-                        <span class="light">{{ summary.date | date:"m.d.Y" }}</span>
-                        <span class="bold">{% trans summary.get_short_summary_type_name %}</span>
-                    </a>
-                {% endfor %}
-                <a class="resetlink block frontpage__columnallmarker" href="/internal/summaries/">{% trans 'Alle' %}</a>
-            </div>
-        </div>
     </div>
 {% endblock %}
