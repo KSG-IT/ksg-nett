@@ -142,7 +142,8 @@ class SociBankAccountChargeView(CustomCreateAPIView):
         soci_bank_account: SociBankAccount = self.get_object()
 
         deserializer = self.get_deserializer(
-            data=request.data, context={'soci_bank_account': soci_bank_account}, many=True, allow_empty=False)
+            data=request.data,
+            context={'soci_bank_account': soci_bank_account, 'total': 0}, many=True, allow_empty=False)
         deserializer.is_valid(raise_exception=True)
 
         purchase = Purchase.objects.create(source=soci_bank_account)
