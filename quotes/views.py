@@ -20,14 +20,6 @@ def quotes_approve(request, quote_id):
         return redirect(reverse(quotes_pending))
 
 
-@login_required
-def quotes_archive_overview(request):
-    semesters = get_semester_year_shorthands_by_count(15)
-    ctx = {
-        'semesters': semesters
-    }
-    return render(request, template_name='quotes/quotes_archive_overview.html', context=ctx)
-
 
 @login_required
 def quotes_highscore(request):
@@ -42,35 +34,6 @@ def quotes_highscore(request):
         }
         return render(request, template_name="quotes/quotes_highscore.html", context=ctx)
 
-"""
-As of now this method works by extracting the time of year in terms of spring or autumn from the input
-which comes at the format like V18 or H17. The view then generates a datetime object in an interval such that
-our function which gives a shorthand format can be used to match any quotes which fall within the 
-same specified semester. This is a rough draft on hwo to exctracted and should be refactored at some point.
-At the point of time I'm writing this the view neither has sufficient form for error handling which 
-has to be implemented before committing anything to develop.
-
-The view also renders pending objects as of now which it shouldn't. 
-"""
-
-# Deprecated until further notice
-# @login_required
-# def quotes_archive_specific(request, quote_semester):
-#     # Need to create timezone object, could extract the prefix and generate a datetime object from that
-#     # Error handling for wrong format, either too long or not valid semester
-#     semester_prefix = quote_semester[0]
-#     year = int('20' + quote_semester[1:3])
-#     semester_datetime_object = timezone.now()
-#     if semester_prefix == 'H':
-#         semester_datetime_object = semester_datetime_object.replace(year=year, month=10, day=4)
-#     elif semester_prefix == 'V':
-#         semester_datetime_object = semester_datetime_object.replace(year=year, month=3, day=4)
-#
-#     ctx = {
-#         'semester_specific': get_semester_year_shorthand(semester_datetime_object),
-#         'semester_quotes': Quote.objects.in_semester(semester_datetime_object).order_by('-created')
-#     }
-#     return render(request, template_name='quotes/quotes_archive_specific.html', context=ctx)
 
 
 @login_required
