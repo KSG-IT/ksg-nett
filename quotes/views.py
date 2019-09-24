@@ -18,6 +18,8 @@ def quotes_approve(request, quote_id):
             quote.verified_by = request.user
             quote.save()
         return redirect(reverse(quotes_pending))
+    else:
+        return HttpResponse(status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
 
 
@@ -33,6 +35,8 @@ def quotes_highscore(request):
             "highscore_combined": combined_list # Can be used in the future so we can style the rows together
         }
         return render(request, template_name="quotes/quotes_highscore.html", context=ctx)
+    else:
+        return HttpResponse(status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
 
 
