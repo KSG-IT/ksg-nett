@@ -37,18 +37,24 @@
                             </div>
                             <div class="quote_pending_item__section">
                                 <div>Tagget</div>
-                                <div>{% include "components/thumb.html" with size="tiny" url=panding_quote.quoter.profile_image_url %}</div>
+                                <div><a href="/internal/users/{{ pending_quote.quoter.id }}">
+                                    {% include "components/thumb.html" with size="tiny" url=pending_quote.quoter.profile_image_url %}
+
+                                </a>
+                                </div>
+
+
                             </div>
                             <div class="quote_pending_item__section">
-                                    <form method="POST" action="/internal/quotes/{{ pending_quote.id }}/approve">
-                                        {% csrf_token %}
-                                        <button class="pending__submit_button">Godkjenn</button>
-                                    </form>
+                                <form method="POST" action="/internal/quotes/{{ pending_quote.id }}/approve">
+                                    {% csrf_token %}
+                                    <button class="pending__submit_button">Godkjenn</button>
+                                </form>
 
-                                    <form action="/internal/quotes/{{ pending_quote.id }}/delete" method="POST">
-                                        {% csrf_token %}
-                                        <button class="pending__delete_button">Slett</button>
-                                    </form>
+                                <form action="/internal/quotes/{{ pending_quote.id }}/delete" method="POST">
+                                    {% csrf_token %}
+                                    <button class="pending__delete_button">Slett</button>
+                                </form>
 
 
                             </div>
