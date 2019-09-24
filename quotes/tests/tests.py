@@ -5,9 +5,11 @@ from django.urls import reverse
 from factory import Iterator
 from rest_framework import status
 
+from django.utils import timezone
 from quotes.models import Quote
 from quotes.tests.factories import QuoteFactory, QuoteVoteFactory
-from quotes.views import quotes_list, vote_up, vote_down, quotes_add, quotes_edit, quotes_delete, quotes_approve
+from quotes.views import quotes_list, vote_up, vote_down, quotes_add, quotes_edit, quotes_delete, \
+    quotes_approve, quotes_pending
 from users.models import User
 from users.tests.factories import UserFactory
 
@@ -61,10 +63,10 @@ class QuoteManagersTest(TestCase):
         cls.unverified_quotes = QuoteFactory.create_batch(4, verified_by=None)
 
     def test_quote_pending_objects__returns_correct_count(self):
-        self.assertEqual(Quote.pending_objects.count(), 4)
+        self.assertEqual(Quote.pending_objects.all().count(), 4)
 
     def test_quote_verified_objects__returns_correct_count(self):
-        self.assertEqual(Quote.verified_objects.count(), 2)
+        self.assertEqual(Quote.verified_objects.all().count(), 2)
 
 
 class QuotePresentationViewsTest(TestCase):
@@ -302,6 +304,7 @@ class QuoteApproveTest(TestCase):
         cls.quote = Quote(
             text='Some quote text',
             quoter=cls.user,
+            reported_by=cls.user,
             id=124
         )
         cls.quote.save()
@@ -314,3 +317,58 @@ class QuoteApproveTest(TestCase):
         self.client.post(reverse(viewname=quotes_approve, kwargs={'quote_id': 124}), data={'user': self.user})
         self.quote.refresh_from_db()
         self.assertEqual(self.quote.verified_by, self.user)
+
+
+class QuoteHighscoreTest(TestCase):
+    @classmethod
+    def setUp(self):
+        self.quotesH17 = QuoteFactory.create_batch(10, text='This is a quote from H17')
+        for quote in self.quotesH17:
+            quote.created = timezone.now().replace(year=2017, month=10, day=15)
+            quote.save()
+        self.quotes_this_semester = QuoteFactory.create_batch(10, text='This is a quote from this semester')
+
+        # Generates a random set pf votes for each dataset
+        for i in range(len(self.quotes_this_semester)):
+            QuoteVoteFactory.create_batch(5, quote=self.quotesH17[i], value=i / 2)
+
+        for i in range(len(self.quotes_this_semester)):
+            # factory uses same vote value for everything
+            QuoteVoteFactory.create_batch(5, quote=self.quotes_this_semester[i], value=i)
+
+    def test__return_highscore_descending(self):
+        quotes = Quote.highscore_objects.semester_highest_score(timezone.now())
+        flag = True
+        for i in range((len(quotes) - 1)):
+            if quotes[i].sum < quotes[i + 1].sum:
+                flag = False
+        self.assertTrue(flag)
+
+    def test__return_only_from_given_semester(self):
+        quotes = Quote.highscore_objects.semester_highest_score(timezone.now().replace(year=2017, month=10, day=15))
+        for quote in quotes:
+            self.assertEqual(quote.text, 'This is a quote from H17')
+
+    def test__quotes_all_time__returns_descending(self):
+        quotes = Quote.highscore_objects.highest_score_all_time()
+        flag = True
+        for i in range((len(quotes) - 1)):
+            if quotes[i].sum < quotes[i + 1].sum:
+                flag = False
+        self.assertTrue(flag)
+
+
+class QuotePendingViewTest(TestCase):
+    def setUp(self):
+        QuoteFactory.create_batch(10, verified_by=None)
+        self.user = UserFactory.create()
+        self.client.force_login(self.user)
+
+    def test__pending_presentation_view__returns_correct_template(self):
+        response = self.client.get(reverse(quotes_pending))
+        self.assertTemplateUsed(response, 'quotes/quotes_pending.html')
+
+    def test__pending_view__returns_pending_quotes(self):
+        respone = self.client.get(reverse(quotes_pending))
+        pending_quotes = respone.context["pending"]
+        self.assertEqual(10, len(pending_quotes))

@@ -1,0 +1,69 @@
+{% extends 'internal/base.html' %}
+{% load static %}
+{% load i18n %}
+{% block header %}
+    <link rel="stylesheet" href="{% static 'quotes/css/quotes.css' %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+{% endblock %}
+{% block body_content %}
+    <div class="profilepage">
+        <div class="default-container default-top-offset">
+            <div id="left-wrapper" class="default-left-panel profilepage__thumbwrapper text-right">
+                <h3><a class="btn btn-primary resetlink" href="/internal/quotes/">SITATER</a></h3>
+                <p><a class="btn btn-primary resetlink" href="/internal/quotes/pending/">{{ pending | length }} Til
+                    Godkjennning</a></p>
+                <p><a class="btn btn-primary resetlink" href="/internal/quotes/add/">Opprett</a></p>
+                <p><a class="btn btn-primary resetlink" href="/internal/quotes/highscore/">Topplista</a></p>
+                <p>Søk</p>
+            </div>
+            <div class="default-right-panel" id="right-wrapper">
+
+
+                <div class="quote__pending_container">
+                    <h2>Til godkjenning</h2>
+                    {% for pending_quote in pending %}
+                        <div class="quote__pending_item">
+                            <div class="quote_pending_item__header">
+                                <div><strong>"{{ pending_quote.text }}"</strong>
+                                    - {{ pending_quote.quoter.get_full_name }}</div>
+                            </div>
+                            <div class="quote_pending_item__section">
+                                <div>Sendt inn av</div>
+                                <div>{{ pending_quote.reported_by.get_full_name }}</div>
+                            </div>
+                            <div class="quote_pending_item__section">
+                                <div>Sendt inn klokkeslett:</div>
+                                <div>{{ pending_quote.created }}</div>
+                            </div>
+                            <div class="quote_pending_item__section">
+                                <div>Tagget</div>
+                                <div><a href="/internal/users/{{ pending_quote.quoter.id }}">
+                                    {% include "components/thumb.html" with size="tiny" url=pending_quote.quoter.profile_image_url %}
+
+                                </a>
+                                </div>
+
+
+                            </div>
+                            <div class="quote_pending_item__section">
+                                <form method="POST" action="/internal/quotes/{{ pending_quote.id }}/approve">
+                                    {% csrf_token %}
+                                    <button class="pending__submit_button">Godkjenn</button>
+                                </form>
+
+                                <form action="/internal/quotes/{{ pending_quote.id }}/delete" method="POST">
+                                    {% csrf_token %}
+                                    <button class="pending__delete_button">Slett</button>
+                                </form>
+
+
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% load static %}
+    <script src="{% static 'quotes/quotes_list.js' %}"></script>
+{% endblock %}
