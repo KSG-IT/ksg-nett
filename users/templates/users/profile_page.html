@@ -5,48 +5,49 @@
 {% load ksg_helpers %}
 
 {% block header %}
-  <link rel="stylesheet" href="{% static 'users/css/profile_page.css' %}">
+    <link rel="stylesheet" href="{% static 'users/css/profile_page.css' %}">
 {% endblock %}
 {% block body_content %}
-  <div class="profilepage default-container default-top-offset">
-    <div class="default-left-panel profilepage__thumbwrapper text-right">
-      {% include 'components/thumb.html' with size='enormous' url=profile_user.profile_image_url %}
-    </div>
-    <div class="default-right-panel">
-      <div class="profilepage__primaryinfo">
-        <h1 class="profilepage__title text-bold resetmargins darker-blue">{{ profile_user.get_full_name }}</h1>
-        {# TODO: Nicknames on User model #}
-        <h3 class="profilepage__nickname resetmargins text-bold">Lahlum</h3>
-        <h3 class="profilepage__phone resetmargins text-bold darker-blue">{{ profile_user.phone }}</h3>
-        <a href="mailto:{{ profile_user.email }}" class="resetlink">
-          <h3 class="profilepage__email resetmargins darker-blue normal">{{ profile_user.email }}</h3>
-        </a>
-      </div>
-      <div class="profilepage__ksginfo">
-        {# TODO: Retrieve this from somewhere #}
-        <h3 class="profilepage__position normal resetmargins">Spritbargjengis</h3>
-        <p class="profilepage__status resetmargins light">{{ profile_user.get_ksg_status_display }}</p>
-        <p class="profilepage__role resetmargins light">{{ profile_user.get_ksg_role_display }}</p>
-        <p class="profilepage__since resetmargins light">
-          {% trans 'I KSG siden' %}:
-          <span class="normal">
+    <div class="profilepage default-container default-top-offset">
+        <div class="default-left-panel profilepage__thumbwrapper text-right">
+            {% include 'components/thumb.html' with size='enormous' url=profile_user.profile_image_url %}
+        </div>
+        <div class="default-right-panel">
+            <div class="profilepage__primaryinfo">
+                <h1 class="profilepage__title text-bold resetmargins darker-blue">{{ profile_user.get_full_name }}</h1>
+                {# TODO: Nicknames on User model #}
+                <h3 class="profilepage__nickname resetmargins text-bold">Lahlum</h3>
+                <h3 class="profilepage__phone resetmargins text-bold darker-blue">{{ profile_user.phone }}</h3>
+                <a href="mailto:{{ profile_user.email }}" class="resetlink">
+                    <h3 class="profilepage__email resetmargins darker-blue normal">{{ profile_user.email }}</h3>
+                </a>
+            </div>
+            <div class="profilepage__ksginfo">
+                {# TODO: Retrieve this from somewhere #}
+                <h3 class="profilepage__position normal resetmargins">Spritbargjengis</h3>
+                <p class="profilepage__status resetmargins light">{{ profile_user.get_ksg_status_display }}</p>
+                <p class="profilepage__role resetmargins light">{{ profile_user.get_ksg_role_display }}</p>
+                <p class="profilepage__since resetmargins light">
+                    {% trans 'I KSG siden' %}:
+                    <span class="normal">
             {{ profile_user.start_ksg | get_semester_year_shorthand }}
           </span>
-        </p>
-        <p class="profilepage__nextshift resetmargins light">
-          {% trans 'Neste vakt' %}:
-          <a href="/internal/schedules/shift/1" class="resetlink normal">Strossatøs 24.08.2018</a>
-        </p>
-      </div>
-      <div class="profilepage__bio">
-        <h3 class="profilepage__biotitle normal resetmargins">{% trans "Hvem er jeg?" %}</h3>
-        <p class="resetemargins profilepage__biocontent light">
-          {{ profile_user.biography }}
-        </p>
-      </div>
+                </p>
+                <p class="profilepage__nextshift resetmargins light">
+                    {% trans 'Neste vakt' %}:
+                    <a href="/internal/schedules/shift/{{ next_shift.id }}"
+                       class="resetlink normal">{{ next_shift.slot.group.name }} {{ next_shift.slot.group.meet_time }}</a>
+                </p>
+            </div>
+            <div class="profilepage__bio">
+                <h3 class="profilepage__biotitle normal resetmargins">{% trans "Hvem er jeg?" %}</h3>
+                <p class="resetemargins profilepage__biocontent light">
+                    {{ profile_user.biography }}
+                </p>
+            </div>
+        </div>
+        <a class="resetlink profilepage__editbutton" href="/users/{{ profile_user.id }}/update">
+            <span class="material-icons">edit</span>
+        </a>
     </div>
-    <a class="resetlink profilepage__editbutton" href="/users/{{ profile_user.id }}/update">
-      <span class="material-icons">edit</span>
-    </a>
-  </div>
 {% endblock %}
