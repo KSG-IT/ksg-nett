@@ -23,50 +23,50 @@
                     </div>
                     <div class="image-name-container__names">
                         <div class="placeholder-input-container">
-                            <label>{% trans 'Firstname' %}</label>
+                            {{ user_form.first_name.label_tag }}
                             {{ user_form.first_name }}
                         </div>
                         <div class="placeholder-input-container">
-                            <label>{% trans 'Lastname' %}</label>
+                            {{ user_form.last_name.label_tag }}
                             {{ user_form.last_name }}
                         </div>
                     </div>
                 </div>
                 <div class="input-fields-container">
                     <div class="placeholder-input-container">
-                        <label>{% trans 'Email' %}</label>
+                        {{ user_form.email.label_tag }}
                         {{ user_form.email }}
                     </div>
                     <div class="placeholder-input-container">
-                        <label>{% trans 'Phone nmumber' %}</label>
+                        {{ user_form.phone.label_tag }}
                         {{ user_form.phone }}
                     </div>
                     <div class="placeholder-input-container">
-                        <label>{% trans 'Field of study' %}</label>
+                        {{ user_form.study.label_tag }}
                         {{ user_form.study }}
                     </div>
                     <div class="placeholder-input-container">
-                        <label>{% trans 'Study address' %}</label>
+                        {{ user_form.study_address.label_tag }}
                         {{ user_form.study_address }}
                     </div>
                     <div class="placeholder-input-container">
-                        <label>{% trans 'Home address' %}</label>
+                        {{ user_form.home_address.label_tag }}
                         {{ user_form.home_address }}
                     </div>
                     <div class="placeholder-input-container">
-                        <label>{% trans 'Commision' %}</label>
+                        {{ user_form.commission.label_tag }}
                         {{ user_form.commission }}
                     </div>
                     <div class="placeholder-input-container">
-                        <label>{% trans 'Status' %}</label>
+                        {{ user_form.ksg_status.label_tag }}
                         {{ user_form.ksg_status }}
                     </div>
                     <div class="placeholder-input-container">
-                        <label>{% trans 'Relationship status' %}</label>
+                        {{ user_form.in_relationship.label_tag }}
                         {{ user_form.in_relationship }}
                     </div>
                     <div class="placeholder-input-container">
-                        <label>{% trans 'Biography' %}</label>
+                        {{ user_form.biography.label_tag }}
                         {{ user_form.biography }}
                     </div>
                 </div>
