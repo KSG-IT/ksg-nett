@@ -122,15 +122,11 @@ class UserDetailViewTest(TestCase):
         self.assertIn(self.user.phone, content)
 
 
-
 class UserUpdateViewTest(TestCase):
     def setUp(self):
         self.user = UserFactory.create()
         self.client.force_login(self.user)
-
-
-    def test__update_user_view__valid_post_request(self):
-        response = self.client.post('/users/' + str(self.user.id) + '/update', data={
+        self.data = {
             'first_name': 'Alexander',
             'last_name': 'Orvik',
             'phone': self.user.phone,
@@ -142,73 +138,21 @@ class UserUpdateViewTest(TestCase):
             'in_relationship': self.user.in_relationship,
             'ksg_status': self.user.ksg_status,
             'commission': self.user.commission.id
-        })
+        }
+
+    def test__update_user_view_valid_request__updates_user_and_returns_302(self):
+        response = self.client.post('/users/' + str(self.user.id) + '/update', data=self.data)
         self.user.refresh_from_db()
         self.assertEquals(response.status_code, 302)
         self.assertEquals(self.user.get_full_name(), 'Alexander Orvik')
 
+    def test__update_user_view_invalid_request_type__returns_METHOD_NOT_ALLOWED(self):
+        response = self.client.patch('/users/' + str(self.user.id) + '/update', data=self.data)
+        self.assertEquals(response.status_code, 405)
 
-# TODO test for changing info when not logged in and if changes are actually made
-class UserFormTest(TestCase):
-
-    @classmethod
-    def setUpTestData(cls):
-        cls.user = UserFactory()
-        cls.user.set_password('password')
-        cls.user.save()
-        cls.user_detail_url = reverse(user_detail, kwargs={'user_id': cls.user.id})
-
-    def test_UserForm_valid(self):
-        form = UserForm(data={
-            'first_name': "Alexander", 'last_name': "Orvik",
-            'phone': "45087749", 'study': "Samf", 'biography': "Nå er det endret", 'email': "alexaor@stud.ntnu.no"})
-        self.assertTrue(form.is_valid())
-
-    def test_UserForm_invalid(self):
-        form = UserForm(data={
-            'first_name': "", 'last_name': "",
-            'phone': "", 'study': "", 'email': ""})
-
-        self.assertFalse(form.is_valid())
-
-    def test_update_user_view_valid(self):
-        self.client.login(username=self.user.email, password='password')
-        response = self.client.post('/users/142/update', {
-            'first_name': "Alexander", 'last_name': "Orvik",
-            'phone': "45087749", 'study': "Samf", 'biography': "Nå er det endret", 'email': "alexaor@stud.ntnu.no"})
-        self.assertEqual(response.status_code, 302)
-
-    def test_update_user_get_request(self):
-        self.client.login(username=self.user.username, password='password')
-        response = self.client.get(reverse(update_user, kwargs={'user_id': self.user.id}))
+    def test__update_user_view_GET_request__renders_template_with_context(self):
+        response = self.client.get('/users/' + str(self.user.id) + '/update')
         self.assertTemplateUsed(response, 'users/update_profile_page.html')
-
-    def test_update_user_post_request_valid(self):
-        self.client.login(username=self.user.username, password='password')
-        response = self.client.post(reverse(update_user, kwargs={'user_id': self.user.id}), data={
-            'first_name': "Alexander", 'last_name': "Orvik",
-            'phone': "45087749", 'study': "Samf", 'biography': "Nå er det endret", 'email': "alexaor@stud.ntnu.no"})
-        self.user.refresh_from_db()
-        self.assertEqual(self.user.first_name, 'Alexander')
-        self.assertEqual(self.user.last_name, 'Orvik')
-        self.assertEqual(self.user.phone, '45087749')
-        self.assertEqual(self.user.study, 'Samf')
-        self.assertEqual(self.user.biography, 'Nå er det endret')
-        self.assertEqual(self.user.email, 'alexaor@stud.ntnu.no')
-
-    def test_update_user_post_request_invalid(self):
-        self.client.login(username=self.user.username, password='password')
-        response = self.client.post(reverse(update_user, kwargs={'user_id': self.user.id}), data={
-            'first_name': "Alexander", 'last_name': "Orvik",
-            'phone': "45087749", 'study': "Samf", 'biography': "Nå er det endret", 'email': ""})
-        self.assertTemplateUsed(response, 'users/update_profile_page.html')
-
-    def test_update_user_not_post_or_get_request(self):
-        self.client.login(username=self.user.username, password='password')
-        response = self.client.patch(reverse(update_user, kwargs={'user_id': self.user.id}))
-        self.assertEqual(response.status_code, 405)
-
-    # TODO add invalid view test and more comprehensive testing
 
 
 class UsersHaveMadeOutModelTest(TestCase):
