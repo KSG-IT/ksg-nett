@@ -122,6 +122,32 @@ class UserDetailViewTest(TestCase):
         self.assertIn(self.user.phone, content)
 
 
+
+class UserUpdateViewTest(TestCase):
+    def setUp(self):
+        self.user = UserFactory.create()
+        self.client.force_login(self.user)
+
+
+    def test__update_user_view__valid_post_request(self):
+        response = self.client.post('/users/' + str(self.user.id) + '/update', data={
+            'first_name': 'Alexander',
+            'last_name': 'Orvik',
+            'phone': self.user.phone,
+            'study': self.user.study,
+            'biography': self.user.biography,
+            'email': self.user.email,
+            'home_address': self.user.home_address,
+            'study_address': self.user.study_address,
+            'in_relationship': self.user.in_relationship,
+            'ksg_status': self.user.ksg_status,
+            'commission': self.user.commission.id
+        })
+        self.user.refresh_from_db()
+        self.assertEquals(response.status_code, 302)
+        self.assertEquals(self.user.get_full_name(), 'Alexander Orvik')
+
+
 # TODO test for changing info when not logged in and if changes are actually made
 class UserFormTest(TestCase):
 
