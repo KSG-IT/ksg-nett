@@ -2,20 +2,24 @@ import jwt
 from django.utils import timezone
 from drf_yasg.openapi import Parameter, IN_QUERY, TYPE_STRING
 from drf_yasg.utils import swagger_auto_schema
-from rest_framework import status
+from rest_framework import status, permissions
 from rest_framework.exceptions import ValidationError
 from rest_framework.generics import ListAPIView, RetrieveAPIView, get_object_or_404, DestroyAPIView
 from rest_framework.response import Response
 from rest_framework_simplejwt.views import TokenObtainSlidingView, TokenRefreshSlidingView, TokenVerifyView
 
 from api.serializers import CheckBalanceSerializer, SociProductSerializer, ChargeSociBankAccountDeserializer, \
-    PurchaseSerializer
+    PurchaseSerializer, CustomTokenObtainSlidingSerializer
 from api.view_mixins import CustomCreateAPIView
 from economy.models import SociBankAccount, SociProduct, Purchase, SociSession
+from ksg_nett.custom_authentication import CardNumberAuthentication
 
 
 class CustomTokenObtainSlidingView(TokenObtainSlidingView):
     swagger_schema = None
+    serializer_class = CustomTokenObtainSlidingSerializer
+    authentication_classes = [CardNumberAuthentication]
+    permission_classes = (permissions.IsAuthenticated,)
 
     def post(self, request, *args, **kwargs):
         response = super().post(request, *args, **kwargs)
