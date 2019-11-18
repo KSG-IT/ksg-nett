@@ -1,6 +1,5 @@
 from django.conf import settings
 from rest_framework import serializers
-from rest_framework.exceptions import AuthenticationFailed
 from rest_framework_simplejwt.serializers import TokenObtainSlidingSerializer
 
 from api.exceptions import InsufficientFundsException, NoSociSessionError
@@ -14,16 +13,25 @@ class CustomTokenObtainSlidingSerializer(TokenObtainSlidingSerializer):
     username_field = SociBankAccount.card_uuid.field_name
 
     def __init__(self, *args, **kwargs):
+        """
+        Overridden from `TokenObtainSerializer` since this adds a required
+        field `password` to the serializer that we don't need.
+        """
         super().__init__(*args, **kwargs)
         del self.fields['password']
 
     def validate(self, attrs):
-        self.user = self.context['request'].user
+        """
+        Overridden from `TokenObtainSlidingSerializer` since
+        this expects a username and password to be supplied.
+        """
+        data = {}
 
-        if self.user is None or not self.user.is_active:
-            raise AuthenticationFailed
+        token = self.get_token(self.context['request'].user)
 
-        return {'token': str(self.get_token(self.user))}
+        data['token'] = str(token)
+
+        return data
 
 
 # ===============================
