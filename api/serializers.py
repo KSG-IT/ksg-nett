@@ -1,8 +1,37 @@
 from django.conf import settings
 from rest_framework import serializers
+from rest_framework_simplejwt.serializers import TokenObtainSlidingSerializer
 
 from api.exceptions import InsufficientFundsException, NoSociSessionError
-from economy.models import SociProduct, ProductOrder, SociSession
+from economy.models import SociProduct, ProductOrder, SociSession, SociBankAccount
+
+
+class CustomTokenObtainSlidingSerializer(TokenObtainSlidingSerializer):
+    """
+    Overridden so we can obtain a token for a user based only on the card uuid.
+    """
+    username_field = SociBankAccount.card_uuid.field_name
+
+    def __init__(self, *args, **kwargs):
+        """
+        Overridden from `TokenObtainSerializer` since this adds a required
+        field `password` to the serializer that we don't need.
+        """
+        super().__init__(*args, **kwargs)
+        del self.fields['password']
+
+    def validate(self, attrs):
+        """
+        Overridden from `TokenObtainSlidingSerializer` since
+        this expects a username and password to be supplied.
+        """
+        data = {}
+
+        token = self.get_token(self.context['request'].user)
+
+        data['token'] = str(token)
+
+        return data
 
 
 # ===============================
