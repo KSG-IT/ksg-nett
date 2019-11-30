@@ -21,3 +21,7 @@ run:
 .PHONY: shell
 shell:
 	pipenv run python manage.py shell
+
+.PHONY: user
+user:
+	pipenv run python manage.py createsuperuser

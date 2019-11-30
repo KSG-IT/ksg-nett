@@ -1,0 +1,18 @@
+{% extends 'internal/base.html' %}
+{% load static %}
+{% block header %}
+  <link rel="stylesheet" href="{% static 'summaries/css/summaries_archive.css' %}">
+  <link rel="stylesheet" href="{% static 'summaries/css/summaries_common.css' %}">
+{% endblock %}
+{% block body_content %}
+  <div class="summariesarchive default-container default-top-offset default-two-col-grid">
+    {% include 'summaries/summaries_leftmenu.html' with active='archive'  %}
+    <div class="summariesarchive__semesters default-right-panel">
+      {% for semester in semesters %}
+        <a href="/internal/summaries/type/drift?semester={{ semester }}" class="summariesarchive__semester resetlink darker-blue">
+          {{ semester }}
+        </a>
+      {% endfor %}
+    </div>
+  </div>
+{% endblock %}

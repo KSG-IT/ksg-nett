@@ -2,7 +2,7 @@ import random
 
 from factory import DjangoModelFactory, Faker, SubFactory, sequence, Sequence
 from factory.django import FileField
-
+from commissions.factories import CommissionFactory
 from users.models import User, UsersHaveMadeOut, KSG_STATUS_TYPES, KSG_ROLES
 
 
@@ -27,6 +27,7 @@ class UserFactory(DjangoModelFactory):
     ksg_role = random.choice(list(KSG_ROLES))[0]
     biography = Faker('sentence')
     in_relationship = False
+    commission = SubFactory(CommissionFactory)
     anonymize_in_made_out_map = False
 
     @sequence

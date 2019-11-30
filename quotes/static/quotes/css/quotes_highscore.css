@@ -1,0 +1,28 @@
+.highscore__main_wrapper {
+    display: flex;
+    box-sizing: border-box;
+    flex-direction: row;
+    width: 100%;
+    justify-content: space-around;
+}
+
+.highscore__column_wrapper {
+    display: flex;
+    flex-direction: row;
+
+
+}
+
+.highscore_this_semester_wrapper {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    margin: 0 10px 0;
+}
+
+.highscore_all_time_wrapper {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    margin: 0 10px 0;
+}

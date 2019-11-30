@@ -1,12 +1,19 @@
 {% extends 'internal/base.html' %}
+{% load i18n %}
+{% load static %}
+{% block header %}
+  <link rel="stylesheet" href="{% static 'summaries/css/summaries_list.css' %}">
+  <link rel="stylesheet" href="{% static 'summaries/css/summaries_common.css' %}">
+{% endblock %}
 {% block body_content %}
-  <h1>Summaries</h1>
-  {% if summaries %}
-    <ul>
-      {% for summary in summaries %}
-        <li><a href="/internal/summaries/{{ summary.id }}/">{{ summary }}</a></li>
+  <div class="summaries default-container default-top-offset default-two-col-grid">
+    {% include 'summaries/summaries_leftmenu.html' with active='summaries' %}
+    <div class="default-right-panel summaries__right">
+      {% for type in all_summary_types %}
+        <a href="/internal/summaries/type/{{ type.0 }}" class="summaries__type resetlink text-uppercase darker-blue">
+          {{ type.1 }}
+        </a>
       {% endfor %}
-    </ul>
-  {% endif %}
-  <button><a href="{% url 'summaries_create' %}">Create new summary</a></button>
+    </div>
+  </div>
 {% endblock %}

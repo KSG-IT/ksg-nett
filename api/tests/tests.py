@@ -1,4 +1,5 @@
 from datetime import timedelta
+from random import randint
 
 from django.conf import settings
 from django.urls import reverse
@@ -17,21 +18,29 @@ class CustomTokenObtainSlidingViewTest(APITestCase):
     def setUpClass(cls):
         super().setUpClass()
         cls.client = APIClient()
-        cls.user = SociBankAccountFactory(user__is_staff=True).user
-        cls.user.set_password('password')
-        cls.user.save()
+        cls.user = SociBankAccountFactory().user
         cls.url = reverse('api:obtain-token')
 
     def test_obtain_token__with_valid_user_credentials__token_obtained_successfully(self):
-        data = {'username': self.user.bank_account.card_uuid, 'password': 'password'}
+        data = {'card_uuid': self.user.bank_account.card_uuid}
 
         response = self.client.post(self.url, data)
 
         self.assertEqual(200, response.status_code)
         self.assertIsNotNone(response.data.get('token'))
 
-    def test_obtain_token__with_invalid_user_credentials__bad_request(self):
-        data = {'username': self.user.bank_account.card_uuid, 'password': 'wrong_password'}
+    def test_obtain_token__with_invalid_user_credentials__unauthorized(self):
+        data = {'card_uuid': randint(1000, 10000)}
+
+        response = self.client.post(self.url, data)
+
+        self.assertEqual(401, response.status_code)
+        self.assertIsNone(response.data.get('token'))
+
+    def test_obtain_token__with_valid_user_credentials_for_non_active_user__bad_request(self):
+        user = UserFactory(is_active=False)
+        SociBankAccountFactory(user=user)
+        data = {'card_uuid': user.bank_account.card_uuid}
 
         response = self.client.post(self.url, data)
 
@@ -40,7 +49,7 @@ class CustomTokenObtainSlidingViewTest(APITestCase):
 
     def test_obtain_token__start_soci_session_and_terminate_previous(self):
         unterminated_session = SociSessionFactory()
-        data = {'username': self.user.bank_account.card_uuid, 'password': 'password'}
+        data = {'card_uuid': self.user.bank_account.card_uuid}
 
         response = self.client.post(self.url, data)
 
@@ -49,7 +58,6 @@ class CustomTokenObtainSlidingViewTest(APITestCase):
         self.assertIsNotNone(unterminated_session.end)
         self.assertTrue(SociSession.objects.filter(
             start__gt=unterminated_session.end, end__isnull=True, signed_off_by=self.user).exists())
-
 
 
 class CustomTokenRefreshSlidingViewTest(APITestCase):
@@ -262,7 +270,7 @@ class SociBankAccountChargeViewTest(APITestCase):
         data = [
             {"sku": self.smirre.sku_number, "order_size": 5},
             {"sku": self.dahls.sku_number},
-            {"sku": settings.DIRECT_CHARGE_SKU, "direct_charge_amount": 200}
+            {"sku": settings.DIRECT_CHARGE_SKU, "order_size": 200}
         ]
 
         response = self.client.post(self.url, data, format="json")
@@ -308,31 +316,6 @@ class SociBankAccountChargeViewTest(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_402_PAYMENT_REQUIRED)
 
-    def test_charge__sum_of_same_product_exceeds_balance__payment_required(self):
-        """
-        Regression test
-        """
-        data = [
-            {'sku': self.smirre.sku_number, 'order_size': 30},
-        ]
-
-        response = self.client.post(self.url, data, format="json")
-
-        self.assertEqual(response.status_code, status.HTTP_402_PAYMENT_REQUIRED)
-
-    def test_charge__sum_of_multiple_products_exceed_balance__payment_required(self):
-        """
-        Regression test
-        """
-        data = [
-            {'sku': self.smirre.sku_number, 'order_size': 15},
-            {'sku': self.dahls.sku_number, 'order_size': 17}
-        ]
-
-        response = self.client.post(self.url, data, format="json")
-
-        self.assertEqual(response.status_code, status.HTTP_402_PAYMENT_REQUIRED)
-
     def test_charge__invalid_sku__bad_request(self):
         data = [
             {"sku": "ABSINTHE"}
@@ -344,24 +327,8 @@ class SociBankAccountChargeViewTest(APITestCase):
 
     def test_charge__negative_direct_charge_amount__bad_request(self):
         data = [
-            {"sku": settings.DIRECT_CHARGE_SKU, "direct_charge_amount": -100}
+            {"sku": settings.DIRECT_CHARGE_SKU, "order_size": -100}
         ]
-
-        response = self.client.post(self.url, data, format="json")
-
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-
-    def test_charge__amount_but_not_direct_charge__bad_request(self):
-        data = [
-            {"sku": self.smirre.sku_number, "direct_charge_amount": 100}
-        ]
-
-        response = self.client.post(self.url, data, format="json")
-
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-
-    def test_charge__direct_charge_but_not_amount__bad_request(self):
-        data = [{"sku": self.direct_charge.sku_number}]
 
         response = self.client.post(self.url, data, format="json")
 

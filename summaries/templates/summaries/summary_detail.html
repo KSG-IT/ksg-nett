@@ -1,21 +1,50 @@
 {% extends 'internal/base.html' %}
+{% load static %}
+{% block header %}
+  {% include 'imports/showdown.html'  %}
+  <link rel="stylesheet" href="{% static 'summaries/css/summary_detail.css' %}">
+{% endblock %}
+{% load static %}
 {% block body_content %}
-  <h1>{{ summary.get_summary_type_display }} at {{ summary.date|date:"d M, Y" }}</h1>
-  <p><b>Participants: </b></p>
-  {% for participant in summary.participants.all %}
-    <div>
-      {{ participant.get_full_name }}
+  <div class="summary default-container default-top-offset">
+    <div class="summary-left-panel text-right">
+      <a href="{% url 'summaries_list' %}" class="resetlink">
+        <i class="material-icons">arrow_back</i>
+      </a>
+      <h3>{{ summary.date|date:"d M, Y" }}</h3>
+      <h3 class="normal summary__lefttitle">Tilstede</h3>
+      {% for participant in summary.participants.all %}
+        <a href="/internal/users/{{ participant.id }}" title="{{ participant.get_full_name }}">
+          {% include 'components/thumb.html' with url=participant.profile_image_url size='smaller' %}
+        </a>
+      {% endfor %}
+      <h3 class="normal summary__lefttitle">Referent</h3>
+      <a href="/internal/users/{{ summary.reporter.id }}" title="{{ summary.reporter.get_full_name }}">
+        {% include 'components/thumb.html' with url=summary.reporter.profile_image_url size='smaller' %}
+      </a>
     </div>
-  {% endfor %}
+    <div class="summary-right-panel">
+      <h1 class="normal">{{ summary.get_summary_type_display }}</h1>
+      {% if perms.summaries.change_summary %}
+        <span class="summary__updatelink material-icons"><a class="resetlink" href="/internal/summaries/{{ summary.id }}/update">create</a></span>
+      {% endif %}
+      <div id="summarycontents">{{ summary.contents }}</div>
+    </div>
+  </div>
+{% endblock %}
 
-  <p><b>Reporter:</b></p>
-  {{ summary.reporter.get_full_name }}
-  <p><b>Contents:</b></p>
-  {{ summary.contents }}
-  <p>
-    <button><a href="/internal/summaries/">Go back</a></button>
-  </p>
-  <p>
-  <button><a href="{% url 'summaries_update' summary_id=summary.id %}">Edit</a></button>
-  </p>
+{% block body_end %}
+  <script>
+    const summaryContentsEl = document.getElementById("summarycontents")
+    const summaryContents = summaryContentsEl.innerHTML
+
+    const converter = new showdown.Converter({
+        extensions: ['highlight']
+    })
+    converter.setOption('simpleLineBreaks', true)
+
+    const html = converter.makeHtml(summaryContents)
+
+    summaryContentsEl.innerHTML = html
+  </script>
 {% endblock %}
