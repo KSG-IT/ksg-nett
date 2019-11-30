@@ -1,0 +1,39 @@
+.main-container__margin {
+    margin: 2rem;
+}
+
+.image-name-container {
+    display: flex;
+    flex-flow: row;
+    justify-content: space-evenly;
+}
+
+.image-name-container__names {
+    display: flex;
+    flex-flow: column;
+    justify-content: space-evenly;
+    width: 8rem;
+}
+
+.input-fields-container {
+    display: flex;
+    flex-flow: row wrap;
+    width: 30rem;
+
+}
+
+.placeholder-input-container {
+    display: flex;
+    flex-flow: column;
+}
+
+.input-fields-container > * {
+    flex: 1 0 45%;
+    margin: 0.1rem;
+
+}
+
+.biography-container {
+    width: 100%;
+    height: 10rem;
+}
