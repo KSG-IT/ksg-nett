@@ -1,0 +1,148 @@
+.chat{
+    position: fixed;
+    top: 60px;
+    bottom: 0;
+    left: 0;
+    right: 0;
+
+    display: grid;
+    grid-template-columns: 300px auto;
+    grid-template-rows: 80px auto 80px;
+}
+
+.chat__header{
+    grid-column: 1 / 3;
+    grid-row: 1 / 2;
+
+    padding-left: 1em;
+    border-bottom: 1px solid #ccc;
+    align-self: stretch;
+}
+
+.chat__title{
+    margin: 0.6em 0 0;
+    color: #103242;
+}
+
+.chat__roomoverview{
+    grid-column: 1 / 2;
+    grid-row: 2 / 3;
+
+    padding-top: 1em;
+    overflow-y: auto;
+}
+
+.chat__contents {
+    grid-column: 2 / 3;
+    grid-row: 2 / 3;
+
+    padding-top: 1em;
+    padding-right: 1.5em;
+    padding-bottom: 1em;
+    overflow-y: scroll;
+}
+
+.chat__inputwrapper {
+    grid-column: 1 / 3;
+    grid-row: 3 / 4;
+
+    border-top: 1px solid #ccc;
+    position: relative;
+}
+
+.chat__input{
+    border: none;
+    height: 100%;
+    width: 100%;
+    outline: none;
+    padding-left: 300px;
+    font-size: 18px;
+    resize: none;
+    box-sizing: border-box;
+    padding-top: 1.5em;
+    padding-right: 100px;
+}
+
+.chat__inputsend{
+    position: absolute;
+    color: #555;
+    display: flex;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 100px;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+}
+
+.chat__roomlist{
+    list-style: none;
+}
+
+.chat__roomtitle{
+    margin: 0 0 0 1em;
+    font-weight: 400;
+    color: #555;
+}
+
+.chat__entrywrapper{
+    display: block;
+}
+
+.chat__entry{
+    display: flex;
+    flex-direction: row-reverse;
+    justify-content: flex-end;
+
+    align-items: center;
+}
+
+.chat__entry--you{
+    flex-direction: row;
+}
+
+.chat__entrytext{
+    margin: 0.2em 0;
+    background: #f0f0f0;
+    padding: 0.6em 0.5em;
+    border-radius: 8px 8px 8px 0;
+    white-space: pre-wrap;
+    line-height: 22px;
+}
+
+.chat__entrytext{
+    max-width: 500px;
+}
+
+.chat__entry--you .chat__entrytext{
+    background: #3291c8;
+
+    border-radius: 8px 0px 8px 8px;
+    color: white;
+}
+
+
+.chat__entrythumb{
+    padding: 0.5em;
+}
+
+.chat__entrytext,
+.chat__entrythumb{
+    display: inline-flex;
+    align-items: center;
+}
+
+.chat__personoverview{
+    display: flex;
+    padding: 0.2em 0;
+}
+
+.chat__persontext{
+    margin-left: 1em;
+}
+
+.emoji{
+    width: 16px;
+    height: 16px;
+}
