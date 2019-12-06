@@ -18,6 +18,9 @@ channels-redis = "*"
 factory-boy = "*"
 djangorestframework-simplejwt = "*"
 django-model-utils = "*"
+django-s3-storage = "*"
+gunicorn = "*"
+psycopg2-binary = "*"
 
 [requires]
 python_version = "3.6"
