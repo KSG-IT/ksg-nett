@@ -4,7 +4,6 @@ from ksg_nett.settings import *
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'rc4yscfoc9loe+937$q-57agxy0iq+!o0zowl0#vylilol2-)e'
 
@@ -31,8 +30,3 @@ AWS_S3_BUCKET_AUTH = False
 AWS_S3_BUCKET_NAME = "ksg-nett-bucket"
 DEFAULT_FILE_STORAGE = "django_s3_storage.storage.S3Storage"
 MEDIA_URL = f"https://{AWS_S3_BUCKET_NAME}.s3.amazonaws.com/"
-
-# Override in production
-LOCALE_PATHS = ['locales/', ]
-
-
