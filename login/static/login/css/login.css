@@ -1,0 +1,30 @@
+
+.login__input_field {
+    padding: 12px 14px;
+    margin: 4px 0;
+    display: inline-block;
+    border: 1px solid #858585;
+    border-radius: 4px;
+    box-sizing: border-box;
+}
+
+.login__flex-column {
+    display: flex;
+    flex-flow: column;
+}
+
+.login__header_title {
+    font-size: 28px;
+    margin-bottom: 10px;
+    margin-top: 60%;
+}
+
+.login__centering {
+    display: flex;
+    justify-content: center;
+    height: 100%;
+}
+
+.login__input_container_width {
+    width: 250px;
+}
