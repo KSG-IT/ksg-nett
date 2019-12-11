@@ -1,13 +1,12 @@
 /* FONTS */
 @import url('https://fonts.googleapis.com/css?family=Open+Sans:300,400,600,700,800');
 
-html, body{
-    font-family: 'Open Sans', sans-serif;
-}
 
 /* Make body and html fill page height*/
 html, body {
     height: 100%;
+    font-family: 'Open Sans', sans-serif;
+    background-color: #fff;
 }
 
 /* Button reset */
@@ -24,6 +23,7 @@ button{
     color: inherit;
 }
 
+/* Primary color schemes */
 .light-blue{
     color: #7ACCF0;
 }
@@ -42,6 +42,10 @@ button{
 
 .black{
     color: black;
+}
+
+.red {
+    color: #6E0D30;
 }
 
 .bg-light-blue{
@@ -63,7 +67,6 @@ button{
 .bg-black{
     background-color: black;
 }
-
 
 /* Font and text styling */
 .text-left{
@@ -177,4 +180,22 @@ button{
 
 .float-left{
     float: left;
+}
+
+/* Standard label styling */
+.default-grey-label {
+    color: #858585;
+    font-size: 12px;
+}
+
+/* Standard button styling */
+.primary-blue-button {
+    height: 40px;
+    left: 123px;
+    top: 347px;
+    background: #46788E;
+    border-radius: 4px;
+    width: 100%;
+    display: inline-block;
+    color: white;
 }
