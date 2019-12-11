@@ -199,3 +199,15 @@ button{
     display: inline-block;
     color: white;
 }
+
+/* Input styling */
+
+.default-text-input-field {
+    padding: 12px 14px;
+    margin: 4px 0;
+    width: 260px;
+    display: inline-block;
+    border: 1px solid #858585;
+    border-radius: 4px;
+    box-sizing: border-box;
+}
