@@ -63,6 +63,7 @@ def quotes_pending(request):
 def quotes_add(request):
     if request.method == "GET":
         ctx = {
+            'pending': Quote.pending_objects.all(),
             'quote_form': QuoteForm()
         }
         return render(request, template_name='quotes/quotes_add.html', context=ctx)
