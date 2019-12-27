@@ -22,10 +22,16 @@
                         {% csrf_token %}
                         <label class="default-grey-label">Sitat</label>
                         <div>
+                            {% for error in quote_form.text.errors %}
+                                {{ error }}
+                            {% endfor %}
                             {{ quote_form.text }}
                         </div>
                         <label class="default-grey-label">Tagget</label>
                         <div>
+                            {% for error in quote_form.quoter.errors %}
+                                {{ error }}
+                            {% endfor %}
                             {{ quote_form.quoter }}
                         </div>
                         <div>
