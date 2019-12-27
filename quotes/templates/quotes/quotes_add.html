@@ -1,8 +1,39 @@
 {% extends 'internal/base.html' %}
+{% load static %}
+{% load i18n %}
+{% block header %}
+    <link rel="stylesheet" href="{% static 'quotes/css/quotes.css' %}">
+{% endblock %}
 {% block body_content %}
-  <form method="POST">
-    {% csrf_token %}
-    {{ quote_form }}
-    <input type="submit">
-  </form>
+    <div>
+        <div class="default-container default-top-offset">
+            <div id="left-wrapper" class="default-left-panel profilepage__thumbwrapper text-right">
+                <h3><a class="btn btn-primary resetlink" href="/internal/quotes/">SITATER</a></h3>
+                <p><a class="btn btn-primary resetlink" href="/internal/quotes/pending/">{{ pending | length }} Til
+                    Godkjennning</a></p>
+                <p><a class="btn btn-primary resetlink" href="/internal/quotes/add/">Opprett</a></p>
+                <p><a class="btn btn-primary resetlink" href="/internal/quotes/highscore/">Topplista</a></p>
+                <p>Søk</p>
+            </div>
+            <div class="default-right-panel" id="right-wrapper">
+                <div class="quote__pending_container">
+                    <h3>OPPRETT SITAT</h3>
+                    <form method="POST">
+                        {% csrf_token %}
+                        <label class="default-grey-label">Sitat</label>
+                        <div>
+                            {{ quote_form.text }}
+                        </div>
+                        <label class="default-grey-label">Tagget</label>
+                        <div>
+                            {{ quote_form.quoter }}
+                        </div>
+                        <div>
+                            <input type="submit" value="Send til godkjenning" class="primary-blue-button">
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
 {% endblock %}
