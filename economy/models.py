@@ -97,6 +97,7 @@ class SociSession(TimeFramedModel):
     signed_off_by = models.ForeignKey(to='users.User', null=True, on_delete=models.DO_NOTHING)
     type = models.CharField(choices=SOCI_SESSION_TYPE_CHOICES, default=SOCI_SESSION_TYPE_CHOICES.societeten,
                             max_length=20)
+    closed = models.BooleanField( default=False, blank=False, null=False)
 
     @classmethod
     def get_active_session(cls) -> Optional['SociSession']:
