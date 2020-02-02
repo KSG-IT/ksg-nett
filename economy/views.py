@@ -1,5 +1,5 @@
 from economy.forms import DepositForm, DepositCommentForm
-from economy.models import Deposit, DepositComment, SociBankAccount
+from economy.models import Deposit, DepositComment, SociBankAccount, SociSession
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse
 import datetime
@@ -112,3 +112,15 @@ def deposit_detail(request, deposit_id):
                 'comment_form': DepositCommentForm()
             }
             return render(request, template_name='economy/economy_deposit_detail.html', context=ctx)
+
+
+def soci_sessions(request):
+    ctx = {
+        "sessions": SociSession.objects.all().order_by("-start")
+    }
+    return render(request, template_name="economy/economy_soci_sessions.html", context=ctx)
+
+
+def soci_session_add(request):
+    SociSession.objects.create()
+    return redirect(reverse(soci_sessions))

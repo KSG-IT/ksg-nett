@@ -8,5 +8,7 @@ urlpatterns = [
     path('deposit/<int:deposit_id>/approve', views.deposit_approve, name='economy_approve_deposit'),
     path('deposit/<int:deposit_id>/invalidate', views.deposit_invalidate, name='economy_invalidate_deposit'),
     path('deposit/<int:deposit_id>/edit', views.deposit_edit, name='economy_edit_deposit'),
+    path("soci-sessions", views.soci_sessions, name="economy_soci_sessions"),
+    path("soci-sessions/create", views.soci_session_add)
 
 ]
