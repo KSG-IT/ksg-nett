@@ -155,6 +155,15 @@ button{
     box-sizing: border-box;
 }
 
+.minor-left-panel{
+    width: 300px;
+    padding-right: 50px;
+    float: left;
+    -webkit-box-sizing: border-box;
+    -moz-box-sizing: border-box;
+    box-sizing: border-box;
+}
+
 .default-right-panel{
     overflow: hidden;
     padding-bottom: 0.2em;
