@@ -22,14 +22,13 @@
     align-items: center;
     height: 50px;
     border-radius: 10px;
-
 }
 
-span {
-    width: 100px;
+.table-span-default-width {
+    width: 100px
 }
 
-.soci-ession__closed {
+.soci-session__closed {
     border: solid 2px #F17373;
     color: #F17373;
     border-radius: 4px;
@@ -38,7 +37,7 @@ span {
     width: 100px;
 }
 
-.soci-ession__closed:hover {
+.soci-session__closed:hover {
     cursor: no-drop;
 }
 
@@ -49,8 +48,6 @@ span {
     color: white;
     border-radius: 4px;
     padding: 4px 2px;
-
-
 }
 
 .soci-session__details {
@@ -62,7 +59,7 @@ span {
 }
 
 
-.soci-ession__close {
+.soci-session__close {
     border: solid 2px #F17373;
     color: white;
     background-color: #F17373;
