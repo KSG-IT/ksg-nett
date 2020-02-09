@@ -9,6 +9,10 @@ urlpatterns = [
     path('deposit/<int:deposit_id>/invalidate', views.deposit_invalidate, name='economy_invalidate_deposit'),
     path('deposit/<int:deposit_id>/edit', views.deposit_edit, name='economy_edit_deposit'),
     path("soci-sessions", views.soci_sessions, name="economy_soci_sessions"),
-    path("soci-sessions/create", views.soci_session_add)
-
+    path("soci-sessions/create", views.soci_session_create, name="economy_soci_session_create"),
+    path("soci-sessions/<int:soci_session_id>/delete", views.soci_session_delete, name="economy_soci_session_delete"),
+    path("soci-sessions/<int:soci_session_id>/close", views.soci_session_close, name="economy_soci_session_close"),
+    path("soci-sessions/<int:soci_session_id>", views.soci_session_detail, name="economy_soci_session_detail"),
+    path("soci-sessions-closed", views.soci_sessions_closed, name="economy_soci_sessions_closed"),
+    path("soci-sessions-open", views.soci_sessions_open, name="economy_soci_sessions_open"),
 ]
