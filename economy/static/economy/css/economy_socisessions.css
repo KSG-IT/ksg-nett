@@ -67,3 +67,7 @@
     border-radius: 4px;
     width: 100px;
 }
+
+.sessions__right {
+    padding-left: 40px;
+}
