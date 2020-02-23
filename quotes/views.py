@@ -33,7 +33,7 @@ def quotes_highscore(request):
             "highscore_this_semester": Quote.highscore_objects.semester_highest_score(timezone.now()),
             "highscore_all_time": Quote.highscore_objects.highest_score_all_time(),
             "highscore_combined": combined_list, # Can be used in the future so we can style the rows together
-            'pending': Quote.pending_objects.all().order_by('-created')
+            'pending': Quote.pending_objects.order_by('-created')
         }
         return render(request, template_name="quotes/quotes_highscore.html", context=ctx)
     else:
