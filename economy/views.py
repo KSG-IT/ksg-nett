@@ -166,6 +166,8 @@ def soci_session_detail(request, soci_session_id):
             "products": SociProduct.objects.all()
         }
         return render(request, template_name="economy/economy_soci_session_detail.html", context=ctx)
+    else:
+        return HttpResponse(status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
 
 def soci_sessions_open(request):
