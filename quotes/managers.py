@@ -44,12 +44,9 @@ class QuoteDefaultQuerySet(models.QuerySet):
 
     def semester_highest_score(self, some_semester: timezone.datetime):
         semester_queryset = self.in_semester(some_datetime_in_semester=some_semester)
-        semester_queryset = semester_queryset.filter(verified_by__isnull=False)
+        semester_queryset = self.in_semester(some_datetime_in_semester=some_semester).filter(verified_by__isnull=False)
         return semester_queryset.annotate(total_votes=Coalesce(Sum('votes__value'), 0)).order_by('-total_votes')[:10]
 
     def highest_score_all_time(self):
-        return self.all().annotate(total_votes=Coalesce(Sum('votes__value'), 0)).order_by('-total_votes')[:10]
-
-
-
-
+        all_time_queryset = self.all().filter(verified_by__isnull=False)
+        return all_time_queryset.annotate(total_votes=Coalesce(Sum('votes__value'), 0)).order_by('-total_votes')[:10]
