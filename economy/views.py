@@ -148,7 +148,7 @@ def soci_session_close(request, soci_session_id):
     if request.method == "POST":
         session = get_object_or_404(SociSession, pk=soci_session_id)
         if session.closed:
-            pass  # Should we raise some error here instead?
+            raise SuspiciousOperation
         else:
             session.end = timezone.now()
             session.closed = True
