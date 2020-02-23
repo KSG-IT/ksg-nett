@@ -8,9 +8,17 @@ from django.utils import timezone
 from model_utils.fields import MonitorField
 from model_utils.managers import QueryManager
 from model_utils.models import TimeStampedModel, TimeFramedModel
+from model_utils import Choices
 
 from api.exceptions import NoSociSessionError
 from users.models import User
+
+# Type of soci session
+SOCI_SESSION_TYPE_CHOICES = Choices(
+    ("societeten", "Societeten"),
+    ("stilletime", "Stilletime"),
+    ("krysseliste", "Krysseliste"),
+)
 
 
 class SociBankAccount(models.Model):
@@ -87,6 +95,9 @@ class SociSession(TimeFramedModel):
     """
     name = models.CharField(max_length=50, blank=True, null=True)
     signed_off_by = models.ForeignKey(to='users.User', null=True, on_delete=models.DO_NOTHING)
+    type = models.CharField(choices=SOCI_SESSION_TYPE_CHOICES, default=SOCI_SESSION_TYPE_CHOICES.societeten,
+                            max_length=20)
+    closed = models.BooleanField( default=False, blank=False, null=False)
 
     @classmethod
     def get_active_session(cls) -> Optional['SociSession']:
@@ -119,7 +130,7 @@ class SociSession(TimeFramedModel):
 
     def __str__(self):
         return f"SociSession {self.name} containing {self.purchases.count()} purchases " \
-            f"between {self.start} and {self.end}"
+               f"between {self.start} and {self.end}"
 
     def __repr__(self):
         return f"SociSession(name={self.name},start={self.start},end={self.end})"
@@ -309,7 +320,7 @@ class DepositComment(TimeStampedModel):
         # Add ellipses for comments longer than 20 characters
         shortened_comment = self.comment[0:20] + (self.comment[20:] and "..")
         return f'Comment "{shortened_comment}" by {self.user.get_full_name()} ' \
-            f'on deposit by {self.deposit.account.user.get_full_name()}'
+               f'on deposit by {self.deposit.account.user.get_full_name()}'
 
     def __repr__(self):
         return f"DepositComment(id={self.id},deposit={self.deposit.id},user={self.user.id},comment={self.comment})"

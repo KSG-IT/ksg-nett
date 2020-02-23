@@ -25,3 +25,8 @@ shell:
 .PHONY: user
 user:
 	pipenv run python manage.py createsuperuser
+
+.PHONY: showmigrations
+showmigrations:
+	pipenv run python manage.py showmigrations
+

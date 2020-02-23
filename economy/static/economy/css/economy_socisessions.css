@@ -1,0 +1,73 @@
+.main-table {
+    display: flex;
+    flex-flow: column;
+    width: 100%;
+}
+
+.table-header {
+    width: 100%;
+    display: flex;
+    flex-flow: row;
+    justify-content: space-between;
+    margin-bottom: 20px;
+}
+
+.table-card {
+    padding: 0 15px;
+    margin: 4px 0;
+    background-color: #F0F0F0;
+    display: flex;
+    flex-flow: row;
+    justify-content: space-between;
+    align-items: center;
+    height: 50px;
+    border-radius: 10px;
+}
+
+.table-span-default-width {
+    width: 100px
+}
+
+.soci-session__closed {
+    border: solid 2px #F17373;
+    color: #F17373;
+    border-radius: 4px;
+    padding: 4px 2px;
+    text-decoration: line-through;
+    width: 100px;
+}
+
+.soci-session__closed:hover {
+    cursor: no-drop;
+}
+
+
+.soci-session__edit {
+    border: solid 2px #67DBA3;
+    background-color: #67DBA3;
+    color: white;
+    border-radius: 4px;
+    padding: 4px 2px;
+}
+
+.soci-session__details {
+    border: solid 2px #F5AD40;
+    background-color: #F5AD40;
+    color: white;
+    border-radius: 4px;
+    padding: 4px 2px;
+}
+
+
+.soci-session__close {
+    border: solid 2px #F17373;
+    color: white;
+    background-color: #F17373;
+    padding: 4px 2px;
+    border-radius: 4px;
+    width: 100px;
+}
+
+.sessions__right {
+    padding-left: 40px;
+}

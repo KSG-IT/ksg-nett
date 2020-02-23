@@ -1,10 +1,12 @@
 from economy.forms import DepositForm, DepositCommentForm
-from economy.models import Deposit, DepositComment, SociBankAccount
+from economy.models import Deposit, DepositComment, SociBankAccount, SociSession, SociProduct
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse
 import datetime
+from django.utils import timezone
 from rest_framework import status
 from django.http import HttpResponse
+from django.core.exceptions import SuspiciousOperation
 
 
 def economy_home(request):
@@ -112,3 +114,82 @@ def deposit_detail(request, deposit_id):
                 'comment_form': DepositCommentForm()
             }
             return render(request, template_name='economy/economy_deposit_detail.html', context=ctx)
+
+
+def soci_sessions(request):
+    if request.method == "GET":
+        ctx = {
+            "sessions": SociSession.objects.order_by("-start"),
+            "active": "socisessions"
+        }
+        return render(request, template_name="economy/economy_soci_sessions.html", context=ctx)
+    else:
+        return HttpResponse(status.HTTP_405_METHOD_NOT_ALLOWED)
+
+
+def soci_session_create(request):
+    session = SociSession.objects.create(type="krysseliste", signed_off_by=request.user)
+    return redirect(reverse(soci_session_detail, kwargs={"soci_session_id": session.id}))
+
+
+def soci_session_delete(request, soci_session_id):
+    if request.method == "POST":
+        session = get_object_or_404(SociSession, pk=soci_session_id)
+        if not session.closed:
+            session.delete()
+            return redirect(reverse(soci_sessions))
+        else:
+            raise (SuspiciousOperation)
+    else:
+        return HttpResponse(status=status.HTTP_405_METHOD_NOT_ALLOWED)
+
+
+def soci_session_close(request, soci_session_id):
+    if request.method == "POST":
+        session = get_object_or_404(SociSession, pk=soci_session_id)
+        if session.closed:
+            raise SuspiciousOperation
+        else:
+            session.end = timezone.now()
+            session.closed = True
+            session.save()
+        return redirect(reverse(soci_sessions))
+    else:
+        return HttpResponse(status=status.HTTP_405_METHOD_NOT_ALLOWED)
+
+
+def soci_session_detail(request, soci_session_id):
+    if request.method == "GET":
+        session = get_object_or_404(SociSession, pk=soci_session_id)
+        ctx = {
+            "session": session,
+            "products": SociProduct.objects.all()
+        }
+        return render(request, template_name="economy/economy_soci_session_detail.html", context=ctx)
+    else:
+        return HttpResponse(status=status.HTTP_405_METHOD_NOT_ALLOWED)
+
+
+def soci_sessions_open(request):
+    if request.method == "GET":
+
+        ctx = {
+            "sessions": SociSession.objects.filter(closed=False).order_by("-start"),
+            "active": "open"
+        }
+        return render(request, template_name="economy/economy_soci_sessions.html", context=ctx)
+    else:
+        return HttpResponse(status.HTTP_405_METHOD_NOT_ALLOWED)
+
+
+def soci_sessions_closed(request):
+    if request.method == "GET":
+        ctx = {
+            "sessions": SociSession.objects.filter(closed=True).order_by("-start"),
+            "active": "closed"
+        }
+        return render(request, template_name="economy/economy_soci_sessions.html", context=ctx)
+    else:
+        return HttpResponse(status.HTTP_405_METHOD_NOT_ALLOWED)
+
+
