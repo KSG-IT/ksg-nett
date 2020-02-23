@@ -119,7 +119,7 @@ def deposit_detail(request, deposit_id):
 def soci_sessions(request):
     if request.method == "GET":
         ctx = {
-            "sessions": SociSession.objects.all().order_by("-start"),
+            "sessions": SociSession.objects.order_by("-start"),
             "active": "socisessions"
         }
         return render(request, template_name="economy/economy_soci_sessions.html", context=ctx)
