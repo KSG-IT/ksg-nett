@@ -5,7 +5,7 @@ from typing import Optional
 
 from django.contrib.auth.models import AbstractUser
 from django.db import models
-from django.db.models import QuerySet
+from django.db.models import QuerySet, signals
 from model_utils import Choices
 from model_utils.fields import StatusField
 from model_utils.models import TimeStampedModel
