@@ -133,7 +133,6 @@ class User(AbstractUser):
     def all_having_made_out_with(self) -> QuerySet:
         return self.made_out_with_left_side.all() | self.made_out_with_right_side.all()
 
-    active.boolean = True
 
     class Meta:
         default_related_name = 'users'
