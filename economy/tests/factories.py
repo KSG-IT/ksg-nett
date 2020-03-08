@@ -12,6 +12,7 @@ from users.tests.factories import UserFactory
 class SociBankAccountFactory(DjangoModelFactory):
     class Meta:
         model = SociBankAccount
+        django_get_or_create = ("user",)
 
     user = SubFactory(UserFactory)
     balance = 0
