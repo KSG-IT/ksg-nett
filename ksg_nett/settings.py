@@ -56,7 +56,8 @@ INSTALLED_APPS = [
     'schedules',
     'summaries',
     'users',
-    'chat'
+    'chat',
+    'quiz'
 ]
 
 MIDDLEWARE = [
