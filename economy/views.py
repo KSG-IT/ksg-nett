@@ -1,4 +1,4 @@
-from economy.forms import DepositForm, DepositCommentForm
+from economy.forms import DepositForm, DepositCommentForm, SociProductForm
 from economy.models import Deposit, DepositComment, SociBankAccount, SociSession, SociProduct
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse
@@ -166,6 +166,19 @@ def soci_session_detail(request, soci_session_id):
             "products": SociProduct.objects.all()
         }
         return render(request, template_name="economy/economy_soci_session_detail.html", context=ctx)
+    if request.method == "POST":
+        form = SociProductForm(request.POST)
+        print(form.is_valid(), flush=True)
+        session = get_object_or_404(SociSession, pk=soci_session_id)
+        if form.is_valid():
+            product = form.save()
+        ctx = {
+            "session": session,
+            "products": SociProduct.objects.all()
+        }
+        return render(request, template_name="economy/economy_soci_session_detail.html", context=ctx)
+
+
     else:
         return HttpResponse(status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
@@ -191,5 +204,3 @@ def soci_sessions_closed(request):
         return render(request, template_name="economy/economy_soci_sessions.html", context=ctx)
     else:
         return HttpResponse(status.HTTP_405_METHOD_NOT_ALLOWED)
-
-
