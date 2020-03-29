@@ -57,7 +57,7 @@ INSTALLED_APPS = [
     'summaries',
     'users',
     'chat',
-    'quiz'
+    'questionnaire',
 ]
 
 MIDDLEWARE = [

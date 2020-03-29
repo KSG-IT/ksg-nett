@@ -10,7 +10,7 @@ urlpatterns = [
     path('users/', include('users.urls')),
     path('chat/', include('chat.urls')),
     path('economy/', include('economy.urls')),
-    path('quiz/', include('quiz.urls')),
+    path('questionnaire/', include('questionnaire.urls')),
     # Catch all internal views not otherwise matched in a custom 404
     re_path('', views.not_found)
 ]
