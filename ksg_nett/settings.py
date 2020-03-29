@@ -194,7 +194,7 @@ REDOC_SETTINGS = {
 
 # ECONOMY SETTINGS
 # ------------------------------
-SOCI_MASTER_ACCOUNT_CARD_ID = 0xBADCAFEBABE  # Real card ids are 10 digits, while this is 14, meaning no collisions
+SOCI_MASTER_ACCOUNT_CARD_ID = f"{0xBADCAFEBABE}"  # Real card ids are 10 digits, while this is 14, meaning no collisions
 DIRECT_CHARGE_SKU = "X-BELOP"
 
 # Channels
