@@ -21,3 +21,33 @@
     font-weight: 600;
     text-transform: uppercase;
 }
+
+.main-table {
+    display: flex;
+    flex-flow: column;
+    width: 100%;
+}
+
+.table-card > * {
+    width: 100px;
+}
+
+.table-header {
+    width: 100%;
+    display: flex;
+    flex-flow: row;
+    justify-content: space-between;
+    margin-bottom: 20px;
+}
+
+.table-card {
+    padding: 0 15px;
+    margin: 4px 0;
+    background-color: #F0F0F0;
+    display: flex;
+    flex-flow: row;
+    justify-content: space-between;
+    align-items: center;
+    height: 50px;
+    border-radius: 10px;
+}
