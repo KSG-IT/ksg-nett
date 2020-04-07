@@ -1,10 +1,71 @@
 {% extends 'internal/base.html' %}
-
-
+{% load static %}
+{% load i18n %}
+{% block header %}
+    <link rel="stylesheet" href="{% static 'economy/css/economy_socisession_detail.css' %}">
+    <link rel="stylesheet" href="{% static 'economy/css/economy_common.css' %}">
+{% endblock %}
 {% block body_content %}
-    {% for purchase in session.purchases.all %}
-        <ul>
-            <li>{{ purchase }}</li>
-        </ul>
-    {% endfor %}
+    <div class="default-container default-top-offset">
+        <div id="left-wrapper" class="minor-left-panel">
+            {% include "economy/economy_lefmenu.html" with active="socisessions" %}
+        </div>
+        <div class="default-right-panel soci-session-detail__main_wrapper">
+            <h2>{{ session.name }}</h2>
+            <span>{% trans "Created on" %} {{ session.start | date:"M d Y" }}</span>
+            <div class="table-header">
+                <span>User</span>
+                <span>Product</span>
+                <span>Amount</span>
+                <span>Delete</span>
+            </div>
+            <div class="main-table">
+                {% for product_order in session.product_orders.all %}
+                    <div class="table-card">
+                        <span>{{ product_order.source.user.get_full_name }}</span>
+                        <span>{{ product_order.product.name }}</span>
+                        <span>{{ product_order.order_size }}</span>
+                        <span>
+                            <form method="post" action="/internal/economy/product-orders/{{ product_order.id }}/delete">
+                                {% csrf_token %}
+                                <button class="primary-red-button" type="submit">
+                                    {% trans "Delete" %}
+                                </button>
+                            </form>
+                        </span>
+                    </div>
+                {% endfor %}
+                <form action="/internal/economy/soci-sessions/{{ session.id }}" method="post">
+                    <div class="table-card">
+                        {% csrf_token %}
+                        <span class="table-span-default-width">
+                            <select name="source" id="id_source" required>
+                                <option value="">---</option>
+                                {% for user_option in users %}
+                                    <option value="{{ user_option.bank_account.id }}">{{ user_option.get_full_name }}</option>
+                                {% endfor %}
+                            </select>
+                        </span>
+                        <span class="table-span-default-width">
+                            <select name="product" id="id_product" required>
+                                <option value="">---</option>
+                                {% for product in products %}
+                                    <option value="{{ product.id}}">{{ product.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </span>
+                        <span class="table-span-default-width">
+                            <input type="number" name="order_size" id="id_order_size" value="1" required>
+                        </span>
+                        <span class="table-span-default-width">
+                            <button type="submit" class="primary-blue-button">
+                                {% trans "Add" %}
+                            </button>
+                        </span>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% load static %}
 {% endblock %}
