@@ -15,4 +15,6 @@ urlpatterns = [
     path("soci-sessions/<int:soci_session_id>", views.soci_session_detail, name="economy_soci_session_detail"),
     path("soci-sessions-closed", views.soci_sessions_closed, name="economy_soci_sessions_closed"),
     path("soci-sessions-open", views.soci_sessions_open, name="economy_soci_sessions_open"),
+    path("product-orders/<int:product_order_id>/delete", views.product_order_delete,
+         name="economy_product_orders_delete")
 ]
