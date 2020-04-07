@@ -29,8 +29,8 @@ class SociBankAccount(models.Model):
     user = models.OneToOneField(
         User,
         related_name='bank_account',
-        blank=False,
-        null=False,
+        blank=True,
+        null=True,
         on_delete=models.CASCADE
     )
 
@@ -104,7 +104,7 @@ class SociSession(TimeFramedModel):
         """
         Get the active session that should be used for all purchases, or None if no such session exists.
         """
-        return cls.objects.filter(end__isnull=True).order_by('-start').last()
+        return cls.objects.filter(end__isnull=True, type__iexact="societeten").order_by('-start').last()
 
     @classmethod
     def terminate_active_session(cls):
@@ -118,13 +118,13 @@ class SociSession(TimeFramedModel):
 
     @property
     def total_purchases(self) -> int:
-        return self.purchases.count()
+        return self.product_orders.count()
 
     @property
     def total_amount(self) -> int:
         total_amount = 0
-        for purchase in self.purchases.all():
-            total_amount += purchase.total_amount
+        for product_order in self.product_orders.all():
+            total_amount += product_order.total_sum
 
         return total_amount
 
@@ -141,7 +141,7 @@ class SociSession(TimeFramedModel):
         super().save(force_insert=force_insert, force_update=force_update, using=using, update_fields=update_fields)
 
 
-class ProductOrder(models.Model):
+class ProductOrder(TimeStampedModel):
     """
     An order for a specific Soci product, and the order size.
     If the product is direct charge, direct_charge_amount is used to specify the amount.
@@ -152,31 +152,46 @@ class ProductOrder(models.Model):
     )
 
     order_size = models.IntegerField(default=1)
-    amount = models.IntegerField()
 
-    purchase = models.ForeignKey(
-        'Purchase',
+    source = models.ForeignKey(
+        'SociBankAccount',
         related_name='product_orders',
-        on_delete=models.CASCADE
+        blank=True,
+        null=True,
+        on_delete=models.SET_NULL
     )
 
+    session = models.ForeignKey(
+        'SociSession',
+        related_name='product_orders',
+        on_delete=models.DO_NOTHING,
+        default=SociSession.get_active_session
+    )
+
+    @property
+    def total_sum(self):
+        return self.product.price * self.order_size
+
     def __str__(self):
-        return f"Order of {self.order_size} {self.product.name}(s)"
+        return f"Order of {self.order_size} {self.product.name}(s) by " \
+               f"{self.source.user} of {self.total_sum}kr"
 
     def __repr__(self):
         return f"Order(product={self.product}, order_size={self.order_size})"
 
     def save(self, force_insert=False, force_update=False, using=None, update_fields=None):
         if self._state.adding:
-            order_amount = self.amount * self.order_size
-            self.purchase.source.remove_funds(amount=order_amount)
-            SociBankAccount.soci_master_account.get().add_funds(amount=order_amount)
+            if self.session is None:
+                raise NoSociSessionError()
+            self.source.remove_funds(amount=self.total_sum)
+            SociBankAccount.soci_master_account.get().add_funds(amount=self.total_sum)
 
         super().save(force_insert=force_insert, force_update=force_update, using=using, update_fields=update_fields)
 
 
 class Purchase(TimeStampedModel):
     """
+    ToBe deprecated
     A transfer from a personal Soci bank account to the Soci master account.
     Each purchase object can contain multiple ProductOrders.
     """
