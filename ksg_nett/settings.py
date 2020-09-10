@@ -56,6 +56,7 @@ INSTALLED_APPS = [
     'schedules',
     'summaries',
     'users',
+    'sensors',
     'chat'
 ]
 
@@ -180,6 +181,9 @@ SIMPLE_JWT = {
     'SLIDING_TOKEN_LIFETIME': timedelta(hours=24),  # Should cover even the most hardcore Soci sessions
     'AUTH_HEADER_TYPES': ('JWT',),
 }
+# Sensor token. This is used to authenticate incoming sensor API requests.
+# This should be changed before production.
+SENSOR_API_TOKEN = '3@Zhg$nH^Dlhw23R'
 
 # API DOCS
 # ------------------------------
