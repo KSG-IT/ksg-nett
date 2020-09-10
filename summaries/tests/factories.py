@@ -1,7 +1,9 @@
 import random
 
 import pytz
-from factory import DjangoModelFactory, Faker, RelatedFactory, SubFactory
+from factory import Faker, RelatedFactory, SubFactory
+from factory.django import DjangoModelFactory
+
 
 from ksg_nett import settings
 from summaries.consts import SUMMARY_TYPE_SHORT_NAMES

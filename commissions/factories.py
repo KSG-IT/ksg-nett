@@ -1,4 +1,5 @@
-from factory import DjangoModelFactory, sequence
+from factory import sequence
+from factory.django import DjangoModelFactory
 from commissions.models import Commission
 
 

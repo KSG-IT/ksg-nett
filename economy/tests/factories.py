@@ -1,6 +1,7 @@
 import pytz
 from django.utils import timezone
-from factory import DjangoModelFactory, SubFactory, Faker, Sequence, post_generation
+from factory import SubFactory, Faker, Sequence, post_generation
+from factory.django import DjangoModelFactory
 from factory.django import ImageField
 
 from economy.models import SociBankAccount, SociProduct, ProductOrder, Purchase, SociSession, Transfer, Deposit, \
