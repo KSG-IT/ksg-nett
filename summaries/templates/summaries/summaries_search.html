@@ -1,0 +1,49 @@
+{% extends 'internal/base.html' %}
+{% load static %}
+{% block header %}
+  <link rel="stylesheet" href="{% static 'summaries/css/summaries_common.css' %}">
+  <link rel="stylesheet" href="{% static 'summaries/css/summaries_search.css' %}">
+{% endblock %}
+{% block body_content %}
+  <div class="summariessearch default-container default-top-offset default-two-col-grid">
+    {% include 'summaries/summaries_leftmenu.html' with active='search' %}
+    <div>
+      <div class="summariessearch__searchwrapper">
+        <form method="GET">
+          <input value="{{ search }}" name="search" type="text" class="summariessearch__search">
+          <i class="summariessearch__searchicon material-icons">search</i>
+        </form>
+      </div>
+      <div class="summariessearch__results">
+        <table>
+          <thead>
+          <tr>
+            <td>{{ _("Dato") }}</td>
+            <td>{{ _("Referattype") }}</td>
+            <td>{{ _("Deltagende") }}</td>
+          </tr>
+          </thead>
+          <tbody>
+            {% for summary in summaries %}
+              <tr>
+                <td>
+                  <a href="/internal/summaries/{{ summary.id }}">
+                    {{ summary.date|date:"d M, Y" }}
+                  </a>
+                </td>
+                <td>{{ summary.get_short_summary_type_name }}</td>
+                <td>
+                  {% for participant in summary.participants.all|slice:":5" %}
+                    <a href="/internal/users/{{ participant.id }}" title="{{ participant.get_full_name }}">
+                      {% include 'components/thumb.html' with url=participant.profile_image_url size='tiny' %}
+                    </a>
+                  {% endfor %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+{% endblock %}

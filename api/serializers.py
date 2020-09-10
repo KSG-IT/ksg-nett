@@ -1,8 +1,37 @@
 from django.conf import settings
 from rest_framework import serializers
+from rest_framework_simplejwt.serializers import TokenObtainSlidingSerializer
 
 from api.exceptions import InsufficientFundsException, NoSociSessionError
-from economy.models import SociProduct, ProductOrder, SociSession
+from economy.models import SociProduct, ProductOrder, SociSession, SociBankAccount
+
+
+class CustomTokenObtainSlidingSerializer(TokenObtainSlidingSerializer):
+    """
+    Overridden so we can obtain a token for a user based only on the card uuid.
+    """
+    username_field = SociBankAccount.card_uuid.field_name
+
+    def __init__(self, *args, **kwargs):
+        """
+        Overridden from `TokenObtainSerializer` since this adds a required
+        field `password` to the serializer that we don't need.
+        """
+        super().__init__(*args, **kwargs)
+        del self.fields['password']
+
+    def validate(self, attrs):
+        """
+        Overridden from `TokenObtainSlidingSerializer` since
+        this expects a username and password to be supplied.
+        """
+        data = {}
+
+        token = self.get_token(self.context['request'].user)
+
+        data['token'] = str(token)
+
+        return data
 
 
 # ===============================
@@ -37,11 +66,8 @@ class CheckBalanceSerializer(serializers.Serializer):
 class ChargeSociBankAccountDeserializer(serializers.Serializer):
     sku = serializers.CharField(label="Product SKU number to charge for")
 
-    order_size = serializers.IntegerField(required=False, label="Order size for this product",
+    order_size = serializers.IntegerField(default=1, required=False, label="Order size for this product",
                                           help_text="Defaults to 1 if not supplied")
-
-    direct_charge_amount = serializers.IntegerField(required=False, label="Amount to charge directly",
-                                                    help_text="Only required when using the direct charge SKU")
 
     @staticmethod
     def validate_sku(value):
@@ -55,21 +81,13 @@ class ChargeSociBankAccountDeserializer(serializers.Serializer):
             raise serializers.ValidationError('Order size must be positive.')
         return value
 
-    @staticmethod
-    def validate_direct_charge_amount(value):
-        if value <= 0:
-            raise serializers.ValidationError('Amount must be positive.')
-        return value
-
     def validate(self, attrs):
-        if attrs.get('sku', None) != settings.DIRECT_CHARGE_SKU and attrs.get('direct_charge_amount', None):
-            raise serializers.ValidationError('Amount can only be set when charging a direct amount.')
+        if attrs['sku'] != settings.DIRECT_CHARGE_SKU:
+            attrs['amount'] = SociProduct.objects.get(sku_number=attrs['sku']).price
+        else:
+            attrs['amount'] = 1
 
-        elif attrs.get('sku', None) == settings.DIRECT_CHARGE_SKU and attrs.get('direct_charge_amount', None) is None:
-            raise serializers.ValidationError('Amount must be set when charging a direct amount.')
-
-        attrs['amount'] = attrs.pop('direct_charge_amount', SociProduct.objects.get(sku_number=attrs['sku']).price)
-        self.context['total'] = self.context.get('total', 0) + attrs['amount'] * attrs.get('order_size', 1)
+        self.context['total'] += attrs['amount'] * attrs['order_size']
         if self.context['total'] > self.context['soci_bank_account'].balance:
             raise InsufficientFundsException()
 

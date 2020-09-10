@@ -3,10 +3,11 @@ from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse
 from rest_framework import viewsets, status
-
+from django.utils import timezone
 from quotes.forms import QuoteForm
 from quotes.models import Quote, QuoteVote
 from quotes.serializers import QuoteSerializer, QuoteVoteSerializer
+from common.util import get_semester_year_shorthands_by_count, get_semester_year_shorthand
 
 
 @login_required
@@ -16,28 +17,63 @@ def quotes_approve(request, quote_id):
         if quote.verified_by is None:
             quote.verified_by = request.user
             quote.save()
-        return redirect(reverse(quotes_list))
+        return redirect(reverse(quotes_pending))
+    else:
+        return HttpResponse(status=status.HTTP_405_METHOD_NOT_ALLOWED)
+
+
+
+@login_required
+def quotes_highscore(request):
+    if request.method == "GET":
+        this_semester = Quote.highscore_objects.semester_highest_score(timezone.now())
+        all_time = Quote.highscore_objects.highest_score_all_time()
+        combined_list = list(zip(this_semester, all_time))
+        ctx = {
+            "highscore_this_semester": Quote.highscore_objects.semester_highest_score(timezone.now()),
+            "highscore_all_time": Quote.highscore_objects.highest_score_all_time(),
+            "highscore_combined": combined_list, # Can be used in the future so we can style the rows together
+            'pending': Quote.pending_objects.order_by('-created')
+        }
+        return render(request, template_name="quotes/quotes_highscore.html", context=ctx)
+    else:
+        return HttpResponse(status=status.HTTP_405_METHOD_NOT_ALLOWED)
+
 
 
 @login_required
 def quotes_list(request):
     ctx = {
         'pending': Quote.pending_objects.all().order_by('-created'),
-        'quotes': Quote.verified_objects.all().order_by('-created')
+        'quotes': Quote.verified_objects.all().order_by('-created'),
+        'current_semester': get_semester_year_shorthand(timezone.now())
     }
     return render(request, template_name='quotes/quotes_list.html', context=ctx)
+
+
+@login_required
+def quotes_pending(request):
+    ctx = {
+        'pending': Quote.pending_objects.all().order_by('-created'),
+        'current_semester': get_semester_year_shorthand(timezone.now())
+    }
+    return render(request, template_name='quotes/quotes_pending.html', context=ctx)
 
 
 @login_required
 def quotes_add(request):
     if request.method == "GET":
         ctx = {
+            'pending': Quote.pending_objects.all(),
             'quote_form': QuoteForm()
         }
         return render(request, template_name='quotes/quotes_add.html', context=ctx)
     elif request.method == "POST":
         form = QuoteForm(request.POST)
+        form.reported_by = request.user
         if form.is_valid():
+            form = form.save(commit=False)
+            form.reported_by = request.user
             form.save()
             return redirect(reverse(quotes_list))
         else:

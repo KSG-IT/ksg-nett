@@ -1,6 +1,7 @@
 import pytz
 from django.utils import timezone
-from factory import DjangoModelFactory, SubFactory, Faker, sequence, Sequence, post_generation
+from factory import SubFactory, Faker, Sequence, post_generation
+from factory.django import DjangoModelFactory
 from factory.django import ImageField
 
 from economy.models import SociBankAccount, SociProduct, ProductOrder, Purchase, SociSession, Transfer, Deposit, \
@@ -12,14 +13,11 @@ from users.tests.factories import UserFactory
 class SociBankAccountFactory(DjangoModelFactory):
     class Meta:
         model = SociBankAccount
+        django_get_or_create = ("user",)
 
     user = SubFactory(UserFactory)
     balance = 0
-
-    @sequence
-    def card_uuid(n):
-        fake_number = Faker('ean13').evaluate(None, None, {})
-        return fake_number[9:] + str(n)
+    card_uuid = Faker('ean')
 
 
 class SociProductFactory(DjangoModelFactory):

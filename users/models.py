@@ -5,7 +5,7 @@ from typing import Optional
 
 from django.contrib.auth.models import AbstractUser
 from django.db import models
-from django.db.models import QuerySet
+from django.db.models import QuerySet, signals
 from model_utils import Choices
 from model_utils.fields import StatusField
 from model_utils.models import TimeStampedModel
@@ -133,7 +133,6 @@ class User(AbstractUser):
     def all_having_made_out_with(self) -> QuerySet:
         return self.made_out_with_left_side.all() | self.made_out_with_right_side.all()
 
-    active.boolean = True
 
     class Meta:
         default_related_name = 'users'

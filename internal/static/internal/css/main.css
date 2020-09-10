@@ -1,13 +1,12 @@
 /* FONTS */
 @import url('https://fonts.googleapis.com/css?family=Open+Sans:300,400,600,700,800');
 
-*{
-    /* TODO: Fonts should be more specific to different types of elements */
-    font-family: 'Open Sans', sans-serif;
-}
 
+/* Make body and html fill page height*/
 html, body {
     height: 100%;
+    font-family: 'Open Sans', sans-serif;
+    background-color: #fff;
 }
 
 /* Button reset */
@@ -24,6 +23,7 @@ button{
     color: inherit;
 }
 
+/* Primary color schemes */
 .light-blue{
     color: #7ACCF0;
 }
@@ -42,6 +42,14 @@ button{
 
 .black{
     color: black;
+}
+
+.grey{
+    color: #858585;
+}
+
+.red {
+    color: #6E0D30;
 }
 
 .bg-light-blue{
@@ -63,7 +71,6 @@ button{
 .bg-black{
     background-color: black;
 }
-
 
 /* Font and text styling */
 .text-left{
@@ -98,6 +105,9 @@ button{
     font-weight: 300;
 }
 
+.text-uppercase{
+    text-transform: uppercase;
+}
 
 /* Display */
 .block{
@@ -125,8 +135,28 @@ button{
     box-sizing: border-box;
 }
 
+.default-flex-column {
+    align-items: center;
+    display: flex;
+    flex-flow: column;
+}
+
+.default-two-col-grid{
+    display: grid;
+    grid-template-columns: 300px auto;
+}
+
 .default-left-panel{
     width: 500px;
+    padding-right: 50px;
+    float: left;
+    -webkit-box-sizing: border-box;
+    -moz-box-sizing: border-box;
+    box-sizing: border-box;
+}
+
+.minor-left-panel{
+    width: 300px;
     padding-right: 50px;
     float: left;
     -webkit-box-sizing: border-box;
@@ -143,6 +173,59 @@ button{
     margin-top: 4em;
 }
 
+.default-fill-height-container{
+    /* 60px is the height of the header */
+    height: calc(100% - 60px);
+}
+
+.default-fill-height-container-no-header{
+    height: 100%;
+}
+
 .resetmargins{
     margin: 0;
+}
+
+/* Positioning */
+.float-right{
+    float: right;
+}
+
+.float-left{
+    float: left;
+}
+
+/* Standard label styling */
+.default-grey-label {
+    color: #858585;
+    font-size: 12px;
+}
+
+/* Standard button styling */
+.primary-blue-button {
+    height: 40px;
+    left: 123px;
+    top: 347px;
+    background: #46788E;
+    border-radius: 4px;
+    width: 100%;
+    display: inline-block;
+    color: white;
+}
+
+/* Input styling */
+
+.default-text-input-field {
+    padding: 12px 14px;
+    margin: 4px 0;
+    width: 260px;
+    display: inline-block;
+    border: 1px solid #858585;
+    border-radius: 4px;
+    box-sizing: border-box;
+}
+
+.default-text-area {
+    border-radius: 4px;
+    border-color: #858585;
 }

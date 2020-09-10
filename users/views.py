@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
-
+from django.utils import timezone
 import json
 
 from django.contrib.auth.decorators import login_required
@@ -18,7 +18,8 @@ def user_detail(request, user_id):
     ctx = {
         # We don't want to name it `user` as it will override the default user attribute
         # (which is the user calling the view).
-        'profile_user': user
+        'profile_user': user,
+        'next_shift': request.user.shift_set.filter(slot__group__meet_time__gte=timezone.now()).first()
     }
     return render(request, template_name='users/profile_page.html', context=ctx)
 

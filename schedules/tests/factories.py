@@ -3,7 +3,9 @@ from datetime import timedelta, datetime, date
 
 import pytz
 from django.utils import timezone
-from factory import DjangoModelFactory, Faker, SubFactory, RelatedFactory, LazyAttribute, SelfAttribute
+from factory import Faker, SubFactory, RelatedFactory, LazyAttribute, SelfAttribute
+from factory.django import DjangoModelFactory
+
 
 from ksg_nett import settings
 from schedules.models import Schedule, ShiftSlotGroup, ScheduleSlotType, ShiftSlot, Shift, ScheduleTemplate, \

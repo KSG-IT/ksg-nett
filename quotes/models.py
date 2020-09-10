@@ -2,12 +2,21 @@ from django.db import models
 from django.db.models import Sum, Index
 from model_utils.managers import QueryManager
 from model_utils.models import TimeStampedModel
+from quotes.managers import QuoteDefaultQuerySet
 
 from users.models import User
 
 
 class Quote(TimeStampedModel):
     text = models.TextField()
+    reported_by = models.ForeignKey(
+        User,
+        null=False,
+        blank=False,
+        related_name="reported_quotes",
+        on_delete=models.DO_NOTHING
+    )
+
     quoter = models.ForeignKey(
         User,
         null=False,
@@ -24,11 +33,14 @@ class Quote(TimeStampedModel):
         related_name='verified_quotes',
         on_delete=models.SET_NULL
     )
+    context = models.CharField(max_length=200, null=True, blank=True)
+
 
     # Managers
     objects = models.Manager()
     pending_objects = QueryManager(verified_by__isnull=True)
     verified_objects = QueryManager(verified_by__isnull=False)
+    highscore_objects= QuoteDefaultQuerySet.as_manager()
 
     def get_semester_of_quote(self) -> str:
         """

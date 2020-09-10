@@ -3,7 +3,7 @@ from django.db import DatabaseError
 from django.utils import timezone
 from drf_yasg.openapi import Parameter, IN_QUERY, TYPE_STRING
 from drf_yasg.utils import swagger_auto_schema
-from rest_framework import generics, status
+from rest_framework import status, permissions, generics
 from rest_framework.exceptions import ValidationError
 from rest_framework.generics import ListAPIView, RetrieveAPIView, get_object_or_404, DestroyAPIView
 from rest_framework.request import Request
@@ -12,15 +12,20 @@ from rest_framework_simplejwt.views import TokenObtainSlidingView, TokenRefreshS
 
 from api.permissions import SensorTokenPermission
 from api.serializers import CheckBalanceSerializer, SociProductSerializer, ChargeSociBankAccountDeserializer, \
-    PurchaseSerializer, SensorMeasurementSerializer
-from api.view_mixins import CustomCreateAPIView
-from economy.models import SociBankAccount, SociProduct, Purchase, SociSession
+    PurchaseSerializer, SensorMeasurementSerializer,  CustomTokenObtainSlidingSerializer
+
 from sensors.consts import MEASUREMENT_TYPE_TEMPERATURE, MEASUREMENT_TYPE_CHOICES
 from sensors.models import SensorMeasurement
+from api.view_mixins import CustomCreateAPIView
+from economy.models import SociBankAccount, SociProduct, Purchase, SociSession
+from ksg_nett.custom_authentication import CardNumberAuthentication
 
 
 class CustomTokenObtainSlidingView(TokenObtainSlidingView):
     swagger_schema = None
+    serializer_class = CustomTokenObtainSlidingSerializer
+    authentication_classes = [CardNumberAuthentication]
+    permission_classes = (permissions.IsAuthenticated,)
 
     def post(self, request, *args, **kwargs):
         response = super().post(request, *args, **kwargs)
@@ -147,7 +152,8 @@ class SociBankAccountChargeView(CustomCreateAPIView):
         soci_bank_account: SociBankAccount = self.get_object()
 
         deserializer = self.get_deserializer(
-            data=request.data, context={'soci_bank_account': soci_bank_account}, many=True, allow_empty=False)
+            data=request.data,
+            context={'soci_bank_account': soci_bank_account, 'total': 0}, many=True, allow_empty=False)
         deserializer.is_valid(raise_exception=True)
 
         purchase = Purchase.objects.create(source=soci_bank_account)

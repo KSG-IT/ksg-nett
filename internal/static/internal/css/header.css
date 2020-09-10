@@ -42,6 +42,16 @@
     padding: 1em 4em;
 }
 
+.header__menu_items_container {
+    display: flex;
+    flex-flow: row;
+    justify-content: flex-start;
+}
+
+.header__menu_container_item {
+
+}
+
 .header__bottom{
     left: 0;
     right: 0;
@@ -70,4 +80,98 @@
     width: 33%;
     height: 40px;
     text-align: center;
+}
+
+
+/* TEST COPY FROM W3* FOR DROPDOWN UTILITY/
+ */
+
+.dropbtn {
+  background-color: inherit;
+  padding: 16px;
+  font-size: 16px;
+  border: none;
+  cursor: pointer;
+}
+
+.dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.dropdown-content {
+  display: none;
+  position: absolute;
+  min-width: 160px;
+  box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+  z-index: 1;
+}
+
+.dropdown-content a {
+  color: black;
+  padding: 12px 16px;
+  text-decoration: none;
+  display: block;
+}
+
+.dropdown-content a:hover {
+    background-color: #103242;
+    color: #BBD8E4;
+}
+
+.dropdown:hover .dropdown-content {
+  display: block;
+}
+
+.header__profile_container {
+    display: flex;
+    flex-flow: row;
+}
+
+.header__profile_container_left {
+    display: flex;
+    flex-flow: column;
+}
+
+
+.header__profile_container_right {
+    display: flex;
+    flex-flow: column;
+}
+
+
+.header__notification_wrapper {
+
+}
+
+.fa-bell {
+  position: relative;
+  font-size: 4em;
+  color: #103242;
+  cursor: pointer;
+}
+
+span.fa-circle {
+  position: absolute;
+  font-size: 0.6em;
+  top: -4px;
+  color: red;
+  right: -4px;
+}
+span.num {
+  position: absolute;
+  font-size: 0.4em;
+  top: -4px;
+  color: #fff;
+  right: -4px;
+}
+
+.header__profile_dropdown {
+    width: 800px;
+}
+
+.header__profile_dropdown_header {
+    display: flex;
+    flex-flow: row;
+    justify-content: space-between;
 }

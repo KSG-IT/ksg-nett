@@ -48,7 +48,7 @@ settings.SWAGGER_SETTINGS['SECURITY_DEFINITIONS'] = {
             "### Obtaining a token\n\n"
             "Do a **POST** request to [/api/authentication/obtain-token](#section/Authentication/JWT) "
             "with the following payload:\n\n"
-            "    {\"username\": `CARD_UUID`, \"password\": `PASSWORD`}\n\n"
+            "    {\"username\": `CARD_UUID`}\n\n"
             f"**Note:** Each obtained token expires after {settings.SIMPLE_JWT['SLIDING_TOKEN_LIFETIME'].days * 24} "
             "hours.\n\n"
             "---\n\n"

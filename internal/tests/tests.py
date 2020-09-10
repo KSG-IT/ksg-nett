@@ -1,8 +1,7 @@
 from django.test import TestCase, Client
 
 from users.tests.factories import UserFactory
-
-
+from economy.tests.factories import SociBankAccountFactory
 class InternalRouteTests(TestCase):
 
     @classmethod
@@ -10,6 +9,8 @@ class InternalRouteTests(TestCase):
         user = UserFactory(username='me')
         user.set_password('pw')
         user.save()
+        SociBankAccountFactory.create(user=user)
+
 
     def test_index_without_logging_in_should_redirect(self):
         response = self.client.get('/internal/')

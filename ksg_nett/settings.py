@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 
     # Third party apps
+    'channels',
     'rest_framework',
     'rest_framework.authtoken',
     'drf_yasg',
@@ -55,7 +56,8 @@ INSTALLED_APPS = [
     'schedules',
     'summaries',
     'users',
-    'sensors'
+    'sensors',
+    'chat'
 ]
 
 MIDDLEWARE = [
@@ -128,7 +130,7 @@ if not DEBUG:
 AUTH_USER_MODEL = 'users.User'
 
 AUTHENTICATION_BACKENDS = [
-    'ksg_nett.custom_authentication.UsernameOrEmailOrCardNumberAuthenticationBackend'
+    'ksg_nett.custom_authentication.UsernameOrEmailAuthenticationBackend'
 ]
 
 # Default login_required return url
@@ -163,7 +165,7 @@ REST_FRAMEWORK = {
         'rest_framework.authentication.BasicAuthentication',
     ),
     'DEFAULT_PERMISSION_CLASSES': (
-        'rest_framework.permissions.IsAdminUser',
+        # 'rest_framework.permissions.IsAdminUser',
     ),
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 20
@@ -198,6 +200,27 @@ REDOC_SETTINGS = {
 # ------------------------------
 SOCI_MASTER_ACCOUNT_CARD_ID = 0xBADCAFEBABE  # Real card ids are 10 digits, while this is 14, meaning no collisions
 DIRECT_CHARGE_SKU = "X-BELOP"
+
+# Channels
+ASGI_APPLICATION = 'ksg_nett.routing.application'
+
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [("localhost", 6379)]
+        }
+    }
+}
+
+
+# Redis
+REDIS = {
+    'host': 'localhost',
+    'port': 6379
+}
+CHAT_STATE_REDIS_DB = 1
+
 
 # Load local and production settings
 try:
