@@ -2,6 +2,11 @@
 @import url('https://fonts.googleapis.com/css?family=Open+Sans:300,400,600,700,800');
 
 
+:root {
+    --primary-red-color: #6E0D30;
+    --secondary-blue-color: #46788E;
+}
+
 /* Make body and html fill page height*/
 html, body {
     height: 100%;

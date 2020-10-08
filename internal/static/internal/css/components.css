@@ -128,3 +128,42 @@
     width: 400px;
     height: 400px;
 }
+
+
+.regular-input {
+    height: 40px;
+    border: 1px solid #858585;
+    font-size: 12px;
+    border-radius: 4px;
+    outline: none;
+    padding-left: 1em;
+    box-sizing: border-box;
+    width: 266px;
+    position: relative;
+}
+
+
+.regular-input:focus {
+    border: 1px solid #46788E;
+}
+
+.regular-input::placeholder {
+    font-style: italic;
+    color: #B4B4B4;
+}
+
+.regular-input:invalid {
+    border: 1px solid var(--primary-red-color);
+    color: var(--primary-red-color);
+}
+
+.regular-input__container > label  {
+    font-size: 12px;
+    display: flex;
+    margin-bottom: 10px;
+    flex-flow: column;
+}
+
+.regular-input__container:focus-within > label  {
+    color: var(--secondary-blue-color);
+}
