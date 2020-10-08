@@ -115,4 +115,5 @@ db.sqlite3
 
 # Settings
 settings_local.py
-.vscode/
+.vscode
+dump.rdb
