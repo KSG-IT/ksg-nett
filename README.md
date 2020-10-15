@@ -13,7 +13,7 @@ This repository contains the source code for [KSG](https://www.samfundet.no/kafe
 ## Dependencies
 * Django 3.1
 * Python 3.8
-* Pipenv
+* Poetry
 
 ## Installation
 
