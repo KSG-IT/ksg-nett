@@ -1,8 +1,8 @@
 import jwt
 from django.db import DatabaseError
 from django.utils import timezone
-from drf_yasg.openapi import Parameter, IN_QUERY, TYPE_STRING
-from drf_yasg.utils import swagger_auto_schema
+from drf_yasg2.openapi import Parameter, IN_QUERY, TYPE_STRING
+from drf_yasg2.utils import swagger_auto_schema
 from rest_framework import status, permissions, generics
 from rest_framework.exceptions import ValidationError
 from rest_framework.generics import ListAPIView, RetrieveAPIView, get_object_or_404, DestroyAPIView

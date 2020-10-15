@@ -41,7 +41,7 @@ INSTALLED_APPS = [
     'channels',
     'rest_framework',
     'rest_framework.authtoken',
-    'drf_yasg',
+    'drf_yasg2',
 
     # Project apps
     'api',
