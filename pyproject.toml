@@ -25,6 +25,7 @@ weasyprint = "^51"
 coveralls = "^2.1.2"
 
 [tool.poetry.dev-dependencies]
+coveralls = "^2.1.2"
 
 [build-system]
 requires = ["poetry>=0.12"]
