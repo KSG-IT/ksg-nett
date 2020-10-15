@@ -21,6 +21,8 @@ psycopg2-binary = "^2.8.6"
 boto3 = "^1.15.16"
 packaging = "^20.4"
 drf-yasg2 = "^1.18.5"
+weasyprint = "^51"
+coveralls = "^2.1.2"
 
 [tool.poetry.dev-dependencies]
 coveralls = "^2.1.2"
