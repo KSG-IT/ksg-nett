@@ -18,25 +18,25 @@ This repository contains the source code for [KSG](https://www.samfundet.no/kafe
 ## Installation
 
 ### Installing dependencies
-First [install pipenv](https://pipenv.readthedocs.io/en/latest/install/#installing-pipenv). The procedure should then be the same for all operating systems:
+First [install poetry](https://python-poetry.org/docs/#installation) our dependency and virtual environment manager.
 
-    pipenv install
+    poetry install
     
 ### Setting up the database
 
 ```
-pipenv run python manage.py migrate
+poetry run python manage.py migrate
 ```
 
 ## Running 
 
 ```bash
-pipenv run python manage.py runserver
+poetry run python manage.py runserver
 ```
 
 Alternatively one can initiate a pipenv shell session py running
 ```bash
-pipenv shell
+poetry shell
 ```
 
 Then commands can be run without the pipenv run command:
