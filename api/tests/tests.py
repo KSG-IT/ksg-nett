@@ -14,6 +14,7 @@ from users.tests.factories import UserFactory
 
 
 class CustomTokenObtainSlidingViewTest(APITestCase):
+
     @classmethod
     def setUpClass(cls):
         super().setUpClass()

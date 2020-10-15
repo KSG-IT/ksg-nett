@@ -10,7 +10,7 @@ class CustomTokenObtainSlidingSerializer(TokenObtainSlidingSerializer):
     """
     Overridden so we can obtain a token for a user based only on the card uuid.
     """
-    username_field = SociBankAccount.card_uuid.field_name
+    username_field = "card_uuid"
 
     def __init__(self, *args, **kwargs):
         """

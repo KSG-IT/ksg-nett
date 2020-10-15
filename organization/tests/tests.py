@@ -9,11 +9,10 @@ from users.tests.factories import UserFactory
 
 class GroupTest(TestCase):
 
-    @classmethod
-    def setUpTestData(cls):
-        cls.group_1 = InternalGroupFactory()
-        cls.user_1 = UserFactory()
-        cls.group_1.members.add(cls.user_1)
+    def setUp(self):
+        self.group_1 = InternalGroupFactory()
+        self.user_1 = UserFactory()
+        self.group_1.members.add(self.user_1)
 
     def test_group_str_and_repr_should_not_fail(self):
         str_representation = str(self.group_1)

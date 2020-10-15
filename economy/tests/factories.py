@@ -24,7 +24,7 @@ class SociProductFactory(DjangoModelFactory):
     class Meta:
         model = SociProduct
 
-    sku_number = Sequence(lambda n: Faker('ean13').evaluate(None, None, {}) + str(n))
+    sku_number = Sequence(lambda n: f"sku{n}")
     name = Faker('word')
     price = Faker('random_number', digits=4, fix_len=True)
     description = Faker('sentence')

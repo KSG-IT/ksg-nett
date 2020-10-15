@@ -1,10 +1,10 @@
 dist: xenial
 language: python
 python:
-  - "3.6"
+  - "3.8"
 install: 
-    - "pip install pipenv"
-    - "pipenv sync --dev"
+    - "pip install poetry"
+    - "poetry install"
 script: 
     - make test-coverage
 after_success:
