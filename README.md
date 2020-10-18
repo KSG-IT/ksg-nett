@@ -14,6 +14,8 @@ This repository contains the source code for [KSG](https://www.samfundet.no/kafe
 * Django 3.1
 * Python 3.8
 * Poetry
+* Cairo
+* Pango
 
 ## Installation
 
