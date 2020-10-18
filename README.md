@@ -34,12 +34,12 @@ poetry run python manage.py migrate
 poetry run python manage.py runserver
 ```
 
-Alternatively one can initiate a pipenv shell session py running
+Alternatively one can initiate a poetry shell session py running
 ```bash
 poetry shell
 ```
 
-Then commands can be run without the pipenv run command:
+Then commands can be run without the poetryr run command:
 ```bash
 python manage.py runserver
 ```
