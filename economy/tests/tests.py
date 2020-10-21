@@ -6,7 +6,6 @@ from economy.models import Deposit
 from economy.tests.factories import (
     SociBankAccountFactory,
     DepositFactory,
-    PurchaseFactory,
     TransferFactory,
     ProductOrderFactory,
     DepositCommentFactory,
@@ -34,13 +33,13 @@ class SociBankAccountTest(TestCase):
         extra_account = SociBankAccountFactory(balance=2000)
 
         DepositFactory(account=self.soci_account, amount=1000)
-        PurchaseFactory(source=self.soci_account)
+        ProductOrderFactory(source=self.soci_account)
         TransferFactory(source=extra_account, destination=self.soci_account, amount=500)
         history = self.soci_account.transaction_history
 
         self.assertEqual(3, len(history))
         self.assertEqual(1, history["deposits"].count())
-        self.assertEqual(1, history["purchases"].count())
+        self.assertEqual(1, history["product_orders"].count())
         self.assertEqual(1, history["transfers"].count())
 
     def test_account__add_funds__added_correctly(self):
@@ -54,47 +53,15 @@ class SociBankAccountTest(TestCase):
         self.assertEqual(0, self.soci_account.balance)
 
 
-class PurchaseTest(TestCase):
-    def setUp(cls):
-        SociBankAccountFactory(card_uuid=settings.SOCI_MASTER_ACCOUNT_CARD_ID)
-        cls.purchase = PurchaseFactory()
-        ProductOrderFactory.create(
-            product__name="first",
-            product__price=100,
-            order_size=1,
-            amount=100,
-            purchase=cls.purchase,
-        )
-        ProductOrderFactory.create(
-            product__name="second",
-            product__price=200,
-            order_size=1,
-            amount=200,
-            purchase=cls.purchase,
-        )
-
-    def test_valid_purchase__has_session(self):
-        self.assertTrue(self.purchase.session)
-
-    def test_total_amount__correct_amount_returned(self):
-        self.assertEqual(300, self.purchase.total_amount)
-
-    def test_products_purchased__correct_products_returned(self):
-        self.assertEqual(["first", "second"], self.purchase.products_purchased)
-
-
 class SociSessionTest(TestCase):
     def setUp(cls):
         SociBankAccountFactory(card_uuid=settings.SOCI_MASTER_ACCOUNT_CARD_ID)
         cls.session = SociSessionFactory()
-        ProductOrderFactory(amount=100, purchase__session=cls.session)
-        ProductOrderFactory(amount=200, purchase__session=cls.session)
+        ProductOrderFactory(order_size=100, session=cls.session)
+        ProductOrderFactory(order_size=200, session=cls.session)
 
-    def test_total_purchases__correct_amount_returned(self):
-        self.assertEqual(2, self.session.total_purchases)
-
-    def test_total_amount__correct_amount_returned(self):
-        self.assertEqual(300, self.session.total_amount)
+    def test_total_product_orders__correct_amount_returned(self):
+        self.assertEqual(2, self.session.total_product_orders)
 
 
 class DepositTest(TestCase):
