@@ -10,6 +10,7 @@ from economy.tests.factories import (
     ProductOrderFactory,
     DepositCommentFactory,
     SociSessionFactory,
+    SociProductFactory
 )
 from economy.forms import DepositForm, DepositCommentForm
 from django.urls import reverse
@@ -57,11 +58,17 @@ class SociSessionTest(TestCase):
     def setUp(cls):
         SociBankAccountFactory(card_uuid=settings.SOCI_MASTER_ACCOUNT_CARD_ID)
         cls.session = SociSessionFactory()
-        ProductOrderFactory(order_size=100, session=cls.session)
-        ProductOrderFactory(order_size=200, session=cls.session)
+        cls.product = SociProductFactory(price=30)
+        ProductOrderFactory(order_size=100, session=cls.session, product=cls.product)
+        ProductOrderFactory(order_size=200, session=cls.session, product=cls.product)
 
     def test_total_product_orders__correct_amount_returned(self):
         self.assertEqual(2, self.session.total_product_orders)
+
+    def test__total_revenue__returns_correct_sum(self):
+        expected_revenue = (30 * 100) + (30 * 200)
+        self.assertEqual(expected_revenue, self.session.total_revenue)
+
 
 
 class DepositTest(TestCase):
