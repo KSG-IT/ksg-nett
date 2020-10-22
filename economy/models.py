@@ -158,6 +158,10 @@ class ProductOrder(models.Model):
         default=SociSession.get_active_session
     )
 
+    @property
+    def cost(self) -> int:
+        return self.order_size * self.product.price
+
     def __str__(self):
         return f"Order of {self.order_size} {self.product.name}(s)"
 
@@ -166,8 +170,8 @@ class ProductOrder(models.Model):
 
     def save(self, force_insert=False, force_update=False, using=None, update_fields=None):
         if self._state.adding:
-            self.source.remove_funds(amount=self.order_size * self.product.price)
-            SociBankAccount.soci_master_account.get().add_funds(amount=self.order_size * self.product.price)
+            self.source.remove_funds(amount=self.cost)
+            SociBankAccount.soci_master_account.get().add_funds(amount=self.cost)
 
         super().save(force_insert=force_insert, force_update=force_update, using=using, update_fields=update_fields)
 
