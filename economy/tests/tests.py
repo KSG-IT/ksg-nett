@@ -55,12 +55,12 @@ class SociBankAccountTest(TestCase):
 
 
 class SociSessionTest(TestCase):
-    def setUp(cls):
+    def setUp(self):
         SociBankAccountFactory(card_uuid=settings.SOCI_MASTER_ACCOUNT_CARD_ID)
-        cls.session = SociSessionFactory()
-        cls.product = SociProductFactory(price=30)
-        ProductOrderFactory(order_size=100, session=cls.session, product=cls.product)
-        ProductOrderFactory(order_size=200, session=cls.session, product=cls.product)
+        self.session = SociSessionFactory()
+        self.product = SociProductFactory(price=30)
+        ProductOrderFactory(order_size=100, session=self.session, product=self.product)
+        ProductOrderFactory(order_size=200, session=self.session, product=self.product)
 
     def test_total_product_orders__correct_amount_returned(self):
         self.assertEqual(2, self.session.total_product_orders)
