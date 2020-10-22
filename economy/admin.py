@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from economy.models import Deposit, SociBankAccount, SociProduct, SociSession
+from economy.models import Deposit, SociBankAccount, SociProduct, SociSession, ProductOrder
 
 
 @admin.register(SociBankAccount)
@@ -35,4 +35,8 @@ class DepositAdmin(admin.ModelAdmin):
 
 @admin.register(SociSession)
 class SociSessionAdmin(admin.ModelAdmin):
+    pass
+
+@admin.register(ProductOrder)
+class ProductOrderAdmin(admin.ModelAdmin):
     pass
