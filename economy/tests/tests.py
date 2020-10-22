@@ -70,6 +70,16 @@ class SociSessionTest(TestCase):
         self.assertEqual(expected_revenue, self.session.total_revenue)
 
 
+class ProductOrderTest(TestCase):
+    def setUp(self):
+        SociBankAccountFactory.create(card_uuid=settings.SOCI_MASTER_ACCOUNT_CARD_ID)
+        self.product = SociProductFactory.create(price=65)
+        self.product_order = ProductOrderFactory.create(order_size=150, product=self.product)
+
+    def test__product_order_cost__returns_correct_amount(self):
+        expected_cost = 65 * 150
+        self.assertEqual(expected_cost, self.product_order.cost)
+
 
 class DepositTest(TestCase):
     def setUp(self):
