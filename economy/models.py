@@ -120,6 +120,11 @@ class SociSession(TimeFramedModel):
     def total_product_orders(self) -> int:
         return self.product_orders.count()
 
+    @property
+    def total_revenue(self) -> int:
+        purchase_sums = [amount.cost for amount in self.product_orders.all()]
+        return sum(purchase_sums)
+
     def __str__(self):
         return f"SociSession {self.name} containing {self.product_orders.count()} product_orders " \
                f"between {self.start} and {self.end}"
