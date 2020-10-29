@@ -173,13 +173,6 @@ class ProductOrder(models.Model):
     def __repr__(self):
         return f"Order(product={self.product}, order_size={self.order_size})"
 
-    def save(self, force_insert=False, force_update=False, using=None, update_fields=None):
-        if self._state.adding:
-            self.source.remove_funds(amount=self.cost)
-            SociBankAccount.soci_master_account.get().add_funds(amount=self.cost)
-
-        super().save(force_insert=force_insert, force_update=force_update, using=using, update_fields=update_fields)
-
 
 class Transfer(TimeStampedModel):
     """
