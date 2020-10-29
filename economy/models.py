@@ -242,12 +242,6 @@ class Deposit(TimeStampedModel):
     def __repr__(self):
         return f"Deposit(person={self.account.user},amount={self.amount})"
 
-    def save(self, force_insert=False, force_update=False, using=None, update_fields=None):
-        if self.is_valid and not self.signed_off_time:
-            self.account.add_funds(self.amount)
-
-        super().save(force_insert=force_insert, force_update=force_update, using=using, update_fields=update_fields)
-
 
 class DepositComment(TimeStampedModel):
     """
