@@ -4,7 +4,7 @@ from django.urls import path, re_path
 from . import views
 
 urlpatterns = [
-    re_path(r'^$', views.index), #regex, gjør det samme som under
+    re_path(r'^$', views.index),
     path('quotes/', include('quotes.urls')),
     path('summaries/', include('summaries.urls')),
     path('users/', include('users.urls')),

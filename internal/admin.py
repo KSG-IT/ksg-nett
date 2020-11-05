@@ -1,6 +1,6 @@
 from django.contrib import admin
-from internal.models import Slideshow 
+from internal.models import SlideshowImage
 
-admin.site.register(Slideshow)
+admin.site.register(SlideshowImage)
 
 

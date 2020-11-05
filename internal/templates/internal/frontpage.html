@@ -11,16 +11,16 @@
 {% block body_content %}
     <div class="frontpage">
         <div class="frontpage__top_row">  
-            <div class="frontpage__slideshow_container"> <!-- Dette er slideshowet-->
+            <div class="frontpage__slideshow_container"> 
                 <div id="slider">
                     <figure>
                         {%for image in slideshow%}
                             <h1>Description: {{image.description}}</h1>
-                            <img src="{{image.image.url}}"> <!--dobbel krøllparantes henter ut objektene som jeg finner i konteksten i views-->
+                            <img src="{{image.image.url}}">
                         {%endfor%}
                     </figure>
                 </div>
-            </div> <!--slideshow slutter her-->
+            </div> 
 
             <div class="frontpage__top_right_container">
                 <div class="frontpage__column_rework" style="width: 450px">
