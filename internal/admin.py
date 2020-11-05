@@ -1,3 +1,6 @@
 from django.contrib import admin
+from internal.models import Slideshow 
 
-# Register your models here.
+admin.site.register(Slideshow)
+
+

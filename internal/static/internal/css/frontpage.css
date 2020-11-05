@@ -38,15 +38,15 @@
     display: flex;
     flex-flow: column;
 }
-
+/*
 .frontpage__image {
     width: 650px;
-    margin: 0 10px;
+    margin: 0px;
     height: 380px;
     background-image: url("https://cdn.pixabay.com/photo/2017/06/16/07/26/under-construction-2408061_1280.png");
     background-repeat: no-repeat;
     background-position: 50% 50%;
-}
+}*/
 
 .frontpage__top_row {
     margin-top: 25px;
@@ -119,3 +119,61 @@
     margin-bottom: 0.4em;
     box-sizing: border-box;
 }
+
+/* kode for slideshow */
+@keyframes slidy {
+    0% { left: 50%; }
+    5% { left: 0%; }
+    20% { left: 0%; }
+    25% { left: -100%; }
+    45% { left: -100%; }
+    50% { left: -200%; }
+    70% { left: -200%; }
+    75% { left: -300%; }
+    95% { left: -300%; }
+    100% {left: -400%; }
+    } 
+       
+
+
+
+body { margin: 0; } 
+
+div#slider { 
+    overflow: hidden; 
+}
+
+div#slider figure img { 
+    width: 20%; 
+    float: left; 
+}
+
+div#slider figure { 
+    position: relative;
+    width: 500%;
+    margin: 0;
+    left: 0;
+    text-align: left;
+    font-size: 0;
+    animation: 20s slidy infinite ease-in;
+
+} 
+
+
+/* annet slideshow
+#slideshow {
+    margin: 80px auto;
+    position: relative;
+    width: 240px;
+    height: 240px;
+    padding: 10px;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.4);
+  }
+  
+  #slideshow > div {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    right: 10px;
+    bottom: 10px;
+  }*/
