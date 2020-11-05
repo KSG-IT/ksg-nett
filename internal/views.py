@@ -10,18 +10,16 @@ from itertools import chain
 def index(request):
     last_summaries = Summary.objects.order_by('-date')[0:10]
     last_quotes = Quote.verified_objects.all().order_by('-created')[0:10]
-    economy_purchases = request.user.bank_account.purchases.all().order_by('-created')[0:10]
     economy_deposits = request.user.verified_deposits.all()[0:10]
     # chains the two lists sorted by date and then we can slice the latest history of the two items
     # not wokring as of now probably need a custom manager to combine the querysets
     result_list = sorted(
-        chain(economy_deposits, economy_purchases),
+        chain(economy_deposits),
         key=lambda instance: instance.created
     )
     ctx = {
         'last_summaries': last_summaries,
         'last_quotes': last_quotes,
-        'economy:': economy_purchases,
         'next_shifts': request.user.shift_set.filter(slot__group__meet_time__gte=timezone.now())[:2],
     }
     return render(request, 'internal/frontpage.html', context=ctx)

@@ -4,7 +4,7 @@ from factory import SubFactory, Faker, Sequence, post_generation
 from factory.django import DjangoModelFactory
 from factory.django import ImageField
 
-from economy.models import SociBankAccount, SociProduct, ProductOrder, Purchase, SociSession, Transfer, Deposit, \
+from economy.models import SociBankAccount, SociProduct, ProductOrder, SociSession, Transfer, Deposit, \
     DepositComment
 from ksg_nett import settings
 from users.tests.factories import UserFactory
@@ -41,22 +41,14 @@ class SociSessionFactory(DjangoModelFactory):
     signed_off_by = SubFactory(UserFactory)
 
 
-class PurchaseFactory(DjangoModelFactory):
-    class Meta:
-        model = Purchase
-
-    source = SubFactory(SociBankAccountFactory)
-    session = SubFactory(SociSessionFactory)
-
-
 class ProductOrderFactory(DjangoModelFactory):
     class Meta:
         model = ProductOrder
 
     product = SubFactory(SociProductFactory)
     order_size = 1
-    amount = Faker('random_number', digits=4, fix_len=True)
-    purchase = SubFactory(PurchaseFactory)
+    source = SubFactory(SociBankAccountFactory)
+    session = SubFactory(SociSessionFactory)
 
 
 class TransferFactory(DjangoModelFactory):

@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from economy.models import Deposit, SociBankAccount, SociProduct, Purchase, SociSession
+from economy.models import Deposit, SociBankAccount, SociProduct, SociSession, ProductOrder
 
 
 @admin.register(SociBankAccount)
@@ -12,26 +12,6 @@ class SociBankAccountAdmin(admin.ModelAdmin):
 @admin.register(SociProduct)
 class SociProductAdmin(admin.ModelAdmin):
     list_display = ['sku_number', 'icon', 'name', 'price', 'description', 'start']
-
-
-@admin.register(Purchase)
-class PurchaseAdmin(admin.ModelAdmin):
-    list_display = ['user', 'sum', 'session']
-    readonly_fields = ['sum', 'orders']
-    raw_id_fields = ['source', 'session']
-
-    @staticmethod
-    def user(purchase):
-        return purchase.source.user
-
-    @staticmethod
-    def sum(purchase):
-        return purchase.total_amount
-
-    @staticmethod
-    def orders(purchase: Purchase):
-        product_orders = purchase.product_orders.values_list('product__name', 'order_size')
-        return "\n".join(f"{product}: {amount}" for product, amount in product_orders)
 
 
 @admin.register(Deposit)
@@ -55,4 +35,8 @@ class DepositAdmin(admin.ModelAdmin):
 
 @admin.register(SociSession)
 class SociSessionAdmin(admin.ModelAdmin):
+    pass
+
+@admin.register(ProductOrder)
+class ProductOrderAdmin(admin.ModelAdmin):
     pass
