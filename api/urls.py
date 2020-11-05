@@ -1,7 +1,8 @@
 from django.urls import path, include
 
-from api.views import SociProductListView, SociBankAccountBalanceDetailView, SociBankAccountChargeView, \
-    CustomTokenObtainSlidingView, CustomTokenRefreshSlidingView, CustomTokenVerifyView, TerminateSociSessionView
+from api.views import CustomTokenObtainSlidingView, CustomTokenRefreshSlidingView, CustomTokenVerifyView, \
+    SociProductListView, SociBankAccountBalanceDetailView, SociBankAccountChargeView, TerminateSociSessionView, \
+    SensorMeasurementView
 
 urlpatterns = [
     path('authentication/', include([
@@ -17,4 +18,7 @@ urlpatterns = [
         ])),
         path('sessions/terminate', TerminateSociSessionView.as_view(), name='terminate-session'),
     ])),
+    path('sensors/', include([
+        path('measurements/', SensorMeasurementView.as_view(), name='measurements')
+    ]))
 ]

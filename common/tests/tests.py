@@ -17,11 +17,10 @@ from unittest.mock import patch
 
 class TestIndexView(TestCase):
 
-    @classmethod
-    def setUpTestData(cls):
-        cls.user = UserFactory()
-        cls.user.set_password('password')
-        cls.user.save()
+    def setUp(self):
+        self.user = UserFactory()
+        self.user.set_password('password')
+        self.user.save()
 
     def test_user_logged_in_redirects_to_internal(self):
         self.client.login(username=self.user.username, password='password')
@@ -48,9 +47,8 @@ class TestGetSemesterYearShortHand(TestCase):
 
 
 class TestGetSemesterYearShortHandFilter(TestCase):
-    @classmethod
-    def setUpTestData(cls):
-        cls.template = Template("""
+    def setUp(self):
+        self.template = Template("""
             {% load ksg_helpers %} 
             {{ timestamp | get_semester_year_shorthand }}
         """)
@@ -93,9 +91,8 @@ class TestGetSemesterYearShortHand(TestCase):
 
 
 class TestGetSemesterYearShortHandFilter(TestCase):
-    @classmethod
-    def setUpTestData(cls):
-        cls.template = Template("""
+    def setUp(self):
+        self.template = Template("""
             {% load ksg_helpers %} 
             {{ timestamp | get_semester_year_shorthand }}
         """)

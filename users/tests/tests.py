@@ -13,24 +13,22 @@ from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 
-from users.forms.user_form import UserForm
-from users.models import KSG_STATUS_TYPES, UsersHaveMadeOut
+from users.models import KSG_STATUS_TYPES, UsersHaveMadeOut, User
 from users.tests.factories import UserFactory, UsersHaveMadeOutFactory
-from users.views import user_detail, update_user, klinekart
+from users.views import user_detail, klinekart
 
 
 class UserProfileTest(TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        super(UserProfileTest, cls).tearDownClass()
         # Delete the temporary media root
         shutil.rmtree(cls.temp_media_root)
         # Restore
         settings.MEDIA_ROOT = "/media/"
 
     @classmethod
-    def setUpTestData(cls):
+    def setUpClass(cls):
         # Set up mocking of the media root temporarily so we can create uploads
         cls.temp_media_root = tempfile.mkdtemp()
         settings.MEDIA_ROOT = cls.temp_media_root
@@ -85,13 +83,12 @@ class UserProfileTest(TestCase):
 
 
 class UserDetailViewTest(TestCase):
-    @classmethod
-    def setUpTestData(cls):
-        cls.user = UserFactory(username='username')
-        cls.url = reverse('user_detail', kwargs={'user_id': cls.user.id})
-        cls.user.set_password('password')
-        cls.user.save()
-        cls.user_detail_url = reverse(user_detail, kwargs={'user_id': cls.user.id})
+    def setUp(self):
+        self.user = UserFactory(username='username')
+        self.url = reverse('user_detail', kwargs={'user_id': self.user.id})
+        self.user.set_password('password')
+        self.user.save()
+        self.user_detail_url = reverse(user_detail, kwargs={'user_id': self.user.id})
 
     def test_user_detail__not_logged_in__redirects(self):
         response = self.client.get(self.user_detail_url)
@@ -157,11 +154,10 @@ class UserUpdateViewTest(TestCase):
 
 class UsersHaveMadeOutModelTest(TestCase):
 
-    @classmethod
-    def setUpTestData(cls):
-        cls.user = UserFactory()
-        cls.user_two = UserFactory()
-        cls.user_three = UserFactory()
+    def setUp(self):
+        self.user = UserFactory()
+        self.user_two = UserFactory()
+        self.user_three = UserFactory()
 
     def test_str_and_repr__does_not_crash(self):
         made_out = UsersHaveMadeOutFactory(
@@ -174,24 +170,23 @@ class UsersHaveMadeOutModelTest(TestCase):
 
 class UsersHaveMadeOutManagerTest(TestCase):
 
-    @classmethod
-    def setUpTestData(cls):
-        cls.user = UserFactory()
-        cls.user_two = UserFactory()
-        cls.user_three = UserFactory()
-        cls.made_out_this_semester = UsersHaveMadeOutFactory(
-            user_one=cls.user,
-            user_two=cls.user_two,
+    def setUp(self):
+        self.user = UserFactory()
+        self.user_two = UserFactory()
+        self.user_three = UserFactory()
+        self.made_out_this_semester = UsersHaveMadeOutFactory(
+            user_one=self.user,
+            user_two=self.user_two,
         )
         now = timezone.now()
-        cls.made_out_in_spring_last_year = UsersHaveMadeOutFactory(
-            user_one=cls.user,
-            user_two=cls.user_two,
+        self.made_out_in_spring_last_year = UsersHaveMadeOutFactory(
+            user_one=self.user,
+            user_two=self.user_two,
             created=now.replace(year=now.year - 1, month=3, day=1)
         )
-        cls.made_out_in_autumn_last_year = UsersHaveMadeOutFactory(
-            user_one=cls.user,
-            user_two=cls.user_two,
+        self.made_out_in_autumn_last_year = UsersHaveMadeOutFactory(
+            user_one=self.user,
+            user_two=self.user_two,
             created=now.replace(year=now.year - 1, month=9, day=1)
         )
 
@@ -218,29 +213,14 @@ class UsersHaveMadeOutManagerTest(TestCase):
 
 class KlineKartViewTest(TestCase):
 
-    @classmethod
-    def tearDownClass(cls):
-        super(KlineKartViewTest, cls).tearDownClass()
-        # Delete the temporary media root
-        shutil.rmtree(cls.temp_media_root)
-        # Restore
-        settings.MEDIA_ROOT = "/media/"
-
-    @classmethod
-    def setUpTestData(cls):
-        # Set up mocking of the media root temporarily so we can create uploads
-        cls.temp_media_root = tempfile.mkdtemp()
-        settings.MEDIA_ROOT = cls.temp_media_root
-
-        cls.user = UserFactory(anonymize_in_made_out_map=False)
-        cls.user.set_password('password')
-        cls.user.save()
-
-        cls.user_two = UserFactory(anonymize_in_made_out_map=False)
-        cls.user_three = UserFactory(anonymize_in_made_out_map=True)
-        cls.user_four = UserFactory(anonymize_in_made_out_map=True)
-
     def setUp(self):
+        self.user = UserFactory.create(anonymize_in_made_out_map=False)
+        self.user.set_password('password')
+        self.user.save()
+
+        self.user_two = UserFactory.create(anonymize_in_made_out_map=False)
+        self.user_three = UserFactory.create(anonymize_in_made_out_map=True)
+        self.user_four = UserFactory.create(anonymize_in_made_out_map=True)
         self.client.login(
             username=self.user.username,
             password='password'
@@ -251,28 +231,28 @@ class KlineKartViewTest(TestCase):
         self.assertTemplateUsed(response, 'users/klinekart.html')
 
     def test_klinekart__with_associations__sends_all_associations_properly_as_json(self):
-        UsersHaveMadeOutFactory(
+        UsersHaveMadeOut.objects.create(
             user_one=self.user,
             user_two=self.user_two,
         )
-        UsersHaveMadeOutFactory(
+        UsersHaveMadeOut.objects.create(
             user_one=self.user_two,
             user_two=self.user_three,
         )
-        UsersHaveMadeOutFactory(
+        UsersHaveMadeOut.objects.create(
             user_one=self.user_three,
             user_two=self.user,
         )
-        UsersHaveMadeOutFactory(
+        UsersHaveMadeOut.objects.create(
             user_one=self.user_four,
             user_two=self.user_two,
         )
-        UsersHaveMadeOutFactory(
+        UsersHaveMadeOut.objects.create(
             user_one=self.user_four,
             user_two=self.user_three,
         )
         # Duplicates are allowed
-        UsersHaveMadeOutFactory(
+        UsersHaveMadeOut.objects.create(
             user_one=self.user_two,
             user_two=self.user,
         )

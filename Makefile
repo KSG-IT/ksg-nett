@@ -1,6 +1,6 @@
 .PHONY: test
 test:
-	pipenv run python manage.py test
+	poetry run python manage.py test
 
 .PHONY: test-coverage
 test-coverage:
@@ -8,20 +8,25 @@ test-coverage:
 
 .PHONY: migrate
 migrate:
-	pipenv run python manage.py migrate
+	poetry run python manage.py migrate
 
 .PHONY: migrations
 migrations:
-	pipenv run python manage.py makemigrations
+	poetry run python manage.py makemigrations
 
 .PHONY: run
 run:
-	pipenv run python manage.py runserver
+	poetry run python manage.py runserver
 
 .PHONY: shell
 shell:
-	pipenv run python manage.py shell
+	poetry run python manage.py shell
 
 .PHONY: user
 user:
-	pipenv run python manage.py createsuperuser
+	poetry run python manage.py createsuperuser
+
+.PHONY: showmigrations
+showmigrations:
+	poetry run python manage.py showmigrations
+

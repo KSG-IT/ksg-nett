@@ -6,7 +6,7 @@ from users.tests.factories import UserFactory
 class LoginViewTest(TestCase):
 
     @classmethod
-    def setUpTestData(cls):
+    def setUp(self):
         user = UserFactory(username='user')
         user.set_password('password')
         user.save()

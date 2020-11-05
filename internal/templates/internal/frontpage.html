@@ -109,16 +109,13 @@
                     <span>Placehodlder text until context acutally returns something</span>
                 {% endfor %}
             </div>
+            
+            <!-- fjernet innholdet i denne diven, den står åpen for evt. fremtidig innhold -->
             <div class="frontpage__column">
-                <h2 class="normal text-left darker-blue">{% trans 'Nyheter' %}</h2>
-                {% for summary in last_summaries %}
-                    <a href="/internal/summaries/{{ summary.id }}" class="frontpage__summary resetlink">
-                        <span class="light">{{ summary.date | date:"m.d.Y" }}</span>
-                        <span class="bold">{% trans summary.get_short_summary_type_name %}</span>
-                    </a>
-                {% endfor %}
-                <a class="resetlink block frontpage__columnallmarker" href="/internal/summaries/">{% trans 'Alle' %}</a>
+                
             </div>
+            
+            
         </div>
     </div>
 

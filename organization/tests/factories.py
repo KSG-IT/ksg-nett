@@ -1,6 +1,8 @@
 import random
 
-from factory import DjangoModelFactory, Faker, RelatedFactory
+from factory import Faker, RelatedFactory
+from factory.django import DjangoModelFactory
+
 
 from organization.models import InternalGroup
 

@@ -1,6 +1,7 @@
 import pytz
 from django.utils import timezone
-from factory import DjangoModelFactory, SubFactory, Faker, Sequence, post_generation
+from factory import SubFactory, Faker, Sequence, post_generation
+from factory.django import DjangoModelFactory
 from factory.django import ImageField
 
 from economy.models import SociBankAccount, SociProduct, ProductOrder, Purchase, SociSession, Transfer, Deposit, \
@@ -12,6 +13,7 @@ from users.tests.factories import UserFactory
 class SociBankAccountFactory(DjangoModelFactory):
     class Meta:
         model = SociBankAccount
+        django_get_or_create = ("user",)
 
     user = SubFactory(UserFactory)
     balance = 0
@@ -22,7 +24,7 @@ class SociProductFactory(DjangoModelFactory):
     class Meta:
         model = SociProduct
 
-    sku_number = Sequence(lambda n: Faker('ean13').evaluate(None, None, {}) + str(n))
+    sku_number = Sequence(lambda n: f"sku{n}")
     name = Faker('word')
     price = Faker('random_number', digits=4, fix_len=True)
     description = Faker('sentence')

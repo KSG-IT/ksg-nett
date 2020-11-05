@@ -6,40 +6,42 @@ This repository contains the source code for [KSG](https://www.samfundet.no/kafe
 
 ## Quickstart
 
-1. Create a new virtualenvironment with pipenv and python 3.6 (instructions below)
+1. Create a new virtualenvironment with poetry and python 3.8 (instructions below)
 2. Install dependencies
 3. **Carefully read** [Contribution.md](https://github.com/KSG-IT/ksg-nett/blob/develop/CONTRIBUTING.md) to aid both yourself and others!
 
 ## Dependencies
-* Django 2.1
-* Python 3.6
-* Pipenv
+* Django 3.1
+* Python 3.8
+* Poetry
+* Cairo
+* Pango
 
 ## Installation
 
 ### Installing dependencies
-First [install pipenv](https://pipenv.readthedocs.io/en/latest/install/#installing-pipenv). The procedure should then be the same for all operating systems:
+First [install poetry](https://python-poetry.org/docs/#installation) our dependency and virtual environment manager.
 
-    pipenv install
+    poetry install
     
 ### Setting up the database
 
 ```
-pipenv run python manage.py migrate
+poetry run python manage.py migrate
 ```
 
 ## Running 
 
 ```bash
-pipenv run python manage.py runserver
+poetry run python manage.py runserver
 ```
 
-Alternatively one can initiate a pipenv shell session py running
+Alternatively one can initiate a poetry shell session py running
 ```bash
-pipenv shell
+poetry shell
 ```
 
-Then commands can be run without the pipenv run command:
+Then commands can be run without the poetryr run command:
 ```bash
 python manage.py runserver
 ```

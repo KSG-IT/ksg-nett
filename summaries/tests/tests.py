@@ -13,9 +13,8 @@ from users.tests.factories import UserFactory
 
 
 class TestSummaryModel(TestCase):
-    @classmethod
-    def setUpTestData(cls):
-        cls.summary = SummaryFactory(summary_type=SUMMARY_TYPE_BARSJEF, contents="Kjersti falt av stolen! 😂")
+    def setUp(self):
+        self.summary = SummaryFactory(summary_type=SUMMARY_TYPE_BARSJEF, contents="Kjersti falt av stolen! 😂")
 
     def test_str_and_repr_does_not_fail(self):
         str(self.summary)
@@ -24,11 +23,10 @@ class TestSummaryModel(TestCase):
 
 class SummaryPresentationViewsTest(TestCase):
 
-    @classmethod
-    def setUpTestData(cls):
-        cls.user = UserFactory(username='test')
-        cls.user.set_password('password')
-        cls.user.save()
+    def setUp(self):
+        self.user = UserFactory(username='test')
+        self.user.set_password('password')
+        self.user.save()
         SummaryFactory.create_batch(4)
 
     def test_list_view__renders_a_template_with_context(self):
@@ -40,13 +38,10 @@ class SummaryPresentationViewsTest(TestCase):
 
 class SummaryCreateTest(TestCase):
 
-    @classmethod
-    def setUpTestData(cls):
-        cls.user = UserFactory(username='test')
-        cls.user.set_password('password')
-        cls.user.save()
-
     def setUp(self):
+        self.user = UserFactory(username='test')
+        self.user.set_password('password')
+        self.user.save()
         self.client.login(username='test', password='password')
 
     def test_GET_request__renders_a_template(self):
@@ -80,15 +75,12 @@ class SummaryCreateTest(TestCase):
 
 class SummaryUpdateTest(TestCase):
 
-    @classmethod
-    def setUpTestData(cls):
-        cls.user = UserFactory(username='test')
-        cls.user.set_password('password')
-        cls.user.save()
-
-        cls.summary = SummaryFactory(reporter=cls.user)
-
     def setUp(self):
+        self.user = UserFactory(username='test')
+        self.user.set_password('password')
+        self.user.save()
+
+        self.summary = SummaryFactory(reporter=self.user)
         self.client.login(username='test', password='password')
 
     def test_GET_request__renders_template(self):
@@ -123,15 +115,12 @@ class SummaryUpdateTest(TestCase):
 
 class SummaryDeleteTest(TestCase):
 
-    @classmethod
-    def setUpTestData(cls):
-        cls.user = UserFactory(username='test')
-        cls.user.set_password('password')
-        cls.user.save()
-
-        cls.summary = SummaryFactory(reporter=cls.user)
-
     def setUp(self):
+        self.user = UserFactory(username='test')
+        self.user.set_password('password')
+        self.user.save()
+
+        self.summary = SummaryFactory(reporter=self.user)
         self.client.login(username='test', password='password')
 
     def test_delete_summary__deletes_summary(self):

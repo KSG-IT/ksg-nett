@@ -1,0 +1,10 @@
+{% extends 'internal/base.html' %}
+
+
+{% block body_content %}
+    {% for purchase in session.purchases.all %}
+        <ul>
+            <li>{{ purchase }}</li>
+        </ul>
+    {% endfor %}
+{% endblock %}

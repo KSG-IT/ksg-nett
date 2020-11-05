@@ -1,15 +1,21 @@
 import jwt
+from django.db import DatabaseError
 from django.utils import timezone
-from drf_yasg.openapi import Parameter, IN_QUERY, TYPE_STRING
-from drf_yasg.utils import swagger_auto_schema
-from rest_framework import status, permissions
+from drf_yasg2.openapi import Parameter, IN_QUERY, TYPE_STRING
+from drf_yasg2.utils import swagger_auto_schema
+from rest_framework import status, permissions, generics
 from rest_framework.exceptions import ValidationError
 from rest_framework.generics import ListAPIView, RetrieveAPIView, get_object_or_404, DestroyAPIView
+from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework_simplejwt.views import TokenObtainSlidingView, TokenRefreshSlidingView, TokenVerifyView
 
+from api.permissions import SensorTokenPermission
 from api.serializers import CheckBalanceSerializer, SociProductSerializer, ChargeSociBankAccountDeserializer, \
-    PurchaseSerializer, CustomTokenObtainSlidingSerializer
+    PurchaseSerializer, SensorMeasurementSerializer,  CustomTokenObtainSlidingSerializer
+
+from sensors.consts import MEASUREMENT_TYPE_TEMPERATURE, MEASUREMENT_TYPE_CHOICES
+from sensors.models import SensorMeasurement
 from api.view_mixins import CustomCreateAPIView
 from economy.models import SociBankAccount, SociProduct, Purchase, SociSession
 from ksg_nett.custom_authentication import CardNumberAuthentication
@@ -157,3 +163,74 @@ class SociBankAccountChargeView(CustomCreateAPIView):
         data = serializer.data
 
         return Response(data, status=status.HTTP_201_CREATED)
+
+
+class SensorMeasurementView(CustomCreateAPIView, generics.ListAPIView):
+    serializer_class = SensorMeasurementSerializer
+    deserializer_class = SensorMeasurementSerializer
+
+    def get_permissions(self):
+        if self.request.method == "POST":
+            return [SensorTokenPermission()]
+
+        return []
+
+    def get_queryset(self):
+        # We don't really bother to validate this input. A bad input will just
+        # return 0 results.
+        type = self.request.query_params.get('type', MEASUREMENT_TYPE_TEMPERATURE)
+        return SensorMeasurement.objects.filter(
+            type=type,
+            created_at__gte=timezone.now() - timezone.timedelta(days=1)
+        )
+
+    @swagger_auto_schema(
+        request_body=deserializer_class(many=True),
+        operation_summary="Create measurements",
+        responses={
+            "201": serializer_class(many=True),
+            "400": ": Illegal input.",
+            "403": ": You are not authorized to create measurements."
+        },
+    )
+    def post(self, request: Request, *args, **kwargs):
+        deserializer = self.get_deserializer(data=request.data, many=True, context={})
+        deserializer.is_valid(raise_exception=True)
+        deserializer.save()
+
+        # Try to clear out old entries.
+        try:
+            SensorMeasurementView._remove_old_measurement_instances()
+        except DatabaseError:
+            # Should we do something?
+            pass
+
+        return Response(deserializer.data, status=status.HTTP_201_CREATED)
+
+    @swagger_auto_schema(
+        operation_summary="Get measurement data for the last 24 hours.",
+        manual_parameters=[Parameter(
+            name='type',
+            in_=IN_QUERY,
+            default="temperature",
+            description=f"The type of measurements.",
+            type=TYPE_STRING,
+            enum=[x[0] for x in MEASUREMENT_TYPE_CHOICES],
+            required=False
+        )],
+        responses={
+            "200": serializer_class(many=True),
+        },
+    )
+    def get(self, request: Request, *args, **kwargs):
+        measurements = self.get_queryset()
+        serializer = self.get_serializer(measurements, many=True)
+        data = serializer.data
+
+        return Response(data, status=status.HTTP_200_OK)
+
+    @staticmethod
+    def _remove_old_measurement_instances():
+        SensorMeasurement.objects.filter(
+            created_at__lte=timezone.now() - timezone.timedelta(days=1)
+        ).delete()

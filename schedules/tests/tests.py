@@ -6,9 +6,8 @@ from schedules.tests.factories import ScheduleFactory, ShiftSlotGroupFactory, Sc
 
 
 class ScheduleModelTest(TestCase):
-    @classmethod
-    def setUpTestData(cls):
-        cls.schedule = ScheduleFactory()
+    def setUp(self):
+        self.schedule = ScheduleFactory()
 
     def test_str_and_repr_should_not_crash(self):
         str(self.schedule)
@@ -16,9 +15,8 @@ class ScheduleModelTest(TestCase):
 
 
 class ShiftSlotGroupModelTest(TestCase):
-    @classmethod
-    def setUpTestData(cls):
-        cls.shift_slot_group = ShiftSlotGroupFactory()
+    def setUp(self):
+        self.shift_slot_group = ShiftSlotGroupFactory()
 
     def test_str_and_repr_should_not_crash(self):
         str(self.shift_slot_group)
@@ -26,9 +24,8 @@ class ShiftSlotGroupModelTest(TestCase):
 
 
 class ScheduleSlotTypeModelTest(TestCase):
-    @classmethod
-    def setUpTestData(cls):
-        cls.schedule_slot_type = ScheduleSlotTypeFactory()
+    def setUp(self):
+        self.schedule_slot_type = ScheduleSlotTypeFactory()
 
     def test_str_and_repr_should_not_crash(self):
         str(self.schedule_slot_type)
@@ -37,9 +34,8 @@ class ScheduleSlotTypeModelTest(TestCase):
 
 class ShiftSlotModelTest(TestCase):
 
-    @classmethod
-    def setUpTestData(cls):
-        cls.shift_slot = ShiftSlotFactory()
+    def setUp(self):
+        self.shift_slot = ShiftSlotFactory()
 
     def test_str_and_repr_should_not_crash(self):
         str(self.shift_slot)
@@ -48,8 +44,8 @@ class ShiftSlotModelTest(TestCase):
 
 class ShiftModelTest(TestCase):
     @classmethod
-    def setUpTestData(cls):
-        cls.shift = ShiftFactory()
+    def setUp(self):
+        self.shift = ShiftFactory()
 
     def test_str_and_repr_should_not_crash(self):
         str(self.shift)
@@ -58,9 +54,8 @@ class ShiftModelTest(TestCase):
 
 class ScheduleTemplateModelTest(TestCase):
 
-    @classmethod
-    def setUpTestData(cls):
-        cls.schedule_template = ScheduleTemplateFactory()
+    def setUp(self):
+        self.schedule_template = ScheduleTemplateFactory()
 
     def test_str_and_repr_should_not_crash(self):
         str(self.schedule_template)
@@ -68,9 +63,8 @@ class ScheduleTemplateModelTest(TestCase):
 
 
 class ShiftSlotGroupTemplateModelTest(TestCase):
-    @classmethod
-    def setUpTestData(cls):
-        cls.shift_slot_group_template = ShiftSlotGroupTemplateFactory()
+    def setUp(self):
+        self.shift_slot_group_template = ShiftSlotGroupTemplateFactory()
 
     def test_str_and_repr_should_not_crash(self):
         str(self.shift_slot_group_template)
@@ -79,8 +73,8 @@ class ShiftSlotGroupTemplateModelTest(TestCase):
 
 class ShiftSlotDayRuleModelTest(TestCase):
     @classmethod
-    def setUpTestData(cls):
-        cls.shift_slot_day_rule = ShiftSlotDayRuleFactory()
+    def setUp(self):
+        self.shift_slot_day_rule = ShiftSlotDayRuleFactory()
 
     def test_str_and_repr_should_not_crash(self):
         str(self.shift_slot_day_rule)
@@ -88,9 +82,8 @@ class ShiftSlotDayRuleModelTest(TestCase):
 
 
 class ShiftSlotTemplateModelTest(TestCase):
-    @classmethod
-    def setUpTestData(cls):
-        cls.shift_slot_template = ShiftSlotTemplateFactory()
+    def setUp(self):
+        self.shift_slot_template = ShiftSlotTemplateFactory()
 
     def test_str_and_repr_should_not_crash(self):
         str(self.shift_slot_template)
@@ -98,9 +91,8 @@ class ShiftSlotTemplateModelTest(TestCase):
 
 
 class ShiftTradeModelTest(TestCase):
-    @classmethod
-    def setUpTestData(cls):
-        cls.shift_trade = ShiftTradeFactory()
+    def setUp(self):
+        self.shift_trade = ShiftTradeFactory()
 
     def test_str_and_repr_should_not_crash(self):
         str(self.shift_trade)
@@ -108,9 +100,8 @@ class ShiftTradeModelTest(TestCase):
 
 
 class ShiftTradeOfferModelTest(TestCase):
-    @classmethod
-    def setUpTestData(cls):
-        cls.shift_trade_offer = ShiftTradeOfferFactory()
+    def setUp(self):
+        self.shift_trade_offer = ShiftTradeOfferFactory()
 
     def test_str_and_repr_should_not_crash(self):
         str(self.shift_trade_offer)
@@ -118,9 +109,8 @@ class ShiftTradeOfferModelTest(TestCase):
 
 
 class ShiftSlotGroupInterestModelTest(TestCase):
-    @classmethod
-    def setUpTestData(cls):
-        cls.shift_slot_group_interest = ShiftSlotGroupInterestFactory()
+    def setUp(self):
+        self.shift_slot_group_interest = ShiftSlotGroupInterestFactory()
 
     def test_str_and_repr_should_not_crash(self):
         str(self.shift_slot_group_interest)

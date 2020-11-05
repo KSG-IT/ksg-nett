@@ -5,7 +5,7 @@ from economy.tests.factories import SociBankAccountFactory
 class InternalRouteTests(TestCase):
 
     @classmethod
-    def setUpTestData(cls):
+    def setUp(self):
         user = UserFactory(username='me')
         user.set_password('pw')
         user.save()

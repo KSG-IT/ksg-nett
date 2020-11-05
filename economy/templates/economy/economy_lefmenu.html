@@ -1,0 +1,12 @@
+{# The template expects one input parameter: `active`, which determines what link we are currently at #}
+{% load i18n %}
+<div class="economy__leftmenu">
+    <a class="economy__leftbutton resetlink {% if active == 'socisessions' %}active{% endif %}"
+       href="{% url 'economy_soci_sessions' %}">{% trans 'X-lists' %}</a>
+    <a class="economy__leftbutton resetlink {% if active == 'open' %}active{% endif %}"
+       href="{% url 'economy_soci_sessions_open' %}">{% trans 'Open' %}</a>
+    {% if perms.economy.add_socisession %}
+        <a class="economy__leftbutton resetlink {% if active == 'closed' %}active{% endif %}"
+           href="{% url 'economy_soci_sessions_closed' %}">{% trans 'Closed' %}</a>
+    {% endif %}
+</div>
