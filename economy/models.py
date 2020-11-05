@@ -41,9 +41,9 @@ class SociBankAccount(models.Model):
     soci_master_account = QueryManager(card_uuid=settings.SOCI_MASTER_ACCOUNT_CARD_ID)
 
     @property
-    def transaction_history(self) -> Dict[str, Union[QuerySet, 'Purchase', 'Transfer', 'Deposit']]:
+    def transaction_history(self) -> Dict[str, Union[QuerySet, 'ProductOrder', 'Transfer', 'Deposit']]:
         return {
-            'purchases': self.purchases.all(),
+            'product_orders': self.product_orders.all(),
             'transfers': self.source_transfers.all() | self.destination_transfers.all(),
             'deposits': self.deposits.all()
         }
@@ -117,19 +117,16 @@ class SociSession(TimeFramedModel):
             active_session.save()
 
     @property
-    def total_purchases(self) -> int:
-        return self.purchases.count()
+    def total_product_orders(self) -> int:
+        return self.product_orders.count()
 
     @property
-    def total_amount(self) -> int:
-        total_amount = 0
-        for purchase in self.purchases.all():
-            total_amount += purchase.total_amount
-
-        return total_amount
+    def total_revenue(self) -> int:
+        purchase_sums = [amount.cost for amount in self.product_orders.all()]
+        return sum(purchase_sums)
 
     def __str__(self):
-        return f"SociSession {self.name} containing {self.purchases.count()} purchases " \
+        return f"SociSession {self.name} containing {self.product_orders.count()} product_orders " \
                f"between {self.start} and {self.end}"
 
     def __repr__(self):
@@ -144,7 +141,6 @@ class SociSession(TimeFramedModel):
 class ProductOrder(models.Model):
     """
     An order for a specific Soci product, and the order size.
-    If the product is direct charge, direct_charge_amount is used to specify the amount.
     """
     product = models.ForeignKey(
         'SociProduct',
@@ -152,37 +148,9 @@ class ProductOrder(models.Model):
     )
 
     order_size = models.IntegerField(default=1)
-    amount = models.IntegerField()
-
-    purchase = models.ForeignKey(
-        'Purchase',
-        related_name='product_orders',
-        on_delete=models.CASCADE
-    )
-
-    def __str__(self):
-        return f"Order of {self.order_size} {self.product.name}(s)"
-
-    def __repr__(self):
-        return f"Order(product={self.product}, order_size={self.order_size})"
-
-    def save(self, force_insert=False, force_update=False, using=None, update_fields=None):
-        if self._state.adding:
-            order_amount = self.amount * self.order_size
-            self.purchase.source.remove_funds(amount=order_amount)
-            SociBankAccount.soci_master_account.get().add_funds(amount=order_amount)
-
-        super().save(force_insert=force_insert, force_update=force_update, using=using, update_fields=update_fields)
-
-
-class Purchase(TimeStampedModel):
-    """
-    A transfer from a personal Soci bank account to the Soci master account.
-    Each purchase object can contain multiple ProductOrders.
-    """
     source = models.ForeignKey(
         'SociBankAccount',
-        related_name='purchases',
+        related_name='product_orders',
         blank=True,
         null=True,
         on_delete=models.SET_NULL
@@ -190,34 +158,20 @@ class Purchase(TimeStampedModel):
 
     session = models.ForeignKey(
         'SociSession',
-        related_name='purchases',
+        related_name='product_orders',
         on_delete=models.DO_NOTHING,
         default=SociSession.get_active_session
     )
 
     @property
-    def total_amount(self) -> int:
-        total_amount = 0
-        for order in self.product_orders.all():
-            total_amount += order.order_size * order.amount
-
-        return total_amount
-
-    @property
-    def products_purchased(self) -> List[str]:
-        return [order.product.name for order in self.product_orders.all()]
+    def cost(self) -> int:
+        return self.order_size * self.product.price
 
     def __str__(self):
-        return f"Purchase by {self.source.user} of {self.total_amount} kr"
+        return f"Order of {self.order_size} {self.product.name}(s)"
 
     def __repr__(self):
-        return f"Purchase(user={self.source.user},amount={self.total_amount})"
-
-    def save(self, force_insert=False, force_update=False, using=None, update_fields=None):
-        if self._state.adding and self.session is None:
-            raise NoSociSessionError()
-
-        super().save(force_insert=force_insert, force_update=force_update, using=using, update_fields=update_fields)
+        return f"Order(product={self.product}, order_size={self.order_size})"
 
 
 class Transfer(TimeStampedModel):
@@ -287,12 +241,6 @@ class Deposit(TimeStampedModel):
 
     def __repr__(self):
         return f"Deposit(person={self.account.user},amount={self.amount})"
-
-    def save(self, force_insert=False, force_update=False, using=None, update_fields=None):
-        if self.is_valid and not self.signed_off_time:
-            self.account.add_funds(self.amount)
-
-        super().save(force_insert=force_insert, force_update=force_update, using=using, update_fields=update_fields)
 
 
 class DepositComment(TimeStampedModel):

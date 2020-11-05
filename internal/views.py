@@ -11,12 +11,11 @@ from internal.models import SlideshowImage
 def index(request):
     last_summaries = Summary.objects.order_by('-date')[0:10]
     last_quotes = Quote.verified_objects.all().order_by('-created')[0:10]
-    economy_purchases = request.user.bank_account.purchases.all().order_by('-created')[0:10]
     economy_deposits = request.user.verified_deposits.all()[0:10]
     # chains the two lists sorted by date and then we can slice the latest history of the two items
     # not wokring as of now probably need a custom manager to combine the querysets
     result_list = sorted(
-        chain(economy_deposits, economy_purchases),
+        chain(economy_deposits),
         key=lambda instance: instance.created
     )
     ctx = { 
