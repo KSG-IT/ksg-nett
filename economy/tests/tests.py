@@ -81,33 +81,6 @@ class ProductOrderTest(TestCase):
         self.assertEqual(expected_cost, self.product_order.cost)
 
 
-class DepositTest(TestCase):
-    def setUp(self):
-        self.valid_deposit = DepositFactory()
-
-    def test__approve_deposit__mark_as_valid_and_transfer_funds(self):
-        invalid_deposit = DepositFactory(signed_off_by=None)
-        self.assertFalse(invalid_deposit.is_valid)
-        self.assertIsNone(invalid_deposit.signed_off_time)
-        self.assertEqual(0, invalid_deposit.account.balance)
-
-        invalid_deposit.signed_off_by = UserFactory()
-        invalid_deposit.save()
-
-        self.assertTrue(invalid_deposit.is_valid)
-        self.assertIsNotNone(invalid_deposit.signed_off_time)
-        self.assertEqual(invalid_deposit.amount, invalid_deposit.account.balance)
-
-    def test__update_approved_deposit__do_not_transfer_funds_again(self):
-        original_amount = self.valid_deposit.amount
-        self.assertEqual(original_amount, self.valid_deposit.account.balance)
-
-        self.valid_deposit.amount = 1337
-        self.valid_deposit.save()
-
-        self.assertEqual(original_amount, self.valid_deposit.account.balance)
-
-
 class DepositCommentTest(TestCase):
     def setUp(self):
         self.deposit_comment = DepositCommentFactory()

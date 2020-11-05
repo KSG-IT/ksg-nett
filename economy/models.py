@@ -173,13 +173,6 @@ class ProductOrder(models.Model):
     def __repr__(self):
         return f"Order(product={self.product}, order_size={self.order_size})"
 
-    def save(self, force_insert=False, force_update=False, using=None, update_fields=None):
-        if self._state.adding:
-            self.source.remove_funds(amount=self.cost)
-            SociBankAccount.soci_master_account.get().add_funds(amount=self.cost)
-
-        super().save(force_insert=force_insert, force_update=force_update, using=using, update_fields=update_fields)
-
 
 class Transfer(TimeStampedModel):
     """
@@ -248,12 +241,6 @@ class Deposit(TimeStampedModel):
 
     def __repr__(self):
         return f"Deposit(person={self.account.user},amount={self.amount})"
-
-    def save(self, force_insert=False, force_update=False, using=None, update_fields=None):
-        if self.is_valid and not self.signed_off_time:
-            self.account.add_funds(self.amount)
-
-        super().save(force_insert=force_insert, force_update=force_update, using=using, update_fields=update_fields)
 
 
 class DepositComment(TimeStampedModel):
