@@ -40,7 +40,7 @@ class SociSessionAdmin(admin.ModelAdmin):
 
 @admin.register(ProductOrder)
 class ProductOrderAdmin(admin.ModelAdmin):
-    list_display = ['product', 'order_size', 'source', 'cost']
+    list_display = ['id', 'product', 'order_size', 'source', 'cost']
 
     @staticmethod
     def cost(product_order: ProductOrder):
