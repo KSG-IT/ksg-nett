@@ -151,9 +151,9 @@ class ProductOrder(models.Model):
     source = models.ForeignKey(
         'SociBankAccount',
         related_name='product_orders',
-        blank=True,
-        null=True,
-        on_delete=models.SET_NULL
+        blank=False,
+        null=False,
+        on_delete=models.DO_NOTHING
     )
 
     session = models.ForeignKey(
