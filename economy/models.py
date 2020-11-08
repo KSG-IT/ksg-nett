@@ -167,6 +167,10 @@ class ProductOrder(models.Model):
     def cost(self) -> int:
         return self.order_size * self.product.price
 
+    @property
+    def is_charged(self):
+        return self.session.closed
+
     def __str__(self):
         return f"Order of {self.order_size} {self.product.name}(s)"
 
