@@ -213,6 +213,17 @@ button{
     color: white;
 }
 
+.primary-red-button {
+    background: #6E0D30;
+    height: 40px;
+    left: 123px;
+    top: 347px;
+    border-radius: 4px;
+    width: 100%;
+    display: inline-block;
+    color: white;
+}
+
 /* Input styling */
 
 .default-text-input-field {
