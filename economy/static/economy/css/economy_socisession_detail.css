@@ -1,3 +1,7 @@
 .soci-session-detail__main_wrapper {
     padding-left: 3em;
 }
+
+.soci-session-detail__close_button {
+    width: 120px;
+}

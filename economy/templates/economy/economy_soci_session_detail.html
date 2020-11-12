@@ -50,6 +50,18 @@
             </div>
           </form>
         {% endif %}
+        {% if session.closed is not True %}
+          <form action="/internal/economy/soci-sessions/{{ session.id }}/close" method="POST">
+            <div class="primary-red-button soci-session-detail__close_button">
+              {% csrf_token %}
+              <div class="table-span-default-width">
+                <button type="submit" class="primary-red-button">
+                  {% trans "Close" %}
+                </button>
+              </div>
+            </div>
+          </form>
+        {% endif %}
       </div>
     </div>
   </div>
