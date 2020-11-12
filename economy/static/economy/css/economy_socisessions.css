@@ -1,33 +1,3 @@
-.main-table {
-    display: flex;
-    flex-flow: column;
-    width: 100%;
-}
-
-.table-header {
-    width: 100%;
-    display: flex;
-    flex-flow: row;
-    justify-content: space-between;
-    margin-bottom: 20px;
-}
-
-.table-card {
-    padding: 0 15px;
-    margin: 4px 0;
-    background-color: #F0F0F0;
-    display: flex;
-    flex-flow: row;
-    justify-content: space-between;
-    align-items: center;
-    height: 50px;
-    border-radius: 10px;
-}
-
-.table-span-default-width {
-    width: 100px
-}
-
 .soci-session__closed {
     border: solid 2px #F17373;
     color: #F17373;

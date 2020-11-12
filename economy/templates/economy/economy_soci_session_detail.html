@@ -1,10 +1,56 @@
 {% extends 'internal/base.html' %}
+{% load static %}
+{% load i18n %}
 
+{% block header %}
+  <link rel="stylesheet" href="{% static 'economy/css/economy_socisession_detail.css' %}">
+  <link rel="stylesheet" href="{% static 'economy/css/economy_common.css' %}">
+{% endblock %}
 
 {% block body_content %}
-    {% for purchase in session.purchases.all %}
-        <ul>
-            <li>{{ purchase }}</li>
-        </ul>
-    {% endfor %}
+  <div class="default-container default-top-offset">
+    <div id="left-wrapper" class="minor-left-panel">
+      {% include "economy/economy_lefmenu.html" with active="socisessions" %}
+    </div>
+    <div class="default-right-panel soci-session-detail__main_wrapper">
+      <h2>{{ session.name }}</h2>
+      <div>{% trans "Created on" %} {{ session.start | date:"M d Y" }}</div>
+      <div class="table-header">
+        <div>{% trans "User" %}</div>
+        <div>{% trans "Product" %}</div>
+        <div>{% trans "Amount" %}</div>
+        <div>{% trans "Action" %}</div>
+      </div>
+      <div class="main-table">
+        {% for product_order in session.product_orders.all %}
+          <div class="table-card">
+            <div>{{ product_order.source.user.get_full_name }}</div>
+            <div>{{ product_order.product.name }}</div>
+            <div>{{ product_order.order_size }}</div>
+            <div>
+              <form method="post" action="/internal/economy/product-orders/{{ product_order.id }}/delete">
+                {% csrf_token %}
+                <button class="primary-red-button" type="submit">
+                  {% trans "Delete" %}
+                </button>
+              </form>
+            </div>
+          </div>
+        {% endfor %}
+        {% if session.closed is not True %}
+          <form action="/internal/economy/soci-sessions/{{ session.id }}/product-order/add" method="POST">
+            <div class="table-card">
+              {% csrf_token %}
+              {{ product_order_form.as_table }}
+              <div class="table-span-default-width">
+                <button type="submit" class="primary-blue-button">
+                  {% trans "Add" %}
+                </button>
+              </div>
+            </div>
+          </form>
+        {% endif %}
+      </div>
+    </div>
+  </div>
 {% endblock %}

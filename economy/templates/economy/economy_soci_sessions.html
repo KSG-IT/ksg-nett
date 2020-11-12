@@ -14,15 +14,15 @@
         </div>
         <div class="default-right-panel default-top-offset sessions__right" id="right-wrapper">
             <div class="table-header">
-                <span class="table-span-default-width">Registrert</span>
-                <span class="table-span-default-width">Krysset</span>
-                <span class="table-span-default-width">Innkrysser</span>
-                <span class="table-span-default-width">Kommentar</span>
-                <span class="table-span-default-width">Kryss</span>
-                <span class="table-span-default-width">Beløp</span>
-                <span class="table-span-default-width"></span>
-                <span class="table-span-default-width">
-                    <form method="POST" action="soci-sessions/create">
+                <span>Registrert</span>
+                <span>Krysset</span>
+                <span>Innkrysser</span>
+                <span>Kommentar</span>
+                <span>Kryss</span>
+                <span>Beløp</span>
+                <span></span>
+                <span>
+                    <form method="POST" action="/internal/economy/soci-sessions/create">
                         {% csrf_token %}
                         <input type="submit" value="Ny liste">
                     </form>
@@ -32,16 +32,16 @@
             <div class="main-table">
                 {% for session in sessions %}
                     <div class="table-card">
-                        <span class="table-span-default-width">{{ session.start | date:"d.m.Y" }}</span>
-                        <span class="table-span-default-width">{{ session.end | date:"d.m.Y" }}</span>
-                        <span class="table-span-default-width">{{ session.signed_off_by.get_full_name }}</span>
-                        <span class="table-span-default-width">{{ session.type }}</span>
-                        <span class="table-span-default-width">{{ session.purchases | length }}</span>
-                        <span class="table-span-default-width">{{ session.total_amount }} kr</span>
+                        <span>{{ session.start | date:"d.m.Y" }}</span>
+                        <span>{{ session.end | date:"d.m.Y" }}</span>
+                        <span>{{ session.signed_off_by.get_full_name }}</span>
+                        <span>{{ session.type }}</span>
+                        <span>{{ session.product_orders.count }}</span>
+                        <span>{{ session.total_revenue }} kr</span>
                         {% if not session.closed %}
-                            <span class="table-span-default-width text-center soci-session__edit"><a
-                                    href="soci-sessions/{{ session.id }}"
-                                    class="resetlink">Endre kryss</a></span>
+                            <span class="text-center soci-session__edit"><a
+                                href="soci-sessions/{{ session.id }}"
+                                class="resetlink">Endre kryss</a></span>
                             <span class="table-span-default-width">
                                 <form method="POST" action="soci-sessions/{{ session.id }}/close">
                                     {% csrf_token %}
@@ -49,10 +49,10 @@
                                 </form>
                             </span>
                         {% else %}
-                            <span class="table-span-default-width soci-session__details text-center"><a
+                            <span class="soci-session__details text-center"><a
                                     href="soci-sessions/{{ session.id }}"
                                     class="resetlink">Detaljer</a></span>
-                            <span class="table-span-default-width soci-session__closed text-center">Stengt</span>
+                            <span class="soci-session__closed text-center">Stengt</span>
 
                         {% endif %}
                     </div>

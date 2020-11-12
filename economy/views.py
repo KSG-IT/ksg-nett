@@ -1,5 +1,6 @@
-from economy.forms import DepositForm, DepositCommentForm
-from economy.models import Deposit, DepositComment, SociBankAccount, SociSession, SociProduct
+from economy.forms import DepositForm, DepositCommentForm, ProductOrderForm
+from economy.models import Deposit, DepositComment, SociBankAccount, SociSession, SociProduct, ProductOrder
+from users.models import User
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse
 import datetime
@@ -150,6 +151,11 @@ def soci_session_close(request, soci_session_id):
         if session.closed:
             raise SuspiciousOperation
         else:
+            for product_order in session.product_orders.all():
+                product_order.source.remove_funds(product_order.cost)  # charging amount due from list
+                # if a source account does not exist this view crashes while still having charged
+                # money and keeps the session open. Should this be handled? Or should we always assume a user
+                # has an account?
             session.end = timezone.now()
             session.closed = True
             session.save()
@@ -163,7 +169,9 @@ def soci_session_detail(request, soci_session_id):
         session = get_object_or_404(SociSession, pk=soci_session_id)
         ctx = {
             "session": session,
-            "products": SociProduct.objects.all()
+            "products": SociProduct.objects.all(),
+            "users": User.objects.all(),
+            "product_order_form": ProductOrderForm()
         }
         return render(request, template_name="economy/economy_soci_session_detail.html", context=ctx)
     else:
@@ -193,3 +201,26 @@ def soci_sessions_closed(request):
         return HttpResponse(status.HTTP_405_METHOD_NOT_ALLOWED)
 
 
+def product_order_delete(request, product_order_id):
+    if request.method == "POST":
+        product_order = get_object_or_404(ProductOrder, pk=product_order_id)
+        if product_order.session.closed:
+            raise SuspiciousOperation  # closed sessions should not have products tampered with
+        product_order.delete()
+        return redirect(reverse(soci_session_detail, kwargs={"soci_session_id": product_order.session.id}))
+    else:
+        return HttpResponse(status.HTTP_405_METHOD_NOT_ALLOWED)
+
+
+def product_order_add(request, soci_session_id):
+    if request.method == "POST":
+        session = get_object_or_404(SociSession, pk=soci_session_id)
+        if session and not session.closed:
+            form_data = request.POST  # rewrite as model form so we can get validation?
+            ProductOrder.objects.create(source_id=form_data["source"], product_id=form_data["product"],
+                                        order_size=form_data["order_size"], session=session)
+            return redirect(reverse(soci_session_detail, kwargs={"soci_session_id": soci_session_id}))
+        else:
+            raise SuspiciousOperation("Error: Cannot add product orders to closed or non-existent sessions")
+    else:
+        return HttpResponse(status.HTTP_405_METHOD_NOT_ALLOWED)
