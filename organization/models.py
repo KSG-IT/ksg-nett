@@ -3,15 +3,25 @@ from __future__ import unicode_literals
 
 from django.db import models
 from users.models import User
-from organization.consts import KSG_INTERNAL_GROUPS, KSG_POSITIONS
+from organization.consts import KSG_POSITIONS
 
 
 class InternalGroup(models.Model):
-    """
-    An internal group within KSG, e.g. Lyche bar
-    """
-    name = models.CharField(unique=True, choices=KSG_INTERNAL_GROUPS, max_length=32)
+    class Meta:
+        default_related_name = 'groups'
+        verbose_name_plural = 'Internal groups'
 
+    class Type(models.TextChoices):
+        """
+        Making use of https://docs.djangoproject.com/en/3.1/ref/models/fields/#enumeration-types
+        Denotes the internal group type, either a interest-group, e.g. KSG-iT, Påfyll etc. or an internal
+        grouping, e.g. Lyche bar og Edgar
+        """
+        INTEREST_GROUP = "interest-group"
+        INTERNAL_GROUP = "internal-group"
+
+    name = models.CharField(unique=True, max_length=32)
+    type = models.CharField(max_length=32, null=False, blank=False, choices=Type.choices)
     description = models.CharField(max_length=1024, blank=True, null=True)
 
     members = models.ManyToManyField(
@@ -26,10 +36,6 @@ class InternalGroup(models.Model):
 
     def __repr__(self):
         return "Group(name=%s)" % self.name
-
-    class Meta:
-        default_related_name = 'groups'
-        verbose_name_plural = 'Internal groups'
 
 
 class InternalGroupPosition(models.Model):
