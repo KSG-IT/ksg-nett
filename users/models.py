@@ -10,7 +10,6 @@ from model_utils import Choices
 from model_utils.fields import StatusField
 from model_utils.models import TimeStampedModel
 
-from commissions.models import Commission
 from common.util import get_semester_year_shorthand
 from users.managers import UsersHaveMadeOutManager
 
@@ -73,7 +72,7 @@ class User(AbstractUser):
     biography = models.TextField(blank=True, default="", max_length=200)
     in_relationship = models.BooleanField(null=True, default=False)
     commission = models.ForeignKey(
-        Commission,
+        "organization.Commission",
         default=None,
         blank=True,
         null=True,

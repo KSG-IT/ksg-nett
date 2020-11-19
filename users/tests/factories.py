@@ -4,7 +4,7 @@ from factory import Faker, SubFactory, sequence, Sequence
 from factory.django import DjangoModelFactory
 
 from factory.django import FileField
-from commissions.factories import CommissionFactory
+from organization.tests.factories import CommissionFactory
 from users.models import User, UsersHaveMadeOut, KSG_STATUS_TYPES, KSG_ROLES
 
 
