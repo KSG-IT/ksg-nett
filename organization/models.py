@@ -3,8 +3,6 @@ from __future__ import unicode_literals
 
 from django.db import models
 from users.models import User
-from organization.consts import KSG_POSITIONS
-
 
 class InternalGroup(models.Model):
     class Meta:
@@ -43,8 +41,8 @@ class InternalGroupPosition(models.Model):
     A position for an internal group, e.g. Hovmester
     """
 
-    name = models.CharField(unique=True, choices=KSG_POSITIONS, max_length=32)
-
+    name = models.CharField(unique=True, max_length=32)
+    internal_group = models.ForeignKey(InternalGroup, null=False, blank=False, on_delete=models.CASCADE)
     description = models.CharField(max_length=1024, blank=True, null=True)
 
     holders = models.ManyToManyField(
