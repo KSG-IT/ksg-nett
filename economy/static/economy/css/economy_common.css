@@ -24,7 +24,7 @@
 
 .main-table {
     display: flex;
-    flex-flow: column;
+    flex-direction: column;
     width: 100%;
 }
 
@@ -35,7 +35,7 @@
 .table-header {
     width: 100%;
     display: flex;
-    flex-flow: row;
+    flex-direction: row;
     justify-content: space-between;
     margin-bottom: 20px;
 }
@@ -45,7 +45,7 @@
     margin: 4px 0;
     background-color: #F0F0F0;
     display: flex;
-    flex-flow: row;
+    flex-direction: row;
     justify-content: space-between;
     align-items: center;
     height: 50px;
