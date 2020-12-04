@@ -8,7 +8,7 @@ class UserForm(forms.ModelForm):
         model = User
         fields = {
             'first_name', 'last_name', 'phone', 'study', 'biography', 'email', 'study_address',
-            'home_address', 'commission', 'ksg_status', 'in_relationship'
+            'home_address', 'ksg_status', 'in_relationship'
         }
         labels = {
             'first_name': _('First name'),
@@ -19,7 +19,6 @@ class UserForm(forms.ModelForm):
             'email': _('Email'),
             'study_address': _('Study address'),
             'home_address': _('Home address'),
-            'commission': _('Commission'),
             'ksg_status': _('KSG status'),
             'in_relationship': _('In relationship')
 
