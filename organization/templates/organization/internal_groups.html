@@ -1,0 +1,56 @@
+{% extends 'internal/base.html' %}
+{% load static %}
+{% load i18n %}
+{% block header %}
+  <link rel="stylesheet" href="{% static 'organization/css/internal_groups.css' %}">
+  <link rel="stylesheet" href="{% static 'organization/css/organization.css' %}">
+{% endblock %}
+{% block body_content %}
+  <div class="default-container default-top-offset">
+    <!--Sidebar section, looping over groups from backend. Current one is highlighted through a css class-->
+    <div class="minor-left-panel">
+      <div class="organization__internal_group_sidebar_container">
+        {% for group_type in group_overview %}
+          <div class="organization__internal_group_sidebar_type_container">
+            <div class="organization__internal_group_type text-uppercase">{{ group_type.title }}</div>
+            {% for group in group_type.groups.all %}
+              <a href="/internal/organization/internal-groups/{{ group.id }}"
+                 class="resetlink organization__internal_group_name
+                      {% if group.id == internal_group.id %}
+                        organization__internal_group_sidebar_selected
+                      {% endif %}">
+                {{ group.name }}
+              </a>
+            {% endfor %}
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+    <!-- Main content window of the detail view of current Internal group -->
+    <div class="default-right-panel default-top-offset organization__internal_group_content_container">
+      <div class="organization__internal_group_title">{{ internal_group.name }}</div>
+      <div class="organization__internal_group_description">
+        {{ internal_group.description }}
+      </div>
+
+      <!-- Membership container. Loops and displays memberships returned from backend view -->
+      <h3>{% trans 'Members' %}</h3>
+      <div class="organization__internal_group_memberships">
+        {% for membership in internal_group.active_members %}
+          <a class="organization__internal_group_membership_user_container resetlink"
+             href="/internal/users/{{ membership.user.id }}">
+            <div>
+              {% include 'components/thumb.html' with size='medium' url=membership.user.profile_image_url %}
+            </div>
+            <span class="organization__internal_group_membership_user_name">
+              {{ membership.user.get_full_name }}
+            </span>
+            <span
+              class="organization__internal_group_membership_user_position_name">{{ membership.position.name }}
+            </span>
+          </a>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+{% endblock %}
