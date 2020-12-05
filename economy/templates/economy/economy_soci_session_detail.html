@@ -13,8 +13,13 @@
       {% include "economy/economy_lefmenu.html" with active="socisessions" %}
     </div>
     <div class="default-right-panel soci-session-detail__main_wrapper">
-      <h2>{{ session.name }}</h2>
-      <div>{% trans "Created on" %} {{ session.start | date:"M d Y" }}</div>
+      <h2>
+        {% if session.name %}
+          {{ session.name }}
+        {% else %}
+          {% translate "X-list" %} {{ session.start | date:"m.d.Y" }}
+        {% endif %}
+      </h2>
       <div class="table-header">
         <div>{% trans "User" %}</div>
         <div>{% trans "Product" %}</div>
