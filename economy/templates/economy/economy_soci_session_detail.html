@@ -33,25 +33,44 @@
             <div>{{ product_order.product.name }}</div>
             <div>{{ product_order.order_size }}</div>
             <div>
-              <form method="post" action="/internal/economy/product-orders/{{ product_order.id }}/delete">
-                {% csrf_token %}
-                <button class="primary-red-button" type="submit">
-                  {% trans "Delete" %}
-                </button>
-              </form>
+              {% if session.closed is not True %}
+                <form method="post" action="/internal/economy/product-orders/{{ product_order.id }}/delete">
+                  {% csrf_token %}
+                  <button type="submit">
+                    <span><i class="fas fa-trash-alt red"></i></span>
+                  </button>
+                </form>
+              {% endif %}
             </div>
           </div>
         {% endfor %}
         {% if session.closed is not True %}
+          <!--Manual rendering of input elements to clean displayed information -->
           <form action="/internal/economy/soci-sessions/{{ session.id }}/product-order/add" method="POST">
             <div class="table-card">
               {% csrf_token %}
-              {{ product_order_form.as_table }}
-              <div class="table-span-default-width">
-                <button type="submit" class="primary-blue-button">
-                  {% trans "Add" %}
-                </button>
-              </div>
+              <!--The use associated to the source bank account -->
+              <select name="source" id="id_source" required>
+                <option value="" disabled selected>{% translate "Select user" %}</option>
+                {% for user_option in users %}
+                  <option value="{{ user_option.bank_account.id }}">{{ user_option.get_full_name }}</option>
+                {% endfor %}
+              </select>
+
+              <!--Product to me associated to the product order purchase-->
+              <select name="product" id="id_product" required>
+                <option value="" disabled selected>{% translate "Select product" %}</option>
+                {% for product in products %}
+                  <option value="{{ product.id }}">{{ product.name }} {{ product.price }}kr</option>
+                {% endfor %}
+              </select>
+
+              <!--The order size -->
+              <input min=1 type="number" name="order_size" id="id_order_size" value="1" required>
+
+              <button type="submit" class="primary-blue-button">
+                <i class="fas fa-plus white"></i> {% translate "Add" %}
+              </button>
             </div>
           </form>
         {% endif %}
@@ -61,7 +80,7 @@
               {% csrf_token %}
               <div class="table-span-default-width">
                 <button type="submit" class="primary-red-button">
-                  {% trans "Close" %}
+                  {% trans "Close list" %}
                 </button>
               </div>
             </div>
@@ -70,4 +89,5 @@
       </div>
     </div>
   </div>
+
 {% endblock %}
