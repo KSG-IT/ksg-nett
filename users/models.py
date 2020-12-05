@@ -71,14 +71,6 @@ class User(AbstractUser):
 
     biography = models.TextField(blank=True, default="", max_length=200)
     in_relationship = models.BooleanField(null=True, default=False)
-    # commission = models.ForeignKey(
-    #     "organization.Commission",
-    #     default=None,
-    #     blank=True,
-    #     null=True,
-    #     related_name='holders',
-    #     on_delete=models.SET_NULL
-    # )
 
     allergies = models.ManyToManyField(
         Allergy,
