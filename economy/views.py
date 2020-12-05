@@ -3,6 +3,7 @@ from economy.models import Deposit, DepositComment, SociBankAccount, SociSession
 from users.models import User
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse
+from django.core.paginator import Paginator
 import datetime
 from django.utils import timezone
 from rest_framework import status
@@ -119,9 +120,12 @@ def deposit_detail(request, deposit_id):
 
 def soci_sessions(request):
     if request.method == "GET":
+        paginator = Paginator(SociSession.objects.order_by("-start"), 20)
+        page_number = request.GET.get('page')
+        paginated_soci_sessions = paginator.get_page(page_number)
         ctx = {
-            "sessions": SociSession.objects.order_by("-start"),
-            "active": "socisessions"
+            "sessions": paginated_soci_sessions,
+            "active": "socisessions",
         }
         return render(request, template_name="economy/economy_soci_sessions.html", context=ctx)
     else:
@@ -180,9 +184,11 @@ def soci_session_detail(request, soci_session_id):
 
 def soci_sessions_open(request):
     if request.method == "GET":
-
+        paginator = Paginator(SociSession.objects.filter(closed=False).order_by("-start"), 20)
+        page_number = request.GET.get('page')
+        paginated_soci_sessions = paginator.get_page(page_number)
         ctx = {
-            "sessions": SociSession.objects.filter(closed=False).order_by("-start"),
+            "sessions": paginated_soci_sessions,
             "active": "open"
         }
         return render(request, template_name="economy/economy_soci_sessions.html", context=ctx)
@@ -192,8 +198,11 @@ def soci_sessions_open(request):
 
 def soci_sessions_closed(request):
     if request.method == "GET":
+        paginator = Paginator(SociSession.objects.filter(closed=True).order_by("-start"), 20)
+        page_number = request.GET.get('page')
+        paginated_soci_sessions = paginator.get_page(page_number)
         ctx = {
-            "sessions": SociSession.objects.filter(closed=True).order_by("-start"),
+            "sessions": paginated_soci_sessions,
             "active": "closed"
         }
         return render(request, template_name="economy/economy_soci_sessions.html", context=ctx)
