@@ -23,10 +23,6 @@ class InternalGroup(models.Model):
     type = models.CharField(max_length=32, null=False, blank=False, choices=Type.choices)
     description = models.TextField(max_length=2048, blank=True, null=True)
 
-    @property
-    def slugify(self):  # is this stupid way to do it? Just use ID's instead?
-        return "-".join(self.name.lower().split(" ")).replace("ø", "o").replace("æ", "ae").replace("å", "a")
-
     @property  # consider this not being a property seeing as its more "computationally" expensive than normal properties?
     def active_members(self):
         """
