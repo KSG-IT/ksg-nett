@@ -89,7 +89,8 @@ class User(AbstractUser):
 
     @property
     def current_commission(self):
-        return f"{self.commission.name}" if self.commission else None
+        return f"{self.commission_history.filter(date_ended__isnull=False).first().name}" if self.commission_history.filter(
+            date_ended__isnull=False).first() else None
 
     def active(self):
         return self.ksg_status == self.STATUS.aktiv
@@ -123,7 +124,6 @@ class User(AbstractUser):
     @property
     def all_having_made_out_with(self) -> QuerySet:
         return self.made_out_with_left_side.all() | self.made_out_with_right_side.all()
-
 
     class Meta:
         default_related_name = 'users'
