@@ -216,10 +216,12 @@ def product_order_add(request, soci_session_id):
     if request.method == "POST":
         session = get_object_or_404(SociSession, pk=soci_session_id)
         if session and not session.closed:
-            form_data = request.POST  # rewrite as model form so we can get validation?
-            ProductOrder.objects.create(source_id=form_data["source"], product_id=form_data["product"],
-                                        order_size=form_data["order_size"], session=session)
-            return redirect(reverse(soci_session_detail, kwargs={"soci_session_id": soci_session_id}))
+            form_data = ProductOrderForm(request.POST)
+            if form_data.is_valid():
+                form = form_data.save(commit=False)
+                form.session = session
+                form.save()
+                return redirect(reverse(soci_session_detail, kwargs={"soci_session_id": soci_session_id}))
         else:
             raise SuspiciousOperation("Error: Cannot add product orders to closed or non-existent sessions")
     else:
