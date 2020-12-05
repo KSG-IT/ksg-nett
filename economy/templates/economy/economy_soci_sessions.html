@@ -1,64 +1,78 @@
 {% extends 'internal/base.html' %}
 {% load static %}
+{% load i18n %}
 {% block header %}
-    <link rel="stylesheet" href="{% static 'economy/css/economy_socisessions.css' %}">
-    <link rel="stylesheet" href="{% static 'economy/css/economy_common.css' %}">
-
+  <link rel="stylesheet" href="{% static 'economy/css/economy_socisessions.css' %}">
+  <link rel="stylesheet" href="{% static 'economy/css/economy_common.css' %}">
 {% endblock %}
-
 {% block body_content %}
 
-    <div class="default-container default-top-offset">
-        <div id="left-wrapper" class="minor-left-panel">
-            {% include "economy/economy_lefmenu.html" with active=active %}
-        </div>
-        <div class="default-right-panel default-top-offset sessions__right" id="right-wrapper">
-            <div class="table-header">
-                <span>Registrert</span>
-                <span>Krysset</span>
-                <span>Innkrysser</span>
-                <span>Kommentar</span>
-                <span>Kryss</span>
-                <span>Beløp</span>
-                <span></span>
-                <span>
-                    <form method="POST" action="/internal/economy/soci-sessions/create">
-                        {% csrf_token %}
-                        <input type="submit" value="Ny liste">
-                    </form>
-                </span>
-
-            </div>
-            <div class="main-table">
-                {% for session in sessions %}
-                    <div class="table-card">
-                        <span>{{ session.start | date:"d.m.Y" }}</span>
-                        <span>{{ session.end | date:"d.m.Y" }}</span>
-                        <span>{{ session.signed_off_by.get_full_name }}</span>
-                        <span>{{ session.type }}</span>
-                        <span>{{ session.product_orders.count }}</span>
-                        <span>{{ session.total_revenue }} kr</span>
-                        {% if not session.closed %}
-                            <span class="text-center soci-session__edit"><a
-                                href="soci-sessions/{{ session.id }}"
-                                class="resetlink">Endre kryss</a></span>
-                            <span class="table-span-default-width">
-                                <form method="POST" action="soci-sessions/{{ session.id }}/close">
-                                    {% csrf_token %}
-                                    <button class="soci-session__close">Steng liste</button>
-                                </form>
-                            </span>
-                        {% else %}
-                            <span class="soci-session__details text-center"><a
-                                    href="soci-sessions/{{ session.id }}"
-                                    class="resetlink">Detaljer</a></span>
-                            <span class="soci-session__closed text-center">Stengt</span>
-
-                        {% endif %}
-                    </div>
-                {% endfor %}
-            </div>
-        </div>
+  <div class="default-container default-top-offset">
+    <div id="left-wrapper" class="minor-left-panel">
+      {% include "economy/economy_lefmenu.html" with active=active %}
     </div>
+    <div class="default-right-panel default-top-offset sessions__right" id="right-wrapper">
+      <div class="table-header">
+        <span>Registrert</span>
+        <span>Krysset</span>
+        <span>Innkrysser</span>
+        <span>Kommentar</span>
+        <span>Kryss</span>
+        <span>Beløp</span>
+        <span></span>
+        <span>
+          <form method="POST" action="/internal/economy/soci-sessions/create">
+              {% csrf_token %}
+              <input type="submit" value="Ny liste">
+          </form>
+        </span>
 
+      </div>
+      <div class="main-table">
+        {% for session in sessions %}
+          <div class="table-card">
+            <span>{{ session.start | date:"d.m.Y" }}</span>
+            <span>{{ session.end | date:"d.m.Y" }}</span>
+            <span>{{ session.signed_off_by.get_full_name }}</span>
+            <span>{{ session.type }}</span>
+            <span>{{ session.product_orders.count }}</span>
+            <span>{{ session.total_revenue }} kr</span>
+            {% if not session.closed %}
+              <span class="text-center soci-session__edit"><a
+                href="soci-sessions/{{ session.id }}"
+                class="resetlink">Endre kryss</a></span>
+              <span class="table-span-default-width">
+                <form method="POST" action="soci-sessions/{{ session.id }}/close">
+                    {% csrf_token %}
+                    <button class="soci-session__close">Steng liste</button>
+                </form>
+              </span>
+            {% else %}
+              <span class="soci-session__details text-center"><a
+                href="soci-sessions/{{ session.id }}"
+                class="resetlink">Detaljer</a></span>
+              <span class="soci-session__closed text-center">Stengt</span>
+            {% endif %}
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+  <div class="pagination">
+    <span class="step-links">
+        {% if sessions.has_previous %}
+          <a href="?page=1">&laquo; {% trans "first" %}</a>
+          <a href="?page={{ sessions.previous_page_number }}">{% trans "previous" %}</a>
+        {% endif %}
+
+      <span class="current">
+        {% trans "Page" %} {{ sessions.number }} {% trans "of" %} {{ sessions.paginator.num_pages }}.
+      </span>
+
+      {% if sessions.has_next %}
+        <a href="?page={{ sessions.next_page_number }}">{% trans "next" %}</a>
+        <a href="?page={{ sessions.paginator.num_pages }}">{% trans "last" %} &raquo;</a>
+      {% endif %}
+    </span>
+  </div>
 {% endblock %}
