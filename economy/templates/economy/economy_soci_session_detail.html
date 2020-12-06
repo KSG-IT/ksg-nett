@@ -9,85 +9,94 @@
 
 {% block body_content %}
   <div class="default-container default-top-offset">
-    <div id="left-wrapper" class="minor-left-panel">
+    <div class="minor-left-panel">
       {% include "economy/economy_lefmenu.html" with active="socisessions" %}
     </div>
     <div class="default-right-panel soci-session-detail__main_wrapper">
-      <h2>
-        {% if session.name %}
-          {{ session.name }}
-        {% else %}
-          {% translate "X-list" %} {{ session.start | date:"m.d.Y" }}
-        {% endif %}
-      </h2>
-      <div class="table-header">
+      <div class="soci-session__title_container">
+        <h2>
+          {% if session.name %}
+            {{ session.name }}
+          {% else %}
+            {% translate "X-list" %} {{ session.start | date:"m.d.Y" }}
+          {% endif %}
+        </h2>
+      </div>
+      <div class="soci-session__header_container">
         <div>{% trans "User" %}</div>
         <div>{% trans "Product" %}</div>
         <div>{% trans "Amount" %}</div>
         <div>{% trans "Action" %}</div>
       </div>
-      <div class="main-table">
+      <div class="soci-session__content_container">
         {% for product_order in session.product_orders.all %}
-          <div class="table-card">
-            <div>{{ product_order.source.user.get_full_name }}</div>
-            <div>{{ product_order.product.name }}</div>
-            <div>{{ product_order.order_size }}</div>
-            <div>
-              {% if session.closed is not True %}
-                <form method="post" action="/internal/economy/product-orders/{{ product_order.id }}/delete">
-                  {% csrf_token %}
-                  <button type="submit">
-                    <span><i class="fas fa-trash-alt red"></i></span>
-                  </button>
-                </form>
-              {% endif %}
-            </div>
+          <div class="soci-session_item__left_border">{{ product_order.source.user.get_full_name }}</div>
+          <div>{{ product_order.product.name }}</div>
+          <div>{{ product_order.order_size }}</div>
+          <div class="soci-session_item__right_border">
+            {% if session.closed is not True %}
+              <form method="post" action="/internal/economy/product-orders/{{ product_order.id }}/delete">
+                {% csrf_token %}
+                <button type="submit">
+                  <span><i class="fas fa-trash-alt red"></i></span>
+                </button>
+              </form>
+            {% endif %}
           </div>
         {% endfor %}
-        {% if session.closed is not True %}
-          <!--Manual rendering of input elements to clean displayed information -->
-          <form action="/internal/economy/soci-sessions/{{ session.id }}/product-order/add" method="POST">
-            <div class="table-card">
-              {% csrf_token %}
-              <!--The use associated to the source bank account -->
+      </div>
+      {% if session.closed is not True %}
+        <form action="/internal/economy/soci-sessions/{{ session.id }}/product-order/add" method="POST">
+          <div class="soci-session-detail__add_item_container">
+            <!--Manual rendering of input elements to clean displayed information -->
+            {% csrf_token %}
+            <!--The use associated to the source bank account -->
+            <div>
               <select name="source" id="id_source" required>
                 <option value="" disabled selected>{% translate "Select user" %}</option>
                 {% for user_option in users %}
                   <option value="{{ user_option.bank_account.id }}">{{ user_option.get_full_name }}</option>
                 {% endfor %}
               </select>
+            </div>
 
-              <!--Product to me associated to the product order purchase-->
+            <!--Product to me associated to the product order purchase-->
+            <div>
               <select name="product" id="id_product" required>
                 <option value="" disabled selected>{% translate "Select product" %}</option>
                 {% for product in products %}
                   <option value="{{ product.id }}">{{ product.name }} {{ product.price }}kr</option>
                 {% endfor %}
               </select>
+            </div>
 
-              <!--The order size -->
+            <!--The order size -->
+            <div>
               <input min=1 type="number" name="order_size" id="id_order_size" value="1" required>
+            </div>
 
+            <div>
               <button type="submit" class="primary-blue-button">
                 <i class="fas fa-plus white"></i> {% translate "Add" %}
               </button>
             </div>
-          </form>
-        {% endif %}
-        {% if session.closed is not True %}
-          <form action="/internal/economy/soci-sessions/{{ session.id }}/close" method="POST">
-            <div class="primary-red-button soci-session-detail__close_button">
-              {% csrf_token %}
-              <div class="table-span-default-width">
-                <button type="submit" class="primary-red-button">
-                  {% trans "Close list" %}
-                </button>
-              </div>
-            </div>
-          </form>
-        {% endif %}
+          </div>
+        </form>
+      {% endif %}
+    {% if session.closed is not True %}
+      <div class=" soci-session-detail__close_button">
+        <form action="/internal/economy/soci-sessions/{{ session.id }}/close" method="POST">
+          {% csrf_token %}
+          <div style="width: 140px">
+            <button type="submit" class="primary-red-button">
+              {% translate "Close list" %}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
+
+    {% endif %}
   </div>
 
 {% endblock %}
