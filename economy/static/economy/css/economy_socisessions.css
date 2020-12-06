@@ -1,6 +1,7 @@
 .soci-session__closed {
     border: solid 2px #F17373;
-    color: #F17373;
+    background-color: #F17373;
+    color: white;
     border-radius: 4px;
     padding: 4px 2px;
     text-decoration: line-through;
@@ -13,14 +14,16 @@
 
 
 .soci-session__edit {
+    width: 100px;
     border: solid 2px #67DBA3;
-    background-color: #67DBA3;
     color: white;
+    background-color: #67DBA3;
     border-radius: 4px;
     padding: 4px 2px;
 }
 
 .soci-session__details {
+    width: 100px;
     border: solid 2px #F5AD40;
     background-color: #F5AD40;
     color: white;
@@ -38,6 +41,50 @@
     width: 100px;
 }
 
+.soci-sessions__header_container {
+    display: grid;
+    align-items: center;
+    grid-template-columns: repeat(8, 1fr);
+    grid-area: header;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.soci_sessions__content_container {
+    display: grid;
+    grid-row-gap: 5px;
+    grid-template-columns: repeat(8, 1fr);
+    grid-area: content;
+}
+
+.soci_sessions__content_container div {
+    display: flex;
+    align-items: center;
+    height: 45px;
+    padding: 0 10px;
+    background-color: #f0f0f0;
+}
+
+.soci_session_item__left_border {
+    border-bottom-left-radius: 8px;
+    border-top-left-radius: 8px;
+}
+
+.soci_session_item__right_border {
+    border-bottom-right-radius: 8px;
+    border-top-right-radius: 8px;
+}
+
+.soci_sessions__pagination_container {
+    grid-area: page;
+}
+
 .sessions__right {
     padding-left: 40px;
+    display: grid;
+    grid-row-gap: 10px;
+    grid-template-areas:
+        "header"
+        "content"
+        "page";
 }
