@@ -120,12 +120,20 @@ def deposit_detail(request, deposit_id):
 
 def soci_sessions(request):
     if request.method == "GET":
-        paginator = Paginator(SociSession.objects.order_by("-start"), 20)
+        session_filter = request.GET.get("filter", None)
+        if session_filter == "closed":
+            paginator = Paginator(SociSession.objects.filter(closed=True).order_by("-start"), 30)
+        elif session_filter == "open":
+            paginator = Paginator(SociSession.objects.filter(closed=False).order_by("-start"), 30)
+        else:
+            paginator = Paginator(SociSession.objects.order_by("-start"), 30)
+            session_filter = None  # do this in case the variable is set to something weird? Covers all template cases
+
         page_number = request.GET.get('page')
         paginated_soci_sessions = paginator.get_page(page_number)
         ctx = {
             "sessions": paginated_soci_sessions,
-            "active": "socisessions",
+            "filter": session_filter,
         }
         return render(request, template_name="economy/economy_soci_sessions.html", context=ctx)
     else:
@@ -182,6 +190,7 @@ def soci_session_detail(request, soci_session_id):
         return HttpResponse(status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
 
+#  DEPRECATED
 def soci_sessions_open(request):
     if request.method == "GET":
         paginator = Paginator(SociSession.objects.filter(closed=False).order_by("-start"), 20)
@@ -196,6 +205,7 @@ def soci_sessions_open(request):
         return HttpResponse(status.HTTP_405_METHOD_NOT_ALLOWED)
 
 
+#  DEPRECATED
 def soci_sessions_closed(request):
     if request.method == "GET":
         paginator = Paginator(SociSession.objects.filter(closed=True).order_by("-start"), 20)

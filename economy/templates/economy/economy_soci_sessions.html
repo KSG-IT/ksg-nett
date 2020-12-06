@@ -23,10 +23,9 @@
         <span>
           <form method="POST" action="/internal/economy/soci-sessions/create">
               {% csrf_token %}
-              <input type="submit" value="Ny liste">
+            <button type="submit" class="primary-blue-button"><i class="fa fa-plus"></i> {% translate "Add list" %}</button>
           </form>
         </span>
-
       </div>
       <div class="main-table">
         {% for session in sessions %}
@@ -58,21 +57,40 @@
       </div>
     </div>
   </div>
-  <div class="pagination">
-    <span class="step-links">
+  <div class="default-pagination-container">
         {% if sessions.has_previous %}
-          <a href="?page=1">&laquo; {% trans "first" %}</a>
-          <a href="?page={{ sessions.previous_page_number }}">{% trans "previous" %}</a>
+          <a href="?page=1{% if filter %}&filter={{ filter }}{% endif %}" class="resetlink">
+          <div class="default-pagination-page">
+            <i class="fa fa-angle-double-left"></i>
+          </div>
+          </a>
+          <a href="?page={{ sessions.previous_page_number }}{% if filter %}&filter={{ filter }}{% endif %}" class="resetlink">
+            <div class="default-pagination-page">
+              <i class="fa fa-angle-left"></i>
+            </div>
+          </a>
         {% endif %}
 
-      <span class="current">
-        {% trans "Page" %} {{ sessions.number }} {% trans "of" %} {{ sessions.paginator.num_pages }}.
-      </span>
-
+      <div class="default-pagination-page">
+         {{ sessions.number }}
+      </div>
+      <div class="default-pagination-page">
+        {% translate "of" %}
+      </div>
+      <div class="default-pagination-page">
+        {{ sessions.paginator.num_pages }}
+      </div>
       {% if sessions.has_next %}
-        <a href="?page={{ sessions.next_page_number }}">{% trans "next" %}</a>
-        <a href="?page={{ sessions.paginator.num_pages }}">{% trans "last" %} &raquo;</a>
+        <a href="?page={{ sessions.next_page_number }}{% if filter %}&filter={{ filter }}{% endif %}" class="resetlink">
+          <div class="default-pagination-page">
+            <i class="fa fa-angle-right"></i>
+          </div>
+        </a>
+        <a href="?page={{ sessions.paginator.num_pages }}{% if filter %}&filter={{ filter }}{% endif %}" class="resetlink">
+          <div class="default-pagination-page">
+            <i class="fa fa-angle-double-right"></i>
+          </div>
+        </a>
       {% endif %}
-    </span>
   </div>
 {% endblock %}

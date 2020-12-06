@@ -240,3 +240,26 @@ button{
     border-radius: 4px;
     border-color: #858585;
 }
+
+
+.default-pagination-container {
+    display: flex;
+    flex-direction: row;
+    width: auto;
+    align-items: center;
+    justify-content: center;
+    padding: 5px;
+}
+
+.default-pagination-page {
+    display: flex;
+    width: 25px;
+    height: 25px;
+    margin: 0 3px;
+    justify-content: center;
+    align-items: center;
+    font-size: 12px;
+    border-radius: 5px;
+    color: black;
+    background-color: #f0f0f0;
+}
