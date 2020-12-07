@@ -22,6 +22,10 @@
     font-weight: 600;
 }
 
+.soci-session__header_container div {
+    padding: 0 10px;
+}
+
 
 .soci-session__content_container {
     display: grid;
@@ -55,6 +59,7 @@
 
 .soci-session-detail__add_item_container {
     grid-area: form;
+    width: 100%;
     align-items: center;
     display: inline-grid;
     grid-template-columns: repeat(4, 1fr);
