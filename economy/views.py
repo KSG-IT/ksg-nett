@@ -190,36 +190,6 @@ def soci_session_detail(request, soci_session_id):
         return HttpResponse(status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
 
-#  DEPRECATED
-def soci_sessions_open(request):
-    if request.method == "GET":
-        paginator = Paginator(SociSession.objects.filter(closed=False).order_by("-start"), 20)
-        page_number = request.GET.get('page')
-        paginated_soci_sessions = paginator.get_page(page_number)
-        ctx = {
-            "sessions": paginated_soci_sessions,
-            "active": "open"
-        }
-        return render(request, template_name="economy/economy_soci_sessions.html", context=ctx)
-    else:
-        return HttpResponse(status.HTTP_405_METHOD_NOT_ALLOWED)
-
-
-#  DEPRECATED
-def soci_sessions_closed(request):
-    if request.method == "GET":
-        paginator = Paginator(SociSession.objects.filter(closed=True).order_by("-start"), 20)
-        page_number = request.GET.get('page')
-        paginated_soci_sessions = paginator.get_page(page_number)
-        ctx = {
-            "sessions": paginated_soci_sessions,
-            "active": "closed"
-        }
-        return render(request, template_name="economy/economy_soci_sessions.html", context=ctx)
-    else:
-        return HttpResponse(status.HTTP_405_METHOD_NOT_ALLOWED)
-
-
 def product_order_delete(request, product_order_id):
     if request.method == "POST":
         product_order = get_object_or_404(ProductOrder, pk=product_order_id)
