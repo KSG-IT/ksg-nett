@@ -1,7 +1,6 @@
 {% load i18n %}
 {% load static %}
 {% block header %}
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
 {% endblock %}
 <div class="header">
     <div class="header__top bg-light-blue darker-blue">
@@ -83,7 +82,7 @@
                 {% include "components/thumb.html" with size="small" url=user.profile_image_url %}
             </a>
             <div class="header__profile_container_right">
-                <div class="fa fa-bell dropdown">
+                <div class="fa fa-bell dropdown" style="font-size: 1em">
                     <span class="fa-circle"></span>
                     <span class="num"></span>
                 <div>
