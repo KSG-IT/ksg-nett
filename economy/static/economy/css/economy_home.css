@@ -1,13 +1,68 @@
-.transaction-card {
+.card {
   display: flex;
+  align-items: center;
+
   color: #697a92;
 
   border: 2px solid #e3e7ef;
   border-radius: 0.75px;
   box-shadow: 0 3px 6px rgba(0, 0, 0, 0.16);
 
-  width: fit-content;
+  padding: 1rem;
 
-  padding: 1.5rem;
-  margin: 2rem;
+  margin: 0 0 1rem 0;
+}
+
+.card > * {
+  padding: 1rem;
+}
+
+#economy-home-wrapper {
+  display: flex;
+  flex-direction: column;
+
+  align-items: center;
+}
+
+#economy-home-grid {
+  display: grid;
+  grid-template-columns: 3fr 1fr;
+  gap: 10px;
+  grid-template-areas:
+    "tl tr"
+    "bl br";
+}
+
+#economy-home-grid > #balance {
+  grid-area: tl;
+  padding: 1rem;
+}
+
+#economy-home-grid > #latest-transactions {
+  grid-area: tr;
+  padding: 1rem;
+}
+
+#economy-home-grid > #new-deposit {
+  grid-area: bl;
+  padding: 1rem;
+}
+
+#economy-home-grid > #latest-deposits {
+  grid-area: br;
+  padding: 1rem;
+}
+
+#date {
+  border-right: 2px solid #e3e7ef;
+}
+
+#icon {
+  font-size: 200%;
+}
+
+.d-flex-row-between {
+  display: flex;
+  width: 100%;
+  justify-content: space-between;
 }
