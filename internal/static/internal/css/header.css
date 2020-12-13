@@ -126,6 +126,7 @@
 .header__profile_container {
     display: flex;
     flex-flow: row;
+    height: 60px;
 }
 
 .header__profile_container_left {
