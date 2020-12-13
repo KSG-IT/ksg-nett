@@ -145,6 +145,7 @@ class ProductOrder(models.Model):
         'SociProduct',
         on_delete=models.CASCADE
     )
+    ordered_at = models.DateTimeField(auto_now_add=True)
 
     order_size = models.IntegerField(default=1)
     source = models.ForeignKey(
