@@ -1,36 +1,67 @@
-{% extends 'internal/base.html' %}
-
-
+{% extends 'internal/base.html' %} 
+{% load static %} 
+{% load i18n %} 
+{% block header %}
+<link rel="stylesheet" href="{% static 'economy/css/economy_home.css' %}" />
+{% endblock %} 
 {% block body_content %}
-    This is deposit:
-    User {{ current_user }} has a balance of {{ current_user.bank_account.balance }} kr
+<div>
+  <h1>{% trans "Deposit" %}</h1>
+  <div>
+    <div>
+      {{ current_user.bank_account.balance }} kr
+    </div>
+  </div>
 
-    <form method="POST" enctype="multipart/form-data">
-        {% csrf_token %}
-        {{ deposit_form.as_p }}
-        <input type="submit">
+  <div>
+    <h1>New deposit</h1>
+    <form  method="POST" enctype="multipart/form-data">
+      {% csrf_token %}
+      {{ deposit_form.as_p }}
+      <input type="submit">
     </form>
-    <table style="border-style: solid">
-        {% for deposit in deposit_history %}
-            <td>
-                Deposit:
-            <td>{{ deposit.amount }}</td>
-            <td>{{ deposit.description }}</td>
-            <td>{{ deposit.receipt }}</td>
-            <td>Valid: {{ deposit.is_valid }}</td>
-            <td>Signert av: {{ deposit.signed_off_by.first_name }}</td>
-            {% if not deposit.is_valid %}
-                <td>
-                    <form method="GET" action="/internal/economy/deposit/{{ deposit.id }}/edit">
-                        <input type="submit" value="Edit">
-                    </form>
+  </div>
 
-                </td>
-            {% endif %}
-            </tr>
-        {% endfor %}
-    </table>
-    <form method="GET" action="/internal/economy/deposit/">
-        <input type="submit">
-    </form>
+  <div>
+    <h1>Latest transactions</h1>
+    <div>
+      {% for order in current_user.bank_account.transaction_history.product_orders.all|slice:"0:5" %}
+      <div class="transaction-card">
+
+        <div class="">
+          {{ order.product.icon }}
+        </div>
+
+        <div>
+          {{ order.product.name }},-
+        </div>
+
+        <div>{{ order.product.price }}</div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div>
+    <h1>Previous deposits</h1>
+    {% for deposit in current_user.bank_account.transaction_history.deposits %}
+    <div>
+
+      <div>
+        <p>{{ deposit.description }}</p>
+      </div>
+
+      <div style="border-right: 2px solid black;">
+        <p>{{ deposit.amount }} ,- </p>
+      </div>
+
+      <div>
+        <!-- Vis bilde om det er godkjent, søppelbøtte om ikke.  -->
+        {% include "components/thumb.html" with size="small" url=deposit.signed_off_by.profile_image_url %}
+      </div>
+
+    </div>
+    {% endfor %}
+  </div>
+</div>
 {% endblock %}

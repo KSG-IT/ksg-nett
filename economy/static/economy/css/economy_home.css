@@ -1,0 +1,13 @@
+.transaction-card {
+  display: flex;
+  color: #697a92;
+
+  border: 2px solid #e3e7ef;
+  border-radius: 0.75px;
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.16);
+
+  width: fit-content;
+
+  padding: 1.5rem;
+  margin: 2rem;
+}
