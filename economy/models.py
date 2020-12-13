@@ -1,16 +1,15 @@
 import os
-from typing import Union, Dict, List, Optional
+from typing import Dict, List, Optional, Union
 
+from api.exceptions import NoSociSessionError
 from django.conf import settings
 from django.db import models
 from django.db.models import QuerySet
 from django.utils import timezone
+from model_utils import Choices
 from model_utils.fields import MonitorField
 from model_utils.managers import QueryManager
-from model_utils.models import TimeStampedModel, TimeFramedModel
-from model_utils import Choices
-
-from api.exceptions import NoSociSessionError
+from model_utils.models import TimeFramedModel, TimeStampedModel
 from users.models import User
 
 # Type of soci session
@@ -74,7 +73,7 @@ class SociProduct(TimeFramedModel):
     name = models.CharField(max_length=50)
     price = models.IntegerField()
     description = models.TextField(blank=True, null=True, default=None, max_length=200)
-    icon = models.CharField(max_length=1, blank=True, null=True)
+    icon = models.CharField(max_length=2, blank=True, null=True)
 
     def __str__(self):
         return f"SociProduct {self.name} costing {self.price} kr"
