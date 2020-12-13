@@ -1,12 +1,15 @@
-from economy.forms import DepositForm, DepositCommentForm
-from economy.models import Deposit, DepositComment, SociBankAccount, SociSession, SociProduct
-from django.shortcuts import render, get_object_or_404, redirect
-from django.urls import reverse
 import datetime
+
+from django.core.exceptions import SuspiciousOperation
+from django.http import HttpResponse
+from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils import timezone
 from rest_framework import status
-from django.http import HttpResponse
-from django.core.exceptions import SuspiciousOperation
+
+from economy.forms import DepositCommentForm, DepositForm
+from economy.models import (Deposit, DepositComment, SociBankAccount,
+                            SociProduct, SociSession)
 
 
 def economy_home(request):
@@ -14,7 +17,6 @@ def economy_home(request):
     if request.method == "GET":
         ctx = {
             'deposit_form': DepositForm(),
-            'deposit_history': Deposit.objects.filter(account=request.user.bank_account),
             'current_user': request.user
         }
         return render(request, template_name='economy/economy_home.html', context=ctx)
@@ -28,7 +30,6 @@ def economy_home(request):
 
             ctx = {
                 'deposit_form': DepositForm(),
-                'deposit_history': Deposit.objects.filter(account=request.user.bank_account),
                 'current_user': request.user
             }
             return render(request, template_name='economy/economy_home.html', context=ctx)
