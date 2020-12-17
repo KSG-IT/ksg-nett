@@ -36,6 +36,10 @@ class InternalGroup(models.Model):
         group_members.sort(key=lambda x: x.user.get_full_name())
         return group_members
 
+    @property
+    def active_members_count(self) -> int:
+        return len(self.active_members)
+
     def __str__(self):
         return "Group %s" % self.name
 
@@ -87,6 +91,10 @@ class InternalGroupPosition(models.Model):
     def active_memberships(self):
         return self.memberships.filter(date_ended__isnull=True)
 
+    @property
+    def active_memberships_count(self) -> int:
+        return self.active_memberships.count()
+
     def __str__(self):
         return "Position %s" % self.name
 
@@ -113,6 +121,10 @@ class Commission(models.Model):
         related_name="comissions",
         through="organization.CommissionMembership",
     )
+
+    @property
+    def active_holders_count(self):
+        return self.memberships.filter(date_ended__isnull=True).count()
 
     def __str__(self):
         return "Commission %s" % (self.name,)

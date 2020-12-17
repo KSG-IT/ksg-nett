@@ -35,19 +35,17 @@ class InternalGroupAdmin(admin.ModelAdmin):
     list_display = (
         "name",
         "type",
-        "member_count",
+        "active_members_count",
     )
     inlines = (
         InternalGroupPositionsInline,
     )
 
-    def member_count(self, obj: InternalGroup) -> int:
-        return len(obj.active_members)
-
 
 class InternalGroupPositionAdmin(admin.ModelAdmin):
     list_display = (
         "name",
+        "active_memberships_count",
     )
     inlines = (
         InternalGroupPositionMembershipInline,
@@ -57,15 +55,12 @@ class InternalGroupPositionAdmin(admin.ModelAdmin):
 class CommissionAdmin(admin.ModelAdmin):
     list_display = (
         "name",
-        "active_members"
+        "active_holders_count"
     )
 
     inlines = (
         CommissionMembershipInline,
     )
-
-    def active_members(self, obj: Commission):
-        return obj.memberships.filter(date_ended__isnull=True).count()
 
 
 admin.site.register(InternalGroup, InternalGroupAdmin)
