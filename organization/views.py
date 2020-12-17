@@ -5,7 +5,7 @@ from rest_framework import status
 
 
 @login_required
-def internal_group(request, internal_group_id):
+def internal_group_detail(request, internal_group_id):
     if request.method == "GET":
         try:
             internal_group = InternalGroup.objects.get(pk=internal_group_id)
