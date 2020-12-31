@@ -21,7 +21,6 @@ def index(request):
     ctx = { 
         'last_summaries': last_summaries,
         'last_quotes': last_quotes,
-        'economy:': economy_purchases,
         'next_shifts': request.user.shift_set.filter(slot__group__meet_time__gte=timezone.now())[:2], 
         'slideshow': SlideshowImage.objects.filter(start_datetime__lte=timezone.now()).filter(end_datetime__gte=timezone.now()), 
         
