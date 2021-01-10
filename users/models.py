@@ -2,7 +2,7 @@
 from __future__ import unicode_literals
 
 from typing import Optional
-
+from django.utils import timezone
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.db.models import QuerySet, signals
@@ -124,6 +124,10 @@ class User(AbstractUser):
     @property
     def all_having_made_out_with(self) -> QuerySet:
         return self.made_out_with_left_side.all() | self.made_out_with_right_side.all()
+
+    @property
+    def future_shifts(self):
+        return self.shift_set.filter(slot__group__meet_time__gte=timezone.now())
 
     class Meta:
         default_related_name = 'users'
