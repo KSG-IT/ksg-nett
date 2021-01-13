@@ -88,14 +88,13 @@
 
 .dropbtn {
   background-color: inherit;
-  padding: 16px;
+  padding: 0;
   font-size: 16px;
   border: none;
   cursor: pointer;
 }
 
 .dropdown {
-  font-size: 1em;
   position: relative;
   display: inline-block;
 }
