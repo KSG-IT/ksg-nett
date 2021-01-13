@@ -95,6 +95,7 @@
 }
 
 .dropdown {
+  font-size: 1em;
   position: relative;
   display: inline-block;
 }
