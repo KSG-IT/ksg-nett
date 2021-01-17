@@ -88,7 +88,7 @@
 
 .dropbtn {
   background-color: inherit;
-  padding: 16px;
+  padding: 0;
   font-size: 16px;
   border: none;
   cursor: pointer;
@@ -126,6 +126,7 @@
 .header__profile_container {
     display: flex;
     flex-flow: row;
+    height: 60px;
 }
 
 .header__profile_container_left {
