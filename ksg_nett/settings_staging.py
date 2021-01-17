@@ -11,7 +11,7 @@ SECRET_KEY = 'rc4yscfoc9loe+937$q-57agxy0iq+!o0zowl0#vylilol2-)e'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ["ksg-nett.heroku.com"]
+ALLOWED_HOSTS = ["ksg-nett.herokuapp.com"]
 
 # Application definition
 DATABASES = {
