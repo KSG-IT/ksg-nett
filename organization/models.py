@@ -61,7 +61,7 @@ class InternalGroupPositionMembership(models.Model):
 
     user = models.ForeignKey("users.User", on_delete=models.CASCADE)
     position = models.ForeignKey("organization.InternalGroupPosition", related_name="memberships",
-                                 on_delete=models.DO_NOTHING)
+                                 on_delete=models.CASCADE)
 
 
 class InternalGroupPosition(models.Model):
