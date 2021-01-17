@@ -115,13 +115,6 @@ class Commission(models.Model):
     """
 
     name = models.CharField(max_length=32, unique=True)
-    manager = models.ForeignKey(  # does this thing even make sense to have?
-        InternalGroupPosition,
-        null=True,
-        blank=True,
-        on_delete=models.DO_NOTHING
-    )
-
     holders = models.ManyToManyField(
         User,
         related_name="comissions",
