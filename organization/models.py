@@ -70,7 +70,7 @@ class InternalGroupPosition(models.Model):
     """
 
     class Meta:
-        unique_together = ("name", "internal_group",)
+        unique_together = ("name", "internal_group", "type")
 
     class Type(models.TextChoices):
         FUNCTIONARY = "functionary"
