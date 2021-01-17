@@ -1,6 +1,6 @@
 import os
 from typing import Union, Dict, List, Optional
-
+from django.core.validators import MinValueValidator
 from django.conf import settings
 from django.db import models
 from django.db.models import QuerySet
@@ -147,13 +147,13 @@ class ProductOrder(models.Model):
         on_delete=models.CASCADE
     )
 
-    order_size = models.IntegerField(default=1)
+    order_size = models.IntegerField(default=1, validators=[MinValueValidator(limit_value=1)])
     source = models.ForeignKey(
         'SociBankAccount',
         related_name='product_orders',
-        blank=True,
-        null=True,
-        on_delete=models.SET_NULL
+        blank=False,
+        null=False,
+        on_delete=models.DO_NOTHING
     )
 
     session = models.ForeignKey(
@@ -166,6 +166,10 @@ class ProductOrder(models.Model):
     @property
     def cost(self) -> int:
         return self.order_size * self.product.price
+
+    @property
+    def is_charged(self):
+        return self.session.closed
 
     def __str__(self):
         return f"Order of {self.order_size} {self.product.name}(s)"

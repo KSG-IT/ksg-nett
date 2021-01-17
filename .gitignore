@@ -109,6 +109,9 @@ db.sqlite3
 # MacOS metadata
 .DS_Store
 
+# Redis dump
+dump.rdb
+
 # Media and statics
 /static
 /media

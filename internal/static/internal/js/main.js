@@ -66,3 +66,4 @@ window.copyContentsToClipboard = function(contents){
     // Clean up
     // document.body.removeChild(hiddenTextAreaEl);
 }
+  
