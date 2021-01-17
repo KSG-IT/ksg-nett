@@ -234,8 +234,8 @@ try:
 except ImportError:
     pass
 
-if 'PROD' in os.environ:
+if 'STAGING' in os.environ:
     try:
-        from .settings_prod import *
+        from .settings_staging import *
     except ImportError:
         pass
