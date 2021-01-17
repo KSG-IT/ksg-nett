@@ -72,15 +72,21 @@ class InternalGroupPosition(models.Model):
     class Meta:
         unique_together = ("name", "internal_group",)
 
-    # feels natural to have the type here, like functionary or gang-member, but how do we deal with it as an
-    # interest group? Do we just have null=True and then not set it?
-    # Then again we have to make distinctions between being active/retired funk/gjeng or a hangaround. Just
-    # say fuckit and keep it as-is in the users.User model? Solve it at business-logic level through views?
+    class Type(models.TextChoices):
+        FUNCTIONARY = "functionary"
+        GANG_MEMBER = "gang-member"
+        INTEREST_GROUP_MEMBER = "interest-group-member"
+        ACTIVE_FUNCTIONARY_PANG = "active-functionary-pang"
+        OLD_FUNCTIONARY_PANG = "old-functionary-pang"
+        ACTIVE_GANG_MEMBER_PANG = "active-gang-member-pang"
+        OLD_GANG_MEMBER_PANG = "old-gang-member-pang"
+        HANGAROUND = "hangaround"
 
     name = models.CharField(unique=True, max_length=32)
     internal_group = models.ForeignKey(InternalGroup, null=False, blank=False, on_delete=models.CASCADE,
                                        related_name="positions")
     description = models.CharField(max_length=1024, blank=True, null=True)
+    type = models.CharField(max_length=32, choices=Type.choices, null=False, blank=False)
     holders = models.ManyToManyField(
         User,
         related_name='positions',
