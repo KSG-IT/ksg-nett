@@ -122,6 +122,20 @@ class User(AbstractUser):
         return None
 
     @property
+    def initials(self):
+        full_name = self.get_full_name() or ""
+
+        if len(full_name) < 2:
+            full_name = self.username
+
+        if not " " in full_name:
+            return full_name[0:2].upper()
+        else:
+            split = re.split("\W+", full_name)
+            first_part, last_part = split[0], split[-1]
+            return f"{first_part[0].upper()}{last_part[0].upper()}"
+
+    @property
     def all_having_made_out_with(self) -> QuerySet:
         return self.made_out_with_left_side.all() | self.made_out_with_right_side.all()
 
