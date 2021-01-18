@@ -24,7 +24,7 @@ drf-yasg2 = "^1.18.5"
 weasyprint = "^51"
 coveralls = "^2.1.2"
 graphene-django = "^2.13.0"
-graphene-django-cud = "^0.6.5"
+graphene-django-cud = "^0.7.1"
 django-filter = "^2.4.0"
 
 [tool.poetry.dev-dependencies]
