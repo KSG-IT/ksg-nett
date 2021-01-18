@@ -4,6 +4,7 @@ from django.utils import timezone
 from quotes.models import Quote
 from summaries.models import Summary
 from itertools import chain
+from internal.models import SlideshowImage
 
 
 @login_required
@@ -17,11 +18,13 @@ def index(request):
         chain(economy_deposits),
         key=lambda instance: instance.created
     )
-    ctx = {
+    ctx = { 
         'last_summaries': last_summaries,
         'last_quotes': last_quotes,
-        'next_shifts': request.user.shift_set.filter(slot__group__meet_time__gte=timezone.now())[:2],
-    }
+        'next_shifts': request.user.shift_set.filter(slot__group__meet_time__gte=timezone.now())[:2], 
+        'slideshow': SlideshowImage.objects.filter(start_datetime__lte=timezone.now(),end_datetime__gte=timezone.now()), 
+        
+    } 
     return render(request, 'internal/frontpage.html', context=ctx)
 
 
