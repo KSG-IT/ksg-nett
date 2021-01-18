@@ -45,8 +45,7 @@ class UserQuery(graphene.ObjectType):
         return info.context.user
 
     def resolve_all_users(self, info, *args, **kwargs):
-        users = User.objects.all()
-        return users
+        return User.objects.all()
 
 
 class CreateUserMutation(DjangoCreateMutation):
