@@ -261,7 +261,7 @@ jinja2 = "*"
 name = "coverage"
 version = "5.3"
 description = "Code coverage measurement for Python"
-category = "main"
+category = "dev"
 optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*, <4"
 
@@ -270,9 +270,9 @@ toml = ["toml"]
 
 [[package]]
 name = "coveralls"
-version = "2.1.2"
+version = "2.2.0"
 description = "Show coverage stats online via coveralls.io"
-category = "main"
+category = "dev"
 optional = false
 python-versions = ">= 3.5"
 
@@ -425,7 +425,7 @@ python-jose = ["python-jose (==3.0.0)"]
 name = "docopt"
 version = "0.6.2"
 description = "Pythonic argument parser, that will make you smile"
-category = "main"
+category = "dev"
 optional = false
 python-versions = "*"
 
@@ -1145,7 +1145,7 @@ testing = ["coverage (>=5.0.3)", "zope.event", "zope.testing"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.8,<3.9"
-content-hash = "96e950a73b46a731c1b92ca7599fa8b2e651044035e305d97a71f2df1e21bb8f"
+content-hash = "7366d2bb36bc2cef68cd527236a4ac31e61c5f810cade83b3a46bd061c93dada"
 
 [metadata.files]
 aioredis = [
@@ -1297,8 +1297,8 @@ coverage = [
     {file = "coverage-5.3.tar.gz", hash = "sha256:280baa8ec489c4f542f8940f9c4c2181f0306a8ee1a54eceba071a449fb870a0"},
 ]
 coveralls = [
-    {file = "coveralls-2.1.2-py2.py3-none-any.whl", hash = "sha256:b3b60c17b03a0dee61952a91aed6f131e0b2ac8bd5da909389c53137811409e1"},
-    {file = "coveralls-2.1.2.tar.gz", hash = "sha256:4430b862baabb3cf090d36d84d331966615e4288d8a8c5957e0fd456d0dd8bd6"},
+    {file = "coveralls-2.2.0-py2.py3-none-any.whl", hash = "sha256:2301a19500b06649d2ec4f2858f9c69638d7699a4c63027c5d53daba666147cc"},
+    {file = "coveralls-2.2.0.tar.gz", hash = "sha256:b990ba1f7bc4288e63340be0433698c1efe8217f78c689d254c2540af3d38617"},
 ]
 cryptography = [
     {file = "cryptography-3.1.1-cp27-cp27m-macosx_10_10_x86_64.whl", hash = "sha256:65beb15e7f9c16e15934569d29fb4def74ea1469d8781f6b3507ab896d6d8719"},
