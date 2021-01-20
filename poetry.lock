@@ -391,6 +391,17 @@ python-versions = "*"
 Django = ">=2.0.1"
 
 [[package]]
+name = "django-redis-cache"
+version = "3.0.0"
+description = "Redis Cache Backend for Django"
+category = "main"
+optional = false
+python-versions = "*"
+
+[package.dependencies]
+redis = "<4.0"
+
+[[package]]
 name = "djangorestframework"
 version = "3.12.1"
 description = "Web APIs for Django, made easy."
@@ -1145,7 +1156,7 @@ testing = ["coverage (>=5.0.3)", "zope.event", "zope.testing"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.8,<3.9"
-content-hash = "7366d2bb36bc2cef68cd527236a4ac31e61c5f810cade83b3a46bd061c93dada"
+content-hash = "079989890ea4c66bbbd763583894eef52dca86474b298b68aa64f1e579d129a4"
 
 [metadata.files]
 aioredis = [
@@ -1351,6 +1362,9 @@ django-filter = [
 django-model-utils = [
     {file = "django-model-utils-4.0.0.tar.gz", hash = "sha256:adf09e5be15122a7f4e372cb5a6dd512bbf8d78a23a90770ad0983ee9d909061"},
     {file = "django_model_utils-4.0.0-py2.py3-none-any.whl", hash = "sha256:9cf882e5b604421b62dbe57ad2b18464dc9c8f963fc3f9831badccae66c1139c"},
+]
+django-redis-cache = [
+    {file = "django-redis-cache-3.0.0.tar.gz", hash = "sha256:9a2eebef421d996a82098a19d17ff6b321265cd73178fa398913019764e8394a"},
 ]
 djangorestframework = [
     {file = "djangorestframework-3.12.1-py3-none-any.whl", hash = "sha256:5c5071fcbad6dce16f566d492015c829ddb0df42965d488b878594aabc3aed21"},
