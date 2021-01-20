@@ -1,0 +1,67 @@
+.soci-session-detail__main_wrapper {
+    padding-left: 3em;
+    display: grid;
+    grid-row-gap: 10px;
+    grid-template-areas:
+        "title"
+        "header"
+        "content"
+        "form";
+}
+
+.soci-session__title_container {
+    grid-area: title;
+}
+
+.soci-session__header_container {
+    display: grid;
+    align-items: center;
+    grid-template-columns: repeat(4, 1fr);
+    grid-area: header;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.soci-session__header_container div {
+    padding: 0 10px;
+}
+
+
+.soci-session__content_container {
+    display: grid;
+    grid-row-gap: 5px;
+    grid-template-columns: repeat(4, 1fr);
+    grid-area: content;
+}
+
+.soci-session__content_container div {
+    display: flex;
+    align-items: center;
+    height: 45px;
+    padding: 0 10px;
+    background-color: #f0f0f0;
+}
+
+.soci-session-detail__button_width {
+    width: 120px;
+}
+
+
+.soci-session_item__left_border {
+    border-bottom-left-radius: 8px;
+    border-top-left-radius: 8px;
+}
+
+.soci-session_item__right_border {
+    border-bottom-right-radius: 8px;
+    border-top-right-radius: 8px;
+}
+
+.soci-session-detail__add_item_container {
+    grid-area: form;
+    width: 100%;
+    align-items: center;
+    display: inline-grid;
+    grid-template-columns: repeat(4, 1fr);
+    grid-column-gap: 20px;
+}
