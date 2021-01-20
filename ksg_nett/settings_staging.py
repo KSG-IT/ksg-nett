@@ -26,12 +26,12 @@ DATABASES = {
 }
 
 # Heroku redis config
-CACHES = {
-    "default": {
-         "BACKEND": "redis_cache.RedisCache",
-         "LOCATION": os.environ.get('REDIS_URL'),
-    }
-}
+#CACHES = {
+#    "default": {
+#         "BACKEND": "redis_cache.RedisCache",
+#         "LOCATION": os.environ.get('REDIS_URL'),
+#    }
+#}
 
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
