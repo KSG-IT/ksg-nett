@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',
     'drf_yasg2',
     "graphene_django",
+    'storages',
 
     # Project apps
     'api',
