@@ -55,7 +55,7 @@ conn = psycopg2.connect(DATABASE_URL, sslmode='require')
 DATABASES['default'] = dj_database_url.config(conn_max_age=600, ssl_require=True)
 
 # S3 media files
-AWS_REGION = "eu-west-3"
+AWS_S3_REGION_NAME = "eu-west-3"
 AWS_S3_BUCKET_AUTH = False
 AWS_S3_BUCKET_NAME = "ksg-nett-bucket"
 AWS_STORAGE_BUCKET_NAME = "ksg-nett-bucket"
