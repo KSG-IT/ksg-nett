@@ -14,8 +14,7 @@ This repository contains the source code for [KSG](https://www.samfundet.no/kafe
 * Django 3.1
 * Python 3.8
 * Poetry
-* Cairo
-* Pango
+* Weasyprint (requires setup, especially if on windows. See [this](https://weasyprint.readthedocs.io/en/stable/install.html) for more info
 
 ## Installation
 
