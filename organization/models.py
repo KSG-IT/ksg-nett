@@ -138,11 +138,6 @@ class CommissionMembership(models.Model):
     date_started = models.DateField(auto_now_add=True)
     date_ended = models.DateField(default=None, null=True, blank=True)
 
-    # What happens if a person is personal first semester and is it again their last semester? Just spawn a
-    # new instance? Doesnt make sense to extend it, but it feels clunky regardless
-
-    # Add a flag for `in_charge` or something? Does this problem actually need to be solved programaticall
-
 
 class Committee(models.Model):
     # not sure if this model makes sense whatsoever. Deal with this later
