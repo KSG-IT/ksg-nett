@@ -23,7 +23,7 @@ class InternalGroup(models.Model):
     type = models.CharField(max_length=32, null=False, blank=False, choices=Type.choices)
     description = models.TextField(max_length=2048, blank=True, null=True)
 
-    @property  # consider this not being a property seeing as its more "computationally" expensive than normal properties?
+    @property
     def active_members(self):
         """
         Returns all group positions membership with a FK to positions with a FK to this instance. Returns
