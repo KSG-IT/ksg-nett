@@ -11,7 +11,7 @@ from model_utils.fields import StatusField
 from model_utils.models import TimeStampedModel
 
 from commissions.models import Commission
-from common.util import get_semester_year_shorthand
+from common.util import get_semester_year_shorthand, compress_image
 from users.managers import UsersHaveMadeOutManager
 
 # KSG choices
@@ -89,6 +89,13 @@ class User(AbstractUser):
 
     have_made_out_with = models.ManyToManyField('self', through='UsersHaveMadeOut', symmetrical=False)
     anonymize_in_made_out_map = models.BooleanField(default=True, null=False)
+
+    def save(self):
+        print("sup")
+        img = self.profile_image
+        self.profile_image = compress_image(img, 900, 900, 80)
+        super(User, self).save()
+
 
     def __str__(self):
         return f"User {self.get_full_name()}"
