@@ -44,6 +44,18 @@
     font-size: 16px;
 }
 
+.organization__internal_group_image_container {
+    display: block;
+    width: 100%;
+    height: 320px;
+}
+
+.organization__internal_group_image {
+    object-fit: cover;
+    border-radius: 20px;
+    width: 100%;
+    height: 100%;
+}
 
 /*Main content - Membership containers*/
 .organization__internal_group_memberships {

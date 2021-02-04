@@ -29,6 +29,12 @@
     <!-- Main content window of the detail view of current Internal group -->
     <div class="default-right-panel default-top-offset organization__internal_group_content_container">
       <div class="organization__internal_group_title">{{ internal_group.name }}</div>
+      <!-- Only render this block if the group image actually exists -->
+      {% if internal_group.group_image_url %}
+        <div class="organization__internal_group_image_container">
+          <img src="{{ internal_group.group_image_url }}" class="organization__internal_group_image">
+        </div>
+      {% endif %}
       <div class="organization__internal_group_description">
         {{ internal_group.description }}
       </div>
