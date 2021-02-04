@@ -22,6 +22,7 @@ class InternalGroup(models.Model):
     name = models.CharField(unique=True, max_length=32)
     type = models.CharField(max_length=32, null=False, blank=False, choices=Type.choices)
     description = models.TextField(max_length=2048, blank=True, null=True)
+    group_image = models.ImageField(upload_to='internalgroups', null=True, blank=True)
 
     @property
     def active_members(self):
