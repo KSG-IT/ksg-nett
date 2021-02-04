@@ -40,7 +40,6 @@ class InternalGroup(models.Model):
 
     @property
     def group_image_url(self) -> Optional[str]:
-
         if self.group_image and hasattr(self.group_image, 'url'):
             return self.group_image.url
         return None
