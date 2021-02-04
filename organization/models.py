@@ -3,6 +3,7 @@ from __future__ import unicode_literals
 from typing import Optional
 
 from django.db import models
+from django.utils import timezone
 from users.models import User
 
 
@@ -60,7 +61,7 @@ class InternalGroupPositionMembership(models.Model):
     An intermediary model between a user and a InternalGroupPosition with additional information
     regarding membership
     """
-    date_joined = models.DateField(auto_now_add=True)
+    date_joined = models.DateField(default=timezone.now, null=False, blank=False)
     date_ended = models.DateField(
         default=None,
         null=True,
