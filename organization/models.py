@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
+from typing import Optional
 
 from django.db import models
 from users.models import User
@@ -36,6 +37,13 @@ class InternalGroup(models.Model):
 
         group_members.sort(key=lambda x: x.user.get_full_name())
         return group_members
+
+    @property
+    def group_image_url(self) -> Optional[str]:
+
+        if self.group_image and hasattr(self.group_image, 'url'):
+            return self.group_image.url
+        return None
 
     @property
     def active_members_count(self) -> int:
