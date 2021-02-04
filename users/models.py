@@ -91,7 +91,6 @@ class User(AbstractUser):
     anonymize_in_made_out_map = models.BooleanField(default=True, null=False)
 
     def save(self):
-        print("sup")
         img = self.profile_image
         self.profile_image = compress_image(img, 900, 900, 80)
         super(User, self).save()
