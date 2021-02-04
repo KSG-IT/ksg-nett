@@ -81,6 +81,7 @@ class User(AbstractUser):
     have_made_out_with = models.ManyToManyField('self', through='UsersHaveMadeOut', symmetrical=False)
     anonymize_in_made_out_map = models.BooleanField(default=True, null=False)
 
+
     def __str__(self):
         return f"User {self.get_full_name()}"
 
