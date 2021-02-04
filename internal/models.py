@@ -16,7 +16,7 @@ class SlideshowImage(models.Model):
     start_datetime = models.DateTimeField()
     end_datetime = models.DateTimeField()
 
-    def save(self):
+    def save(self, *args, **kwargs):
         img = self.image
         self.image = compress_image(img, 900, 600, 80)
-        super(SlideshowImage, self).save()
+        super(SlideshowImage, self).save(*args, **kwargs)

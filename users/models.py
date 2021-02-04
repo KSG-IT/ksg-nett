@@ -90,10 +90,10 @@ class User(AbstractUser):
     have_made_out_with = models.ManyToManyField('self', through='UsersHaveMadeOut', symmetrical=False)
     anonymize_in_made_out_map = models.BooleanField(default=True, null=False)
 
-    def save(self):
+    def save(self, *args, **kwargs):
         img = self.profile_image
         self.profile_image = compress_image(img, 900, 900, 80)
-        super(User, self).save()
+        super(User, self).save(*args, **kwargs)
 
 
     def __str__(self):
