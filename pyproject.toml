@@ -26,6 +26,19 @@ coveralls = "^2.1.2"
 
 [tool.poetry.dev-dependencies]
 coveralls = "^2.1.2"
+pre-commit = "^2.10.0"
+
+[tool.black]
+line-length = 88
+include = '\.pyi?$'
+exclude = '''
+/(
+    \.git
+  | _build
+  | _k8s
+  | build
+)/
+'''
 
 [build-system]
 requires = ["poetry>=0.12"]
