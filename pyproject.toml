@@ -35,7 +35,6 @@ exclude = '''
 /(
     \.git
   | _build
-  | _k8s
   | build
 )/
 '''
