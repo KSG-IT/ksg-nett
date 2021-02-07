@@ -35,15 +35,27 @@
 .organization__internal_group_title {
     font-weight: bold;
     font-size: 32px;
-    margin-bottom: 15px;
+    margin-bottom: 35px;
     display: inline-block;
 }
 
 .organization__internal_group_description {
-    margin: 10px 0 20px;
+    margin: 35px 0 20px;
     font-size: 16px;
 }
 
+.organization__internal_group_image_container {
+    display: block;
+    width: 100%;
+    height: 320px;
+}
+
+.organization__internal_group_image {
+    object-fit: cover;
+    border-radius: 20px;
+    width: 100%;
+    height: 100%;
+}
 
 /*Main content - Membership containers*/
 .organization__internal_group_memberships {

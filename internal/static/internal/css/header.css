@@ -97,6 +97,7 @@
 }
 
 .dropdown {
+  margin-right: 16px;
   position: relative;
   display: inline-block;
 }
@@ -149,7 +150,7 @@
 
 .fa-bell {
   position: relative;
-  font-size: 4em;
+  font-size: 18px;
   color: #103242;
   cursor: pointer;
 }
