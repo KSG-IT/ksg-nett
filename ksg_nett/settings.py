@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework.authtoken',
     'drf_yasg2',
+    "graphene_django",
 
     # Project apps
     'api',
@@ -171,6 +172,9 @@ REST_FRAMEWORK = {
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 20
 }
+
+# Graphql
+GRAPHENE = {"SCHEMA": "ksg_nett.schema.schema"}
 
 STATIC_ROOT = 'static/'
 MEDIA_ROOT = 'media/'

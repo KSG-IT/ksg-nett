@@ -2,7 +2,7 @@
 from __future__ import unicode_literals
 
 from typing import Optional
-
+from django.utils import timezone
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.db.models import QuerySet, signals
@@ -36,6 +36,7 @@ class Allergy(models.Model):
     """
     Model containing food preferences and allergies
     """
+
     name = models.CharField(max_length=32)
 
     def __str__(self):
@@ -45,21 +46,22 @@ class Allergy(models.Model):
         return self.name
 
     class Meta:
-        default_related_name = 'allergies'
-        verbose_name_plural = 'Allergies'
+        default_related_name = "allergies"
+        verbose_name_plural = "Allergies"
 
 
 class User(AbstractUser):
     """
     A KSG user
     """
+
     STATUS = KSG_STATUS_TYPES
     ROLES = KSG_ROLES
 
     email = models.EmailField(unique=True)
     date_of_birth = models.DateField(blank=True, null=True)
     study = models.CharField(default="", blank=True, max_length=100)
-    profile_image = models.FileField(upload_to='profiles/', null=True, blank=True)
+    profile_image = models.FileField(upload_to="profiles/", null=True, blank=True)
 
     phone = models.CharField(default="", blank=True, max_length=50)
     study_address = models.CharField(default="", blank=True, max_length=100)
@@ -67,20 +69,17 @@ class User(AbstractUser):
 
     start_ksg = models.DateField(auto_now_add=True)
     ksg_status = StatusField()
-    ksg_role = StatusField(choices_name='ROLES')
+    ksg_role = StatusField(choices_name="ROLES")
 
     biography = models.TextField(blank=True, default="", max_length=200)
     in_relationship = models.BooleanField(null=True, default=False)
 
-    allergies = models.ManyToManyField(
-        Allergy,
-        blank=True,
-        related_name='users'
+    allergies = models.ManyToManyField(Allergy, blank=True, related_name="users")
+
+    have_made_out_with = models.ManyToManyField(
+        "self", through="UsersHaveMadeOut", symmetrical=False
     )
-
-    have_made_out_with = models.ManyToManyField('self', through='UsersHaveMadeOut', symmetrical=False)
     anonymize_in_made_out_map = models.BooleanField(default=True, null=False)
-
 
     def __str__(self):
         return f"User {self.get_full_name()}"
@@ -90,8 +89,11 @@ class User(AbstractUser):
 
     @property
     def current_commission(self):
-        return f"{self.commission_history.filter(date_ended__isnull=False).first().name}" if self.commission_history.filter(
-            date_ended__isnull=False).first() else None
+        return (
+            f"{self.commission_history.filter(date_ended__isnull=False).first().name}"
+            if self.commission_history.filter(date_ended__isnull=False).first()
+            else None
+        )
 
     def active(self):
         return self.ksg_status == self.STATUS.aktiv
@@ -118,17 +120,35 @@ class User(AbstractUser):
         image does not exist.
         :return: The url of the `profile_image` attribute, if it exists, otherwise None.
         """
-        if self.profile_image and hasattr(self.profile_image, 'url'):
+        if self.profile_image and hasattr(self.profile_image, "url"):
             return self.profile_image.url
         return None
+
+    @property
+    def initials(self):
+        full_name = self.get_full_name() or ""
+
+        if len(full_name) < 2:
+            full_name = self.username
+
+        if not " " in full_name:
+            return full_name[0:2].upper()
+        else:
+            split = re.split("\W+", full_name)
+            first_part, last_part = split[0], split[-1]
+            return f"{first_part[0].upper()}{last_part[0].upper()}"
 
     @property
     def all_having_made_out_with(self) -> QuerySet:
         return self.made_out_with_left_side.all() | self.made_out_with_right_side.all()
 
+    @property
+    def future_shifts(self):
+        return self.shift_set.filter(slot__group__meet_time__gte=timezone.now())
+
     class Meta:
-        default_related_name = 'users'
-        verbose_name_plural = 'Users'
+        default_related_name = "users"
+        verbose_name_plural = "Users"
 
 
 class UsersHaveMadeOut(TimeStampedModel):
@@ -136,15 +156,20 @@ class UsersHaveMadeOut(TimeStampedModel):
     UsersHaveMadeOut is a model representing a pair of users having made out. We model this with an
     explicit model to associate extra data to it.
     """
-    user_one = models.ForeignKey(User, on_delete=models.CASCADE, related_name='made_out_with_left_side')
-    user_two = models.ForeignKey(User, on_delete=models.CASCADE, related_name='made_out_with_right_side')
+
+    user_one = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="made_out_with_left_side"
+    )
+    user_two = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="made_out_with_right_side"
+    )
 
     objects = UsersHaveMadeOutManager()
 
     class Meta:
         indexes = [
-            models.Index(fields=['user_one', 'user_two']),
-            models.Index(fields=['user_two', 'user_one'])
+            models.Index(fields=["user_one", "user_two"]),
+            models.Index(fields=["user_two", "user_one"]),
         ]
 
     def __str__(self):
