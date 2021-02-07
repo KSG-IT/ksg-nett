@@ -124,12 +124,15 @@
     100% {left: -400%; }
     } 
 
-div#slider { 
+div#slider {
+    height: 500px;
+    display: inline-block;
     overflow: hidden; 
 }
 
 div#slider figure img { 
-    width: 20%; 
+    width: 20%;
+    height: auto;
     float: left; 
 }
 
