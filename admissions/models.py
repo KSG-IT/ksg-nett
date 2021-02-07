@@ -13,7 +13,7 @@ class Admission(models.Model):
 
 
 class Applicant(models.Model):
-    admissions = models.ForeignKey(Admission, on_delete=models.CASCADE, related_name="admissions")
+    admissions = models.ForeignKey(Admission, on_delete=models.CASCADE, related_name="applicants")
     first_name = models.CharField(null=False, max_length=100)
     last_name = models.CharField(null=False, max_length=100)
     
