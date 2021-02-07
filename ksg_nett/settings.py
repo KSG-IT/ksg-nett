@@ -58,7 +58,8 @@ INSTALLED_APPS = [
     'summaries',
     'users',
     'sensors',
-    'chat'
+    'chat',
+    'admissions'
 ]
 
 MIDDLEWARE = [
