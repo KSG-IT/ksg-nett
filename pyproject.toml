@@ -26,6 +26,7 @@ coveralls = "^2.1.2"
 graphene-django = "^2.13.0"
 graphene-django-cud = "^0.7.1"
 django-filter = "^2.4.0"
+pyjwt = "^1.7.1"
 
 [tool.poetry.dev-dependencies]
 coveralls = "^2.1.2"
