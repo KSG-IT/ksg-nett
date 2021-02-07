@@ -134,7 +134,6 @@ class UserUpdateViewTest(TestCase):
             'study_address': self.user.study_address,
             'in_relationship': self.user.in_relationship,
             'ksg_status': self.user.ksg_status,
-            'commission': self.user.commission.id
         }
 
     def test__update_user_view_valid_request__updates_user_and_returns_302(self):
