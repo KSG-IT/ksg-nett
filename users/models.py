@@ -10,7 +10,6 @@ from model_utils import Choices
 from model_utils.fields import StatusField
 from model_utils.models import TimeStampedModel
 
-from commissions.models import Commission
 from common.util import get_semester_year_shorthand
 from users.managers import UsersHaveMadeOutManager
 
@@ -72,14 +71,6 @@ class User(AbstractUser):
 
     biography = models.TextField(blank=True, default="", max_length=200)
     in_relationship = models.BooleanField(null=True, default=False)
-    commission = models.ForeignKey(
-        Commission,
-        default=None,
-        blank=True,
-        null=True,
-        related_name='holders',
-        on_delete=models.SET_NULL
-    )
 
     allergies = models.ManyToManyField(
         Allergy,
@@ -99,7 +90,8 @@ class User(AbstractUser):
 
     @property
     def current_commission(self):
-        return f"{self.commission.name}" if self.commission else None
+        return f"{self.commission_history.filter(date_ended__isnull=False).first().name}" if self.commission_history.filter(
+            date_ended__isnull=False).first() else None
 
     def active(self):
         return self.ksg_status == self.STATUS.aktiv
@@ -133,7 +125,6 @@ class User(AbstractUser):
     @property
     def all_having_made_out_with(self) -> QuerySet:
         return self.made_out_with_left_side.all() | self.made_out_with_right_side.all()
-
 
     class Meta:
         default_related_name = 'users'

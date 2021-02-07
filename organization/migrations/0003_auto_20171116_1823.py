@@ -20,7 +20,6 @@ class Migration(migrations.Migration):
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('name', models.CharField(choices=[('arrangement', 'Arrangement'), ('bar', 'Bargjengen'), ('bryggeriet', 'Daglighallen mikrobryggeri'), ('daglighallen', 'Daglighallen'), ('edgar', 'Edgar'), ('lychebar', 'Lyche Bar'), ('lychekjokken', 'Lyche Kjøkken'), ('sprit', 'Spritgjengen'), ('styret', 'Styret'), ('okonomi', 'Økonomi')], max_length=32, unique=True)),
                 ('description', models.CharField(blank=True, max_length=1024, null=True)),
-                ('holders', models.ManyToManyField(blank=True, related_name='positions', to=settings.AUTH_USER_MODEL)),
             ],
         ),
         migrations.AlterModelOptions(

@@ -27,7 +27,6 @@ urlpatterns = [
     path('', include('common.urls')),
     path('external/', include('external.urls')),
     path('internal/', include('internal.urls')),
-    path('organization/', include('organization.urls')),
     path('users/', include('users.urls')),
 
     # Developer
