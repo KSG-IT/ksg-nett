@@ -26,12 +26,7 @@ class UserNode(DjangoObjectType):
         return self.profile_image_url
 
     def resolve_initials(self: User, info, **kwargs):
-        full_name = self.get_full_name()
-        if " " not in full_name:
-            return full_name[0:2].upper()
-        else:
-            split = full_name.split(" ")
-            return split[0][0].upper() + split[1][0].upper()
+        return self.initials
 
     @classmethod
     def get_node(cls, info, id):
@@ -50,8 +45,7 @@ class UserQuery(graphene.ObjectType):
         return info.context.user
 
     def resolve_all_users(self, info, *args, **kwargs):
-        users = User.objects.all()
-        return users
+        return User.objects.all()
 
 
 class CreateUserMutation(DjangoCreateMutation):

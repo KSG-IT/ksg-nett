@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
+from typing import Optional
 
 from django.db import models
+from django.utils import timezone
 from users.models import User
 
 
@@ -22,8 +24,9 @@ class InternalGroup(models.Model):
     name = models.CharField(unique=True, max_length=32)
     type = models.CharField(max_length=32, null=False, blank=False, choices=Type.choices)
     description = models.TextField(max_length=2048, blank=True, null=True)
+    group_image = models.ImageField(upload_to='internalgroups', null=True, blank=True)
 
-    @property  # consider this not being a property seeing as its more "computationally" expensive than normal properties?
+    @property
     def active_members(self):
         """
         Returns all group positions membership with a FK to positions with a FK to this instance. Returns
@@ -35,6 +38,12 @@ class InternalGroup(models.Model):
 
         group_members.sort(key=lambda x: x.user.get_full_name())
         return group_members
+
+    @property
+    def group_image_url(self) -> Optional[str]:
+        if self.group_image and hasattr(self.group_image, 'url'):
+            return self.group_image.url
+        return None
 
     @property
     def active_members_count(self) -> int:
@@ -52,7 +61,7 @@ class InternalGroupPositionMembership(models.Model):
     An intermediary model between a user and a InternalGroupPosition with additional information
     regarding membership
     """
-    date_joined = models.DateField(auto_now_add=True)
+    date_joined = models.DateField(default=timezone.now, null=False, blank=False)
     date_ended = models.DateField(
         default=None,
         null=True,
@@ -61,7 +70,7 @@ class InternalGroupPositionMembership(models.Model):
 
     user = models.ForeignKey("users.User", on_delete=models.CASCADE)
     position = models.ForeignKey("organization.InternalGroupPosition", related_name="memberships",
-                                 on_delete=models.DO_NOTHING)
+                                 on_delete=models.CASCADE)
 
 
 class InternalGroupPosition(models.Model):
@@ -70,17 +79,23 @@ class InternalGroupPosition(models.Model):
     """
 
     class Meta:
-        unique_together = ("name", "internal_group",)
+        unique_together = ("name", "internal_group", "type")
 
-    # feels natural to have the type here, like functionary or gang-member, but how do we deal with it as an
-    # interest group? Do we just have null=True and then not set it?
-    # Then again we have to make distinctions between being active/retired funk/gjeng or a hangaround. Just
-    # say fuckit and keep it as-is in the users.User model? Solve it at business-logic level through views?
+    class Type(models.TextChoices):
+        FUNCTIONARY = "functionary"
+        GANG_MEMBER = "gang-member"
+        INTEREST_GROUP_MEMBER = "interest-group-member"
+        ACTIVE_FUNCTIONARY_PANG = "active-functionary-pang"
+        OLD_FUNCTIONARY_PANG = "old-functionary-pang"
+        ACTIVE_GANG_MEMBER_PANG = "active-gang-member-pang"
+        OLD_GANG_MEMBER_PANG = "old-gang-member-pang"
+        HANGAROUND = "hangaround"
 
     name = models.CharField(unique=True, max_length=32)
     internal_group = models.ForeignKey(InternalGroup, null=False, blank=False, on_delete=models.CASCADE,
                                        related_name="positions")
     description = models.CharField(max_length=1024, blank=True, null=True)
+    type = models.CharField(max_length=32, choices=Type.choices, null=False, blank=False)
     holders = models.ManyToManyField(
         User,
         related_name='positions',
@@ -109,13 +124,6 @@ class Commission(models.Model):
     """
 
     name = models.CharField(max_length=32, unique=True)
-    manager = models.ForeignKey(  # does this thing even make sense to have?
-        InternalGroupPosition,
-        null=True,
-        blank=True,
-        on_delete=models.DO_NOTHING
-    )
-
     holders = models.ManyToManyField(
         User,
         related_name="comissions",
@@ -138,11 +146,6 @@ class CommissionMembership(models.Model):
     commission = models.ForeignKey("organization.Commission", on_delete=models.DO_NOTHING, related_name="memberships")
     date_started = models.DateField(auto_now_add=True)
     date_ended = models.DateField(default=None, null=True, blank=True)
-
-    # What happens if a person is personal first semester and is it again their last semester? Just spawn a
-    # new instance? Doesnt make sense to extend it, but it feels clunky regardless
-
-    # Add a flag for `in_charge` or something? Does this problem actually need to be solved programaticall
 
 
 class Committee(models.Model):

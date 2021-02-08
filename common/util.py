@@ -1,7 +1,11 @@
 import re
+from io import BytesIO
+from sys import getsizeof
 from datetime import datetime, date
 from typing import Union, List, Tuple
+from PIL import Image
 
+from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.utils import timezone
 
 
@@ -163,3 +167,29 @@ def is_valid_semester_year_shorthand(shorthand: str) -> bool:
         return False
 
     return re.match(r'[HV]\d{2}', shorthand) is not None
+
+
+def compress_image(image, max_width, max_height, quality):
+    """
+    Utility function which compresses image based on parameters such as maximum width and height
+    in addition to a quality reduction as a percentage of original image quality.
+    :param image: Image to be compressed
+    :param max_width: Maximum width of compressed image
+    :param max_height: Maximum height of compressed image
+    :param quality: Quality reduction in whole number percentage 0-100
+    :return InMemoryUploadedFile: Returns compressed image as Django InMemoryUploadedFile object
+    """
+    temp_image = Image.open(image).convert("RGB")
+    temp_image.thumbnail((max_width, max_height))
+    output_io_stream = BytesIO()
+    temp_image.save(output_io_stream, format="JPEG", quality=quality)
+    output_io_stream.seek(0)
+    compressed_image = InMemoryUploadedFile(
+        output_io_stream,
+        "ImageField",
+        "%s.jpg" % image.name.split(".")[0],
+        "image/jpeg",
+        getsizeof(output_io_stream),
+        None,
+    )
+    return compressed_image
