@@ -7,7 +7,7 @@ from common.util import compress_image
 
 
 @login_required
-def internal_groups_detail(request, internal_group_id):
+def internal_group_detail(request, internal_group_id):
     if request.method == "GET":
         try:
             internal_group = InternalGroup.objects.get(pk=internal_group_id)
@@ -35,7 +35,7 @@ def internal_groups_detail(request, internal_group_id):
         }
         return render(
             request,
-            template_name="organization/internal_groups_detail.html",
+            template_name="organization/internal_group_detail.html",
             context=ctx,
         )
     else:
@@ -43,7 +43,7 @@ def internal_groups_detail(request, internal_group_id):
 
 
 @login_required
-def internal_groups_edit(request, internal_group_id):
+def internal_group_edit(request, internal_group_id):
     internal_group = get_object_or_404(InternalGroup, pk=internal_group_id)
     form = InternalGroupForm(
         request.POST or None, request.FILES or None, instance=internal_group
@@ -55,7 +55,7 @@ def internal_groups_edit(request, internal_group_id):
     }
     if request.method == "GET":
         return render(
-            request, template_name="organization/internal_groups_edit.html", context=ctx
+            request, template_name="organization/internal_group_edit.html", context=ctx
         )
 
     elif request.method == "POST":
@@ -67,13 +67,13 @@ def internal_groups_edit(request, internal_group_id):
             pre_commit_form.save()
             return redirect(
                 reverse(
-                    internal_groups_detail,
+                    internal_group_detail,
                     kwargs={"internal_group_id": internal_group_id},
                 )
             )
         return render(
             request,
-            template_name="organization/internal_groups_detail.html",
+            template_name="organization/internal_group_detail.html",
             context={},
         )
     else:
