@@ -86,7 +86,7 @@ class InternalGroupPosition(models.Model):
         unique_together = ("name", "internal_group", "type")
 
     class Type(models.TextChoices):
-        FUNCTIONARY = "functionary", "Functionary"
+        FUNCTIONARY = "functionary", _("Functionary")
         ACTIVE_FUNCTIONARY_PANG = "active-functionary-pang", _(
             "Active functionary pang"
         )
