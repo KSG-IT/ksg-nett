@@ -1,0 +1,52 @@
+{% extends 'internal/base.html' %}
+{% load static %}
+{% load i18n %}
+{% block header %}
+  <script src="{% static "common/js/helpers.js" %}"></script>
+  <link rel="stylesheet" href="{% static 'organization/css/internal_group_edit.css' %}">
+  <link rel="stylesheet" href="{% static 'organization/css/organization.css' %}">
+{% endblock %}
+{% block body_content %}
+  <div class="default-container default-top-offset">
+    <div class="minor-left-panel">
+      <div class="organization__internal_group_sidebar_container">
+        <a href="{% url "internal_groups_detail" internal_group_id=internal_group.id %}"
+           class="resetlink summariestypedetail__back">
+          <i class="material-icons">arrow_back</i>
+        </a>
+      </div>
+    </div>
+    <!-- Main content window of the detail view of current Internal group to edit-->
+    <div class="default-right-panel default-top-offset organization__internal_group_content_container">
+      <div class="organization__internal_group_title">{% translate "Edit group " %}{{ internal_group.name }}</div>
+      <form method="POST" enctype="multipart/form-data">
+        {{ internal_group_form.non_field_errors }}
+        {% csrf_token %}
+
+        <!-- Section for previewing and uploading a new group image-->
+        <div class="organization__internal_group_edit_image">
+          {{ internal_group_form.group_image.errors }}
+          <label for="{{ internal_group_form.group_image.id_for_label }}"
+                 class="organization__internal_group_edit_label">{% translate "Group image" %}</label>
+          <div class="organization__internal_group_image_container">
+            {% if internal_group_form.instance.group_image %}
+              <img id="imagePreview" src="{{ internal_group_form.instance.group_image.url }}"
+                   class="organization__internal_group_image">
+            {% endif %}
+            <label>{% translate "New image" %}</label>
+            <input type="file" name="group_image" accept="image/*" id="id_group_image" onchange=swapImage(this)>
+          </div>
+        </div>
+
+        <!-- Section for editing the internal group description -->
+        <div class="organization__internal_group_description_edit_container">
+          {{ internal_group_form.description.errors }}
+          <label for="{{ internal_group_form.description.id_for_label }}"
+                 class="organization__internal_group_edit_label">{% translate "Description" %}</label>
+          {{ internal_group_form.description }}
+        </div>
+        <input type="submit" class="primary-blue-button">
+      </form>
+    </div>
+  </div>
+{% endblock %}

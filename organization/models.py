@@ -5,12 +5,13 @@ from typing import Optional
 from django.db import models
 from django.utils import timezone
 from users.models import User
+from django.utils.translation import ugettext_lazy as _
 
 
 class InternalGroup(models.Model):
     class Meta:
-        default_related_name = 'groups'
-        verbose_name_plural = 'Internal groups'
+        default_related_name = "groups"
+        verbose_name_plural = "Internal groups"
 
     class Type(models.TextChoices):
         """
@@ -18,13 +19,16 @@ class InternalGroup(models.Model):
         Denotes the internal group type, either a interest-group, e.g. KSG-iT, Påfyll etc. or an internal
         grouping, e.g. Lyche bar og Edgar
         """
-        INTEREST_GROUP = "interest-group"
-        INTERNAL_GROUP = "internal-group"
+
+        INTEREST_GROUP = "interest-group", _("Interest group")
+        INTERNAL_GROUP = "internal-group", _("Internal group")
 
     name = models.CharField(unique=True, max_length=32)
-    type = models.CharField(max_length=32, null=False, blank=False, choices=Type.choices)
+    type = models.CharField(
+        max_length=32, null=False, blank=False, choices=Type.choices
+    )
     description = models.TextField(max_length=2048, blank=True, null=True)
-    group_image = models.ImageField(upload_to='internalgroups', null=True, blank=True)
+    group_image = models.ImageField(upload_to="internalgroups", null=True, blank=True)
 
     @property
     def active_members(self):
@@ -41,7 +45,7 @@ class InternalGroup(models.Model):
 
     @property
     def group_image_url(self) -> Optional[str]:
-        if self.group_image and hasattr(self.group_image, 'url'):
+        if self.group_image and hasattr(self.group_image, "url"):
             return self.group_image.url
         return None
 
@@ -61,16 +65,16 @@ class InternalGroupPositionMembership(models.Model):
     An intermediary model between a user and a InternalGroupPosition with additional information
     regarding membership
     """
+
     date_joined = models.DateField(default=timezone.now, null=False, blank=False)
-    date_ended = models.DateField(
-        default=None,
-        null=True,
-        blank=True
-    )
+    date_ended = models.DateField(default=None, null=True, blank=True)
 
     user = models.ForeignKey("users.User", on_delete=models.CASCADE)
-    position = models.ForeignKey("organization.InternalGroupPosition", related_name="memberships",
-                                 on_delete=models.CASCADE)
+    position = models.ForeignKey(
+        "organization.InternalGroupPosition",
+        related_name="memberships",
+        on_delete=models.CASCADE,
+    )
 
 
 class InternalGroupPosition(models.Model):
@@ -82,24 +86,36 @@ class InternalGroupPosition(models.Model):
         unique_together = ("name", "internal_group", "type")
 
     class Type(models.TextChoices):
-        FUNCTIONARY = "functionary"
-        GANG_MEMBER = "gang-member"
-        INTEREST_GROUP_MEMBER = "interest-group-member"
-        ACTIVE_FUNCTIONARY_PANG = "active-functionary-pang"
-        OLD_FUNCTIONARY_PANG = "old-functionary-pang"
-        ACTIVE_GANG_MEMBER_PANG = "active-gang-member-pang"
-        OLD_GANG_MEMBER_PANG = "old-gang-member-pang"
-        HANGAROUND = "hangaround"
+        FUNCTIONARY = "functionary", _("Functionary")
+        ACTIVE_FUNCTIONARY_PANG = "active-functionary-pang", _(
+            "Active functionary pang"
+        )
+        OLD_FUNCTIONARY_PANG = "old-functionary-pang", _("Old functionary pang")
+        GANG_MEMBER = "gang-member", _("Gang member")
+        ACTIVE_GANG_MEMBER_PANG = "active-gang-member-pang", _(
+            "Active gang member pang"
+        )
+        OLD_GANG_MEMBER_PANG = "old-gang-member-pang", _("Old gang member pang")
+        INTEREST_GROUP_MEMBER = "interest-group-member", _("Interest group member")
+        HANGAROUND = "hangaround", _("Hangaround")
+        TEMPORARY_LEAVE = "temporary-leave", _("Temporary leave")
 
-    name = models.CharField(unique=True, max_length=32)
-    internal_group = models.ForeignKey(InternalGroup, null=False, blank=False, on_delete=models.CASCADE,
-                                       related_name="positions")
+    name = models.CharField(max_length=32)
+    internal_group = models.ForeignKey(
+        InternalGroup,
+        null=False,
+        blank=False,
+        on_delete=models.CASCADE,
+        related_name="positions",
+    )
     description = models.CharField(max_length=1024, blank=True, null=True)
-    type = models.CharField(max_length=32, choices=Type.choices, null=False, blank=False)
+    type = models.CharField(
+        max_length=32, choices=Type.choices, null=False, blank=False
+    )
     holders = models.ManyToManyField(
         User,
-        related_name='positions',
-        through="organization.InternalGroupPositionMembership"
+        related_name="positions",
+        through="organization.InternalGroupPositionMembership",
     )
 
     @property
@@ -111,10 +127,7 @@ class InternalGroupPosition(models.Model):
         return self.active_memberships.count()
 
     def __str__(self):
-        return "Position %s" % self.name
-
-    def __repr__(self):
-        return "Position(name=%s)" % self.name
+        return f"{self.name} {self.get_type_display().lower()}"  # https://docs.djangoproject.com/en/3.1/ref/models/instances/#django.db.models.Model.get_FOO_display
 
 
 class Commission(models.Model):
@@ -142,8 +155,17 @@ class Commission(models.Model):
 
 
 class CommissionMembership(models.Model):
-    user = models.ForeignKey("users.User", null=False, on_delete=models.CASCADE, related_name="commission_history")
-    commission = models.ForeignKey("organization.Commission", on_delete=models.DO_NOTHING, related_name="memberships")
+    user = models.ForeignKey(
+        "users.User",
+        null=False,
+        on_delete=models.CASCADE,
+        related_name="commission_history",
+    )
+    commission = models.ForeignKey(
+        "organization.Commission",
+        on_delete=models.DO_NOTHING,
+        related_name="memberships",
+    )
     date_started = models.DateField(auto_now_add=True)
     date_ended = models.DateField(default=None, null=True, blank=True)
 
@@ -151,7 +173,4 @@ class CommissionMembership(models.Model):
 class Committee(models.Model):
     # not sure if this model makes sense whatsoever. Deal with this later
 
-    members = models.ManyToManyField(
-        Commission,
-        related_name="committees"
-    )
+    members = models.ManyToManyField(Commission, related_name="committees")

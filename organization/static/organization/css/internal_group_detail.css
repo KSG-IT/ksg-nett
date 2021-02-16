@@ -32,11 +32,15 @@
 }
 
 /* Main content css*/
+.organization__internal_group_title_container {
+    display: inline-flex;
+    justify-content: space-between;
+}
+
 .organization__internal_group_title {
     font-weight: bold;
     font-size: 32px;
     margin-bottom: 35px;
-    display: inline-block;
 }
 
 .organization__internal_group_description {
