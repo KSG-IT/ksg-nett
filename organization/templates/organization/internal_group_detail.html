@@ -2,7 +2,7 @@
 {% load static %}
 {% load i18n %}
 {% block header %}
-  <link rel="stylesheet" href="{% static 'organization/css/internal_groups.css' %}">
+  <link rel="stylesheet" href="{% static 'organization/css/internal_group_detail.css' %}">
   <link rel="stylesheet" href="{% static 'organization/css/organization.css' %}">
 {% endblock %}
 {% block body_content %}
@@ -28,7 +28,14 @@
     </div>
     <!-- Main content window of the detail view of current Internal group -->
     <div class="default-right-panel default-top-offset organization__internal_group_content_container">
-      <div class="organization__internal_group_title">{{ internal_group.name }}</div>
+      <div class="organization__internal_group_title_container">
+        <div class="organization__internal_group_title">{{ internal_group.name }}</div>
+        {% if user.is_superuser %}
+          <a class="resetlink" href="{{ internal_group.id }}/edit">
+            <span class="material-icons">edit</span>
+          </a>
+        {% endif %}
+      </div>
       <!-- Only render this block if the group image actually exists -->
       {% if internal_group.group_image_url %}
         <div class="organization__internal_group_image_container">
