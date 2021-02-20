@@ -74,7 +74,7 @@ class SociProduct(TimeFramedModel):
     name = models.CharField(max_length=50)
     price = models.IntegerField()
     description = models.TextField(blank=True, null=True, default=None, max_length=200)
-    icon = models.CharField(max_length=1, blank=True, null=True)
+    icon = models.CharField(max_length=2, blank=True, null=True)
 
     def __str__(self):
         return f"SociProduct {self.name} costing {self.price} kr"
