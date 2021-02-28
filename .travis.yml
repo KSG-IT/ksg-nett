@@ -8,9 +8,3 @@ install:
 script:
 - make test-coverage
 after_success: coveralls
-deploy:
-  provider: heroku
-  api_key:
-    secure: NVNn2m34Sd30Vm6t/61aKJck4eMTe4BI3vt/lKHje6J9IrOF4aUo2ea/2L8kmXbAjreE9qif5jciH7wJD1X1ErbQkd84hWYaAWcqruWyANdW3BBzoHICpUIr8DuQCLSpj+EmGS+ZQjGz4GgQm/Xc0JGLPV4HJcLIRgcXU9gPHizI2S/dC5AOzaPjrfg07pD6O6FMyi/haDOLOZbjJCAVW5TjHhUv1ZzGayfAw6z0Cvw623xU/1CU6dNah/PcDVzM5m+HNHs93/G13O7oHEXcZhzhs2ZrcWJ7v4f0HsJN+mJU+DfbUp1QnnMYpdUUkVfw/MTboMkhzsj+TNPe0LVP14DezL/XThH/8TE9N6gyF7fca23moEwYt7eYleSLi6mtRrOj1JRhWQQ1fweQI8QcApyKSSJKtwOQ6buYhylSmZ67+qT7i7RBQ5mdKTdrZ1davOLjifpESQDaVcfrwNkydW1PDyzeDrwQG8InWDY+kY84a08fSpQ1tErYKnL4dxGFFoAXJWsSEIQuc2hmr/hs23h+shD3MWdOBgsOmLd+Z5vOldGXCDM7caICqQ3hxdzyqbGW3F4BnR/qlGdlQKrTn5dhdXH5/w8NoteBvZhoLGuZ+1lb59Z+e08KXeDnftU6tgy5cIZEJ6crN3PvujPcZGf7V2jaNRDB3HBvFSg64QE=
-  on: develop
-  run: "python manage.py migrate"
