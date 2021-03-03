@@ -37,13 +37,13 @@ class SociBankAccountInline(admin.StackedInline):
 
 
 class MyUserAdmin(UserAdmin):
-    list_display = ['pk', 'full_name', 'ksg_role', 'active']
+    list_display = ['pk', 'full_name', 'active']
     form = MyUserChangeForm
     add_form = MyUserCreationForm
     fieldsets = UserAdmin.fieldsets + (
         ('Personalia', {'fields': ('date_of_birth', 'study',)}),
         ('Contact', {'fields': ('phone', 'study_address', 'home_address',)}),
-        ('KSG options', {'fields': ('ksg_status', 'ksg_role',)}),
+        ('KSG options', {'fields': ('ksg_status',)}),
         ('Media', {'fields': ('profile_image',)}),
         ('Additional info', {'fields': ('biography', 'in_relationship', 'allergies', 'anonymize_in_made_out_map')})
     )
