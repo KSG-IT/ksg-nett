@@ -69,7 +69,7 @@ class InternalGroupPositionMembership(models.Model):
     date_joined = models.DateField(default=timezone.now, null=False, blank=False)
     date_ended = models.DateField(default=None, null=True, blank=True)
 
-    user = models.ForeignKey("users.User", on_delete=models.CASCADE)
+    user = models.ForeignKey("users.User", on_delete=models.CASCADE, related_name="internal_group_position_history")
     position = models.ForeignKey(
         "organization.InternalGroupPosition",
         related_name="memberships",
