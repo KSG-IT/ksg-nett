@@ -48,6 +48,13 @@ class SociBankAccount(models.Model):
             'deposits': self.deposits.all()
         }
 
+    @property
+    def money_spent(self) -> int:
+        purchase_totals = sum(order.product.price for order in self.transaction_history["product_orders"].all())
+        transfers = sum(transfer.amount for transfer in self.source_transfers.all())
+        return purchase_totals + transfers
+
+
     def __str__(self):
         return f"Soci Bank Account for {self.user} containing {self.balance} kr"
 
@@ -224,6 +231,7 @@ class Deposit(TimeStampedModel):
         null=True,
         on_delete=models.SET_NULL
     )
+    
     description = models.TextField(blank=True)
     amount = models.IntegerField(blank=False, null=False)
     receipt = models.ImageField(upload_to=_receipt_upload_location, blank=True, null=True, default=None)
