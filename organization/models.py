@@ -4,7 +4,6 @@ from typing import Optional
 
 from django.db import models
 from django.utils import timezone
-from users.models import User
 from organization.consts import InternalGroupPositionType
 from django.utils.translation import ugettext_lazy as _
 
@@ -99,7 +98,7 @@ class InternalGroupPosition(models.Model):
         max_length=32, choices=InternalGroupPositionType.choices, null=False, blank=False
     )
     holders = models.ManyToManyField(
-        User,
+        "users.User",
         related_name="positions",
         through="organization.InternalGroupPositionMembership",
     )
@@ -124,7 +123,7 @@ class Commission(models.Model):
 
     name = models.CharField(max_length=32, unique=True)
     holders = models.ManyToManyField(
-        User,
+        "users.User",
         related_name="comissions",
         through="organization.CommissionMembership",
     )
