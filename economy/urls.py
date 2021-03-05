@@ -1,4 +1,5 @@
 from django.urls import path
+
 from . import views
 
 urlpatterns = [
@@ -8,6 +9,7 @@ urlpatterns = [
     path('deposit/<int:deposit_id>/approve', views.deposit_approve, name='economy_approve_deposit'),
     path('deposit/<int:deposit_id>/invalidate', views.deposit_invalidate, name='economy_invalidate_deposit'),
     path('deposit/<int:deposit_id>/edit', views.deposit_edit, name='economy_edit_deposit'),
+    path('deposit/<int:deposit_id>/delete', views.deposit_delete, name='economy_edit_delete'),
     path("soci-sessions", views.soci_sessions, name="economy_soci_sessions"),
     #path("soci-sessions-closed", views.soci_sessions_closed, name="economy_soci_sessions_closed"),
     #path("soci-sessions-open", views.soci_sessions_open, name="economy_soci_sessions_open"),

@@ -19,7 +19,9 @@ def economy_home(request):
     if request.method == "GET":
         ctx = {
             'deposit_form': DepositForm(),
-            'current_user': request.user
+            'current_user': request.user,
+            'latest_purchases': request.user.bank_account.product_orders.all().order_by("-ordered_at")[0:5],
+            'latest_deposits': request.user.bank_account.deposits.all().order_by("-created")[0:5]
         }
         return render(request, template_name="economy/economy_home.html", context=ctx)
 
@@ -88,6 +90,16 @@ def deposit_edit(request, deposit_id):
     else:
         return HttpResponse(status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
+def deposit_delete(request, deposit_id):
+    print("HALLO I LUKEN")
+    if request.method == "POST":
+        deposit = get_object_or_404(Deposit, pk=deposit_id) 
+        print(deposit)
+        deposit.delete()
+
+        return redirect(reverse(economy_home))
+    else: 
+        return HttpResponse(status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
 # TODO: Refactor so it looks cleaner
 def deposit_detail(request, deposit_id):
