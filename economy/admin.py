@@ -37,6 +37,11 @@ class DepositAdmin(admin.ModelAdmin):
 class SociSessionAdmin(admin.ModelAdmin):
     pass
 
+
 @admin.register(ProductOrder)
 class ProductOrderAdmin(admin.ModelAdmin):
-    pass
+    list_display = ['id', 'product', 'order_size', 'source', 'cost']
+
+    @staticmethod
+    def cost(product_order: ProductOrder):
+        return product_order.cost

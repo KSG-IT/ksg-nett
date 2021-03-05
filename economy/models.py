@@ -3,6 +3,7 @@ from typing import Dict, List, Optional, Union
 
 from api.exceptions import NoSociSessionError
 from django.conf import settings
+from django.core.validators import MinValueValidator
 from django.db import models
 from django.db.models import QuerySet
 from django.utils import timezone
@@ -147,13 +148,13 @@ class ProductOrder(models.Model):
     )
     ordered_at = models.DateTimeField(auto_now_add=True)
 
-    order_size = models.IntegerField(default=1)
+    order_size = models.IntegerField(default=1, validators=[MinValueValidator(limit_value=1)])
     source = models.ForeignKey(
         'SociBankAccount',
         related_name='product_orders',
-        blank=True,
-        null=True,
-        on_delete=models.SET_NULL
+        blank=False,
+        null=False,
+        on_delete=models.DO_NOTHING
     )
 
     session = models.ForeignKey(
@@ -166,6 +167,10 @@ class ProductOrder(models.Model):
     @property
     def cost(self) -> int:
         return self.order_size * self.product.price
+
+    @property
+    def is_charged(self):
+        return self.session.closed
 
     def __str__(self):
         return f"Order of {self.order_size} {self.product.name}(s)"

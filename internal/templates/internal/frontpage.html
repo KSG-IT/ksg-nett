@@ -10,14 +10,17 @@
 {# TODO: Contemplate splitting the below into multiple reusable sub-templates. #}
 {% block body_content %}
     <div class="frontpage">
-        <div class="frontpage__top_row">
-            <div class="frontpage__slideshow_container">
-                <i class="fas fa-chevron-left"></i>
-                <div class="frontpage__image">
-
+        <div class="frontpage__top_row">  
+            <div class="frontpage__slideshow_container"> 
+                <div id="slider">
+                    <figure>
+                        {%for image in slideshow%}
+                            <h1>Description: {{image.description}}</h1>
+                            <img src="{{image.image.url}}">
+                        {%endfor%}
+                    </figure>
                 </div>
-                <i class="fas fa-chevron-right"></i>
-            </div>
+            </div> 
             <div class="frontpage__top_right_container">
                 <div class="frontpage__column_rework" style="width: 450px">
                     <h2 class="normal text-left darker-blue">{% trans 'Dine vakter' %}</h2>
@@ -40,6 +43,7 @@
                         </div>
                     {% endfor %}
                 </div>
+
                 <div class="frontpage__column" style="width: 450px">
                     <h2 class="normal text-left darker-blue">{% trans 'Info' %}</h2>
                     <div class="frontpage__information_row">
@@ -63,10 +67,9 @@
                         <span>ksg-it@samfundet.no</span>
                     </div>
                 </div>
-
             </div>
-
         </div>
+
         <div class="frontpage__section">
             <div class="frontpage__column">
                 <h2 class="normal text-left darker-blue">{% trans 'Siste referater' %}</h2>
@@ -114,4 +117,8 @@
             
         </div>
     </div>
+
+    {% load static %}
+    <script src="{% static 'internal/js/frontpage.js' %}"></script>
+
 {% endblock %}

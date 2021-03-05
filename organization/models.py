@@ -1,76 +1,57 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
+from typing import Optional
 
 from django.db import models
-from model_utils import Choices
-from model_utils.fields import StatusField
-
+from django.utils import timezone
 from users.models import User
-
-# Internal groups in KSG
-KSG_INTERNAL_GROUPS = Choices(
-    ("arrangement", "Arrangement"),
-    ("bar", "Bargjengen"),
-    ("bryggeriet", "Daglighallen mikrobryggeri"),
-    ("daglighallen", "Daglighallen"),
-    ("edgar", "Edgar"),
-    ("lychebar", "Lyche Bar"),
-    ("lychekjokken", "Lyche Kjøkken"),
-    ("sprit", "Spritgjengen"),
-    ("styret", "Styret"),
-    ("okonomi", "Økonomi"),
-)
-
-# Positions that can be held while in KSG
-# Note: Should only be available if you are aktiv
-KSG_POSITIONS = Choices(
-    # Arrangement
-    ("arrangementsansvarlig", "Arrangementsansvarlig"),
-    ("arrangementsbartender", "Arrangementsbartender"),
-    # Bargjengen
-    ("barsjef", "Barsjef"),
-    ("bartender", "Bartender"),
-    # Bryggeriet
-    ("bryggfunk", "Bryggfunk"),
-    ("brygger", "Brygger"),
-    # Daglighallen
-    ("daglighallenfunk", "Daglighallenfunk"),
-    ("daglighallenbartender", "Daglighallenbartender"),
-    # Edgar
-    ("kafeansvarlig", "Kaféansvarlig"),
-    ("baristaer", "Barista"),
-    # Lyche bar
-    ("hovmester", "Hovmester"),
-    ("barservitor", "Barservitør"),
-    # Lyche kjøkken
-    ("souschef", "Souschef"),
-    ("kokk", "Kokk"),
-    # Spritgjengen
-    ("spritbarsjef", "Spritbarsjef"),
-    ("spritbartender", "Spritbartender"),
-    # Styret
-    ("styret", "Styret"),
-    # Økonomi
-    ("okonomi", "Økonomi"),
-)
+from django.utils.translation import ugettext_lazy as _
 
 
 class InternalGroup(models.Model):
-    """
-    An internal group within KSG, e.g. Lyche bar
-    """
-    STATUS = KSG_INTERNAL_GROUPS
+    class Meta:
+        default_related_name = "groups"
+        verbose_name_plural = "Internal groups"
 
-    name = StatusField(unique=True)
+    class Type(models.TextChoices):
+        """
+        Making use of https://docs.djangoproject.com/en/3.1/ref/models/fields/#enumeration-types
+        Denotes the internal group type, either a interest-group, e.g. KSG-iT, Påfyll etc. or an internal
+        grouping, e.g. Lyche bar og Edgar
+        """
 
-    description = models.CharField(max_length=1024, blank=True, null=True)
+        INTEREST_GROUP = "interest-group", _("Interest group")
+        INTERNAL_GROUP = "internal-group", _("Internal group")
 
-    members = models.ManyToManyField(
-        User,
-        blank=True,
-        related_name='internal_groups'  # The default django user model already has a `groups` related_name
-        # so we have to make a custom one
+    name = models.CharField(unique=True, max_length=32)
+    type = models.CharField(
+        max_length=32, null=False, blank=False, choices=Type.choices
     )
+    description = models.TextField(max_length=2048, blank=True, null=True)
+    group_image = models.ImageField(upload_to="internalgroups", null=True, blank=True)
+
+    @property
+    def active_members(self):
+        """
+        Returns all group positions membership with a FK to positions with a FK to this instance. Returns
+        only "active" memberships which is defined as memberships without an ending date
+        """
+        group_members = []
+        for position in self.positions.all():
+            group_members.extend(position.active_memberships.all())
+
+        group_members.sort(key=lambda x: x.user.get_full_name())
+        return group_members
+
+    @property
+    def group_image_url(self) -> Optional[str]:
+        if self.group_image and hasattr(self.group_image, "url"):
+            return self.group_image.url
+        return None
+
+    @property
+    def active_members_count(self) -> int:
+        return len(self.active_members)
 
     def __str__(self):
         return "Group %s" % self.name
@@ -78,29 +59,118 @@ class InternalGroup(models.Model):
     def __repr__(self):
         return "Group(name=%s)" % self.name
 
-    class Meta:
-        default_related_name = 'groups'
-        verbose_name_plural = 'Internal groups'
+
+class InternalGroupPositionMembership(models.Model):
+    """
+    An intermediary model between a user and a InternalGroupPosition with additional information
+    regarding membership
+    """
+
+    date_joined = models.DateField(default=timezone.now, null=False, blank=False)
+    date_ended = models.DateField(default=None, null=True, blank=True)
+
+    user = models.ForeignKey("users.User", on_delete=models.CASCADE)
+    position = models.ForeignKey(
+        "organization.InternalGroupPosition",
+        related_name="memberships",
+        on_delete=models.CASCADE,
+    )
 
 
 class InternalGroupPosition(models.Model):
     """
     A position for an internal group, e.g. Hovmester
     """
-    STATUS = KSG_POSITIONS
 
-    name = StatusField(unique=True)
+    class Meta:
+        unique_together = ("name", "internal_group", "type")
 
+    class Type(models.TextChoices):
+        FUNCTIONARY = "functionary", _("Functionary")
+        ACTIVE_FUNCTIONARY_PANG = "active-functionary-pang", _(
+            "Active functionary pang"
+        )
+        OLD_FUNCTIONARY_PANG = "old-functionary-pang", _("Old functionary pang")
+        GANG_MEMBER = "gang-member", _("Gang member")
+        ACTIVE_GANG_MEMBER_PANG = "active-gang-member-pang", _(
+            "Active gang member pang"
+        )
+        OLD_GANG_MEMBER_PANG = "old-gang-member-pang", _("Old gang member pang")
+        INTEREST_GROUP_MEMBER = "interest-group-member", _("Interest group member")
+        HANGAROUND = "hangaround", _("Hangaround")
+        TEMPORARY_LEAVE = "temporary-leave", _("Temporary leave")
+
+    name = models.CharField(max_length=32)
+    internal_group = models.ForeignKey(
+        InternalGroup,
+        null=False,
+        blank=False,
+        on_delete=models.CASCADE,
+        related_name="positions",
+    )
     description = models.CharField(max_length=1024, blank=True, null=True)
-
+    type = models.CharField(
+        max_length=32, choices=Type.choices, null=False, blank=False
+    )
     holders = models.ManyToManyField(
         User,
-        blank=True,
-        related_name='positions'
+        related_name="positions",
+        through="organization.InternalGroupPositionMembership",
     )
 
+    @property
+    def active_memberships(self):
+        return self.memberships.filter(date_ended__isnull=True)
+
+    @property
+    def active_memberships_count(self) -> int:
+        return self.active_memberships.count()
+
     def __str__(self):
-        return "Position %s" % self.name
+        return f"{self.name} {self.get_type_display().lower()}"  # https://docs.djangoproject.com/en/3.1/ref/models/instances/#django.db.models.Model.get_FOO_display
+
+
+class Commission(models.Model):
+    """
+    A commissions (verv) in KSG. A commissions can be shared by many users (e.g. Personal),
+    or created specifically for this internal group (e.g. Hybelbarsjef).
+    """
+
+    name = models.CharField(max_length=32, unique=True)
+    holders = models.ManyToManyField(
+        User,
+        related_name="comissions",
+        through="organization.CommissionMembership",
+    )
+
+    @property
+    def active_holders_count(self):
+        return self.memberships.filter(date_ended__isnull=True).count()
+
+    def __str__(self):
+        return "Commission %s" % (self.name,)
 
     def __repr__(self):
-        return "Position(name=%s)" % self.name
+        return "Commission(name=%s)" % (self.name,)
+
+
+class CommissionMembership(models.Model):
+    user = models.ForeignKey(
+        "users.User",
+        null=False,
+        on_delete=models.CASCADE,
+        related_name="commission_history",
+    )
+    commission = models.ForeignKey(
+        "organization.Commission",
+        on_delete=models.DO_NOTHING,
+        related_name="memberships",
+    )
+    date_started = models.DateField(auto_now_add=True)
+    date_ended = models.DateField(default=None, null=True, blank=True)
+
+
+class Committee(models.Model):
+    # not sure if this model makes sense whatsoever. Deal with this later
+
+    members = models.ManyToManyField(Commission, related_name="committees")

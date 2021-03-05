@@ -1,5 +1,7 @@
 .header{
     padding: 0.5em 4em;
+    width: 100%;
+    min-width: 1200px;
     height: 60px;
     box-sizing: border-box;
     /* The bottom drawer needs an anchor from this div to position itself absolutely */
@@ -88,13 +90,14 @@
 
 .dropbtn {
   background-color: inherit;
-  padding: 16px;
+  padding: 0;
   font-size: 16px;
   border: none;
   cursor: pointer;
 }
 
 .dropdown {
+  margin-right: 16px;
   position: relative;
   display: inline-block;
 }
@@ -126,6 +129,7 @@
 .header__profile_container {
     display: flex;
     flex-flow: row;
+    height: 60px;
 }
 
 .header__profile_container_left {
@@ -146,7 +150,7 @@
 
 .fa-bell {
   position: relative;
-  font-size: 4em;
+  font-size: 18px;
   color: #103242;
   cursor: pointer;
 }
