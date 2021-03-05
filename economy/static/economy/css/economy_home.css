@@ -17,6 +17,10 @@
   padding: 1rem;
 }
 
+.justify-center {
+  justify-content: center;
+}
+
 #economy-home-wrapper {
   display: flex;
   flex-direction: column;
@@ -26,11 +30,17 @@
 
 #economy-home-grid {
   display: grid;
-  grid-template-columns: 3fr 1fr;
+  max-width: 80%;
+  grid-template-columns: 1fr 1fr;
   gap: 10px;
   grid-template-areas:
     "tl tr"
     "bl br";
+}
+
+#economy-home-grid > #spent {
+  grid-area: tr;
+  padding: 1rem;
 }
 
 #economy-home-grid > #balance {
@@ -38,26 +48,26 @@
   padding: 1rem;
 }
 
-#economy-home-grid > #latest-transactions {
-  grid-area: tr;
-  padding: 1rem;
-}
-
-#economy-home-grid > #new-deposit {
+#economy-home-grid > #latest-purchases {
   grid-area: bl;
   padding: 1rem;
 }
+
+/* #economy-home-grid > #new-deposit {
+  grid-area: bl;
+  padding: 1rem;
+} */
 
 #economy-home-grid > #latest-deposits {
   grid-area: br;
   padding: 1rem;
 }
 
-#date {
+.date {
   border-right: 2px solid #e3e7ef;
 }
 
-#icon {
+.icon {
   font-size: 200%;
 }
 
