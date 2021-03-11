@@ -2,7 +2,7 @@ import random
 from factory import Faker, RelatedFactory, sequence, SubFactory
 from factory.django import DjangoModelFactory
 
-from organization.models import InternalGroup, Commission, InternalGroupPosition
+from organization.models import InternalGroup, Commission, InternalGroupPosition, InternalGroupPositionMembership
 
 
 class InternalGroupFactory(DjangoModelFactory):
@@ -21,6 +21,12 @@ class InternalGroupPositionFactory(DjangoModelFactory):
 
     name = Faker('text')
     internal_group = SubFactory(InternalGroupFactory)
+
+class InternalGroupPositionMembershipFactory(DjangoModelFactory):
+    class Meta:
+        model = InternalGroupPositionMembership
+
+
 
 
 class CommissionFactory(DjangoModelFactory):
