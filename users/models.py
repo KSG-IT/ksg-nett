@@ -10,6 +10,7 @@ from model_utils.models import TimeStampedModel
 
 from common.util import get_semester_year_shorthand
 from users.managers import UsersHaveMadeOutManager
+from organization.consts import InternalGroupPositionType
 
 
 class Allergy(models.Model):
@@ -72,7 +73,13 @@ class User(AbstractUser):
 
     @property
     def active(self):
-        return self.ksg_status == self.STATUS.aktiv
+        return self.ksg_status in [
+            InternalGroupPositionType.Type.ACTIVE_FUNCTIONARY_PANG,
+            InternalGroupPositionType.Type.ACTIVE_GANG_MEMBER_PANG,
+            InternalGroupPositionType.Type.FUNCTIONARY,
+            InternalGroupPositionType.Type.GANG_MEMBER,
+            InternalGroupPositionType.Type.HANGAROUND
+        ]
 
     def get_start_ksg_display(self) -> str:
         """
@@ -124,7 +131,11 @@ class User(AbstractUser):
 
     @property
     def ksg_status(self):
-        return "active"
+        return (
+            f"{self.internal_group_position_history.filter(date_ended__isnull=False).first().position.type}"
+            if self.internal_group_position_history.filter(date_ended__isnull=False).first()
+            else None
+        )
 
     class Meta:
         default_related_name = "users"
