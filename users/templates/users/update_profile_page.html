@@ -4,6 +4,7 @@
 {% load ksg_helpers %}
 
 {% block header %}
+    <script src="{% static "common/js/helpers.js" %}"></script>
     <link rel="stylesheet" href="{% static 'users/css/update_profile_page.css' %}">
 {% endblock %}
 {% block body_content %}
@@ -13,26 +14,36 @@
         <title>Rediger profilside</title>
     </head>
     <body>
-    <div class="default-container center main-container__margin">
+    <div class="profilepage default-container default-top-offset">
         <div class="default-flex-column center">
-            <form method="POST">
+            <form method="POST" enctype='multipart/form-data'>
                 {% csrf_token %}
-                <div class="image-name-container">
-                    <div>
-                        {% include 'components/thumb.html' with size='large' url=profile_user.profile_image_url %}
-                    </div>
-                    <div class="image-name-container__names">
-                        <div class="placeholder-input-container">
-                            {{ user_form.first_name.label_tag }}
-                            {{ user_form.first_name }}
-                        </div>
-                        <div class="placeholder-input-container">
-                            {{ user_form.last_name.label_tag }}
-                            {{ user_form.last_name }}
-                        </div>
+                
+                <div class="profile_image_conatiner">
+                    {{ user_form.profile_user.profile_image.errors }}
+                    
+                    <div class="image-container">
+                      {% if profile_user.profile_image %}
+                        <img id="imagePreview" src="{{ profile_user.profile_image.url }}"
+                             class="profile_image">
+                      {% endif %}
+                      <label class="profile_image_label"><i class="fas fa-camera" style="size: 100px;"></i>
+                          <input  type="file" name="profile_image" accept="image/*" id="id_profile_image" onchange=swapImage(this)>
+                          
+                      </label>
                     </div>
                 </div>
-                <div class="input-fields-container">
+
+                <div class="form-container">
+
+                    <div class="placeholder-input-container">
+                        {{ user_form.first_name.label_tag }}
+                        {{ user_form.first_name }}
+                    </div>
+                    <div class="placeholder-input-container">
+                        {{ user_form.last_name.label_tag }}
+                        {{ user_form.last_name }}
+                    </div>
                     <div class="placeholder-input-container">
                         {{ user_form.email.label_tag }}
                         {{ user_form.email }}
@@ -65,12 +76,12 @@
                         {{ user_form.in_relationship.label_tag }}
                         {{ user_form.in_relationship }}
                     </div>
-                    <div class="placeholder-input-container">
+                    <div class="biography-container">
                         {{ user_form.biography.label_tag }}
                         {{ user_form.biography }}
                     </div>
                 </div>
-                <input type="submit" value="Submit">
+                <input class="submit" type="submit" value="Submit">
             </form>
         </div>
 

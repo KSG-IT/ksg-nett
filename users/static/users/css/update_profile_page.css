@@ -1,39 +1,117 @@
-.main-container__margin {
-    margin: 2rem;
+form {
+    width:100%;
+    display:grid;
+    grid-template-columns: 1fr 2fr;
+    grid-template-areas: 
+    'image  form'
+    '.      submit';
 }
 
-.image-name-container {
-    display: flex;
-    flex-flow: row;
-    justify-content: space-evenly;
+.image-container {
+    grid-area: image;
+    margin-top: 3em;
+    margin-bottom: 0.25em;
+    position: relative;
+    width: 400px;
+    height: 400px;
+    padding: 0 50px;
 }
 
-.image-name-container__names {
-    display: flex;
-    flex-flow: column;
-    justify-content: space-evenly;
-    width: 8rem;
+.profile_image_label {
+    border: 3px solid white;
+    border-radius: 50%;
+    padding: 12px 12px;
+    cursor: pointer;
+    position: absolute;
+    z-index: 1;
+    bottom: 50px;
+    right: 70px;
+    background-color: lightgray;
+    font-size: 24px;
+    color: #103242;
 }
 
-.input-fields-container {
+input[type="file"] {
+    display: none;
+}
+
+img {
+    max-width: 100%;
+    height: 100%;
+    border-radius: 50%;
+
+}
+
+.profile_image_label:hover {
+    color: #091c25;
+}
+
+.form-container {
+    grid-area: form;
     display: flex;
     flex-flow: row wrap;
-    width: 30rem;
-
+    justify-content: space-between;
+    width: 100%;
 }
 
 .placeholder-input-container {
     display: flex;
-    flex-flow: column;
-}
-
-.input-fields-container > * {
-    flex: 1 0 45%;
-    margin: 0.1rem;
-
+    flex-flow: row wrap;
+    width: 300px;
+    padding: 20px 0;
+    font-size: 1.17em;
+    color: #103242;
 }
 
 .biography-container {
     width: 100%;
-    height: 10rem;
+    height: 300px;
+    font-size: 1.17em;
+    color: #103242;
+}
+
+input {
+    height: 40px;
+    margin-top: 5px;
+    width: 100%;
+    padding-left: 10px;
+    border: 1px solid rgb(226, 226, 226);
+    border-radius: 5px;
+    color: gray;
+}
+
+select {
+    height: 40px;
+    margin-top: 5px;
+    width: 100%;
+    padding-left: 10px;
+    border: 1px solid rgb(226, 226, 226);
+    border-radius: 5px;
+    color: gray;
+    background: white;
+}
+
+textarea {
+    margin-top: 5px;
+    height: auto;
+    width: 680px;
+    padding: 10px 10px;
+    border: 1px solid rgb(226, 226, 226);
+    border-radius: 5px;
+    color: gray;
+}
+
+.placeholder-input-container:focus-within {
+    color:#091c25;
+}
+
+input[type="submit"] {
+    grid-area: submit;
+    width: 100%;
+    height: 40px;
+    margin: 20px 0;
+    font-size: 1.17em;
+    color: #103242;
+    border: 1px solid #103242;
+    background-color: lightgrey;
 }
