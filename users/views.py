@@ -27,7 +27,7 @@ def user_detail(request, user_id):
 @login_required(login_url='/login/')
 def update_user(request, user_id):
     user = get_object_or_404(User, pk=user_id)
-    form = UserForm(request.POST or None, instance=user)
+    form = UserForm(request.POST or None, request.FILES or None, instance=user)
     ctx = {
         'user_form': form,
         'profile_user': user
