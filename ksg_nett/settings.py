@@ -63,6 +63,7 @@ INSTALLED_APPS = [
     "sensors",
     "chat",
     "admissions",
+    "quiz",
 ]
 
 MIDDLEWARE = [
