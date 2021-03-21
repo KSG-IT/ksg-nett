@@ -13,9 +13,11 @@ from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 
-from users.models import KSG_STATUS_TYPES, UsersHaveMadeOut, User
+from users.models import UsersHaveMadeOut, User
 from users.tests.factories import UserFactory, UsersHaveMadeOutFactory
 from users.views import user_detail, klinekart
+
+from organization.consts import InternalGroupPositionType
 
 
 class UserProfileTest(TestCase):
@@ -66,20 +68,6 @@ class UserProfileTest(TestCase):
                 user.profile_image_url
             )
         )
-
-    def test_active__status_is_active__returns_true(self):
-        user = UserFactory(ksg_status=KSG_STATUS_TYPES.aktiv)
-        self.assertEqual(user.active(), True)
-
-    def test_active__status_is_not_active__returns_false(self):
-        user = UserFactory(ksg_status=KSG_STATUS_TYPES.inaktiv)
-        self.assertEqual(user.active(), False)
-        user.ksg_status = KSG_STATUS_TYPES.permittert
-        user.save()
-        self.assertEqual(user.active(), False)
-        user.ksg_status = KSG_STATUS_TYPES.sluttet
-        user.save()
-        self.assertEqual(user.active(), False)
 
 
 class UserDetailViewTest(TestCase):
@@ -133,7 +121,6 @@ class UserUpdateViewTest(TestCase):
             'home_address': self.user.home_address,
             'study_address': self.user.study_address,
             'in_relationship': self.user.in_relationship,
-            'ksg_status': self.user.ksg_status,
         }
 
     def test__update_user_view_valid_request__updates_user_and_returns_302(self):
