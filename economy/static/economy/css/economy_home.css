@@ -73,7 +73,8 @@
 }
 
 input,
-select {
+select,
+textarea {
   width: 100%;
   padding: 10px 15px;
   margin: 8px 0;
