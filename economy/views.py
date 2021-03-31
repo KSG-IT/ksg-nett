@@ -16,28 +16,26 @@ from economy.models import (Deposit, DepositComment, ProductOrder,
 
 def economy_home(request):
     """Renders the economy homepage for a user. Includes list of deposits and a form for submitting a new deposit"""
+    ctx = {
+        'deposit_form': DepositForm(),
+        'current_user': request.user,
+        'latest_purchases': request.user.bank_account.product_orders.all().order_by("-ordered_at")[0:5],
+        'latest_deposits': request.user.bank_account.deposits.all().order_by("-created")[0:5]
+    }
+
     if request.method == "GET":
-        ctx = {
-            'deposit_form': DepositForm(),
-            'current_user': request.user,
-            'latest_purchases': request.user.bank_account.product_orders.all().order_by("-ordered_at")[0:5],
-            'latest_deposits': request.user.bank_account.deposits.all().order_by("-created")[0:5]
-        }
         return render(request, template_name="economy/economy_home.html", context=ctx)
 
     elif request.method == "POST":  # Should this maybe be handled in a different view?
         form = DepositForm(request.POST, request.FILES)
+        
         if form.is_valid():  # needs handling for when form.is_valid() is False
             obj = form.save(commit=False)
             obj.account = request.user.bank_account
             obj.save()
 
-            ctx = {
-                'deposit_form': DepositForm(),
-                'current_user': request.user
-            }
-            return render(
-                request, template_name="economy/economy_home.html", context=ctx
+            return redirect(
+             reverse(economy_home)
             )
 
 
@@ -91,7 +89,6 @@ def deposit_edit(request, deposit_id):
         return HttpResponse(status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
 def deposit_delete(request, deposit_id):
-    print("HALLO I LUKEN")
     if request.method == "POST":
         deposit = get_object_or_404(Deposit, pk=deposit_id) 
         print(deposit)
@@ -130,6 +127,7 @@ def deposit_detail(request, deposit_id):
             deposit_comment = DepositComment.objects.order_by("created").filter(
                 deposit=deposit
             )
+            
             ctx = {
                 "deposit": deposit,
                 "deposit_comment": deposit_comment,

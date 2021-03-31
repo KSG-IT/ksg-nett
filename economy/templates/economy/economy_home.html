@@ -7,18 +7,17 @@
 {% block body_content %}
 <div id="economy-home-wrapper">
   <div id="economy-home-grid">
-
     <div id="balance">
-    <h1>{% trans "Current buying power" %}</h1>
+      <h1>{% trans "Current buying power" %}</h1>
       <div class="card justify-center">
-        <h1>{{ current_user.bank_account.balance }} kr </h1>
+        <h1>{{ current_user.bank_account.balance }} kr</h1>
       </div>
     </div>
 
     <div id="spent">
-    <h1>{% trans "Total spent" %}</h1>
+      <h1>{% trans "Total spent" %}</h1>
       <div class="card justify-center">
-        <h1>{{ current_user.bank_account.money_spent }} kr </h1>
+        <h1>{{ current_user.bank_account.money_spent }} kr</h1>
       </div>
     </div>
 
@@ -27,21 +26,15 @@
       <div>
         {% for order in latest_purchases %}
         <div class="card">
+          <div class="date">{{order.ordered_at | date:"d.m h:m"}}</div>
 
-          <div class="date">
-            {{order.ordered_at | date:"d.m h:m"}}
-          </div>
-
-          <div class="icon">
-            {{ order.product.icon }}
-          </div>
+          <div class="icon">{{ order.product.icon }}</div>
 
           <div class="d-flex-row-between">
             <div>{{ order.product.name }}</div>
 
             <div>{{ order.product.price }},-</div>
           </div>
-
         </div>
         {% endfor %}
       </div>
@@ -52,15 +45,15 @@
       <div>
         {% for deposit in latest_deposits %}
         <div class="card">
-
           <div class="date icon">
-            {% if deposit.is_valid %}
-            ✅
-            {% else %}
-            <form method="POST" action="/internal/economy/deposit/{{deposit.id}}/delete">
+            {% if deposit.is_valid %} ✅ {% else %}
+            <form
+              method="POST"
+              action="/internal/economy/deposit/{{deposit.id}}/delete"
+            >
               {% csrf_token %}
               <button type="submit">🗑</button>
-             </form> 
+            </form>
             {% endif %}
           </div>
 
@@ -69,10 +62,18 @@
 
             <div>{{ deposit.amount }},-</div>
           </div>
-
         </div>
         {% endfor %}
       </div>
+    </div>
+    
+    <div>
+      <h1>{% translate "New deposit" %}</h1>
+      <form class="deposit-form" method="POST" enctype="multipart/form-data">
+        {% csrf_token %}
+        {{ deposit_form }} 
+        <input type="submit" class="primary-blue-button" />
+      </form>
     </div>
   </div>
 </div>
