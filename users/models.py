@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
 
+import re
 from typing import Optional
 from django.utils import timezone
 from django.contrib.auth.models import AbstractUser
@@ -74,11 +75,11 @@ class User(AbstractUser):
     @property
     def active(self):
         return self.ksg_status in [
-            InternalGroupPositionType.Type.ACTIVE_FUNCTIONARY_PANG,
-            InternalGroupPositionType.Type.ACTIVE_GANG_MEMBER_PANG,
-            InternalGroupPositionType.Type.FUNCTIONARY,
-            InternalGroupPositionType.Type.GANG_MEMBER,
-            InternalGroupPositionType.Type.HANGAROUND
+            InternalGroupPositionType.ACTIVE_FUNCTIONARY_PANG.value,
+            InternalGroupPositionType.ACTIVE_GANG_MEMBER_PANG.value,
+            InternalGroupPositionType.FUNCTIONARY.value,
+            InternalGroupPositionType.GANG_MEMBER.value,
+            InternalGroupPositionType.HANGAROUND.value,
         ]
 
     def get_start_ksg_display(self) -> str:
@@ -132,8 +133,12 @@ class User(AbstractUser):
     @property
     def ksg_status(self):
         return (
-            f"{self.internal_group_position_history.filter(date_ended__isnull=False).first().position.type}"
-            if self.internal_group_position_history.filter(date_ended__isnull=False).first()
+            self.internal_group_position_history.filter(date_ended__isnull=True)
+            .first()
+            .position.type
+            if self.internal_group_position_history.filter(
+                date_ended__isnull=True
+            ).first()
             else None
         )
 
