@@ -26,13 +26,13 @@
                     <h2 class="normal text-left darker-blue">{% trans 'Dine vakter' %}</h2>
                     {% for shift in next_shifts %}
                         <div class="frontpage__shift_row">
-                            <span>{{ shift.slot.group.name }}</span>
+                            <span>{{ shift.slot.group.shift_display_name }}</span>
                             <span>{{ shift.slot.group.meet_time.date }}</span>
                         </div>
                         <div class="frontpage__shift_row">
                             <div class="frontpage__shift_coworkers_inline">
 
-                                {% for shiftslot in  shift.slot.group.shiftslot_set.all %}
+                                {% for shiftslot in  shift.slot.group.get_filled_shifts %}
                                     <a href="/internal/users/{{ shiftslot.filled_shift.user.id }}"
                                        title="{{ participant.get_full_name }}">
                                         {% include 'components/thumb.html' with url=shiftslot.filled_shift.user.profile_image_url size='tiny' %}
