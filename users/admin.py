@@ -17,42 +17,74 @@ class MyUserChangeForm(UserChangeForm):
 
 
 class MyUserCreationForm(UserCreationForm):
-    email = forms.EmailField(label=_('E-mail'))
+    email = forms.EmailField(label=_("E-mail"))
 
     class Meta(UserCreationForm.Meta):
         model = User
-        fields = ('username', 'email',)
+        fields = (
+            "username",
+            "email",
+        )
 
 
 class AllergyAdmin(admin.ModelAdmin):
-    list_display = ['pk', 'name']
+    list_display = ["pk", "name"]
 
 
 class SociBankAccountInline(admin.StackedInline):
     model = SociBankAccount
-    fields = ['card_uuid']
-    verbose_name = 'Soci Bank Account'
-    verbose_name_plural = 'Soci Bank Accounts'
+    fields = ["card_uuid"]
+    verbose_name = "Soci Bank Account"
+    verbose_name_plural = "Soci Bank Accounts"
     can_delete = False
 
 
 class MyUserAdmin(UserAdmin):
-    list_display = ['pk', 'full_name', 'active']
+    list_display = ["pk", "full_name", "active"]
     form = MyUserChangeForm
     add_form = MyUserCreationForm
     fieldsets = UserAdmin.fieldsets + (
-        ('Personalia', {'fields': ('date_of_birth', 'study',)}),
-        ('Contact', {'fields': ('phone', 'study_address', 'home_address',)}),
-        ('KSG options', {'fields': ('ksg_status',)}),
-        ('Media', {'fields': ('profile_image',)}),
-        ('Additional info', {'fields': ('biography', 'in_relationship', 'allergies', 'anonymize_in_made_out_map')})
+        (
+            "Personalia",
+            {
+                "fields": (
+                    "date_of_birth",
+                    "study",
+                )
+            },
+        ),
+        (
+            "Contact",
+            {
+                "fields": (
+                    "phone",
+                    "study_address",
+                    "home_address",
+                )
+            },
+        ),
+        ("Media", {"fields": ("profile_image",)}),
+        (
+            "Additional info",
+            {
+                "fields": (
+                    "biography",
+                    "in_relationship",
+                    "allergies",
+                    "anonymize_in_made_out_map",
+                )
+            },
+        ),
     )
     inlines = [SociBankAccountInline]
     add_fieldsets = (
-        (None, {
-            'classes': ('wide',),
-            'fields': ('username', 'email', 'password1', 'password2'),
-        }),
+        (
+            None,
+            {
+                "classes": ("wide",),
+                "fields": ("username", "email", "password1", "password2"),
+            },
+        ),
     )
 
     @staticmethod
@@ -61,8 +93,12 @@ class MyUserAdmin(UserAdmin):
 
 
 class UsersHaveMadeOutAdmin(admin.ModelAdmin):
-    readonly_fields = ('created',)
-    list_display = ('user_one', 'user_two', 'created',)
+    readonly_fields = ("created",)
+    list_display = (
+        "user_one",
+        "user_two",
+        "created",
+    )
 
 
 admin.site.register(User, MyUserAdmin)
