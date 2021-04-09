@@ -1,0 +1,6 @@
+.schedules__shift_slot_thumbnail {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-right: 10px;
+}
