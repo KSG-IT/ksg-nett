@@ -1,6 +1,25 @@
 /* FONTS */
 @import url('https://fonts.googleapis.com/css?family=Open+Sans:300,400,600,700,800');
 
+/* Root element with project colors*/
+:root {
+    --primary: #7ACCF0;
+    --secondary: #46788E;
+    --primaryLight: #BBD8E4;
+    --red: #6E0D30;
+    --green: #43AD6D;
+    --black: #0D2C39;
+    --gray1: #2A424D;
+    --gray2: #3D4E55;
+    --gray3: #58656B;
+    --gray4: #737E83;
+    --gray5: #848F94;
+    --gray6: #AFB4B6;
+    --gray7: #C9CCCC;
+    --gray8: #E6E7E7;
+    --gray9: #F1F1F1;
+    --gray10: #FAFAFA;
+}
 
 /* Make body and html fill page height*/
 html, body {
