@@ -48,7 +48,7 @@ class ShiftInline(admin.TabularInline):
 
 
 class ShiftSlotAdmin(admin.ModelAdmin):
-    pass
+    inlines = (ShiftInline,)
 
 
 class ShiftAdmin(admin.ModelAdmin):
@@ -58,7 +58,7 @@ class ShiftAdmin(admin.ModelAdmin):
 admin.site.register(Schedule, ScheduleAdmin)
 admin.site.register(ShiftSlotGroup, ShiftSlotGroupAdmin)
 admin.site.register(ScheduleSlotType)
-admin.site.register(ShiftSlot)
+admin.site.register(ShiftSlot, ShiftSlotAdmin)
 admin.site.register(Shift, ShiftAdmin)
 admin.site.register(ScheduleTemplate)
 admin.site.register(ShiftSlotGroupTemplate, ShiftSlotGroupTemplateAdmin)
