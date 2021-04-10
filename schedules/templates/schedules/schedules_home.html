@@ -11,10 +11,10 @@
     <!-- Leftside module navigation panel-->
     <div class="default-left-panel text-right">
       <div class="schedules-home__upcoming_shifts_title">{% translate "Schedules" %}</div>
-      <div>{% translate "Your overview" %}</div>
-      <div>{% translate "Shift history" %}</div>
-      <div>{% translate "All shifts" %}</div>
-      <div>{% translate "Shift market" %}</div>
+      <div><a class="resetlink bold" href="/internal/schedules/">{% translate "Your overview" %}</a></div>
+      <div><a class="resetlink" href="/internal/schedules/history/">{% translate "Shift history" %}</a></div>
+      <div><a class="resetlink" href="/internal/schedules/all-shifts/">{% translate "All shifts" %}</a></div>
+      <div><a class="resetlink" href="/internal/schedules/market/">{% translate "Shift market" %}</a></div>
     </div>
     <div class="default-right-panel">
       <!-- Main view content. Loops over all upcoming shifts the logged in user and displays each shift as a card -->
