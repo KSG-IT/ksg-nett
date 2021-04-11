@@ -4,3 +4,10 @@
     align-items: center;
     margin-right: 10px;
 }
+
+.schedules__left_side_panel_title {
+    display: inline-block;
+    font-size: 28px;
+    font-weight: bold;
+    margin: 0 0 10px 0;
+}
