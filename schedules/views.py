@@ -9,8 +9,6 @@ from django.core.exceptions import SuspiciousOperation
 def schedules_home(request):
     """Renders the schedule homepage for the logged in user."""
     if request.method == "GET":
-        ctx = {
-        }
-        return render(request, template_name="schedules/schedules_home.html", context=ctx)
+        return render(request, template_name="schedules/schedules_home.html")
     else:
         return status.HTTP_405_METHOD_NOT_ALLOWED
