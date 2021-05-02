@@ -25,7 +25,7 @@
                         <div class="quote__pending_item">
                             <div class="quote_pending_item__header">
                                 <div><strong>"{{ pending_quote.text }}"</strong>
-                                    - {{ pending_quote.quoter.get_full_name }}</div>
+                                    - {{ pending_quote.tagged.get_full_name }}</div>
                             </div>
                             <div class="quote_pending_item__section">
                                 <div>Sendt inn av</div>
@@ -37,10 +37,13 @@
                             </div>
                             <div class="quote_pending_item__section">
                                 <div>Tagget</div>
-                                <div><a href="/internal/users/{{ pending_quote.quoter.id }}">
-                                    {% include "components/thumb.html" with size="tiny" url=pending_quote.quoter.profile_image_url %}
-
-                                </a>
+                                <div>
+                                    {% for tagged in pending_quote.tagged.all %}
+                                        <a href="/internal/users/{{ tagged.id }}"
+                                            title="{{ tagged.get_full_name }}">
+                                            {% include 'components/thumb.html' with url=pending_quote.tagged.profile_image_url size='tiny' %}
+                                        </a>
+                                    {% endfor %}
                                 </div>
 
 

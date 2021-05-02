@@ -25,7 +25,11 @@ from users.tests.factories import UserFactory
 class QuoteModelTest(TestCase):
     def setUp(self):
         self.user = UserFactory()
-        self.quote = QuoteFactory(quoter=self.user)
+        self.user_two = UserFactory()
+        self.quote = QuoteFactory(
+            quoter=self.user,
+            quoter_two=self.user_two,
+        )
         self.quote_without_votes = QuoteFactory(quoter=self.user)
         QuoteVoteFactory.create_batch(
             4,
@@ -238,6 +242,7 @@ class QuoteEditTest(TestCase):
         self.user.save()
 
         self.quote = QuoteFactory(quoter=self.user)
+        self.quote_two = QuoteFactory(quoter_two=self.user)
         self.client.login(username="test", password="password")
 
     def test_quotes_edit__GET_request__renders_template(self):

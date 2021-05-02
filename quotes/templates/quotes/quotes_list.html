@@ -24,7 +24,7 @@
             {% if quote.get_semester_of_quote == current_semester %}
               <div class="quote__griditem">
                 <div class="quote__text">
-                  <strong>"{{ quote.text }}"</strong> -{{ quote.quoter.get_full_name }}
+                  <strong>"{{ quote.text }}"</strong> -{{ quote.tagged.get_full_name }}
                 </div>
                 <div class="quote_item__footer">
                   <div class="quote_item_footer__left">
@@ -43,7 +43,12 @@
                     </button>
                   </div>
                   <div class="quote_item_footer__right">
-                    {% include "components/thumb.html" with size="tiny" url=quote.quoter.profile_image_url %}
+                    {% for tagged in quote.tagged.all %}
+                    <a href="/internal/users/{{ tagged.id }}"
+                       title="{{ tagged.get_full_name }}">
+                      {% include 'components/thumb.html' with url=tagged.profile_image_url size='tiny' %}
+                    </a>
+                    {% endfor %}
                   </div>
                 </div>
               </div>
