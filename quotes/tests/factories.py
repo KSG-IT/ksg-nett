@@ -14,8 +14,8 @@ class QuoteFactory(DjangoModelFactory):
         model = Quote
 
     text = Faker('text')
-    quoter = SubFactory(UserFactory)
-    quoter_two = SubFactory(UserFactory)
+    tagged = SubFactory(UserFactory)
+    tagged_two = SubFactory(UserFactory)
     verified_by = SubFactory(UserFactory)
     reported_by = SubFactory(UserFactory)
     # created_at = Faker('past_datetime', tzinfo=pytz.timezone(settings.TIME_ZONE))
