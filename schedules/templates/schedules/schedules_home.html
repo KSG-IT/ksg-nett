@@ -1,0 +1,45 @@
+{% extends 'internal/base.html' %}
+{% load static %}
+{% load i18n %}
+
+{% block header %}
+  <link rel="stylesheet" href="{% static 'schedules/css/schedules_home.css' %}">
+  <link rel="stylesheet" href="{% static 'schedules/css/schedules.css' %}">
+{% endblock %}
+{% block body_content %}
+  <div class="default-container default-top-offset">
+    <!-- Leftside module navigation panel-->
+    <div class="default-left-panel text-right">
+      <div class="schedules__left_side_panel_title">{% translate "Schedules" %}</div>
+      <div><a class="resetlink bold" href="/internal/schedules/">{% translate "Your overview" %}</a></div>
+      <div><a class="resetlink" href="/internal/schedules/history/">{% translate "Shift history" %}</a></div>
+      <div><a class="resetlink" href="/internal/schedules/all-shifts/">{% translate "All shifts" %}</a></div>
+      <div><a class="resetlink" href="/internal/schedules/market/">{% translate "Shift market" %}</a></div>
+    </div>
+    <div class="default-right-panel">
+      <!-- Main view content. Loops over all upcoming shifts the logged in user and displays each shift as a card -->
+      <div class="schedules_home__upcoming_shifts_title">{% translate "Upcoming shifts" %}</div>
+      {% for shift in user.future_shifts %}
+        <div class="schedules_home__shift_slot_group_card">
+          <div class="schedules_home__shift_slot_group_card_title">
+            <span>{{ shift.slot.group.schedule.name }}</span>
+            <span>{{ shift.slot.group.meet_time | date:"D d.M" }} {% translate "Meeting time: " %} {{ shift.slot.group.meet_time.time }}</span>
+          </div>
+          <div class="schedules_home__shift_slot_group_card_shifts">
+            {% for shiftslot in  shift.slot.group.get_filled_shifts %}
+              <div class="schedules__shift_slot_thumbnail">
+                <a href="/internal/users/{{ shiftslot.filled_shift.user.id }}"
+                   title="{{ participant.get_full_name }}">
+                  {% include 'components/thumb.html' with url=shiftslot.filled_shift.user.profile_image_url size='large' %}
+                </a>
+                <div>{{ shiftslot.filled_shift.user.first_name }}</div>
+                <div>{{ shiftslot.type.name }}</div>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      {% endfor %}
+
+    </div>
+  </div>
+{% endblock %}
