@@ -27,10 +27,12 @@ class QuoteModelTest(TestCase):
         self.user = UserFactory()
         self.user_two = UserFactory()
         self.quote = QuoteFactory(
-            quoter=self.user,
-            quoter_two=self.user_two,
         )
-        self.quote_without_votes = QuoteFactory(quoter=self.user)
+        self.quote.tagged.add(self.user)
+        self.quote.save()
+        self.quote_without_votes = QuoteFactory()
+        self.quote_without_votes.tagged.add(self.user)
+        self.quote_without_votes.save()
         QuoteVoteFactory.create_batch(
             4,
             quote=self.quote,
@@ -84,8 +86,8 @@ class QuotePresentationViewsTest(TestCase):
         self.user = UserFactory(username="test")
         self.user.set_password("password")
         self.user.save()
-        self.verified_quotes = QuoteFactory.create_batch(3, quoter=self.user)
-        self.unverified_quote = QuoteFactory(quoter=self.user, verified_by=None)
+        self.verified_quotes = QuoteFactory.create_batch(3)
+        self.unverified_quote = QuoteFactory(verified_by=None)
 
     def test_list_view__renders_template_with_correct_context(self):
         self.client.login(username="test", password="password")
@@ -101,8 +103,10 @@ class QuoteVoteUpTest(TestCase):
         self.user = UserFactory(username="test")
         self.user.set_password("password")
         self.user.save()
-        self.unverified_quote = QuoteFactory(quoter=self.user, verified_by=None)
-        self.verified_quotes = QuoteFactory.create_batch(3, quoter=self.user)
+        self.unverified_quote = QuoteFactory(verified_by=None)
+        self.unverified_quote.tagged.add(self.user)
+        self.unverified_quote.save()
+        self.verified_quotes = QuoteFactory.create_batch(3)
         QuoteVoteFactory.create_batch(
             2,
             caster=self.user,
@@ -151,8 +155,10 @@ class QuoteVoteDownTest(TestCase):
         self.user = UserFactory(username="test")
         self.user.set_password("password")
         self.user.save()
-        self.unverified_quote = QuoteFactory(quoter=self.user, verified_by=None)
-        self.verified_quotes = QuoteFactory.create_batch(3, quoter=self.user)
+        self.unverified_quote = QuoteFactory(verified_by=None)
+        self.unverified_quote.tagged.add(self.user)
+        self.unverified_quote.save()
+        self.verified_quotes = QuoteFactory.create_batch(3)
         QuoteVoteFactory.create_batch(
             2,
             caster=self.user,
@@ -211,13 +217,15 @@ class QuoteAddTest(TestCase):
     def test_quote_add__POST_request_with_new_quote__creates_quote(self):
         self.client.post(
             reverse(quotes_add),
-            urlencode({"text": "This is a cool quote", "quoter": self.user.id}),
+            urlencode({"text": "This is a cool quote", "tagged": self.user.id}),
             content_type="application/x-www-form-urlencoded",
         )
         quote = Quote.objects.first()
+        quote.tagged.add(self.user)
+        quote.save()
         self.assertIsNotNone(quote)
         self.assertEqual(quote.text, "This is a cool quote")
-        self.assertEqual(quote.quoter, self.user)
+        self.assertEqual(quote.tagged.first(), self.user)
 
     def test_quote_add__POST_request_with_missing_data__renders_with_form_failure(self):
         response = self.client.post(
@@ -241,8 +249,11 @@ class QuoteEditTest(TestCase):
         self.user.set_password("password")
         self.user.save()
 
-        self.quote = QuoteFactory(quoter=self.user)
-        self.quote_two = QuoteFactory(quoter_two=self.user)
+        self.quote = Quote(
+            text="Some quote text", reported_by=self.user, id=124
+        )
+        self.quote.tagged.add(self.user)
+        self.quote.save()
         self.client.login(username="test", password="password")
 
     def test_quotes_edit__GET_request__renders_template(self):
@@ -285,8 +296,11 @@ class QuoteDeleteTest(TestCase):
         self.user = UserFactory(username="test")
         self.user.set_password("password")
         self.user.save()
-
-        self.quote = QuoteFactory(quoter=self.user)
+        self.quote = Quote(
+            text="Some quote text", reported_by=self.user, id=124
+        )
+        self.quote.tagged.add(self.user)
+        self.quote.save()
         self.client.login(username="test", password="password")
 
     def test_delete_quote__deletes_quote(self):
@@ -312,7 +326,10 @@ class QuoteApproveTest(TestCase):
         )
         self.user.set_password("password")
         self.user.save()
-        self.quote = QuoteFactory(quoter=self.user)
+        self.quote = Quote(
+            text="Some quote text", reported_by=self.user, id=124
+        )
+        self.quote.tagged.add(self.user)
         self.quote.save()
         self.client.login(username="test", password="password")
 
