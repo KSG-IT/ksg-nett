@@ -102,7 +102,7 @@ def quotes_edit(request, quote_id):
     elif request.method == "POST":
         if form.is_valid():
             form.save()
-            form.save_m2m()
+            #form.save_m2m()
             return redirect(reverse(quotes_list))
         else:
             return render(request, template_name='quotes/quotes_edit.html', context=ctx)
