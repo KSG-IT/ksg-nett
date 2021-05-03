@@ -17,7 +17,6 @@ def quotes_approve(request, quote_id):
         if quote.verified_by is None:
             quote.verified_by = request.user
             quote.save()
-            #quote.save_m2m()
         return redirect(reverse(quotes_pending))
     else:
         return HttpResponse(status=status.HTTP_405_METHOD_NOT_ALLOWED)
@@ -76,7 +75,6 @@ def quotes_add(request):
             newform = form.save(commit=False)
             newform.reported_by = request.user
             newform.save()
-            #form.save_m2m()
             form.save_m2m()
             
             return redirect(reverse(quotes_list))

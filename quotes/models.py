@@ -19,7 +19,6 @@ class Quote(TimeStampedModel):
 
     tagged = models.ManyToManyField(
         User,
-        #null=False,
         blank=True,
         related_name='quotes'
     )
@@ -69,7 +68,7 @@ class Quote(TimeStampedModel):
         return "Quote by %s" % (self.tagged.all(),)
 
     def __repr__(self):
-        return "Quote(text=%s,quoter=%s)" % (self.text, self.tagged.all(),)
+        return "Quote(text=%s,tagged=%s)" % (self.text, self.tagged.all(),)
 
     class Meta:
         verbose_name_plural = 'quotes'

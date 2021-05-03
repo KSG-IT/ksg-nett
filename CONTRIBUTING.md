@@ -208,7 +208,7 @@ We use the following rules for incrementing the system version:
 
 The official release of the web page will be version 1.0.0.
 
-## Guides for (semi-)quoters
+## Guides for (semi-)noobs
 
 Stuck on something or just don't know where to start? Here are some helpful tutorials:
 

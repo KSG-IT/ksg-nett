@@ -26,13 +26,8 @@ class QuoteModelTest(TestCase):
     def setUp(self):
         self.user = UserFactory()
         self.user_two = UserFactory()
-        self.quote = QuoteFactory(
-        )
-        self.quote.tagged.add(self.user)
-        self.quote.save()
-        self.quote_without_votes = QuoteFactory()
-        self.quote_without_votes.tagged.add(self.user)
-        self.quote_without_votes.save()
+        self.quote = QuoteFactory(tagged=(self.user,))
+        self.quote_without_votes = QuoteFactory(tagged=(self.user,))
         QuoteVoteFactory.create_batch(
             4,
             quote=self.quote,
@@ -221,8 +216,6 @@ class QuoteAddTest(TestCase):
             content_type="application/x-www-form-urlencoded",
         )
         quote = Quote.objects.first()
-        #quote.tagged.add(self.user)
-        #quote.save()
         self.assertIsNotNone(quote)
         self.assertEqual(quote.text, "This is a cool quote")
         self.assertEqual(quote.tagged.first(), self.user)
@@ -248,10 +241,7 @@ class QuoteEditTest(TestCase):
         self.user = UserFactory(username="test")
         self.user.set_password("password")
         self.user.save()
-
-        self.quote = QuoteFactory()
-        #self.quote.tagged.add(self.user)
-        #self.quote.save()
+        self.quote = QuoteFactory(tagged=(self.user,))
         self.client.login(username="test", password="password")
 
     def test_quotes_edit__GET_request__renders_template(self):
@@ -261,12 +251,10 @@ class QuoteEditTest(TestCase):
     def test_quotes_edit__POST_request_with_new_quote_data__changes_quote_object(self):
         self.client.post(
             reverse(quotes_edit, kwargs={"quote_id": 1}),
-            urlencode({"text": "Some new quote text", "quoter": self.user.id}),
+            urlencode({"text": "Some new quote text", "tagged": self.user.id}),
             content_type="application/x-www-form-urlencoded",
         )
         quote = Quote.objects.first()
-        quote.tagged.add(self.user)
-        quote.save()
         self.assertEqual(Quote.objects.count(), 1)
         self.assertIsNotNone(quote)
         self.assertEqual(quote.text, "Some new quote text")
@@ -296,9 +284,7 @@ class QuoteDeleteTest(TestCase):
         self.user = UserFactory(username="test")
         self.user.set_password("password")
         self.user.save()
-        self.quote = QuoteFactory()
-        self.quote.tagged.add(self.user)
-        self.quote.save()
+        self.quote = QuoteFactory(tagged=(self.user,))
         self.client.login(username="test", password="password")
 
     def test_delete_quote__deletes_quote(self):
@@ -326,9 +312,9 @@ class QuoteApproveTest(TestCase):
         self.user.save()
         self.quote = Quote(
             text="Some quote text", reported_by=self.user, id=124
-        )
+        ) #Does self.quote need to be a non-factory based quote?^^
         self.quote.tagged.add(self.user)
-        self.quote.save()
+        self.quote.save() 
         self.client.login(username="test", password="password")
 
     def test_approving_unapproved_quote(self):
