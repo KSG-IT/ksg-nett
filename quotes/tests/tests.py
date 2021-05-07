@@ -302,25 +302,18 @@ class QuoteDeleteTest(TestCase):
 
 class QuoteApproveTest(TestCase):
     def setUp(self):
-        self.user = User(
-            username="test",
-            email="test@example.com",
-            first_name="Alex",
-            last_name="Orvik",
-        )
+        self.quote = QuoteFactory(verified_by=None)
+        self.user = self.quote.reported_by
         self.user.set_password("password")
         self.user.save()
-        self.quote = Quote(
-            text="Some quote text", reported_by=self.user, id=124
-        ) #Does self.quote need to be a non-factory based quote?^^
         self.quote.tagged.add(self.user)
-        self.quote.save() 
-        self.client.login(username="test", password="password")
+        self.quote.save()
+        self.client.login(username=self.user.username, password="password")
 
     def test_approving_unapproved_quote(self):
         self.quote.verified_by = None
         self.client.post(
-            reverse(viewname=quotes_approve, kwargs={"quote_id": 124}),
+            reverse(viewname=quotes_approve, kwargs={"quote_id": self.quote.id}),
             data={"user": self.user},
         )
         self.quote.refresh_from_db()
