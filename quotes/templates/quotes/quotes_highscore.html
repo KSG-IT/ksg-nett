@@ -25,7 +25,7 @@
                             {% for quote in highscore_this_semester %}
                                 <div class="quote__griditem">
                                     <div class="quote__text">
-                                        <strong>"{{ quote.text }}"</strong> -{{ quote.tagged.get_full_name }}
+                                        <strong>"{{ quote.text }}"</strong> -{{ quote.context }}
                                     </div>
                                     <div class="quote_item__footer">
                                         <div class="quote_item_footer__left">
@@ -60,7 +60,7 @@
                             {% for quote in highscore_all_time %}
                                 <div class="quote__griditem">
                                     <div class="quote__text">
-                                        <strong>"{{ quote.text }}"</strong> -{{ quote.tagged.get_full_name }}
+                                        <strong>"{{ quote.text }}"</strong> -{{ quote.context }}
                                     </div>
                                     <div class="quote_item__footer">
                                         <div class="quote_item_footer__left">

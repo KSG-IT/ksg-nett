@@ -26,8 +26,8 @@ class QuoteModelTest(TestCase):
     def setUp(self):
         self.user = UserFactory()
         self.user_two = UserFactory()
-        self.quote = QuoteFactory(tagged=(self.user,))
-        self.quote_without_votes = QuoteFactory(tagged=(self.user,))
+        self.quote = QuoteFactory()
+        self.quote_without_votes = QuoteFactory()
         QuoteVoteFactory.create_batch(
             4,
             quote=self.quote,
@@ -99,8 +99,6 @@ class QuoteVoteUpTest(TestCase):
         self.user.set_password("password")
         self.user.save()
         self.unverified_quote = QuoteFactory(verified_by=None)
-        self.unverified_quote.tagged.add(self.user)
-        self.unverified_quote.save()
         self.verified_quotes = QuoteFactory.create_batch(3)
         QuoteVoteFactory.create_batch(
             2,
@@ -151,8 +149,6 @@ class QuoteVoteDownTest(TestCase):
         self.user.set_password("password")
         self.user.save()
         self.unverified_quote = QuoteFactory(verified_by=None)
-        self.unverified_quote.tagged.add(self.user)
-        self.unverified_quote.save()
         self.verified_quotes = QuoteFactory.create_batch(3)
         QuoteVoteFactory.create_batch(
             2,
@@ -241,7 +237,7 @@ class QuoteEditTest(TestCase):
         self.user = UserFactory(username="test")
         self.user.set_password("password")
         self.user.save()
-        self.quote = QuoteFactory(tagged=(self.user,))
+        self.quote = QuoteFactory()
         self.client.login(username="test", password="password")
 
     def test_quotes_edit__GET_request__renders_template(self):
@@ -284,7 +280,7 @@ class QuoteDeleteTest(TestCase):
         self.user = UserFactory(username="test")
         self.user.set_password("password")
         self.user.save()
-        self.quote = QuoteFactory(tagged=(self.user,))
+        self.quote = QuoteFactory()
         self.client.login(username="test", password="password")
 
     def test_delete_quote__deletes_quote(self):
@@ -311,7 +307,6 @@ class QuoteApproveTest(TestCase):
         self.client.login(username=self.user.username, password="password")
 
     def test_approving_unapproved_quote(self):
-        self.quote.verified_by = None
         self.client.post(
             reverse(viewname=quotes_approve, kwargs={"quote_id": self.quote.id}),
             data={"user": self.user},

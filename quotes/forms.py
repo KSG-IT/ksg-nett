@@ -6,7 +6,7 @@ from quotes.models import Quote
 class QuoteForm(forms.ModelForm):
     class Meta:
         model = Quote
-        fields = ('text', 'tagged')
+        fields = ('text', 'tagged', 'context')
 
     # This adds the mentioned css class to the related field widget which allows for more custom styling.
     # Can accept several classes separated with space

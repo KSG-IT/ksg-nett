@@ -27,6 +27,13 @@
                             {% endfor %}
                             {{ quote_form.text }}
                         </div>
+                        <label class="default-grey-label">Kontekst</label>
+                        <div>
+                            {% for error in quote_form.context.errors %}
+                                {{ error }}
+                            {% endfor %}
+                            {{ quote_form.context }}
+                        </div>
                         <label class="default-grey-label">Tagget</label>
                         <div>
                             {% for error in quote_form.tagged.errors %}

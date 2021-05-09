@@ -27,7 +27,9 @@ class QuoteFactory(DjangoModelFactory):
         if extracted:
             # A list of groups were passed in, use them
             for user in extracted:
-                self.tagged.add(user) 
+                self.tagged.add(user)
+        else:
+            self.tagged.set(UserFactory.create_batch(2))
     
     # created_at = Faker('past_datetime', tzinfo=pytz.timezone(settings.TIME_ZONE))
 
