@@ -1,8 +1,9 @@
 from django.urls import path
 
-from . import views
+from quiz import views
 
 app_name = 'quiz'
 urlpatterns = [
-    path('', views.index, name='index'),
+    path('', views.quiz_main, name='main'),
+    path('new/', views.quiz_new),
 ]

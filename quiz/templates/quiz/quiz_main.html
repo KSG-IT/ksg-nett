@@ -1,0 +1,29 @@
+{% extends 'internal/base.html' %}
+{% load static %}
+{% load i18n %}
+{% block header %}
+    <link rel="stylesheet" href="{% static 'quotes/css/quotes.css' %}">
+{% endblock %}
+{% block body_content %}
+    <div>
+        <div class="default-container default-top-offset">
+        <h2>Quiz</h2>
+        <p>Test kjennskapen din til gjengen vår! Du får resultat med tid og antall riktige</p>
+          <div>
+            <a href="/internal/quiz/new/">
+              <input type="button" value="De nye" class="primary-blue-button">
+            </a>
+          </div>
+          <div>
+            <a href="gamle.html">
+                <input type="button" value="De gamle" class="primary-blue-button">
+            </a>
+          </div>
+          <div>
+              <a href="gamle.html">
+                <input type="button" value="De aktive" class="primary-blue-button">
+              </a>
+          </div>
+        </div>
+    </div>
+{% endblock %}
