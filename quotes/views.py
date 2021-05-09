@@ -72,9 +72,11 @@ def quotes_add(request):
         form = QuoteForm(request.POST)
         form.reported_by = request.user
         if form.is_valid():
-            form = form.save(commit=False)
-            form.reported_by = request.user
-            form.save()
+            newform = form.save(commit=False)
+            newform.reported_by = request.user
+            newform.save()
+            form.save_m2m()
+            
             return redirect(reverse(quotes_list))
         else:
             ctx = {
@@ -98,6 +100,7 @@ def quotes_edit(request, quote_id):
     elif request.method == "POST":
         if form.is_valid():
             form.save()
+            #form.save_m2m()
             return redirect(reverse(quotes_list))
         else:
             return render(request, template_name='quotes/quotes_edit.html', context=ctx)
