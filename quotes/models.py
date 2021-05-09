@@ -17,12 +17,10 @@ class Quote(TimeStampedModel):
         on_delete=models.DO_NOTHING
     )
 
-    quoter = models.ForeignKey(
+    tagged = models.ManyToManyField(
         User,
-        null=False,
-        blank=False,
-        related_name='quotes',
-        on_delete=models.DO_NOTHING
+        blank=True,
+        related_name='quotes'
     )
 
     # None indicates not validated
@@ -67,10 +65,10 @@ class Quote(TimeStampedModel):
         return self.votes.aggregate(value=Sum('value'))['value']
 
     def __str__(self):
-        return "Quote by %s" % (self.quoter.first_name,)
+        return "Quote by %s" % (self.tagged.all(),)
 
     def __repr__(self):
-        return "Quote(text=%s,quoter=%s)" % (self.text, self.quoter.first_name,)
+        return "Quote(text=%s,tagged=%s)" % (self.text, self.tagged.all(),)
 
     class Meta:
         verbose_name_plural = 'quotes'
@@ -113,9 +111,9 @@ class QuoteVote(models.Model):
 
     def __str__(self):
         if self.value > 0:
-            return "Up-vote from %s to quote by %s" % (self.caster.first_name, self.quote.quoter.first_name,)
+            return "Up-vote from %s to quote by %s" % (self.caster.first_name, self.quote.tagged.all(),)
         else:
-            return "Down-vote from %s to quote by %s" % (self.caster.first_name, self.quote.quoter.first_name,)
+            return "Down-vote from %s to quote by %s" % (self.caster.first_name, self.quote.tagged.all(),)
 
     def __repr__(self):
         return f"QuoteVote(quote={self.quote_id},value={self.value},caster={self.caster.first_name})"

@@ -1,35 +1,17 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
 
+import re
 from typing import Optional
 from django.utils import timezone
 from django.contrib.auth.models import AbstractUser
 from django.db import models
-from django.db.models import QuerySet, signals
-from model_utils import Choices
-from model_utils.fields import StatusField
+from django.db.models import QuerySet
 from model_utils.models import TimeStampedModel
 
 from common.util import get_semester_year_shorthand
 from users.managers import UsersHaveMadeOutManager
-
-# KSG choices
-KSG_STATUS_TYPES = Choices(
-    ("aktiv", "Aktiv"),  # Wants to stay in KSG
-    ("inaktiv", "Ikke aktiv"),  # Finished with KSG duties, but want to leave
-    ("permittert", "Permittert"),  # Implicitly inactive, wants to continue
-    ("sluttet", "Sluttet før tiden"),  # Implicitly inactive, has jumped ship
-)
-
-# Roles in the KSG hierarchy
-KSG_ROLES = Choices(
-    ("gjengis", "Gjengis"),
-    ("funk", "Funksjonær"),
-    ("hangaround", "Hangaround"),
-    ("gjengpang", "GjengPang"),
-    ("funkepang", "FunkePang"),
-    ("hospitant", "Hospitant"),
-)
+from organization.consts import InternalGroupPositionType
 
 
 class Allergy(models.Model):
@@ -55,9 +37,6 @@ class User(AbstractUser):
     A KSG user
     """
 
-    STATUS = KSG_STATUS_TYPES
-    ROLES = KSG_ROLES
-
     email = models.EmailField(unique=True)
     date_of_birth = models.DateField(blank=True, null=True)
     study = models.CharField(default="", blank=True, max_length=100)
@@ -68,8 +47,6 @@ class User(AbstractUser):
     home_address = models.CharField(default="", blank=True, max_length=100)
 
     start_ksg = models.DateField(auto_now_add=True)
-    ksg_status = StatusField()
-    ksg_role = StatusField(choices_name="ROLES")
 
     biography = models.TextField(blank=True, default="", max_length=200)
     in_relationship = models.BooleanField(null=True, default=False)
@@ -95,8 +72,15 @@ class User(AbstractUser):
             else None
         )
 
+    @property
     def active(self):
-        return self.ksg_status == self.STATUS.aktiv
+        return self.ksg_status in [
+            InternalGroupPositionType.ACTIVE_FUNCTIONARY_PANG.value,
+            InternalGroupPositionType.ACTIVE_GANG_MEMBER_PANG.value,
+            InternalGroupPositionType.FUNCTIONARY.value,
+            InternalGroupPositionType.GANG_MEMBER.value,
+            InternalGroupPositionType.HANGAROUND.value,
+        ]
 
     def get_start_ksg_display(self) -> str:
         """
@@ -145,6 +129,18 @@ class User(AbstractUser):
     @property
     def future_shifts(self):
         return self.shift_set.filter(slot__group__meet_time__gte=timezone.now())
+
+    @property
+    def ksg_status(self):
+        return (
+            self.internal_group_position_history.filter(date_ended__isnull=True)
+            .first()
+            .position.type
+            if self.internal_group_position_history.filter(
+                date_ended__isnull=True
+            ).first()
+            else None
+        )
 
     class Meta:
         default_related_name = "users"

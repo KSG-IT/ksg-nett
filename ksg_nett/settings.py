@@ -29,6 +29,7 @@ ALLOWED_HOSTS = [
     "localhost",
     "127.0.0.1",
     "0.0.0.0",
+    "ksg-nett.no"
 ]
 
 # Application definition
@@ -50,7 +51,6 @@ INSTALLED_APPS = [
     # Project apps
     "api",
     "common",
-    "commissions",
     "economy",
     "external",
     "internal",

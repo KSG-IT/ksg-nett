@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 echo "Starting server"
-exec pipenv run gunicorn ksg_nett.wsgi \
+exec poetry run gunicorn ksg_nett.wsgi \
          --workers 3 \
          --error-logfile '-' \
          --log-level INFO \
