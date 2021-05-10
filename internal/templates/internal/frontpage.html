@@ -93,10 +93,11 @@
             <span class="bold">
               "{{ quote.text | truncatechars:30 }}"
             </span>
-            -
             <span class="light">
-              <a href="/internal/users/{{ quote.quoter.id }}" class="resetlink">
-                {{ quote.quoter.get_full_name }}
+              <a href="/internal/quotes/" class="resetlink">
+                {% if quote.context%}
+                - {{quote.context }}
+                {% endif %}
               </a>
             </span>
           </div>
