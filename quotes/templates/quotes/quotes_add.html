@@ -27,12 +27,19 @@
                             {% endfor %}
                             {{ quote_form.text }}
                         </div>
-                        <label class="default-grey-label">Tagget</label>
+                        <label class="default-grey-label">Kontekst</label>
                         <div>
-                            {% for error in quote_form.quoter.errors %}
+                            {% for error in quote_form.context.errors %}
                                 {{ error }}
                             {% endfor %}
-                            {{ quote_form.quoter }}
+                            {{ quote_form.context }}
+                        </div>
+                        <label class="default-grey-label">Tagget</label>
+                        <div>
+                            {% for error in quote_form.tagged.errors %}
+                                {{ error }}
+                            {% endfor %}
+                            {{ quote_form.tagged }}
                         </div>
                         <div>
                             <input type="submit" value="Send til godkjenning" class="primary-blue-button">
