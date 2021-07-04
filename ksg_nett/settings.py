@@ -75,6 +75,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "login.middleware.JwtProviderMiddleware",
 ]
 
 ROOT_URLCONF = "ksg_nett.urls"
@@ -202,6 +203,10 @@ SIMPLE_JWT = {
 # Sensor token. This is used to authenticate incoming sensor API requests.
 # This should be changed before production.
 SENSOR_API_TOKEN = "3@Zhg$nH^Dlhw23R"
+
+AUTH_JWT_HEADER_PREFIX = "Bearer"
+AUTH_JWT_SECRET = "SOME-JWT-SECRET-VALUE"
+AUTH_JWT_METHOD = "HS256"
 
 # API DOCS
 # ------------------------------
