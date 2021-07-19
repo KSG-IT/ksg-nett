@@ -2,12 +2,23 @@ import graphene
 from admissions.schema import AdmissionQuery, ApplicantQuery, AdmissionsMutations
 from users.schema import UserQuery, UserMutations
 from login.schema import LoginMutations, AuthenticationQuery
+from economy.schema import (
+    SociProductQuery,
+    SociBankAccountQuery,
+    ProductOrderQuery,
+    EconomyMutations,
+    SociSessionQuery,
+)
 
 
 class Query(
     AdmissionQuery,
     ApplicantQuery,
     AuthenticationQuery,
+    ProductOrderQuery,
+    SociBankAccountQuery,
+    SociProductQuery,
+    SociSessionQuery,
     UserQuery,
     graphene.ObjectType,
 ):
@@ -16,8 +27,9 @@ class Query(
 
 class Mutation(
     AdmissionsMutations,
-    UserMutations,
+    EconomyMutations,
     LoginMutations,
+    UserMutations,
     graphene.ObjectType,
 ):
     pass
