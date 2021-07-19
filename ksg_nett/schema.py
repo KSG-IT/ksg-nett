@@ -18,6 +18,7 @@ from organization.schema import (
     InternalGroupPositionMembershipQuery,
     OrganizationMutations,
 )
+from quotes.schema import QuoteQuery, QuotesMutations
 
 
 class Query(
@@ -35,6 +36,7 @@ class Query(
     InternalGroupQuery,
     InternalGroupPositionQuery,
     InternalGroupPositionMembershipQuery,
+    QuoteQuery,
     graphene.ObjectType,
 ):
     pass
@@ -46,6 +48,7 @@ class Mutation(
     LoginMutations,
     OrganizationMutations,
     UserMutations,
+    QuotesMutations,
     graphene.ObjectType,
 ):
     pass
