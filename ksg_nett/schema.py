@@ -9,6 +9,15 @@ from economy.schema import (
     EconomyMutations,
     SociSessionQuery,
 )
+from organization.schema import (
+    CommissionQuery,
+    CommissionMembershipQuery,
+    CommitteeQuery,
+    InternalGroupQuery,
+    InternalGroupPositionQuery,
+    InternalGroupPositionMembershipQuery,
+    OrganizationMutations,
+)
 
 
 class Query(
@@ -20,6 +29,12 @@ class Query(
     SociProductQuery,
     SociSessionQuery,
     UserQuery,
+    CommissionQuery,
+    CommissionMembershipQuery,
+    CommitteeQuery,
+    InternalGroupQuery,
+    InternalGroupPositionQuery,
+    InternalGroupPositionMembershipQuery,
     graphene.ObjectType,
 ):
     pass
@@ -29,6 +44,7 @@ class Mutation(
     AdmissionsMutations,
     EconomyMutations,
     LoginMutations,
+    OrganizationMutations,
     UserMutations,
     graphene.ObjectType,
 ):
