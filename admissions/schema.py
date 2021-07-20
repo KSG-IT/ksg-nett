@@ -88,10 +88,10 @@ class DeleteAdmissionMutation(DjangoDeleteMutation):
 
 
 class AdmissionsMutations(graphene.ObjectType):
-    create_applicant = graphene.Field(CreateApplicantMutation)
-    patch_applicant = graphene.Field(PatchApplicantMutation)
-    delete_applicant = graphene.Field(DeleteApplicantMutation)
+    create_applicant = CreateApplicantMutation.Field()
+    patch_applicant = PatchApplicantMutation.Field()
+    delete_applicant = DeleteApplicantMutation.Field()
 
-    create_admission = graphene.Field(CreateAdmissionMutation)
-    patch_admission = graphene.Field(PatchAdmissionMutation)
-    delete_admission = graphene.Field(DeleteAdmissionMutation)
+    create_admission = CreateAdmissionMutation.Field()
+    patch_admission = PatchAdmissionMutation.Field()
+    delete_admission = DeleteAdmissionMutation.Field()
