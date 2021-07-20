@@ -9,7 +9,8 @@
   <h3>Finn: {{ randomuser.get_full_name }}</h3>
   <div>
     {% for user in QuizImage %}
-      <a href="/internal/users/{{ user.id }}"
+      <a href="/internal/quiz/{{ quiz.id }}/guess-user/{{ user.id }}"
+              {#  This link needs to trigger a post request to a url which performs a guess on the backend#}
          title="{{ user.get_full_name }}">
         {% include 'components/thumb.html' with url=user.profile_image_url size='large' %}
       </a>
