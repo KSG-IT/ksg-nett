@@ -135,7 +135,7 @@ class ShiftQuery(graphene.ObjectType):
     all_shifts = DjangoConnectionField(ShiftNode)
 
     def resolve_all_shifts(self, info, *args, **kwargs):
-        return Shift.objects.allI()
+        return Shift.objects.all()
 
 
 class ShiftSlotQuery(graphene.ObjectType):
@@ -143,7 +143,7 @@ class ShiftSlotQuery(graphene.ObjectType):
     all_shift_slots = DjangoConnectionField(ShiftSlotNode)
 
     def resolve_all_shift_slots(self, info, *args, **kwargs):
-        return ShiftSlot.objects.all()
+        return ShiftSlot.objects.all()()
 
 
 class ShiftTradeQuery(graphene.ObjectType):
