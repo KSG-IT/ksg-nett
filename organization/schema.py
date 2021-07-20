@@ -84,7 +84,7 @@ class InternalGroupQuery(graphene.ObjectType):
     all_internal_groups = DjangoConnectionField(InternalGroupNode)
 
     def resolve_all_internal_groups(self, info, *args, **kwargs):
-        return InternalGroup.objects.all()
+        return InternalGroup.objects.all().order_by("name")
 
 
 class InternalGroupPositionQuery(graphene.ObjectType):
@@ -100,9 +100,19 @@ class InternalGroupPositionMembershipQuery(graphene.ObjectType):
     all_internal_group_position_membership = DjangoConnectionField(
         InternalGroupPositionMembershipNode
     )
+    all_active_internal_group_position_memberships = DjangoConnectionField(
+        InternalGroupPositionMembershipNode
+    )
 
     def resolve_all_internal_group_position_memberships(self, info, *args, **kwargs):
         return InternalGroupPositionMembership.objects.all()
+
+    def resolve_all_active_internal_group_position_memberships(
+        self, info, *args, **kwargs
+    ):
+        return InternalGroupPositionMembership.objects.filter(
+            date_ended__isnull=True
+        ).order_by("date_joined")
 
 
 class CommissionQuery(graphene.ObjectType):
