@@ -19,6 +19,24 @@ from organization.schema import (
     OrganizationMutations,
 )
 from quotes.schema import QuoteQuery, QuotesMutations
+from schedules.schemas.schema_schedules import (
+    ShiftQuery,
+    ScheduleQuery,
+    ShiftSlotQuery,
+    ShiftTradeQuery,
+    ShiftSlotGroupQuery,
+    ShiftSlotGroupDayRuleQuery,
+    ShiftTradeOfferQuery,
+    ShiftSlotGroupInterestQuery,
+    ScheduleSlotTypeQuery,
+    SchedulesMutations,
+)
+from schedules.schemas.schema_scheduls_templates import (
+    ScheduleTemplateQuery,
+    ShiftSlotTemplateQuery,
+    ShiftSlotGroupTemplateQuery,
+    SchedulesTemplateMutations,
+)
 
 
 class Query(
@@ -36,6 +54,18 @@ class Query(
     InternalGroupQuery,
     InternalGroupPositionQuery,
     InternalGroupPositionMembershipQuery,
+    ShiftQuery,
+    ScheduleQuery,
+    ShiftSlotQuery,
+    ShiftTradeQuery,
+    ShiftSlotGroupQuery,
+    ShiftSlotGroupDayRuleQuery,
+    ShiftTradeOfferQuery,
+    ShiftSlotGroupInterestQuery,
+    ScheduleSlotTypeQuery,
+    ScheduleTemplateQuery,
+    ShiftSlotTemplateQuery,
+    ShiftSlotGroupTemplateQuery,
     QuoteQuery,
     graphene.ObjectType,
 ):
@@ -49,6 +79,8 @@ class Mutation(
     OrganizationMutations,
     UserMutations,
     QuotesMutations,
+    SchedulesMutations,
+    SchedulesTemplateMutations,
     graphene.ObjectType,
 ):
     pass
