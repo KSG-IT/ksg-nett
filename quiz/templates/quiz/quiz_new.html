@@ -2,17 +2,17 @@
 {% load static %}
 {% load i18n %}
 {% block header %}
-    <link rel="stylesheet" href="{% static 'quotes/css/quotes.css' %}">
+  <link rel="stylesheet" href="{% static 'quotes/css/quotes.css' %}">
 {% endblock %}
 {% block body_content %}
   <h2>Quiz for de nye:</h2>
-  <h3>Finn: {{randomuser.get_full_name}}</h3>
+  <h3>Finn: {{ randomuser.get_full_name }}</h3>
   <div>
-    {% for user in QuizImage%}
-    <a href="/internal/users/{{ user.id }}"
-        title="{{ user.get_full_name }}">
-      {% include 'components/thumb.html' with url=user.profile_image_url size='large' %}
-    </a>
+    {% for user in QuizImage %}
+      <a href="/internal/users/{{ user.id }}"
+         title="{{ user.get_full_name }}">
+        {% include 'components/thumb.html' with url=user.profile_image_url size='large' %}
+      </a>
     {% endfor %}
-    </div>
+  </div>
 {% endblock %}
