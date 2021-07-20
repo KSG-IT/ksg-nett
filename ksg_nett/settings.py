@@ -13,6 +13,8 @@ https://docs.djangoproject.com/en/1.10/ref/settings/
 import os
 from datetime import timedelta
 
+from corsheaders.defaults import default_headers
+
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -25,12 +27,10 @@ SECRET_KEY = "rc4yscfoc9loe+937$q-57agxy0iq+!o0zowl0#vylilol2-)e"
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = [
-    "localhost",
-    "127.0.0.1",
-    "0.0.0.0",
-    "ksg-nett.no"
-]
+
+CORS_ORIGIN_ALLOW_ALL = True
+
+ALLOWED_HOSTS = ["localhost", "127.0.0.1", "0.0.0.0", "ksg-nett.no"]
 
 # Application definition
 
@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     "drf_yasg2",
     "graphene_django",
     "storages",
+    "corsheaders",
     # Project apps
     "api",
     "common",
@@ -68,11 +69,13 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
+    "corsheaders.middleware.CorsMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "login.middleware.JwtProviderMiddleware",
 ]
 
 ROOT_URLCONF = "ksg_nett.urls"
@@ -105,6 +108,9 @@ DATABASES = {
         "NAME": os.path.join(BASE_DIR, "db.sqlite3"),
     }
 }
+
+# Default from pre 3.2. Possible to change to BigAutoField
+DEFAULT_AUTO_FIELD = "django.db.models.AutoField"
 
 # Password validation
 # https://docs.djangoproject.com/en/1.10/ref/settings/#auth-password-validators
@@ -197,6 +203,10 @@ SIMPLE_JWT = {
 # Sensor token. This is used to authenticate incoming sensor API requests.
 # This should be changed before production.
 SENSOR_API_TOKEN = "3@Zhg$nH^Dlhw23R"
+
+AUTH_JWT_HEADER_PREFIX = "Bearer"
+AUTH_JWT_SECRET = "SOME-JWT-SECRET-VALUE"
+AUTH_JWT_METHOD = "HS256"
 
 # API DOCS
 # ------------------------------

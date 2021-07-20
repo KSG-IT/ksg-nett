@@ -5,15 +5,17 @@ from ksg_nett.settings import *
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'rc4yscfoc9loe+937$q-57agxy0iq+!o0zowl0#vylilol2-)e'
+SECRET_KEY = "rc4yscfoc9loe+937$q-57agxy0iq+!o0zowl0#vylilol2-)e"
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
 ALLOWED_HOSTS = [".alexanderorvik.com", ".amazonaws.com", "ksg-nett.no"]
 
+AUTH_JWT_SECRET = os.environ.get("AUTH_JWT_SECRET")
+
 # Application definition
-#DATABASES = {
+# DATABASES = {
 #    'default': {
 #        'ENGINE': 'django.db.backends.postgresql_psycopg2',
 #        'NAME': os.environ.get("DB_NAME"),
@@ -22,7 +24,7 @@ ALLOWED_HOSTS = [".alexanderorvik.com", ".amazonaws.com", "ksg-nett.no"]
 #        'HOST': os.environ.get("DB_HOST"),
 #        'PORT': os.environ.get("DB_PORT"),
 #    }
-#}
+# }
 
 # S3 media files
 # AWS_REGION = "eu-west-3"

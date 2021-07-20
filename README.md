@@ -11,7 +11,7 @@ This repository contains the source code for [KSG](https://www.samfundet.no/kafe
 3. **Carefully read** [Contribution.md](https://github.com/KSG-IT/ksg-nett/blob/develop/CONTRIBUTING.md) to aid both yourself and others!
 
 ## Dependencies
-* Django 3.1
+* Django 3.2
 * Python 3.8
 * Poetry
 * Weasyprint (requires setup, especially if on windows. See [this](https://weasyprint.readthedocs.io/en/stable/install.html) for more info
