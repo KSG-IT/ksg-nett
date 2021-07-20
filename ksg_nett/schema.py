@@ -37,6 +37,7 @@ from schedules.schemas.schema_scheduls_templates import (
     ShiftSlotGroupTemplateQuery,
     SchedulesTemplateMutations,
 )
+from sensors.schema import SensorMeasurementQuery, SensorsMutations
 
 
 class Query(
@@ -66,6 +67,7 @@ class Query(
     ScheduleTemplateQuery,
     ShiftSlotTemplateQuery,
     ShiftSlotGroupTemplateQuery,
+    SensorMeasurementQuery,
     QuoteQuery,
     graphene.ObjectType,
 ):
@@ -81,6 +83,7 @@ class Mutation(
     QuotesMutations,
     SchedulesMutations,
     SchedulesTemplateMutations,
+    SensorsMutations,
     graphene.ObjectType,
 ):
     pass
