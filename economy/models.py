@@ -80,7 +80,6 @@ class SociProduct(TimeFramedModel):
     )
     name = models.CharField(max_length=50)
     price = models.IntegerField()
-    # Include Cost and Price? As long as we have bong that's probably not going to work
     description = models.TextField(blank=True, null=True, default=None, max_length=200)
     icon = models.CharField(max_length=2, blank=True, null=True)
 
