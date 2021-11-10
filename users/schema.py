@@ -29,9 +29,6 @@ class UserNode(DjangoObjectType):
     def resolve_initials(self: User, info, **kwargs):
         return self.initials
 
-    def resolve_transaction_history(self: User):
-        return self.last_transactions
-
     @classmethod
     def get_node(cls, info, id):
         return User.objects.get(pk=id)
