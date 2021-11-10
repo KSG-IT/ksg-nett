@@ -193,7 +193,10 @@ STATIC_URL = "/static/"
 STATIC_ROOT = "static/"
 
 MEDIA_ROOT = "media/"
-MEDIA_URL = "http://localhost:8000/media/"
+MEDIA_URL = "/media/"
+
+# localhost crashes url test in users l:65
+# MEDIA_URL = "http://localhost:8000/media/"
 MAX_MEDIA_SIZE = 128 * (1024 ** 2)
 
 # Simple JWT SETTINGS
