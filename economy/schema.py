@@ -11,7 +11,14 @@ from graphene_django_cud.mutations import (
 from graphene_django.filter import DjangoFilterConnectionField
 from graphene_django import DjangoConnectionField
 
-from economy.models import SociProduct, SociSession, SociBankAccount, ProductOrder
+from economy.models import (
+    SociProduct,
+    Deposit,
+    Transfer,
+    SociSession,
+    SociBankAccount,
+    ProductOrder,
+)
 
 
 class SociProductNode(DjangoObjectType):
@@ -52,6 +59,26 @@ class ProductOrderNode(DjangoObjectType):
     @classmethod
     def get_node(cls, info, id):
         return ProductOrder.objects.get(pk=id)
+
+
+class TransferNode(DjangoObjectType):
+    class Meta:
+        model = Transfer
+        interfaces = (Node,)
+
+    @classmethod
+    def get_node(cls, info, id):
+        return Transfer.objects.get(pk=id)
+
+
+class DepositNode(DjangoObjectType):
+    class Meta:
+        model = Deposit
+        interfaces = (Node,)
+
+    @classmethod
+    def get_node(cls, info, id):
+        return Deposit.objects.get(pk=id)
 
 
 class SociProductQuery(graphene.ObjectType):

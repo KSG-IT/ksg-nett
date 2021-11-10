@@ -142,6 +142,14 @@ class User(AbstractUser):
             else None
         )
 
+    @property
+    def balance(self) -> int:
+        return self.bank_account.balance
+
+    @property
+    def last_transactions(self):
+        return self.bank_account.transaction_history[:10]
+
     class Meta:
         default_related_name = "users"
         verbose_name_plural = "Users"
