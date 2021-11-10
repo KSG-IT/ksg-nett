@@ -21,12 +21,16 @@ class UserNode(DjangoObjectType):
     full_name = graphene.String(source="get_full_name")
     initials = graphene.String()
     profile_picture = graphene.String()
+    balance = graphene.Int(source="balance")
 
     def resolve_profile_picture(self: User, info, **kwargs):
         return self.profile_image_url
 
     def resolve_initials(self: User, info, **kwargs):
         return self.initials
+
+    def resolve_transaction_history(self: User):
+        return self.last_transactions
 
     @classmethod
     def get_node(cls, info, id):

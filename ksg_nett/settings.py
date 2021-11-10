@@ -170,8 +170,6 @@ LOCALE_PATHS = [
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/1.10/howto/static-files/
 
-STATIC_URL = "/static/"
-MEDIA_URL = "/media/"
 
 # Django REST framework
 REST_FRAMEWORK = {
@@ -189,8 +187,14 @@ REST_FRAMEWORK = {
 # Graphql
 GRAPHENE = {"SCHEMA": "ksg_nett.schema.schema"}
 
+
+# Media
+STATIC_URL = "/static/"
 STATIC_ROOT = "static/"
+
 MEDIA_ROOT = "media/"
+MEDIA_URL = "http://localhost:8000/media/"
+MAX_MEDIA_SIZE = 128 * (1024 ** 2)
 
 # Simple JWT SETTINGS
 # ------------------------------

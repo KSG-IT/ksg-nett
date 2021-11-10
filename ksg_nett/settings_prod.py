@@ -12,6 +12,7 @@ DEBUG = True
 
 ALLOWED_HOSTS = [".alexanderorvik.com", ".amazonaws.com", "ksg-nett.no"]
 
+
 AUTH_JWT_SECRET = os.environ.get("AUTH_JWT_SECRET")
 
 # Application definition
@@ -32,3 +33,7 @@ AUTH_JWT_SECRET = os.environ.get("AUTH_JWT_SECRET")
 # AWS_S3_BUCKET_NAME = "ksg-nett-bucket"
 # DEFAULT_FILE_STORAGE = "django_s3_storage.storage.S3Storage"
 # MEDIA_URL = f"https://{AWS_S3_BUCKET_NAME}.s3.amazonaws.com/"
+
+AWS_STORAGE_BUCKET_NAME = "ksg-nett-bucket"
+AWS_S3_CUSTOM_DOMAIN = f"{AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com"
+MEDIA_URL = f"https://{AWS_S3_CUSTOM_DOMAIN}/media/"
