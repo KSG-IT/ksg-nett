@@ -41,6 +41,8 @@ class Applicant(models.Model):
     home_address = models.CharField(default="", blank=True, max_length=30)
     town_address = models.CharField(default="", blank=True, max_length=30)
 
+    image = models.ImageField(upload_to="applicants", null=True)
+
     # Tracks whether or not the applicant has retracted their application
     status = models.CharField(
         choices=ApplicantStatus.choices, max_length=12, default=ApplicantStatus.ACTIVE
