@@ -7,6 +7,12 @@ class Priority(models.TextChoices):
     THIRD = ("third", "Third")
 
 
+class AdmissionStatus(models.TextChoices):
+    OPEN = ("open", "Open")
+    IN_SESSION = ("in-session", "In session")
+    CLOSED = ("closed", "Closed")
+
+
 class ApplicantStatus(models.TextChoices):
     ACTIVE = ("active", "Active")
     RETRACTED = ("retracted", "Retracted")

@@ -1,11 +1,18 @@
 from django.db import models
 from common.util import get_semester_year_shorthand
-from admissions.consts import Priority, ApplicantStatus, InternalGroupStatus
+from admissions.consts import (
+    Priority,
+    ApplicantStatus,
+    InternalGroupStatus,
+    AdmissionStatus,
+)
 
 
 class Admission(models.Model):
     date = models.DateField(blank=True, null=True)
-    admission_closed = models.BooleanField(default=False)
+    status = models.CharField(
+        choices=AdmissionStatus.choices, default=AdmissionStatus.OPEN, max_length=12
+    )
 
     @property
     def semester(self) -> str:
