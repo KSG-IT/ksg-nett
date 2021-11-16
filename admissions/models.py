@@ -57,7 +57,7 @@ class Applicant(models.Model):
 class InternalGroupPriority(models.Model):
     class Meta:
         verbose_name = "Internal group priority"
-        verbose_name_plural = "Intern group priorities"
+        verbose_name_plural = "Internal group priorities"
         unique_together = ("applicant", "applicant_priority")
 
     applicant = models.ForeignKey(
