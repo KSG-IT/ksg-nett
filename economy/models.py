@@ -192,6 +192,8 @@ class ProductOrder(models.Model):
         default=SociSession.get_active_session,
     )
 
+    purchased_at = models.DateTimeField(auto_now=True)
+
     @property
     def cost(self) -> int:
         return self.order_size * self.product.price
