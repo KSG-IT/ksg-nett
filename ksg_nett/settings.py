@@ -227,6 +227,7 @@ REDOC_SETTINGS = {"PATH_IN_MIDDLE": True, "REQUIRED_PROPS_FIRST": True}
 # ------------------------------
 SOCI_MASTER_ACCOUNT_CARD_ID = 0xBADCAFEBABE  # Real card ids are 10 digits, while this is 14, meaning no collisions
 DIRECT_CHARGE_SKU = "X-BELOP"
+WANTED_LIST_THRESHOLD = -2000
 
 # Channels
 ASGI_APPLICATION = "ksg_nett.routing.application"

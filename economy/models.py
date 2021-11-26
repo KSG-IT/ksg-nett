@@ -52,6 +52,12 @@ class SociBankAccount(models.Model):
             "deposits": self.deposits.all(),
         }
 
+    @classmethod
+    def get_wanted_list(cls):
+        return User.objects.filter(
+            bank_account__balance__lte=settings.WANTED_LIST_THRESHOLD
+        ).order_by("-bank_account__balance")
+
     def __str__(self):
         return f"Soci Bank Account for {self.user} containing {self.balance} kr"
 
