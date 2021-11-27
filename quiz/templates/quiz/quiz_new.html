@@ -2,18 +2,18 @@
 {% load static %}
 {% load i18n %}
 {% block header %}
-  <link rel="stylesheet" href="{% static 'quotes/css/quotes.css' %}">
+    <link rel="stylesheet" href="{% static 'quotes/css/quotes.css' %}">
 {% endblock %}
 {% block body_content %}
   <h2>Quiz for de nye:</h2>
-  <h3>Finn: {{ randomuser.get_full_name }}</h3>
+  <h3>Finn: nei</h3>
   <div>
-    {% for user in QuizImage %}
-      <a href="/internal/quiz/{{ quiz.id }}/guess-user/{{ user.id }}"
-              {#  This link needs to trigger a post request to a url which performs a guess on the backend#}
-         title="{{ user.get_full_name }}">
-        {% include 'components/thumb.html' with url=user.profile_image_url size='large' %}
-      </a>
+    {% for user in QuizImage%}
+    <a href="/internal/quiz/checkattempt/{{ user.id}}/{{randomuser.id}}"
+        title="{{ user.get_full_name }}">
+      {% include 'components/thumb.html' with url=user.profile_image_url size='large' %}
+    </a>
+
     {% endfor %}
-  </div>
+    </div>
 {% endblock %}

@@ -1,0 +1,31 @@
+{% extends 'internal/base.html' %}
+{% load static %}
+{% load i18n %}
+{% block header %}
+    <link rel="stylesheet" href="{% static 'quotes/css/quotes.css' %}">
+    <link rel="stylesheet" href="{% static 'quiz/css/quiz.css' %}">
+{% endblock %}
+{% block body_content %}
+
+<div class="quiz__form_container">
+    <h2>Spørsmål {{quiz.quiz_progress}} av {{question_amount}}</h2>
+    <h4>Klikk på bildet som samsvarer med navnet</h4>
+    <h3>Finn: {{who_to_find.get_full_name}}</h3>
+    <div class="quiz_form_section">
+        {% for user in choice_pool %}
+        <form action="/internal/quiz/{{quiz.id}}/guess-user/{{user.id}}" method="post">
+        {% csrf_token %}
+        <button>
+        {% include 'components/thumb.html' with url=user.profile_image_url size='large' %}
+        </button>
+        </form>
+        <!--
+        <a href="/internal/quiz/{{quiz.id}}/guess-user/{{user.id}}"
+            title="{{ user.get_full_name }}">{% include 'components/thumb.html' with url=user.profile_image_url size='large' %}
+        </a>
+        -->
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
+

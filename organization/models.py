@@ -29,6 +29,7 @@ class InternalGroup(models.Model):
     )
     description = models.TextField(max_length=2048, blank=True, null=True)
     group_image = models.ImageField(upload_to="internalgroups", null=True, blank=True)
+    slug = models.SlugField(max_length=200, null=True)
 
     @property
     def active_members(self):
@@ -52,6 +53,13 @@ class InternalGroup(models.Model):
     @property
     def active_members_count(self) -> int:
         return len(self.active_members)
+
+    @property
+    def get_group_slug(self) -> str:
+        split = self.name.split(' ')
+        joint = '-'.join(split)
+        slug = joint.lower()
+        return slug
 
     def __str__(self):
         return "Group %s" % self.name

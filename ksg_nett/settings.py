@@ -58,13 +58,13 @@ INSTALLED_APPS = [
     "login",
     "organization",
     "quotes",
+    "quiz",
     "schedules",
     "summaries",
     "users",
     "sensors",
     "chat",
     "admissions",
-    "quiz",
 ]
 
 MIDDLEWARE = [
@@ -246,6 +246,9 @@ REDIS = {
     "port": os.environ.get("REDIS_PORT", 6379),
 }
 CHAT_STATE_REDIS_DB = 1
+
+#Quiz-variables
+QUIZ_QUESTION_AMOUNT = 20
 
 
 # Load local and production settings
