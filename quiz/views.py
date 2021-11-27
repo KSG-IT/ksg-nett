@@ -45,7 +45,6 @@ def quiz_new(request, internal_group):
     next_to_guess = choice(users_available)
     x = Participant.objects.create(quiz=quiz, correct_user=next_to_guess)
     x.save()
-    print("GUESS: ------ ", quiz.participants.first().first_name) #For debug purposes
     quiz.save()
     #-----------------------
     print(users_available)
