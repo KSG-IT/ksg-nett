@@ -6,6 +6,8 @@ from users.models import User
 from random import randint
 from model_utils.managers import QueryManager
 from quiz.consts import InternalGroups
+from django.db.models import Q
+from random import choice, sample
 
 # Create your models here.
 
@@ -16,16 +18,39 @@ class Quiz(models.Model):
         through="Participant",
         through_fields=("quiz", "correct_user"),
         blank=True,
-        related_name="participants",
+        related_name="related_quiz",
     )
     fake_users = models.ManyToManyField(User, related_name="quiz_fakes")
 
     @property
-    def current_user(self):
-        not_guessed_yet = self.quiz_choices.filter(appears_in_quiz=self)
-        if not not_guessed_yet:
-            return None
-        return not_guessed_yet.first()
+    def current_guess(self):
+        return self.participants_in_quiz.filter(
+            correct_user__isnull=False, guessed_user__isnull=True
+        ).first()
+
+    @property
+    def counter(self):
+        return self.participants_in_quiz.filter(guessed_user__isnull=False).count()
+
+    @property
+    def score(self):
+        score = 0
+        for guess in self.participants_in_quiz.all():
+            score += 1 if guess.correct else 0
+        return score
+
+    @property
+    def next_guess(self):
+        users_available = self.fake_users.exclude(
+            solution_in_quiz__quiz=self, solution_in_quiz__isnull=False
+        )
+        return Participant.objects.create(
+            quiz=self, correct_user=choice(users_available)
+        ).save()
+
+    @property
+    def scramble_pool(self):
+        return sample(list(self.fake_users.all()), self.fake_users.count())
 
 
 class Participant(models.Model):  # QuizAnswer FK -> QUIZ
@@ -35,15 +60,10 @@ class Participant(models.Model):  # QuizAnswer FK -> QUIZ
     correct_user = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name="solution_in_quiz", null=True
     )
-    quiz = models.ForeignKey(Quiz, on_delete=models.CASCADE)
+    quiz = models.ForeignKey(
+        Quiz, on_delete=models.CASCADE, related_name="participants_in_quiz"
+    )
 
     @property
     def correct(self):
         return self.guessed_user == self.correct_user
-
-    @property
-    def counter(self):
-        return self.quiz.related_quiz.filter(guessed_user__isnull=False).count()
-        return Participant.objects.filter(
-            quiz=self.quiz, guessed_user__isnull=False
-        ).count()
