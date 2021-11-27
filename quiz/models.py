@@ -6,10 +6,18 @@ from users.models import User
 from random import randint
 from model_utils.managers import QueryManager
 from quiz.consts import InternalGroups
+
 # Create your models here.
 
+
 class Quiz(models.Model):
-    participants = models.ManyToManyField(User, through='Participant', through_fields=('quiz', 'correct_user'), blank=True, related_name="participants")
+    participants = models.ManyToManyField(
+        User,
+        through="Participant",
+        through_fields=("quiz", "correct_user"),
+        blank=True,
+        related_name="participants",
+    )
     fake_users = models.ManyToManyField(User, related_name="quiz_fakes")
 
     @property
@@ -19,9 +27,14 @@ class Quiz(models.Model):
             return None
         return not_guessed_yet.first()
 
-class Participant(models.Model): #QuizAnswer FK -> QUIZ
-    guessed_user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="clicked_in_quiz", null=True)
-    correct_user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="solution_in_quiz", null=True)
+
+class Participant(models.Model):  # QuizAnswer FK -> QUIZ
+    guessed_user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="clicked_in_quiz", null=True
+    )
+    correct_user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="solution_in_quiz", null=True
+    )
     quiz = models.ForeignKey(Quiz, on_delete=models.CASCADE)
 
     @property
@@ -31,6 +44,6 @@ class Participant(models.Model): #QuizAnswer FK -> QUIZ
     @property
     def counter(self):
         return self.quiz.related_quiz.filter(guessed_user__isnull=False).count()
-        return Participant.objects.filter(quiz=self.quiz, guessed_user__isnull=False).count()
-
-
+        return Participant.objects.filter(
+            quiz=self.quiz, guessed_user__isnull=False
+        ).count()

@@ -6,4 +6,4 @@ from users.tests.factories import UserFactory
 class TestQuizModel(TestCase):
     def setUp(self):
         self.quiz = Quiz.objects.create()
-        self.
+    pass
