@@ -28,6 +28,11 @@ class UserNode(DjangoObjectType):
     bank_account_activity = graphene.List(BankAccountActivity)
     last_transactions = graphene.List(BankAccountActivity)
 
+    all_permissions = graphene.List(graphene.String)
+
+    def resolve_all_permissions(self: User, info, **kwargs):
+        return self.get_all_permissions()
+
     def resolve_profile_picture(self: User, info, **kwargs):
         return self.profile_image_url
 
