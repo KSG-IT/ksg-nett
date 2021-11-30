@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     "graphene_django",
     "storages",
     "corsheaders",
+    "django_filters",
     # Project apps
     "api",
     "common",
