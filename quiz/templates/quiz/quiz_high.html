@@ -1,0 +1,19 @@
+{% extends 'internal/base.html' %}
+{% load static %}
+{% load i18n %}
+{% block header %}
+<link rel="stylesheet" href="{% static 'quiz/css/quiz.css' %}">
+{% endblock %}
+
+{% block body_content %}
+<h2>Resultat for Quiz</h2>
+<div class="quiz__form_container">
+    <div class="quiz__listing">
+        <h4>Topplisten</h4>
+        <!--Here comes a function that returns the best quiz results based on 1.score and 2.time combined-->
+    </div>
+    <div class="quiz__listing">
+        <!--Here comes a function that returns the people that have the highest percent of correct guesses on them-->
+    </div>
+</div>
+{% endblock %}

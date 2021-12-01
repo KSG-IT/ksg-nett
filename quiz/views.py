@@ -10,7 +10,6 @@ from random import choice, sample, shuffle, random
 from quiz.models import Participant, Quiz
 from django.urls import reverse
 from organization.models import InternalGroup
-from quiz.consts import InternalGroups
 from quiz.utils import guess_helper, user_quiz_pool_helper
 
 

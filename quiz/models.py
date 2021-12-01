@@ -5,7 +5,6 @@ from django.db.models.fields.related import ManyToManyField
 from users.models import User
 from random import randint
 from model_utils.managers import QueryManager
-from quiz.consts import InternalGroups
 from django.db.models import Q
 from random import choice, sample
 
