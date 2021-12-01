@@ -25,8 +25,12 @@ h4{
     font-size: 2em;
 }
 
+.useless_positioning{
+    justify-content:center;
+}
+
 table.results_table td {
-    border-style: groove;
+    border-style:none;
     font-size: 110%;
     text-align: center;
 }
@@ -37,5 +41,7 @@ table.results_table img{
 }
 
 table.results_table{
-    border-style: solid;
+    display: flex;
+    border-style: none;
+    justify-content: space-around;
 }

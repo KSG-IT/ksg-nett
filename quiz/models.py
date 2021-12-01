@@ -44,13 +44,21 @@ class Quiz(models.Model):
         users_available = self.fake_users.exclude(
             solution_in_quiz__quiz=self, solution_in_quiz__isnull=False
         )
-        return Participant.objects.create(
-            quiz=self, correct_user=choice(users_available)
-        ).save()
+        return self.participants_in_quiz.create(correct_user=choice(users_available))
 
     @property
     def scramble_pool(self):
         return sample(list(self.fake_users.all()), self.fake_users.count())
+
+    @property
+    def create_participant(self):
+        return self.participants_in_quiz.create(
+            correct_user=choice(self.fake_users.all())
+        )
+    
+    @property
+    def all_guesses(self):
+        return self.participants_in_quiz.all()
 
 
 class Participant(models.Model):  # QuizAnswer FK -> QUIZ

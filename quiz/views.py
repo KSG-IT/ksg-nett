@@ -11,10 +11,10 @@ from quiz.models import Participant, Quiz
 from django.urls import reverse
 from organization.models import InternalGroup
 from quiz.consts import InternalGroups
+from quiz.utils import guess_helper, user_quiz_pool_helper
 
 
 def quiz_main(request):
-    # Quiz.objects.all().delete()
     groups = InternalGroup.objects.filter(type=InternalGroup.Type.INTERNAL_GROUP)
     context = {
         "groups": groups,
@@ -22,73 +22,45 @@ def quiz_main(request):
     return render(request, template_name="quiz/quiz_main.html", context=context)
 
 
-def user_quiz_pool_helper(quiz, internal_group):
-    pool = None
-    group = None
-    if internal_group == "new-members":
-        all_groups = InternalGroup.objects.filter(
-            type=InternalGroup.Type.INTERNAL_GROUP
-        ).order_by("?")
-    else:
-        print("IDENTIFIER: ", quiz.identifier)
-        all_groups = InternalGroup.objects.filter(slug=internal_group).order_by("?")
-    pool = []
-    for group in all_groups:
-        pool.extend([membership.user for membership in group.active_members])
-    return pool
-
 
 def quiz_new(request, internal_group):
     quiz = Quiz.objects.create()
-    quiz.identifier = internal_group.upper()
-    pool_setup = user_quiz_pool_helper(quiz, internal_group)
-    quiz.fake_users.set(pool_setup)
-    # ----------------------- Snippet generates the first participant to guess on
-    users_available = quiz.fake_users.all()
-    next_to_guess = choice(users_available)
-    x = Participant.objects.create(quiz=quiz, correct_user=next_to_guess)
-    x.save()
-    quiz.save()
-    # -----------------------
+    quiz.fake_users.set(user_quiz_pool_helper(quiz,internal_group))
+    quiz.create_participant
     quiz.save()
     return redirect("quiz-detail", quiz_id=quiz.id)
 
 
 def quiz_results(request, quiz_id):
     quiz = get_object_or_404(Quiz, pk=quiz_id)
-    all_guesses = quiz.participants_in_quiz.all()
     context = {
         "quiz": quiz,
         "quiz_amount": QUIZ_QUESTION_AMOUNT,
         "correctly_guessed": quiz.score,
-        "quiz_participants": all_guesses,
+        "quiz_participants": quiz.all_guesses,
     }
     return render(request, "quiz/quiz_results.html", context=context)
 
 
 def quiz_detail_view(request, quiz_id):
     quiz = get_object_or_404(Quiz, pk=quiz_id)
-    participant_current = quiz.current_guess
     if quiz.counter < QUIZ_QUESTION_AMOUNT:
         context = {
             "quiz": quiz,
             "choice_pool": quiz.scramble_pool,
             "question_amount": QUIZ_QUESTION_AMOUNT,
-            "who_to_find": participant_current.correct_user,
+            "who_to_find": quiz.current_guess.correct_user,
         }
         return render(request, "quiz/quiz_detail.html", context=context)
     else:
-        participant_current.delete()
+        quiz.current_guess.delete() #delete participant from previous 'quiz_check'
         return redirect("quiz-results", quiz_id=quiz_id)
 
 
 def quiz_check(request, quiz_id, user_id):
     if request.method == "POST":
         quiz = get_object_or_404(Quiz, pk=quiz_id)
-        participant_guessed_on = quiz.current_guess
-        clicked_user = User.objects.filter(pk=user_id).first()
-        participant_guessed_on.guessed_user = clicked_user
-        participant_guessed_on.save()
+        guess_helper(quiz, user_id)
         quiz.next_guess
         quiz.save()
         return redirect("quiz-detail", quiz_id=quiz_id)

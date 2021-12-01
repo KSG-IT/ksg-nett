@@ -2,30 +2,31 @@
 {% load static %}
 {% load i18n %}
 {% block header %}
-    <link rel="stylesheet" href="{% static 'quiz/css/quiz.css' %}">
+<link rel="stylesheet" href="{% static 'quiz/css/quiz.css' %}">
 {% endblock %}
 
 {% block body_content %}
-    <h2>Resultat for Quiz</h2>
+<h2>Resultat for Quiz</h2>
+<div class="quiz__form_container">
+    <h3>Godt jobbet!</h3>
+    <h4>
+        Du svarte riktig på {{correctly_guessed}} av {{quiz_amount}}.
+        Du brukte ___ sekunder.
+        Resultatet er lagret :))
+    </h4>
     <div>
-        <h3>Godt jobbet!</h3>
-        <h4>
-            Du svarte riktig på {{correctly_guessed}} av {{quiz_amount}}. 
-            Du brukte ___ sekunder.
-            Resultatet er lagret :))
-        </h4>
         <table class="results_table">
             <tr>
-             <th>Hvem skulle finnes</th>
-             <th>Du gjettet på</th>
+                <th>Hvem skulle finnes</th>
+                <th>Du gjettet på</th>
             </tr>
             {% for participant in quiz_participants %}
             <tr>
                 <td>
-                    {% include 'components/thumb.html' with url=participant.correct_user.profile_image_url size='large' %}
+                    {% include 'components/thumb.html' with url=participant.correct_user.profile_image_url size='large'%}
                 </td>
                 <td>
-                    {% include 'components/thumb.html' with url=participant.guessed_user.profile_image_url size='large' %}
+                    {% include 'components/thumb.html' with url=participant.guessed_user.profile_image_url size='large'%}
                 </td>
             </tr>
             <tr>
@@ -37,6 +38,7 @@
                 </td>
             </tr>
             {% endfor %}
-           </table>
+        </table>
     </div>
+</div>
 {% endblock %}
