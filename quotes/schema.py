@@ -1,6 +1,7 @@
 import graphene
 from graphene import Node
 from graphene_django import DjangoObjectType
+from graphene_django.filter import DjangoFilterConnectionField
 from graphene_django_cud.mutations import (
     DjangoPatchMutation,
     DjangoDeleteMutation,
@@ -8,6 +9,7 @@ from graphene_django_cud.mutations import (
 )
 from graphene_django import DjangoConnectionField
 from quotes.models import Quote, QuoteVote
+from quotes.filters import QuoteFilter
 
 
 class QuoteNode(DjangoObjectType):
@@ -17,9 +19,13 @@ class QuoteNode(DjangoObjectType):
 
     sum = graphene.Int(source="sum")
     tagged = graphene.List("users.schema.UserNode")
+    semester = graphene.String()
 
     def resolve_tagged(self: Quote, info, **kwargs):
         return self.tagged.all()
+
+    def resolve_semester(self: Quote, info, **kwargs):
+        return self.get_semester_of_quote()
 
     @classmethod
     def get_node(cls, info, id):
@@ -39,8 +45,10 @@ class QuoteVoteNode(DjangoObjectType):
 class QuoteQuery(graphene.ObjectType):
     quote = Node.Field(QuoteNode)
     all_quotes = DjangoConnectionField(QuoteNode)
-    pending_quotes = DjangoConnectionField(QuoteNode)
-    verified_quotes = DjangoConnectionField(QuoteNode)
+    pending_quotes = graphene.List(QuoteNode)
+    approved_quotes = DjangoFilterConnectionField(
+        QuoteNode, filterset_class=QuoteFilter
+    )
 
     def resolve_all_quotes(self, info, *args, **kwargs):
         return Quote.objects.all()
@@ -48,7 +56,7 @@ class QuoteQuery(graphene.ObjectType):
     def resolve_pending_quotes(self, info, *args, **kwargs):
         return Quote.objects.filter(verified_by__isnull=True)
 
-    def resolve_verified_quotes(self, info, *args, **kwargs):
+    def resolve_approved_quotes(self, info, *args, **kwargs):
         return Quote.objects.filter(verified_by__isnull=False)
 
 
