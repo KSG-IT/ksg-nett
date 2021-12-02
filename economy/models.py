@@ -274,7 +274,13 @@ class Deposit(TimeStampedModel):
         related_name="verified_deposits",
         on_delete=models.DO_NOTHING,
     )
-    signed_off_time = MonitorField(monitor="signed_off_by", null=True, default=None)
+    signed_off_time = MonitorField(
+        monitor="signed_off_by", null=True, default=None, blank=True
+    )
+
+    @classmethod
+    def get_pending_deposits(cls):
+        return cls.objects.filter(signed_off_by__isnull=True)
 
     @property
     def is_valid(self):
