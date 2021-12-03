@@ -1,4 +1,3 @@
-from typing import List
 import graphene
 from graphene import Node
 from graphene_django import DjangoObjectType, DjangoConnectionField
@@ -11,7 +10,7 @@ from graphene_django_cud.mutations import (
 from users.models import (
     User,
 )
-from users.utils import parse_transaction_history
+from economy.utils import parse_transaction_history
 from economy.schema import BankAccountActivity
 
 
