@@ -50,7 +50,10 @@ def parse_transaction_history(bank_account, slice=None):
         for product_order in transaction_history["product_orders"]
     ]
     parsed_deposits = [
-        parse_deposit(deposit) for deposit in transaction_history["deposits"]
+        parse_deposit(deposit)
+        for deposit in transaction_history["deposits"].filter(
+            signed_off_by__isnull=False
+        )
     ]
 
     activities = [*parsed_transfers, *parsed_product_orders, *parsed_deposits]
