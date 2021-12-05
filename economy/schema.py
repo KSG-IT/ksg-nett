@@ -108,6 +108,28 @@ class SociProductQuery(graphene.ObjectType):
         )
 
 
+class DepositQuery(graphene.ObjectType):
+    deposit = Node.Field(DepositNode)
+    all_deposits = DjangoConnectionField(DepositNode)
+    all_pending_deposits = graphene.List(
+        DepositNode
+    )  # Pending will never be more than a couple at a time
+    all_approved_deposits = DjangoConnectionField(DepositNode)
+
+    def resolve_all_deposits(self, info, *args, **kwargs):
+        return Deposit.objects.all().order_by("-created_at")
+
+    def resolve_all_pending_deposits(self, info, *args, **kwargs):
+        return Deposit.objects.filter(signed_off_by__isnull=True).order_by(
+            "-created_at"
+        )
+
+    def resolve_all_approved_deposits(self, info, *args, **kwargs):
+        return Deposit.objects.filter(signed_off_by__isnull=False).order_by(
+            "-created_at"
+        )
+
+
 class ProductOrderQuery(graphene.ObjectType):
     product_order = Node.Field(ProductOrderNode)
     all_product_orders = DjangoConnectionField(ProductOrderNode)
@@ -202,6 +224,16 @@ class CreateDepositMutation(DjangoCreateMutation):
 class PatchDepositMutation(DjangoPatchMutation):
     class Meta:
         model = Deposit
+
+    @classmethod
+    def before_save(cls, root, info, input, id, obj: Deposit):
+        if not obj.signed_off_by:
+            obj.account.remove_funds(obj.amount)
+            obj.signed_off_time = None
+        else:
+            obj.account.add_funds(obj.amount)
+            obj.signed_off_time = timezone.now()
+        return obj
 
 
 class DeleteDepositMutation(DjangoDeleteMutation):
