@@ -1,5 +1,6 @@
 import graphene
 from admissions.schema import AdmissionQuery, ApplicantQuery, AdmissionsMutations
+from common.schema import DashboardQuery, SidebarQuery
 from users.schema import UserQuery, UserMutations
 from login.schema import LoginMutations, AuthenticationQuery
 from economy.schema import (
@@ -45,7 +46,9 @@ class Query(
     AdmissionQuery,
     ApplicantQuery,
     AuthenticationQuery,
+    DashboardQuery,
     ProductOrderQuery,
+    SidebarQuery,
     SociBankAccountQuery,
     SociProductQuery,
     SociSessionQuery,
