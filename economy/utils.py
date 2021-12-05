@@ -36,8 +36,9 @@ def parse_product_order(product_order):
 
 def parse_transaction_history(bank_account, slice=None):
     """
-    Accepts a list containing objects from the SociBankAccount.transaction_history property
-    and parses it to the generic format of a BankAccountActivity.
+    Accepts a SociBankAccount object and and parses its transaction history
+    to the generic format of a BankAccountActivity. Optional keywordargument
+    slice determines how many such objects we want
     """
     transaction_history = bank_account.transaction_history
     user = bank_account.user
