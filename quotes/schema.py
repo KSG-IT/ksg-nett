@@ -51,13 +51,13 @@ class QuoteQuery(graphene.ObjectType):
     )
 
     def resolve_all_quotes(self, info, *args, **kwargs):
-        return Quote.objects.all()
+        return Quote.objects.all().order_by("created_at")
 
     def resolve_pending_quotes(self, info, *args, **kwargs):
-        return Quote.objects.filter(verified_by__isnull=True)
+        return Quote.objects.filter(verified_by__isnull=True).order_by("created_at")
 
     def resolve_approved_quotes(self, info, *args, **kwargs):
-        return Quote.objects.filter(verified_by__isnull=False)
+        return Quote.objects.filter(verified_by__isnull=False).order_by("created_at")
 
 
 class CreateQuoteMutation(DjangoCreateMutation):

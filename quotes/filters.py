@@ -14,4 +14,4 @@ class QuoteFilter(FilterSet):
 
         # Allows users to search for both context and content text
         result = queryset.filter(Q(text__icontains=value) | Q(context__icontains=value))
-        return result.order_by("created_at")
+        return result
