@@ -7,7 +7,6 @@ from graphene_django_cud.mutations import (
     DjangoCreateMutation,
 )
 from graphene_django import DjangoConnectionField
-
 from quotes.models import Quote, QuoteVote
 
 
@@ -15,6 +14,12 @@ class QuoteNode(DjangoObjectType):
     class Meta:
         model = Quote
         interfaces = (Node,)
+
+    sum = graphene.Int(source="sum")
+    tagged = graphene.List("users.schema.UserNode")
+
+    def resolve_tagged(self: Quote, info, **kwargs):
+        return self.tagged.all()
 
     @classmethod
     def get_node(cls, info, id):

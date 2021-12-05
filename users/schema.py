@@ -1,3 +1,4 @@
+from typing import List
 import graphene
 from graphene import Node
 from graphene_django import DjangoObjectType, DjangoConnectionField
@@ -10,6 +11,8 @@ from graphene_django_cud.mutations import (
 from users.models import (
     User,
 )
+from users.utils import parse_transaction_history
+from economy.schema import BankAccountActivity
 
 
 class UserNode(DjangoObjectType):
@@ -22,12 +25,20 @@ class UserNode(DjangoObjectType):
     initials = graphene.String()
     profile_picture = graphene.String()
     balance = graphene.Int(source="balance")
+    bank_account_activity = graphene.List(BankAccountActivity)
+    last_transactions = graphene.List(BankAccountActivity)
 
     def resolve_profile_picture(self: User, info, **kwargs):
         return self.profile_image_url
 
     def resolve_initials(self: User, info, **kwargs):
         return self.initials
+
+    def resolve_bank_account_activity(self: User, info, **kwargs):
+        return parse_transaction_history(self.bank_account)
+
+    def resolve_last_transactions(self: User, info, **kwargs):
+        return parse_transaction_history(self.bank_account, 10)
 
     @classmethod
     def get_node(cls, info, id):

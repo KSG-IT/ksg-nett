@@ -52,6 +52,12 @@ class SociBankAccount(models.Model):
             "deposits": self.deposits.all(),
         }
 
+    @classmethod
+    def get_wanted_list(cls):
+        return User.objects.filter(
+            bank_account__balance__lte=settings.WANTED_LIST_THRESHOLD
+        ).order_by("-bank_account__balance")
+
     def __str__(self):
         return f"Soci Bank Account for {self.user} containing {self.balance} kr"
 
@@ -191,6 +197,8 @@ class ProductOrder(models.Model):
         on_delete=models.DO_NOTHING,
         default=SociSession.get_active_session,
     )
+
+    purchased_at = models.DateTimeField(auto_now=True)
 
     @property
     def cost(self) -> int:
