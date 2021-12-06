@@ -196,7 +196,11 @@ class PatchSociBankAccountMutation(DjangoPatchMutation):
 class CreateDepositMutation(DjangoCreateMutation):
     class Meta:
         model = Deposit
-        required_fields = "account"
+
+    @classmethod
+    def before_save(cls, root, info, input, obj):
+        obj.account = info.context.user.bank_account
+        return obj
 
 
 class PatchDepositMutation(DjangoPatchMutation):
