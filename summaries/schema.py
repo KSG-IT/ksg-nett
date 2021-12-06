@@ -35,7 +35,7 @@ class SummaryQuery(graphene.ObjectType):
     )
 
     def resolve_all_summaries(self, info, *args, **kwargs):
-        return Summary.objects.all().order_by("date")
+        return Summary.objects.all().order_by("-date")
 
 
 class CreateSummaryMutation(DjangoCreateMutation):
