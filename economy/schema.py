@@ -64,7 +64,7 @@ class SociBankAccountNode(DjangoObjectType):
         model = SociBankAccount
         interfaces = (Node,)
 
-    deposits = graphene.List(DepositNode)
+    deposits = graphene.NonNull(graphene.List(graphene.NonNull(DepositNode)))
 
     def resolve_deposits(self: SociBankAccount, info, **kwargs):
         return self.deposits.all().order_by("-created_at")
@@ -149,7 +149,7 @@ class SociSessionQuery(graphene.ObjectType):
 class SociBankAccountQuery(graphene.ObjectType):
     soci_bank_account = Node.Field(SociBankAccountNode)
     all_soci_bank_accounts = DjangoConnectionField(SociBankAccountNode)
-    my_bank_account = graphene.Field(SociBankAccountNode)
+    my_bank_account = graphene.Field(graphene.NonNull(SociBankAccountNode))
 
     def resolve_my_bank_account(self, info, *args, **kwargs):
         if not hasattr(info.context, "user") or not info.context.user.is_authenticated:
