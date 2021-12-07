@@ -20,23 +20,32 @@ class UserNode(DjangoObjectType):
         interfaces = (Node,)
         exclude_fields = ("password",)
 
-    full_name = graphene.String(source="get_full_name")
-    initials = graphene.String()
+    full_name = graphene.NonNull(graphene.String)
+    initials = graphene.NonNull(graphene.String)
     profile_picture = graphene.String()
-    balance = graphene.Int(source="balance")
-    bank_account_activity = graphene.List(BankAccountActivity)
-    last_transactions = graphene.List(BankAccountActivity)
+    balance = graphene.NonNull(graphene.Int)
+    bank_account_activity = graphene.NonNull(
+        graphene.List(graphene.NonNull(BankAccountActivity))
+    )
+    last_transactions = graphene.NonNull(
+        graphene.List(graphene.NonNull(BankAccountActivity))
+    )
+    all_permissions = graphene.NonNull(graphene.List(graphene.String))
 
-    all_permissions = graphene.List(graphene.String)
+    def resolve_full_name(self: User, info, **kwargs):
+        return self.get_full_name()
 
-    def resolve_all_permissions(self: User, info, **kwargs):
-        return self.get_all_permissions()
+    def resolve_initials(self: User, info, **kwargs):
+        return self.initials
 
     def resolve_profile_picture(self: User, info, **kwargs):
         return self.profile_image_url
 
-    def resolve_initials(self: User, info, **kwargs):
-        return self.initials
+    def resolve_balance(self: User, info, **kwargs):
+        return self.balance
+
+    def resolve_all_permissions(self: User, info, **kwargs):
+        return self.get_all_permissions()
 
     def resolve_bank_account_activity(self: User, info, **kwargs):
         return parse_transaction_history(self.bank_account)

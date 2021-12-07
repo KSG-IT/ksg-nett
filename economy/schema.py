@@ -21,10 +21,10 @@ from economy.models import (
 
 class BankAccountActivity(graphene.ObjectType):
     # Either name of product, 'Transfer' or 'Deposit' (Should we have a pending deposit status)
-    name = graphene.String()
-    amount = graphene.Int()
-    quantity = graphene.Int()  # Transfer or deposit either 1 or None
-    timestamp = graphene.DateTime()
+    name = graphene.NonNull(graphene.String)
+    amount = graphene.NonNull(graphene.Int)
+    quantity = graphene.Int()  # Transfer or deposit returns None for this field
+    timestamp = graphene.NonNull(graphene.DateTime)
 
 
 class SociProductNode(DjangoObjectType):
@@ -105,6 +105,28 @@ class SociProductQuery(graphene.ObjectType):
     def resolve_all_active_soci_products(self, info, *args, **kwargs):
         return SociProduct.objects.filter(
             Q(end__isnull=True) | Q(end__gte=timezone.now())
+        )
+
+
+class DepositQuery(graphene.ObjectType):
+    deposit = Node.Field(DepositNode)
+    all_deposits = DjangoConnectionField(DepositNode)
+    all_pending_deposits = graphene.List(
+        DepositNode
+    )  # Pending will never be more than a couple at a time
+    all_approved_deposits = DjangoConnectionField(DepositNode)
+
+    def resolve_all_deposits(self, info, *args, **kwargs):
+        return Deposit.objects.all().order_by("-created_at")
+
+    def resolve_all_pending_deposits(self, info, *args, **kwargs):
+        return Deposit.objects.filter(signed_off_by__isnull=True).order_by(
+            "-created_at"
+        )
+
+    def resolve_all_approved_deposits(self, info, *args, **kwargs):
+        return Deposit.objects.filter(signed_off_by__isnull=False).order_by(
+            "-created_at"
         )
 
 
@@ -206,6 +228,16 @@ class CreateDepositMutation(DjangoCreateMutation):
 class PatchDepositMutation(DjangoPatchMutation):
     class Meta:
         model = Deposit
+
+    @classmethod
+    def before_save(cls, root, info, input, id, obj: Deposit):
+        if not obj.signed_off_by:
+            obj.account.remove_funds(obj.amount)
+            obj.signed_off_time = None
+        else:
+            obj.account.add_funds(obj.amount)
+            obj.signed_off_time = timezone.now()
+        return obj
 
 
 class DeleteDepositMutation(DjangoDeleteMutation):

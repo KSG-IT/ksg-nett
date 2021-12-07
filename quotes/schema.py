@@ -18,7 +18,7 @@ class QuoteNode(DjangoObjectType):
         interfaces = (Node,)
 
     sum = graphene.Int(source="sum")
-    tagged = graphene.List("users.schema.UserNode")
+    tagged = graphene.NonNull(graphene.List(graphene.NonNull("users.schema.UserNode")))
     semester = graphene.String()
 
     def resolve_tagged(self: Quote, info, **kwargs):

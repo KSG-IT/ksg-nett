@@ -8,9 +8,9 @@ from economy.models import SociBankAccount, Deposit
 
 
 class DashboardData(graphene.ObjectType):
-    last_quotes = graphene.List(QuoteNode)
-    last_summaries = graphene.List(SummaryNode)
-    wanted_list = graphene.List(UserNode)
+    last_quotes = graphene.NonNull(graphene.List(graphene.NonNull(QuoteNode)))
+    last_summaries =graphene.NonNull(graphene.List(graphene.NonNull(SummaryNode)))
+    wanted_list = graphene.NonNull(graphene.List(graphene.NonNull(UserNode)))
 
 
 class SidebarData(graphene.ObjectType):
@@ -30,7 +30,7 @@ class SidebarQuery(graphene.ObjectType):
 
 
 class DashboardQuery(graphene.ObjectType):
-    dashboard_data = graphene.Field(DashboardData)
+    dashboard_data = graphene.Field(graphene.NonNull(DashboardData))
 
     def resolve_dashboard_data(self, info, *args, **kwargs):
         quotes = Quote.objects.filter(verified_by__isnull=False).order_by(
