@@ -28,7 +28,7 @@ class TransferAdmin(admin.ModelAdmin):
 
 @admin.register(Deposit)
 class DepositAdmin(admin.ModelAdmin):
-    list_display = ["id", "user", "amount", "has_receipt", "is_valid"]
+    list_display = ["id", "user", "amount", "has_receipt", "approved"]
 
     @staticmethod
     def user(deposit: Deposit):
@@ -39,10 +39,10 @@ class DepositAdmin(admin.ModelAdmin):
 
     has_receipt.boolean = True
 
-    def is_valid(self, deposit):
-        return deposit.is_valid
+    def approved(self, deposit):
+        return deposit.approved
 
-    is_valid.boolean = True
+    approved.boolean = True
 
 
 @admin.register(SociSession)

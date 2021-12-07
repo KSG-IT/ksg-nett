@@ -8,9 +8,7 @@ from graphene_django_cud.mutations import (
     DjangoDeleteMutation,
     DjangoCreateMutation,
 )
-from graphene_django.filter import DjangoFilterConnectionField
 from graphene_django import DjangoConnectionField
-
 from economy.models import (
     SociProduct,
     Deposit,
@@ -49,10 +47,27 @@ class SociSessionNode(DjangoObjectType):
         return SociSession.objects.get(pk=id)
 
 
+class DepositNode(DjangoObjectType):
+    class Meta:
+        model = Deposit
+        interfaces = (Node,)
+
+    approved = graphene.Boolean(source="approved")
+
+    @classmethod
+    def get_node(cls, info, id):
+        return Deposit.objects.get(pk=id)
+
+
 class SociBankAccountNode(DjangoObjectType):
     class Meta:
         model = SociBankAccount
         interfaces = (Node,)
+
+    deposits = graphene.List(DepositNode)
+
+    def resolve_deposits(self: SociBankAccount, info, **kwargs):
+        return self.deposits.all().order_by("-created_at")
 
     @classmethod
     def get_node(cls, info, id):
@@ -79,27 +94,39 @@ class TransferNode(DjangoObjectType):
         return Transfer.objects.get(pk=id)
 
 
-class DepositNode(DjangoObjectType):
-    class Meta:
-        model = Deposit
-        interfaces = (Node,)
-
-    @classmethod
-    def get_node(cls, info, id):
-        return Deposit.objects.get(pk=id)
-
-
 class SociProductQuery(graphene.ObjectType):
     soci_product = Node.Field(SociProductNode)
     all_active_soci_products = DjangoConnectionField(SociProductNode)
     all_soci_products = DjangoConnectionField(SociProductNode)
 
     def resolve_all_soci_products(self, info, *args, **kwargs):
-        return SociProduct.objects.all()
+        return SociProduct.objects.all().order_by()
 
     def resolve_all_active_soci_products(self, info, *args, **kwargs):
         return SociProduct.objects.filter(
             Q(end__isnull=True) | Q(end__gte=timezone.now())
+        )
+
+
+class DepositQuery(graphene.ObjectType):
+    deposit = Node.Field(DepositNode)
+    all_deposits = DjangoConnectionField(DepositNode)
+    all_pending_deposits = graphene.List(
+        DepositNode
+    )  # Pending will never be more than a couple at a time
+    all_approved_deposits = DjangoConnectionField(DepositNode)
+
+    def resolve_all_deposits(self, info, *args, **kwargs):
+        return Deposit.objects.all().order_by("-created_at")
+
+    def resolve_all_pending_deposits(self, info, *args, **kwargs):
+        return Deposit.objects.filter(signed_off_by__isnull=True).order_by(
+            "-created_at"
+        )
+
+    def resolve_all_approved_deposits(self, info, *args, **kwargs):
+        return Deposit.objects.filter(signed_off_by__isnull=False).order_by(
+            "-created_at"
         )
 
 
@@ -122,6 +149,12 @@ class SociSessionQuery(graphene.ObjectType):
 class SociBankAccountQuery(graphene.ObjectType):
     soci_bank_account = Node.Field(SociBankAccountNode)
     all_soci_bank_accounts = DjangoConnectionField(SociBankAccountNode)
+    my_bank_account = graphene.Field(SociBankAccountNode)
+
+    def resolve_my_bank_account(self, info, *args, **kwargs):
+        if not hasattr(info.context, "user") or not info.context.user.is_authenticated:
+            return None
+        return info.context.user.bank_account
 
     def resolve_all_soci_bank_accounts(self, info, *args, **kwargs):
         return SociBankAccount.objects.all()
@@ -182,6 +215,32 @@ class PatchSociBankAccountMutation(DjangoPatchMutation):
         model = SociBankAccount
 
 
+class CreateDepositMutation(DjangoCreateMutation):
+    class Meta:
+        model = Deposit
+        required_fields = "account"
+
+
+class PatchDepositMutation(DjangoPatchMutation):
+    class Meta:
+        model = Deposit
+
+    @classmethod
+    def before_save(cls, root, info, input, id, obj: Deposit):
+        if not obj.signed_off_by:
+            obj.account.remove_funds(obj.amount)
+            obj.signed_off_time = None
+        else:
+            obj.account.add_funds(obj.amount)
+            obj.signed_off_time = timezone.now()
+        return obj
+
+
+class DeleteDepositMutation(DjangoDeleteMutation):
+    class Meta:
+        model = Deposit
+
+
 class EconomyMutations(graphene.ObjectType):
     create_soci_product = CreateSociProductMutation.Field()
     patch_soci_product = PatchSociProductMutation.Field()
@@ -197,3 +256,7 @@ class EconomyMutations(graphene.ObjectType):
 
     create_soci_bank_account = CreateSociBankAccountMutation.Field()
     patch_soci_bank_account = PatchSociBankAccountMutation.Field()
+
+    create_deposit = CreateDepositMutation.Field()
+    patch_deposit = PatchDepositMutation.Field()
+    delete_deposit = DeleteDepositMutation.Field()

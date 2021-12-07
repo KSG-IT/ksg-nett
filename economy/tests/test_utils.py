@@ -1,5 +1,5 @@
 from django.test import TestCase
-from users.utils import parse_transaction_history
+from economy.utils import parse_transaction_history
 from economy.tests.factories import (
     SociBankAccountFactory,
     ProductOrderFactory,
