@@ -225,7 +225,7 @@ class QuoteAddTest(TestCase):
             },
         )
         # We're missing a field
-        self.assertIn(response.content.decode("utf-8"),"This field is required")
+        self.assertIn(response.content.decode("utf-8"), "This field is required")
 
     def test_quotes_add__bad_http_method__fails_with_405(self):
         response = self.client.delete(reverse(quotes_add))
@@ -261,15 +261,23 @@ class QuoteEditTest(TestCase):
     ):
         response = self.client.post(
             reverse(quotes_edit, kwargs={"quote_id": 1}),
-            urlencode({"text": "Some new quote text",}),
+            urlencode(
+                {
+                    "text": "Some new quote text",
+                }
+            ),
             content_type="application/x-www-form-urlencoded",
         )
-        self.assertIn('',response.content.decode("utf-8"),"This field is required")
+        self.assertIn("", response.content.decode("utf-8"), "This field is required")
 
     def test_quotes_edit__bad_http_method__fails_with_405(self):
         response = self.client.delete(
             reverse(quotes_edit, kwargs={"quote_id": 1}),
-            urlencode({"text": "Some new quote text",}),
+            urlencode(
+                {
+                    "text": "Some new quote text",
+                }
+            ),
             content_type="application/x-www-form-urlencoded",
         )
         self.assertEqual(response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
@@ -319,7 +327,7 @@ class QuoteHighscoreTest(TestCase):
     def setUp(self):
         self.quotesH17 = QuoteFactory.create_batch(10, text="This is a quote from H17")
         for quote in self.quotesH17:
-            quote.created = timezone.now().replace(year=2017, month=10, day=15)
+            quote.created_at = timezone.now().replace(year=2017, month=10, day=15)
             quote.save()
         self.quotes_this_semester = QuoteFactory.create_batch(
             10, text="This is a quote from this semester"
