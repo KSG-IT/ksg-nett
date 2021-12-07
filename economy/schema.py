@@ -22,8 +22,8 @@ from economy.models import (
 class BankAccountActivity(graphene.ObjectType):
     # Either name of product, 'Transfer' or 'Deposit' (Should we have a pending deposit status)
     name = graphene.NonNull(graphene.String)
-    amount =graphene.NonNull( graphene.Int)
-    quantity =graphene.NonNull(graphene.Int)  # Transfer or deposit either 1 or None
+    amount = graphene.NonNull(graphene.Int)
+    quantity = graphene.Int()  # Transfer or deposit returns None for this field
     timestamp = graphene.NonNull(graphene.DateTime)
 
 
