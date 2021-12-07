@@ -6,6 +6,7 @@ from login.schema import LoginMutations, AuthenticationQuery
 from economy.schema import (
     SociProductQuery,
     SociBankAccountQuery,
+    DepositQuery,
     ProductOrderQuery,
     EconomyMutations,
     SociSessionQuery,
@@ -47,6 +48,7 @@ class Query(
     ApplicantQuery,
     AuthenticationQuery,
     DashboardQuery,
+    DepositQuery,
     ProductOrderQuery,
     SidebarQuery,
     SociBankAccountQuery,
