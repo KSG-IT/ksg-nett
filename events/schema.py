@@ -25,7 +25,7 @@ class EventQuery(graphene.ObjectType):
     all_events = DjangoConnectionField(EventNode)
 
     def resolve_all_events(self, info, *args, **kwargs):
-        return Event.objects.all()
+        return Event.objects.all().order_by("-date")
 
 
 class CreateEventMutation(DjangoCreateMutation):
