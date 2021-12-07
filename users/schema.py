@@ -24,12 +24,16 @@ class UserNode(DjangoObjectType):
     initials = graphene.NonNull(graphene.String)
     profile_picture = graphene.String()
     balance = graphene.NonNull(graphene.Int)
-    bank_account_activity = graphene.NonNull(graphene.List(graphene.NonNull(BankAccountActivity)))
-    last_transactions = graphene.NonNull(graphene.List(graphene.NonNull(BankAccountActivity)))
+    bank_account_activity = graphene.NonNull(
+        graphene.List(graphene.NonNull(BankAccountActivity))
+    )
+    last_transactions = graphene.NonNull(
+        graphene.List(graphene.NonNull(BankAccountActivity))
+    )
     all_permissions = graphene.NonNull(graphene.List(graphene.String))
 
     def resolve_full_name(self: User, info, **kwargs):
-        return self.get_full_name() 
+        return self.get_full_name()
 
     def resolve_initials(self: User, info, **kwargs):
         return self.initials
