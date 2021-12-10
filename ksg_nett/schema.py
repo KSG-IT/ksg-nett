@@ -41,7 +41,7 @@ from schedules.schemas.schema_scheduls_templates import (
 )
 from sensors.schema import SensorMeasurementQuery, SensorsMutations
 from summaries.schema import SummaryQuery, SummariesMutations
-
+from events.schema import EventQuery, EventMutations
 
 class Query(
     AdmissionQuery,
@@ -76,6 +76,7 @@ class Query(
     SensorMeasurementQuery,
     SummaryQuery,
     QuoteQuery,
+    EventQuery,
     graphene.ObjectType,
 ):
     pass
@@ -92,6 +93,7 @@ class Mutation(
     SchedulesTemplateMutations,
     SensorsMutations,
     SummariesMutations,
+    EventMutations,
     graphene.ObjectType,
 ):
     pass
