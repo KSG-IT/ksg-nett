@@ -21,7 +21,6 @@ from organization.consts import InternalGroupPositionType
 
 
 class UserProfileTest(TestCase):
-
     @classmethod
     def tearDownClass(cls):
         # Delete the temporary media root
@@ -43,62 +42,48 @@ class UserProfileTest(TestCase):
         self.assertIsInstance(str_representation, str)
         self.assertIsInstance(repr_representation, str)
 
-    def test_get_start_ksg_display__user_in_spring__returns_v_prefix_and_correct_year(self):
+    def test_get_start_ksg_display__user_in_spring__returns_v_prefix_and_correct_year(
+        self,
+    ):
         user = UserFactory()
         user.start_ksg = timezone.datetime(year=2018, month=3, day=1)
         user.save()
         self.assertEqual(user.get_start_ksg_display(), "V18")
 
-    def test_get_start_ksg_display__user_in_autumn__returns_h_prefix_and_correct_year(self):
+    def test_get_start_ksg_display__user_in_autumn__returns_h_prefix_and_correct_year(
+        self,
+    ):
         user = UserFactory()
         user.start_ksg = timezone.datetime(year=2018, month=8, day=1)
         user.save()
         self.assertEqual(user.get_start_ksg_display(), "H18")
 
-    def test_profile_image_url__no_image__returns_none(self):
-        user = UserFactory(profile_image=None)
-        self.assertEqual(user.profile_image_url, None)
-
-    def test_profile_image_url__image_exists__returns_url(self):
-        image_file = SimpleUploadedFile(name="test_image.jpeg", content=b'', content_type='image/jpeg')
-        user = UserFactory(profile_image=image_file)
-        self.assertIsNotNone(
-            re.match(
-                r'/media/profiles/test_image([_]\w*)?.jpeg',
-                user.profile_image_url
-            )
-        )
-
 
 class UserDetailViewTest(TestCase):
     def setUp(self):
-        self.user = UserFactory(username='username')
-        self.url = reverse('user_detail', kwargs={'user_id': self.user.id})
-        self.user.set_password('password')
+        self.user = UserFactory(username="username")
+        self.url = reverse("user_detail", kwargs={"user_id": self.user.id})
+        self.user.set_password("password")
         self.user.save()
-        self.user_detail_url = reverse(user_detail, kwargs={'user_id': self.user.id})
+        self.user_detail_url = reverse(user_detail, kwargs={"user_id": self.user.id})
 
     def test_user_detail__not_logged_in__redirects(self):
         response = self.client.get(self.user_detail_url)
         self.assertEqual(response.status_code, 302)
 
     def test_user_detail__logged_in_user_does_not_exist__returns_404_not_found(self):
-        self.client.login(
-            username='username',
-            password='password'
-        )
-        response = self.client.get(reverse(user_detail, kwargs={'user_id': 1337}))
+        self.client.login(username="username", password="password")
+        response = self.client.get(reverse(user_detail, kwargs={"user_id": 1337}))
         self.assertEqual(response.status_code, 404)
 
     def test_user_detail__logged_in_user_exists__renders_profile_page(self):
-        self.client.login(
-            username='username',
-            password='password'
+        self.client.login(username="username", password="password")
+        response = self.client.get(
+            reverse(user_detail, kwargs={"user_id": self.user.id})
         )
-        response = self.client.get(reverse(user_detail, kwargs={'user_id': self.user.id}))
         # Decode so we can do string-comparison/containment checks
         content = response.content.decode()
-        self.assertTemplateUsed(response, 'users/profile_page.html')
+        self.assertTemplateUsed(response, "users/profile_page.html")
 
         # Check that some key properties of the user is rendered
         self.assertIn(self.user.get_full_name(), content)
@@ -112,50 +97,49 @@ class UserUpdateViewTest(TestCase):
         self.user = UserFactory.create()
         self.client.force_login(self.user)
         self.data = {
-            'first_name': 'Alexander',
-            'last_name': 'Orvik',
-            'phone': self.user.phone,
-            'study': self.user.study,
-            'biography': self.user.biography,
-            'email': self.user.email,
-            'home_address': self.user.home_address,
-            'study_address': self.user.study_address,
-            'in_relationship': self.user.in_relationship,
+            "first_name": "Alexander",
+            "last_name": "Orvik",
+            "phone": self.user.phone,
+            "study": self.user.study,
+            "biography": self.user.biography,
+            "email": self.user.email,
+            "home_address": self.user.home_address,
+            "study_address": self.user.study_address,
+            "in_relationship": self.user.in_relationship,
         }
 
     def test__update_user_view_valid_request__updates_user_and_returns_302(self):
-        response = self.client.post('/users/' + str(self.user.id) + '/update', data=self.data)
+        response = self.client.post(
+            "/users/" + str(self.user.id) + "/update", data=self.data
+        )
         self.user.refresh_from_db()
         self.assertEquals(response.status_code, 302)
-        self.assertEquals(self.user.get_full_name(), 'Alexander Orvik')
+        self.assertEquals(self.user.get_full_name(), "Alexander Orvik")
 
     def test__update_user_view_invalid_request_type__returns_METHOD_NOT_ALLOWED(self):
-        response = self.client.patch('/users/' + str(self.user.id) + '/update', data=self.data)
+        response = self.client.patch(
+            "/users/" + str(self.user.id) + "/update", data=self.data
+        )
         self.assertEquals(response.status_code, 405)
 
     def test__update_user_view_GET_request__renders_template_with_context(self):
-        response = self.client.get('/users/' + str(self.user.id) + '/update')
-        self.assertTemplateUsed(response, 'users/update_profile_page.html')
+        response = self.client.get("/users/" + str(self.user.id) + "/update")
+        self.assertTemplateUsed(response, "users/update_profile_page.html")
 
 
 class UsersHaveMadeOutModelTest(TestCase):
-
     def setUp(self):
         self.user = UserFactory()
         self.user_two = UserFactory()
         self.user_three = UserFactory()
 
     def test_str_and_repr__does_not_crash(self):
-        made_out = UsersHaveMadeOutFactory(
-            user_one=self.user,
-            user_two=self.user_two
-        )
+        made_out = UsersHaveMadeOutFactory(user_one=self.user, user_two=self.user_two)
         str(made_out)
         repr(made_out)
 
 
 class UsersHaveMadeOutManagerTest(TestCase):
-
     def setUp(self):
         self.user = UserFactory()
         self.user_two = UserFactory()
@@ -168,12 +152,12 @@ class UsersHaveMadeOutManagerTest(TestCase):
         self.made_out_in_spring_last_year = UsersHaveMadeOutFactory(
             user_one=self.user,
             user_two=self.user_two,
-            created=now.replace(year=now.year - 1, month=3, day=1)
+            created=now.replace(year=now.year - 1, month=3, day=1),
         )
         self.made_out_in_autumn_last_year = UsersHaveMadeOutFactory(
             user_one=self.user,
             user_two=self.user_two,
-            created=now.replace(year=now.year - 1, month=9, day=1)
+            created=now.replace(year=now.year - 1, month=9, day=1),
         )
 
     def test_this_semester__returns_made_outs_from_this_semester(self):
@@ -181,42 +165,52 @@ class UsersHaveMadeOutManagerTest(TestCase):
         self.assertEqual(this_semester_made_outs.count(), 1)
         self.assertEqual(this_semester_made_outs.first(), self.made_out_this_semester)
 
-    def test_in_semester__this_semester_as_input__returns_made_outs_from_this_semester(self):
-        made_outs = UsersHaveMadeOut.objects.in_semester(self.made_out_this_semester.created)
+    def test_in_semester__this_semester_as_input__returns_made_outs_from_this_semester(
+        self,
+    ):
+        made_outs = UsersHaveMadeOut.objects.in_semester(
+            self.made_out_this_semester.created
+        )
         self.assertEqual(made_outs.count(), 1)
         self.assertEqual(made_outs.first(), self.made_out_this_semester)
 
-    def test_in_semester__specific_semester_in_spring_as_input__only_returns_relevant_made_outs(self):
-        made_outs = UsersHaveMadeOut.objects.in_semester(self.made_out_in_spring_last_year.created)
+    def test_in_semester__specific_semester_in_spring_as_input__only_returns_relevant_made_outs(
+        self,
+    ):
+        made_outs = UsersHaveMadeOut.objects.in_semester(
+            self.made_out_in_spring_last_year.created
+        )
         self.assertEqual(made_outs.count(), 1)
         self.assertEqual(made_outs.first(), self.made_out_in_spring_last_year)
 
-    def test_in_semester__specific_semester_in_autumn_as_input__only_returns_relevant_made_outs(self):
-        made_outs = UsersHaveMadeOut.objects.in_semester(self.made_out_in_autumn_last_year.created)
+    def test_in_semester__specific_semester_in_autumn_as_input__only_returns_relevant_made_outs(
+        self,
+    ):
+        made_outs = UsersHaveMadeOut.objects.in_semester(
+            self.made_out_in_autumn_last_year.created
+        )
         self.assertEqual(made_outs.count(), 1)
         self.assertEqual(made_outs.first(), self.made_out_in_autumn_last_year)
 
 
 class KlineKartViewTest(TestCase):
-
     def setUp(self):
         self.user = UserFactory.create(anonymize_in_made_out_map=False)
-        self.user.set_password('password')
+        self.user.set_password("password")
         self.user.save()
 
         self.user_two = UserFactory.create(anonymize_in_made_out_map=False)
         self.user_three = UserFactory.create(anonymize_in_made_out_map=True)
         self.user_four = UserFactory.create(anonymize_in_made_out_map=True)
-        self.client.login(
-            username=self.user.username,
-            password='password'
-        )
+        self.client.login(username=self.user.username, password="password")
 
     def test_klinekart__renders_the_klinekart_template(self):
         response = self.client.get(reverse(klinekart))
-        self.assertTemplateUsed(response, 'users/klinekart.html')
+        self.assertTemplateUsed(response, "users/klinekart.html")
 
-    def test_klinekart__with_associations__sends_all_associations_properly_as_json(self):
+    def test_klinekart__with_associations__sends_all_associations_properly_as_json(
+        self,
+    ):
         UsersHaveMadeOut.objects.create(
             user_one=self.user,
             user_two=self.user_two,
@@ -244,9 +238,9 @@ class KlineKartViewTest(TestCase):
         )
 
         response: HttpResponse = self.client.get(reverse(klinekart))
-        self.assertTemplateUsed(response, 'users/klinekart.html')
+        self.assertTemplateUsed(response, "users/klinekart.html")
 
-        data = json.loads(response.context['made_out_data'])
+        data = json.loads(response.context["made_out_data"])
         self.assertEqual(len(data), 6)
 
         ids = set()
@@ -254,23 +248,20 @@ class KlineKartViewTest(TestCase):
         imgs = set()
 
         for tuple in data:
-            ids.add(tuple[0]['id'])
-            ids.add(tuple[1]['id'])
+            ids.add(tuple[0]["id"])
+            ids.add(tuple[1]["id"])
 
-            names.add(tuple[0]['name'])
-            names.add(tuple[1]['name'])
+            names.add(tuple[0]["name"])
+            names.add(tuple[1]["name"])
 
-            imgs.add(tuple[0]['img'])
-            imgs.add(tuple[1]['img'])
+            imgs.add(tuple[0]["img"])
+            imgs.add(tuple[1]["img"])
 
         self.assertTrue(ids == {1, 2, -1, -2})
-        self.assertTrue(names == {
-            self.user.get_full_name(),
-            self.user_two.get_full_name(),
-            "Anonymous"
-        })
-        self.assertTrue(imgs == {
-            self.user.profile_image_url,
-            self.user_two.profile_image_url,
-            None
-        })
+        self.assertTrue(
+            names
+            == {self.user.get_full_name(), self.user_two.get_full_name(), "Anonymous"}
+        )
+        self.assertTrue(
+            imgs == {self.user.profile_image.url, self.user_two.profile_image.url, None}
+        )

@@ -6,7 +6,7 @@ from graphene_django_cud.mutations import (
     DjangoDeleteMutation,
     DjangoCreateMutation,
 )
-
+from django.conf import settings
 from users.models import (
     User,
 )
@@ -22,7 +22,7 @@ class UserNode(DjangoObjectType):
 
     full_name = graphene.NonNull(graphene.String)
     initials = graphene.NonNull(graphene.String)
-    profile_picture = graphene.String()
+    profile_image = graphene.String()
     balance = graphene.NonNull(graphene.Int)
     bank_account_activity = graphene.NonNull(
         graphene.List(graphene.NonNull(BankAccountActivity))
@@ -38,8 +38,11 @@ class UserNode(DjangoObjectType):
     def resolve_initials(self: User, info, **kwargs):
         return self.initials
 
-    def resolve_profile_picture(self: User, info, **kwargs):
-        return self.profile_image_url
+    def resolve_profile_image(self: User, info, **kwargs):
+        if self.profile_image:
+            return f"{settings.HOST_URL}{self.profile_image.url}"
+        else:
+            return None
 
     def resolve_balance(self: User, info, **kwargs):
         return self.balance
