@@ -81,7 +81,7 @@ class UserQuery(graphene.ObjectType):
         return User.objects.all()
 
     def resolve_all_active_users(self, info, *args, **kwargs):
-        return User.objects.filter(active=True)
+        return User.objects.filter(is_active=True)
 
 
 class CreateUserMutation(DjangoCreateMutation):
