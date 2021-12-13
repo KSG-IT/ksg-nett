@@ -1,6 +1,7 @@
 import graphene
 from graphene import Node
-from graphene_django import DjangoObjectType, DjangoConnectionField
+from graphene_django import DjangoObjectType
+from graphene_django.filter import DjangoFilterConnectionField
 from graphene_django_cud.mutations import (
     DjangoPatchMutation,
     DjangoDeleteMutation,
@@ -12,6 +13,7 @@ from users.models import (
 )
 from economy.utils import parse_transaction_history
 from economy.schema import BankAccountActivity
+from users.filters import UserFilter
 
 
 class UserNode(DjangoObjectType):
@@ -33,6 +35,8 @@ class UserNode(DjangoObjectType):
     all_permissions = graphene.NonNull(graphene.List(graphene.String))
 
     def resolve_full_name(self: User, info, **kwargs):
+        if not self.get_full_name():
+            return self.username
         return self.get_full_name()
 
     def resolve_initials(self: User, info, **kwargs):
@@ -64,7 +68,8 @@ class UserNode(DjangoObjectType):
 class UserQuery(graphene.ObjectType):
     user = Node.Field(UserNode)
     me = graphene.Field(UserNode)
-    all_users = DjangoConnectionField(UserNode)
+    all_users = DjangoFilterConnectionField(UserNode, filterset_class=UserFilter)
+    all_active_users = DjangoFilterConnectionField(UserNode, filterset_class=UserFilter)
 
     def resolve_me(self, info, *args, **kwargs):
         if not hasattr(info.context, "user") or not info.context.user.is_authenticated:
@@ -74,6 +79,9 @@ class UserQuery(graphene.ObjectType):
 
     def resolve_all_users(self, info, *args, **kwargs):
         return User.objects.all()
+
+    def resolve_all_active_users(self, info, *args, **kwargs):
+        return User.objects.filter(active=True)
 
 
 class CreateUserMutation(DjangoCreateMutation):
