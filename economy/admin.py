@@ -1,22 +1,34 @@
 from django.contrib import admin
 
-from economy.models import Deposit, SociBankAccount, SociProduct, SociSession, ProductOrder
+from economy.models import (
+    Deposit,
+    SociBankAccount,
+    SociProduct,
+    SociSession,
+    ProductOrder,
+    Transfer,
+)
 
 
 @admin.register(SociBankAccount)
 class SociBankAccountAdmin(admin.ModelAdmin):
-    list_display = ['user', 'card_uuid', 'balance']
-    readonly_fields = ['balance']
+    list_display = ["user", "card_uuid", "balance"]
+    readonly_fields = ["balance"]
 
 
 @admin.register(SociProduct)
 class SociProductAdmin(admin.ModelAdmin):
-    list_display = ['sku_number', 'icon', 'name', 'price', 'description', 'start']
+    list_display = ["sku_number", "icon", "name", "price", "description", "start"]
+
+
+@admin.register(Transfer)
+class TransferAdmin(admin.ModelAdmin):
+    list_display = ["source", "destination", "amount", "created"]
 
 
 @admin.register(Deposit)
 class DepositAdmin(admin.ModelAdmin):
-    list_display = ['id', 'user', 'amount', 'has_receipt', 'is_valid']
+    list_display = ["id", "user", "amount", "has_receipt", "approved"]
 
     @staticmethod
     def user(deposit: Deposit):
@@ -27,10 +39,10 @@ class DepositAdmin(admin.ModelAdmin):
 
     has_receipt.boolean = True
 
-    def is_valid(self, deposit):
-        return deposit.is_valid
+    def approved(self, deposit):
+        return deposit.approved
 
-    is_valid.boolean = True
+    approved.boolean = True
 
 
 @admin.register(SociSession)
@@ -40,7 +52,7 @@ class SociSessionAdmin(admin.ModelAdmin):
 
 @admin.register(ProductOrder)
 class ProductOrderAdmin(admin.ModelAdmin):
-    list_display = ['id', 'product', 'order_size', 'source', 'cost']
+    list_display = ["id", "product", "order_size", "source", "cost"]
 
     @staticmethod
     def cost(product_order: ProductOrder):

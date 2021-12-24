@@ -11,8 +11,6 @@ SECRET_KEY = "rc4yscfoc9loe+937$q-57agxy0iq+!o0zowl0#vylilol2-)e"
 DEBUG = True
 
 ALLOWED_HOSTS = [".alexanderorvik.com", ".amazonaws.com", "ksg-nett.no"]
-
-
 AUTH_JWT_SECRET = os.environ.get("AUTH_JWT_SECRET")
 
 # Application definition

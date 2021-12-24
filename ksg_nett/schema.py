@@ -1,10 +1,12 @@
 import graphene
 from admissions.schema import AdmissionQuery, ApplicantQuery, AdmissionsMutations
+from common.schema import DashboardQuery, SidebarQuery
 from users.schema import UserQuery, UserMutations
 from login.schema import LoginMutations, AuthenticationQuery
 from economy.schema import (
     SociProductQuery,
     SociBankAccountQuery,
+    DepositQuery,
     ProductOrderQuery,
     EconomyMutations,
     SociSessionQuery,
@@ -39,13 +41,16 @@ from schedules.schemas.schema_scheduls_templates import (
 )
 from sensors.schema import SensorMeasurementQuery, SensorsMutations
 from summaries.schema import SummaryQuery, SummariesMutations
-
+from events.schema import EventQuery, EventMutations
 
 class Query(
     AdmissionQuery,
     ApplicantQuery,
     AuthenticationQuery,
+    DashboardQuery,
+    DepositQuery,
     ProductOrderQuery,
+    SidebarQuery,
     SociBankAccountQuery,
     SociProductQuery,
     SociSessionQuery,
@@ -71,6 +76,7 @@ class Query(
     SensorMeasurementQuery,
     SummaryQuery,
     QuoteQuery,
+    EventQuery,
     graphene.ObjectType,
 ):
     pass
@@ -87,6 +93,7 @@ class Mutation(
     SchedulesTemplateMutations,
     SensorsMutations,
     SummariesMutations,
+    EventMutations,
     graphene.ObjectType,
 ):
     pass
