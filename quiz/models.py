@@ -7,6 +7,8 @@ from random import randint
 from model_utils.managers import QueryManager
 from django.db.models import Q
 from random import choice, sample
+from django.utils import timezone
+from datetime import timedelta
 
 # Create your models here.
 
@@ -20,6 +22,12 @@ class Quiz(models.Model):
         related_name="related_quiz",
     )
     fake_users = models.ManyToManyField(User, related_name="quiz_fakes")
+    user_quizzed = models.ForeignKey(
+        User, related_name="user_taking_quiz", on_delete=models.CASCADE, null=True
+    )
+    time_started = models.DateTimeField(default=timezone.now)
+    time_end = models.DateTimeField(blank=True, null=True)
+    final_score = models.IntegerField(blank=True, default=0)
 
     @property
     def current_guess(self):
@@ -51,13 +59,19 @@ class Quiz(models.Model):
 
     @property
     def create_participant(self):
-        return self.participants_in_quiz.create(
-            correct_user=choice(self.fake_users.all())
-        )
-    
+        self.participants_in_quiz.create(correct_user=choice(self.fake_users.all()))
+
     @property
     def all_guesses(self):
         return self.participants_in_quiz.all()
+
+    @property
+    def get_time_diff(self):
+        time_diff = self.time_end - self.time_started
+        return time_diff.total_seconds()
+
+    def __str__(self):
+        return "User: %s,Quiz: %s" % (self.user_quizzed.get_full_name, self.id)
 
 
 class Participant(models.Model):  # QuizAnswer FK -> QUIZ

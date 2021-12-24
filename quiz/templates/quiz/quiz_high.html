@@ -10,6 +10,26 @@
 <div class="quiz__form_container">
     <div class="quiz__listing">
         <h4>Topplisten</h4>
+        <table>
+        {% for person, points, time in score%}
+            <tr>
+                <td>{{ person.get_full_name }}</td>
+                <td>{{ points}}</td>
+                <td>{{ time }}</td>
+            </tr>
+        {% endfor %}
+        </table>
+        <p>---------------------------</p>
+        <table>
+            <tr>Gjettet riktig antall ganger</tr>
+        {% for user in guess_rate%}
+            <tr>
+                <td>{{user.first_name}}</td>
+                <td>{{user.correct_clicks_cnt}}%</td>
+            </tr>
+        {% endfor %}
+        </table>
+
         <!--Here comes a function that returns the best quiz results based on 1.score and 2.time combined-->
     </div>
     <div class="quiz__listing">
