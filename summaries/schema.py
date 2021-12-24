@@ -6,9 +6,11 @@ from graphene_django_cud.mutations import (
     DjangoDeleteMutation,
     DjangoCreateMutation,
 )
-from graphene_django import DjangoConnectionField
+from graphene_django.filter import DjangoFilterConnectionField
 
 from summaries.models import Summary
+from users.schema import UserNode
+from summaries.filters import SummaryFilter
 
 
 class SummaryNode(DjangoObjectType):
@@ -16,17 +18,24 @@ class SummaryNode(DjangoObjectType):
         model = Summary
         interfaces = (Node,)
 
+    participants = graphene.List(UserNode)
+
     @classmethod
     def get_node(cls, info, id):
         return Summary.objects.get(pk=id)
 
+    def resolve_participants(self: Summary, info, *args, **kwargs):
+        return self.participants.all()
+
 
 class SummaryQuery(graphene.ObjectType):
     summary = Node.Field(SummaryNode)
-    all_summaries = DjangoConnectionField(SummaryNode)
+    all_summaries = DjangoFilterConnectionField(
+        SummaryNode, filterset_class=SummaryFilter
+    )
 
     def resolve_all_summaries(self, info, *args, **kwargs):
-        return Summary.objects.all()
+        return Summary.objects.all().order_by("-date")
 
 
 class CreateSummaryMutation(DjangoCreateMutation):

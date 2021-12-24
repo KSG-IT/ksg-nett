@@ -9,6 +9,7 @@ from model_utils.fields import MonitorField
 from model_utils.managers import QueryManager
 from model_utils.models import TimeStampedModel, TimeFramedModel
 from model_utils import Choices
+from common.models import TimestampedModel
 
 from api.exceptions import NoSociSessionError
 from users.models import User
@@ -51,6 +52,12 @@ class SociBankAccount(models.Model):
             "transfers": self.source_transfers.all() | self.destination_transfers.all(),
             "deposits": self.deposits.all(),
         }
+
+    @classmethod
+    def get_wanted_list(cls):
+        return User.objects.filter(
+            bank_account__balance__lte=settings.WANTED_LIST_THRESHOLD
+        ).order_by("-bank_account__balance")
 
     def __str__(self):
         return f"Soci Bank Account for {self.user} containing {self.balance} kr"
@@ -192,6 +199,8 @@ class ProductOrder(models.Model):
         default=SociSession.get_active_session,
     )
 
+    purchased_at = models.DateTimeField(auto_now=True)
+
     @property
     def cost(self) -> int:
         return self.order_size * self.product.price
@@ -237,7 +246,7 @@ class Transfer(TimeStampedModel):
         return f"Transfer(from={self.source.user},to={self.destination.user},amount={self.amount})"
 
 
-class Deposit(TimeStampedModel):
+class Deposit(TimestampedModel):
     """
     A deposit of money into a Soci bank account.
     Deposits need a valid receipt in order to be approved.
@@ -253,7 +262,7 @@ class Deposit(TimeStampedModel):
         null=True,
         on_delete=models.SET_NULL,
     )
-    description = models.TextField(blank=True)
+    description = models.TextField(default="", blank=True)
     amount = models.IntegerField(blank=False, null=False)
     receipt = models.ImageField(
         upload_to=_receipt_upload_location, blank=True, null=True, default=None
@@ -266,10 +275,14 @@ class Deposit(TimeStampedModel):
         related_name="verified_deposits",
         on_delete=models.DO_NOTHING,
     )
-    signed_off_time = MonitorField(monitor="signed_off_by", null=True, default=None)
+    signed_off_time = models.DateTimeField(default=None, null=True, blank=True)
+
+    @classmethod
+    def get_pending_deposits(cls):
+        return cls.objects.filter(signed_off_by__isnull=True)
 
     @property
-    def is_valid(self):
+    def approved(self):
         return self.signed_off_by is not None
 
     def __str__(self):
