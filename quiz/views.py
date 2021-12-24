@@ -13,9 +13,9 @@ from django.urls import reverse
 from organization.models import InternalGroup
 from quiz.utils import (
     count_participants,
-    guess_helper,
+    make_a_guess,
     end_quiz,
-    user_quiz_pool_helper,
+    generate_fake_users_pool,
     count_score,
     most_correct_clicks,
 )
@@ -33,7 +33,7 @@ def quiz_main(request):
 def quiz_new(request, internal_group):
 
     quiz = Quiz.objects.create(user_quizzed=request.user, time_started=timezone.now())
-    user_quiz_pool_helper(quiz, internal_group)
+    generate_fake_users_pool(quiz, internal_group)
     quiz.create_participant
     return redirect("quiz-detail", quiz_id=quiz.id)
 
@@ -72,7 +72,7 @@ def quiz_detail_view(request, quiz_id):
 def quiz_check(request, quiz_id, user_id):
     if request.method == "POST":
         quiz = get_object_or_404(Quiz, pk=quiz_id)
-        guess_helper(quiz, user_id)
+        make_a_guess(quiz, user_id)
         quiz.next_guess
         quiz.save()
         return redirect("quiz-detail", quiz_id=quiz_id)

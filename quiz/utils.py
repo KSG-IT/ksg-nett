@@ -17,7 +17,7 @@ from django.db.models import (
 from django.utils import timezone
 
 
-def user_quiz_pool_helper(quiz, internal_group):
+def generate_fake_users_pool(quiz, internal_group):
     if internal_group == "new-members":
         category = InternalGroup.objects.filter(
             type=InternalGroup.Type.INTERNAL_GROUP
@@ -30,14 +30,10 @@ def user_quiz_pool_helper(quiz, internal_group):
     return quiz.fake_users.set(pool)
 
 
-def guess_helper(quiz, user_id):
+def make_a_guess(quiz, guessing_user_id):
     participant = quiz.current_guess
-    participant.guessed_user = User.objects.get(pk=user_id)
+    participant.guessed_user = User.objects.get(pk=guessing_user_id)
     participant.save()
-
-
-def high_guessed_correctly(self):
-    var = Participant.objects.all()
 
 
 def count_participants():
