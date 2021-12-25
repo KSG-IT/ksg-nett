@@ -36,12 +36,6 @@ def make_a_guess(quiz, guessing_user_id):
     participant.save()
 
 
-def count_participants():
-    return Quiz.objects.annotate(participants_cnt=Count("participants")).filter(
-        participants_cnt__gt=2
-    )
-
-
 def end_quiz(quiz):
     quiz.time_end = timezone.now()
     quiz.final_score = quiz.score

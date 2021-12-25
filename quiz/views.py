@@ -12,7 +12,6 @@ from quiz.models import Participant, Quiz
 from django.urls import reverse
 from organization.models import InternalGroup
 from quiz.utils import (
-    count_participants,
     make_a_guess,
     end_quiz,
     generate_fake_users_pool,

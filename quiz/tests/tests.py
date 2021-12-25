@@ -4,6 +4,7 @@ from django.urls import reverse
 from django.utils import timezone
 from users.tests.factories import UserFactory
 from random import choice
+from quiz.tests.factories import QuizFactory
 from quiz.views import quiz_check, quiz_detail_view
 from django.shortcuts import get_object_or_404
 
@@ -41,12 +42,16 @@ class TestQuizModel(TestCase):
         )
         self.assertRedirects(response, "/login/")
 
-    def test_click_POST_request(self):
+
+class TestSubmitClick(TestCase):
+    def setUp(self):
         self.user = UserFactory(username="test")
         self.user.set_password("password")
         self.user.save()
+        self.quiz = QuizFactory()
         self.client.login(username="test", password="password")
-        self.quiz.id
+
+    def test_click_POST_request(self):
         random_select = choice(self.quiz.fake_users.all())
         response = self.client.post(
             reverse(quiz_check, args=[self.quiz.id, random_select.id]), follow=True
