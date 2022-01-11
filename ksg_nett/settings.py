@@ -27,7 +27,7 @@ SECRET_KEY = "rc4yscfoc9loe+937$q-57agxy0iq+!o0zowl0#vylilol2-)e"
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-
+CORS_ORIGIN_ALLOW_HEADERS = list(default_headers)
 CORS_ORIGIN_ALLOW_ALL = True
 
 ALLOWED_HOSTS = ["localhost", "127.0.0.1", "0.0.0.0", "ksg-nett.no"]
@@ -193,6 +193,8 @@ GRAPHENE = {"SCHEMA": "ksg_nett.schema.schema"}
 # Media
 STATIC_URL = "/static/"
 STATIC_ROOT = "static/"
+
+HOST_URL = "http://localhost:8000"
 
 MEDIA_ROOT = "media/"
 MEDIA_URL = "/media/"
