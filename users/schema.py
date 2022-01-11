@@ -11,6 +11,7 @@ from django.conf import settings
 from users.models import (
     User,
 )
+from django.db.models.functions import Concat
 from economy.utils import parse_transaction_history
 from economy.schema import BankAccountActivity
 from users.filters import UserFilter
@@ -81,7 +82,11 @@ class UserQuery(graphene.ObjectType):
         return User.objects.all()
 
     def resolve_all_active_users(self, info, *args, **kwargs):
-        return User.objects.filter(is_active=True)
+        return (
+            User.objects.filter(is_active=True)
+            .annotate(full_name=Concat("first_name", "last_name"))
+            .order_by("full_name")
+        )
 
 
 class CreateUserMutation(DjangoCreateMutation):
