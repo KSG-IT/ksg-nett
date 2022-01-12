@@ -203,9 +203,17 @@ MEDIA_URL = "/media/"
 MAX_MEDIA_SIZE = 128 * (1024 ** 2)
 
 # Simple JWT SETTINGS
-# ------------------------------
+# -----------------------------
+#
+
+AUTH_JWT_HEADER_PREFIX = "Bearer"
+AUTH_JWT_SECRET = "SOME-JWT-SECRET-VALUE"
+AUTH_JWT_METHOD = "HS256"
+
 SIMPLE_JWT = {
     "AUTH_TOKEN_CLASSES": ("rest_framework_simplejwt.tokens.SlidingToken",),
+    "ALGORITHM": AUTH_JWT_METHOD,
+    "SIGNING_KEY": AUTH_JWT_SECRET,
     "SLIDING_TOKEN_LIFETIME": timedelta(
         hours=24
     ),  # Should cover even the most hardcore Soci sessions
@@ -215,9 +223,6 @@ SIMPLE_JWT = {
 # This should be changed before production.
 SENSOR_API_TOKEN = "3@Zhg$nH^Dlhw23R"
 
-AUTH_JWT_HEADER_PREFIX = "Bearer"
-AUTH_JWT_SECRET = "SOME-JWT-SECRET-VALUE"
-AUTH_JWT_METHOD = "HS256"
 
 # API DOCS
 # ------------------------------

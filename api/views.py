@@ -5,20 +5,36 @@ from drf_yasg2.openapi import Parameter, IN_QUERY, TYPE_STRING
 from drf_yasg2.utils import swagger_auto_schema
 from rest_framework import status, permissions, generics
 from rest_framework.exceptions import ValidationError
-from rest_framework.generics import ListAPIView, RetrieveAPIView, get_object_or_404, DestroyAPIView
+from rest_framework.generics import (
+    ListAPIView,
+    RetrieveAPIView,
+    get_object_or_404,
+    DestroyAPIView,
+)
 from rest_framework.request import Request
 from rest_framework.response import Response
-from rest_framework_simplejwt.views import TokenObtainSlidingView, TokenRefreshSlidingView, TokenVerifyView
+from rest_framework_simplejwt.views import (
+    TokenObtainSlidingView,
+    TokenRefreshSlidingView,
+    TokenVerifyView,
+)
 
 from api.permissions import SensorTokenPermission
-from api.serializers import CheckBalanceSerializer, SociProductSerializer, ChargeSociBankAccountDeserializer, \
-    PurchaseSerializer, SensorMeasurementSerializer,  CustomTokenObtainSlidingSerializer
+from api.serializers import (
+    CheckBalanceSerializer,
+    SociProductSerializer,
+    ChargeSociBankAccountDeserializer,
+    PurchaseSerializer,
+    SensorMeasurementSerializer,
+    CustomTokenObtainSlidingSerializer,
+)
 
 from sensors.consts import MEASUREMENT_TYPE_TEMPERATURE, MEASUREMENT_TYPE_CHOICES
 from sensors.models import SensorMeasurement
 from api.view_mixins import CustomCreateAPIView
 from economy.models import SociBankAccount, SociProduct, SociSession
 from ksg_nett.custom_authentication import CardNumberAuthentication
+from django.conf import settings
 
 
 class CustomTokenObtainSlidingView(TokenObtainSlidingView):
@@ -29,7 +45,7 @@ class CustomTokenObtainSlidingView(TokenObtainSlidingView):
 
     def post(self, request, *args, **kwargs):
         response = super().post(request, *args, **kwargs)
-        self._start_new_soci_session(token=response.data['token'])
+        self._start_new_soci_session(token=response.data["token"])
         return response
 
     @staticmethod
@@ -38,7 +54,12 @@ class CustomTokenObtainSlidingView(TokenObtainSlidingView):
         # we terminate any currently active session before starting a new one.
         SociSession.terminate_active_session()
 
-        card_user_id = jwt.decode(token, verify=False)['user_id']
+        card_user_id = jwt.decode(
+            token,
+            settings.AUTH_JWT_SECRET,
+            algorithms=settings.AUTH_JWT_METHOD,
+            verify=False,
+        )["user_id"]
         SociSession.objects.create(signed_off_by_id=card_user_id)
 
 
@@ -56,9 +77,9 @@ class TerminateSociSessionView(DestroyAPIView):
     """
 
     @swagger_auto_schema(
-        tags=['Soci Sessions'],
+        tags=["Soci Sessions"],
         operation_summary="Terminate SociSession",
-        responses={'200': ''}
+        responses={"200": ""},
     )
     def delete(self, request, *args, **kwargs):
         SociSession.terminate_active_session()
@@ -70,20 +91,18 @@ class SociProductListView(ListAPIView):
     """
     Retrieves a list of products that can be purchased at Soci.
     """
+
     serializer_class = SociProductSerializer
     queryset = SociProduct.objects.all()
 
-    @swagger_auto_schema(
-        tags=['Soci Products'],
-        operation_summary="List SociProducts"
-    )
+    @swagger_auto_schema(tags=["Soci Products"], operation_summary="List SociProducts")
     def get(self, request, *args, **kwargs):
         now = timezone.now()
         soci_products = (
             self.get_queryset()
-                .exclude(end__lt=now)
-                .exclude(start__gt=now)
-                .order_by('sku_number')
+            .exclude(end__lt=now)
+            .exclude(start__gt=now)
+            .order_by("sku_number")
         )
         serializer = self.get_serializer(soci_products, many=True)
         data = serializer.data
@@ -95,19 +114,22 @@ class SociBankAccountBalanceDetailView(RetrieveAPIView):
     """
     Checks the available balance of an account, based on the provided RFID card number.
     """
+
     queryset = SociBankAccount.objects.all()
     serializer_class = CheckBalanceSerializer
 
     @swagger_auto_schema(
-        tags=['Soci Bank Accounts'],
+        tags=["Soci Bank Accounts"],
         operation_summary="Retrieve SociBankAccount balance",
-        manual_parameters=[Parameter(
-            name='card_uuid',
-            in_=IN_QUERY,
-            description="The RFID card id connected to a user's Soci bank account",
-            type=TYPE_STRING,
-            required=True
-        )],
+        manual_parameters=[
+            Parameter(
+                name="card_uuid",
+                in_=IN_QUERY,
+                description="The RFID card id connected to a user's Soci bank account",
+                type=TYPE_STRING,
+                required=True,
+            )
+        ],
         responses={
             "404": ": Could not retrieve SociBankAccount from the provided card number",
         },
@@ -120,9 +142,11 @@ class SociBankAccountBalanceDetailView(RetrieveAPIView):
         return Response(data, status=status.HTTP_200_OK)
 
     def get_object(self) -> SociBankAccount:
-        card_uuid = self.request.query_params.get('card_uuid', None)
+        card_uuid = self.request.query_params.get("card_uuid", None)
         if card_uuid is None:
-            raise ValidationError("You need to provide a card uuid as a query parameter.")
+            raise ValidationError(
+                "You need to provide a card uuid as a query parameter."
+            )
 
         return get_object_or_404(queryset=self.get_queryset(), card_uuid=card_uuid)
 
@@ -140,10 +164,9 @@ class SensorMeasurementView(CustomCreateAPIView, generics.ListAPIView):
     def get_queryset(self):
         # We don't really bother to validate this input. A bad input will just
         # return 0 results.
-        type = self.request.query_params.get('type', MEASUREMENT_TYPE_TEMPERATURE)
+        type = self.request.query_params.get("type", MEASUREMENT_TYPE_TEMPERATURE)
         return SensorMeasurement.objects.filter(
-            type=type,
-            created_at__gte=timezone.now() - timezone.timedelta(days=1)
+            type=type, created_at__gte=timezone.now() - timezone.timedelta(days=1)
         )
 
     @swagger_auto_schema(
@@ -152,7 +175,7 @@ class SensorMeasurementView(CustomCreateAPIView, generics.ListAPIView):
         responses={
             "201": serializer_class(many=True),
             "400": ": Illegal input.",
-            "403": ": You are not authorized to create measurements."
+            "403": ": You are not authorized to create measurements.",
         },
     )
     def post(self, request: Request, *args, **kwargs):
@@ -171,15 +194,17 @@ class SensorMeasurementView(CustomCreateAPIView, generics.ListAPIView):
 
     @swagger_auto_schema(
         operation_summary="Get measurement data for the last 24 hours.",
-        manual_parameters=[Parameter(
-            name='type',
-            in_=IN_QUERY,
-            default="temperature",
-            description=f"The type of measurements.",
-            type=TYPE_STRING,
-            enum=[x[0] for x in MEASUREMENT_TYPE_CHOICES],
-            required=False
-        )],
+        manual_parameters=[
+            Parameter(
+                name="type",
+                in_=IN_QUERY,
+                default="temperature",
+                description=f"The type of measurements.",
+                type=TYPE_STRING,
+                enum=[x[0] for x in MEASUREMENT_TYPE_CHOICES],
+                required=False,
+            )
+        ],
         responses={
             "200": serializer_class(many=True),
         },
