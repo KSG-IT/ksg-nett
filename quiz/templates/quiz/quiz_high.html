@@ -6,32 +6,62 @@
 {% endblock %}
 
 {% block body_content %}
-<h2>Resultat for Quiz</h2>
-<div class="quiz__form_container">
-    <div class="quiz__listing">
-        <h4>Topplisten</h4>
-        <table>
+
+<div class="highscore-page">
+    <h2>Resultat for Quiz</h2>
+    <div class="highscore-table">
+        <div class="highscore-table-data" id="header">
+            <div class="highscore-table-cell">
+                Name
+            </div>
+            <div class="highscore-table-cell">
+                Score
+            </div>
+            <div class="highscore-table-cell">
+                Time taken
+            </div>
+        </div>
+        <!-- Adding results with a for loop -->
         {% for person, points, time in score%}
-            <tr>
-                <td>{{ person.get_full_name }}</td>
-                <td>{{ points}}</td>
-                <td>{{ time }}</td>
-            </tr>
+            <div class="highscore-table-data">
+                <div class="highscore-table-cell">
+                    <a class="resetlink" href="/internal/users/{{ person.id }}">
+                      {{ person.get_full_name }}</a>
+                </div>
+                <div class="highscore-table-cell">
+                    {{ points }}
+                </div>
+                <div class="highscore-table-cell">
+                    {{ time }} sek
+                </div>
+            </div>
         {% endfor %}
-        </table>
-        <p>---------------------------</p>
-        <table>
-            <tr>Gjettet riktig antall ganger</tr>
-        {% for user in guess_rate%}
-            <tr>
-                <td>{{user.first_name}}</td>
-                <td>{{user.correct_clicks_cnt}}%</td>
-            </tr>
+    </div>
+    <div class="highscore-table" id="guess-rate">
+        <div class="highscore-table-data" id="header">
+            <div class="highscore-table-cell">
+                Name
+            </div>
+            <div class="highscore-table-cell">
+                Percentage correct guess
+            </div>
+        </div>
+        {% for person in guess_rate%}
+            <div class="highscore-table-data">
+                <div class="highscore-table-cell">
+                    <a class="resetlink" href="/internal/users/{{ person.id }}">
+                      {{ person.first_name}}</a>
+                </div>
+                <div class="highscore-table-cell">
+                    {{ person.correct_clicks_cnt }} %
+                </div>
+            </div>
         {% endfor %}
-        </table>
+    </div>
+</div>
 
         <!--Here comes a function that returns the best quiz results based on 1.score and 2.time combined-->
-    </div>
+
     <div class="quiz__listing">
         <!--Here comes a function that returns the people that have the highest percent of correct guesses on them-->
     </div>

@@ -19,6 +19,8 @@ h4{
     font-weight: lighter;
 }
 
+
+
 .noob {
     color:blue;
     background-color: aqua;
@@ -29,19 +31,65 @@ h4{
     justify-content:center;
 }
 
-table.results_table td {
-    border-style:none;
-    font-size: 110%;
-    text-align: center;
+.highscore-page {
+    display: grid;
+    grid-template-areas:
+            "a a a"
+            "b c d"
+            "b e e";
+    column-gap: 1em;
+
 }
 
-table.results_table img{
-    padding: 5px 5px 5px 5px;
-    margin: 50px 50px 50px 50px;
+h2 {
+    grid-area: a;
 }
 
-table.results_table{
+.highscore-table {
+    grid-area: c;
     display: flex;
-    border-style: none;
-    justify-content: space-around;
+    flex-flow: column wrap;
+    max-width: 80%;
+    border-radius: 2px;
+    box-shadow: 2px 2px 2px 1px rgba(0, 0, 0, 0.2);
+}
+
+.highscore-table-data {
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    flex-flow: row wrap;
+}
+
+#header {
+    font-weight: bold;
+}
+
+#guess-rate {
+    grid-area: d;
+}
+
+.highscore-table-cell {
+    display: flex;
+    flex-flow: row wrap;
+    align-items: center;
+}
+.highscore-table-cell:nth-child(1) {
+    justify-content: flex-start;
+    flex: 35%;
+}
+.highscore-table-cell:nth-child(2){
+    justify-content: center;
+    flex: 15%;
+}
+.highscore-table-cell:nth-child(3) {
+    justify-content: center;
+    flex: 15%;
+}
+
+
+
+
+.highscore-table-data:nth-of-type(even) {
+    background-color: #dedede;
 }

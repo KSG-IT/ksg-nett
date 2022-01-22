@@ -45,7 +45,7 @@ class TestQuizModel(TestCase):
 
 class TestSubmitClick(TestCase):
     def setUp(self):
-        self.user = UserFactory(username="test")
+        self.user = UserFactory(username="test")  # combine with user-quizzed
         self.user.set_password("password")
         self.user.save()
         self.quiz = QuizFactory()
