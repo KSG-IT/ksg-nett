@@ -18,30 +18,31 @@ def user_detail(request, user_id):
     ctx = {
         # We don't want to name it `user` as it will override the default user attribute
         # (which is the user calling the view).
-        'profile_user': user,
-        'next_shift': request.user.shift_set.filter(slot__group__meet_time__gte=timezone.now()).first()
+        "profile_user": user,
+        "next_shift": request.user.shift_set.filter(
+            slot__group__meet_time__gte=timezone.now()
+        ).first(),
     }
-    return render(request, template_name='users/profile_page.html', context=ctx)
+    return render(request, template_name="users/profile_page.html", context=ctx)
 
 
-@login_required(login_url='/login/')
+@login_required(login_url="/login/")
 def update_user(request, user_id):
     user = get_object_or_404(User, pk=user_id)
     form = UserForm(request.POST or None, instance=user)
-    ctx = {
-        'user_form': form,
-        'profile_user': user
-    }
+    ctx = {"user_form": form, "profile_user": user}
     if request.method == "GET":
-        return render(request, template_name='users/update_profile_page.html',
-                      context=ctx)
+        return render(
+            request, template_name="users/update_profile_page.html", context=ctx
+        )
     elif request.method == "POST":
         if form.is_valid():
             form.save()
-            return redirect(reverse('user_detail', kwargs={'user_id': user_id}))
+            return redirect(reverse("user_detail", kwargs={"user_id": user_id}))
         else:
-            return render(request, template_name='users/update_profile_page.html',
-                          context=ctx)
+            return render(
+                request, template_name="users/update_profile_page.html", context=ctx
+            )
     else:
         return HttpResponse(status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
@@ -91,33 +92,33 @@ def klinekart(request):
         else:
             user_two_id = user_two.id
 
-        made_out_this_semester_list.append([
-            {
-                'id': user_one_id,
-                'name': association.user_one.get_full_name()
-                if not association.user_one.anonymize_in_made_out_map
-                else _("Anonymous"),
-                'img': association.user_one.profile_image_url
-                if not association.user_one.anonymize_in_made_out_map
-                else None,
-                'anonymous': association.user_one.anonymize_in_made_out_map
-            },
-            {
-                'id': user_two_id,
-                'name': association.user_two.get_full_name()
-                if not association.user_two.anonymize_in_made_out_map
-                else _("Anonymous"),
-                'img': association.user_two.profile_image_url
-                if not association.user_two.anonymize_in_made_out_map
-                else None,
-                'anonymous': association.user_two.anonymize_in_made_out_map
-            }
-        ])
+        made_out_this_semester_list.append(
+            [
+                {
+                    "id": user_one_id,
+                    "name": association.user_one.get_full_name()
+                    if not association.user_one.anonymize_in_made_out_map
+                    else _("Anonymous"),
+                    "img": association.user_one.profile_image.url
+                    if not association.user_one.anonymize_in_made_out_map
+                    else None,
+                    "anonymous": association.user_one.anonymize_in_made_out_map,
+                },
+                {
+                    "id": user_two_id,
+                    "name": association.user_two.get_full_name()
+                    if not association.user_two.anonymize_in_made_out_map
+                    else _("Anonymous"),
+                    "img": association.user_two.profile_image.url
+                    if not association.user_two.anonymize_in_made_out_map
+                    else None,
+                    "anonymous": association.user_two.anonymize_in_made_out_map,
+                },
+            ]
+        )
 
     made_out_this_semester_json = json.dumps(made_out_this_semester_list)
 
-    ctx = {
-        'made_out_data': made_out_this_semester_json
-    }
+    ctx = {"made_out_data": made_out_this_semester_json}
 
-    return render(request, template_name='users/klinekart.html', context=ctx)
+    return render(request, template_name="users/klinekart.html", context=ctx)
