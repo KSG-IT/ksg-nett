@@ -10,6 +10,7 @@ from graphene_django_cud.mutations import (
 from graphene_django import DjangoConnectionField
 from quotes.models import Quote, QuoteVote
 from quotes.filters import QuoteFilter
+from graphql_relay import from_global_id
 
 
 class QuoteNode(DjangoObjectType):
@@ -63,7 +64,6 @@ class QuoteQuery(graphene.ObjectType):
 class CreateQuoteMutation(DjangoCreateMutation):
     class Meta:
         model = Quote
-
         auto_context_fields = {"reported_by": "user"}
 
 
@@ -80,6 +80,7 @@ class DeleteQuoteMutation(DjangoDeleteMutation):
 class CreateQuoteVoteMutation(DjangoCreateMutation):
     class Meta:
         model = QuoteVote
+        auto_context_fields = {"caster": "user"}
 
 
 class PatchQuoteVote(DjangoPatchMutation):
@@ -92,6 +93,25 @@ class DeleteQuoteVote(DjangoDeleteMutation):
         model = QuoteVote
 
 
+class DeleteUserQuoteVote(graphene.Mutation):
+    class Arguments:
+        quote_id = graphene.ID(required=True)
+
+    found = graphene.Boolean()
+
+    def mutate(self, info, quote_id):
+        _, django_quote_id = from_global_id(quote_id)
+        # we filter instead of .get so we don't trigger an error if vote is not found
+        quote_vote = QuoteVote.objects.filter(
+            quote__pk=django_quote_id, caster=info.context.user
+        )
+        if quote_vote:
+            quote_vote.delete()
+            return DeleteUserQuoteVote(found=True)
+
+        return DeleteUserQuoteVote(found=False)
+
+
 class QuotesMutations(graphene.ObjectType):
     create_quote = CreateQuoteMutation.Field()
     patch_quote = PatchQuoteMutation.Field()
@@ -100,3 +120,5 @@ class QuotesMutations(graphene.ObjectType):
     create_quote_vote = CreateQuoteVoteMutation.Field()
     patch_quote_vote = PatchQuoteMutation.Field()
     delete_quote_vote = DeleteQuoteMutation.Field()
+
+    delete_user_quote_vote = DeleteUserQuoteVote.Field()
