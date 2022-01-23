@@ -16,12 +16,8 @@ class TestQuizModel(TestCase):
     def setUp(self):
         self.correct_user = UserFactory()
         self.logged_in_user = UserFactory()
-        self.quiz = Quiz.objects.create(
-            user_quizzed=self.logged_in_user,
-            time_started=timezone.now(),
-        )
-        self.quiz.fake_users.set(UserFactory.create_batch(6))
-        self.quiz.create_participant
+        self.quiz = QuizFactory()
+
         pass
 
     def test_create_participant_should_relate_to_quiz(self):

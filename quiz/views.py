@@ -80,8 +80,6 @@ def quiz_check(request, quiz_id, user_id):
 
 
 def quiz_high(request):
-    # print(count_score())
-    # score_points, score_time = high_score_formatter()
     score_list = count_score()
     correctly_clicked = most_correct_clicks()
     context = {

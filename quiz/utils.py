@@ -51,6 +51,7 @@ def count_score():
         Quiz.objects.all()
         .annotate(time_taken=time_taken_field)
         .order_by("-final_score", "time_taken")
+        .filter(time_end__isnull=False)
     )
     return [
         [quiz.user_quizzed, quiz.final_score, round(quiz.time_taken.total_seconds(), 4)]

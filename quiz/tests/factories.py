@@ -31,6 +31,11 @@ class QuizFactory(DjangoModelFactory):
         if not create:
             return
         if extracted:
-            return
+            for user in extracted:
+                if user not in self.fake_users:
+                    self.fake_users.add(user)
+                self.participants_in_quiz.create(
+                    correct_user=choice(self.fake_users.all())
+                )
         else:
             self.create_participant
