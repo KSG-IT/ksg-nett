@@ -1,0 +1,71 @@
+{% extends 'internal/base.html' %}
+{% load static %}
+{% load i18n %}
+{% block header %}
+<link rel="stylesheet" href="{% static 'quiz/css/quiz.css' %}">
+{% endblock %}
+
+{% block body_content %}
+
+<div class="highscore-page">
+    <div class="highscore-header">
+        Resultater for Quiz - samlet
+    </div>
+    <div class="highscore-table score-table-total">
+        <div class="highscore-table-data highscore-table-header">
+            <div class="highscore-table-cell">
+                Name
+            </div>
+            <div class="highscore-table-cell">
+                Score
+            </div>
+            <div class="highscore-table-cell">
+                Time taken
+            </div>
+        </div>
+        <!-- Adding results with a for loop -->
+        {% for person, points, time in score%}
+            <div class="highscore-table-data">
+                <div class="highscore-table-cell">
+                    <a class="resetlink" href="/internal/users/{{ person.id }}">
+                      {{ person.get_full_name }}</a>
+                </div>
+                <div class="highscore-table-cell">
+                    {{ points }}
+                </div>
+                <div class="highscore-table-cell">
+                    {{ time }} sek
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+    <div class="highscore-table corrects-table">
+        <div class="highscore-table-data highscore-table-header">
+            <div class="highscore-table-cell">
+                Name
+            </div>
+            <div class="highscore-table-cell">
+                Percentage
+            </div>
+        </div>
+        {% for person in guess_rate%}
+            <div class="highscore-table-data">
+                <div class="highscore-table-cell">
+                    <a class="resetlink" href="/internal/users/{{ person.id }}">
+                      {{ person.first_name}}</a>
+                </div>
+                <div class="highscore-table-cell">
+                    {{ person.correct_clicks_cnt }} %
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+
+        <!--Here comes a function that returns the best quiz results based on 1.score and 2.time combined-->
+
+    <div class="quiz__listing">
+        <!--Here comes a function that returns the people that have the highest percent of correct guesses on them-->
+    </div>
+</div>
+{% endblock %}

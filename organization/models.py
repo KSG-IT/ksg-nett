@@ -54,13 +54,6 @@ class InternalGroup(models.Model):
     def active_members_count(self) -> int:
         return len(self.active_members)
 
-    @property
-    def get_group_slug(self) -> str:
-        split = self.name.split(' ')
-        joint = '-'.join(split)
-        slug = joint.lower()
-        return slug
-
     def __str__(self):
         return "Group %s" % self.name
 
@@ -77,7 +70,11 @@ class InternalGroupPositionMembership(models.Model):
     date_joined = models.DateField(default=timezone.now, null=False, blank=False)
     date_ended = models.DateField(default=None, null=True, blank=True)
 
-    user = models.ForeignKey("users.User", on_delete=models.CASCADE, related_name="internal_group_position_history")
+    user = models.ForeignKey(
+        "users.User",
+        on_delete=models.CASCADE,
+        related_name="internal_group_position_history",
+    )
     position = models.ForeignKey(
         "organization.InternalGroupPosition",
         related_name="memberships",
@@ -103,7 +100,10 @@ class InternalGroupPosition(models.Model):
     )
     description = models.CharField(max_length=1024, blank=True, null=True)
     type = models.CharField(
-        max_length=32, choices=InternalGroupPositionType.choices, null=False, blank=False
+        max_length=32,
+        choices=InternalGroupPositionType.choices,
+        null=False,
+        blank=False,
     )
     holders = models.ManyToManyField(
         "users.User",

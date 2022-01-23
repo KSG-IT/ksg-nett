@@ -27,7 +27,7 @@ SECRET_KEY = "rc4yscfoc9loe+937$q-57agxy0iq+!o0zowl0#vylilol2-)e"
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-
+CORS_ORIGIN_ALLOW_HEADERS = list(default_headers)
 CORS_ORIGIN_ALLOW_ALL = True
 
 ALLOWED_HOSTS = ["localhost", "127.0.0.1", "0.0.0.0", "ksg-nett.no"]
@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     "graphene_django",
     "storages",
     "corsheaders",
+    "django_filters",
     # Project apps
     "api",
     "common",
@@ -65,6 +66,7 @@ INSTALLED_APPS = [
     "sensors",
     "chat",
     "admissions",
+    "events",
 ]
 
 MIDDLEWARE = [
@@ -192,6 +194,8 @@ GRAPHENE = {"SCHEMA": "ksg_nett.schema.schema"}
 STATIC_URL = "/static/"
 STATIC_ROOT = "static/"
 
+HOST_URL = "http://localhost:8000"
+
 MEDIA_ROOT = "media/"
 MEDIA_URL = "/media/"
 
@@ -200,9 +204,17 @@ MEDIA_URL = "/media/"
 MAX_MEDIA_SIZE = 128 * (1024 ** 2)
 
 # Simple JWT SETTINGS
-# ------------------------------
+# -----------------------------
+#
+
+AUTH_JWT_HEADER_PREFIX = "Bearer"
+AUTH_JWT_SECRET = "SOME-JWT-SECRET-VALUE"
+AUTH_JWT_METHOD = "HS256"
+
 SIMPLE_JWT = {
     "AUTH_TOKEN_CLASSES": ("rest_framework_simplejwt.tokens.SlidingToken",),
+    "ALGORITHM": AUTH_JWT_METHOD,
+    "SIGNING_KEY": AUTH_JWT_SECRET,
     "SLIDING_TOKEN_LIFETIME": timedelta(
         hours=24
     ),  # Should cover even the most hardcore Soci sessions
@@ -212,9 +224,6 @@ SIMPLE_JWT = {
 # This should be changed before production.
 SENSOR_API_TOKEN = "3@Zhg$nH^Dlhw23R"
 
-AUTH_JWT_HEADER_PREFIX = "Bearer"
-AUTH_JWT_SECRET = "SOME-JWT-SECRET-VALUE"
-AUTH_JWT_METHOD = "HS256"
 
 # API DOCS
 # ------------------------------
@@ -228,6 +237,7 @@ REDOC_SETTINGS = {"PATH_IN_MIDDLE": True, "REQUIRED_PROPS_FIRST": True}
 # ------------------------------
 SOCI_MASTER_ACCOUNT_CARD_ID = 0xBADCAFEBABE  # Real card ids are 10 digits, while this is 14, meaning no collisions
 DIRECT_CHARGE_SKU = "X-BELOP"
+WANTED_LIST_THRESHOLD = -2000
 
 # Channels
 ASGI_APPLICATION = "ksg_nett.routing.application"

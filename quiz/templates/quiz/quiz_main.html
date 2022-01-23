@@ -2,25 +2,30 @@
 {% load static %}
 {% load i18n %}
 {% block header %}
-    <link rel="stylesheet" href="{% static 'quotes/css/quotes.css' %}">
+<link rel="stylesheet" href="{% static 'quiz/css/quiz.css' %}">
 {% endblock %}
 {% block body_content %}
-      <div>
-        <div class="default-container default-top-offset">
+      <div class="main-page">
         <h2>Quiz</h2>
         <p>Test kjennskapen din til gjengen vår! Du får resultat med tid og antall riktige</p>
-          <div>
-            <a href="/internal/quiz/new/new-members">
-              <input type="button" value="De nye" class="primary-blue-button">
-            </a>
+          <div class="main-categories">
+              <div class="main-categories-box">
+                <a href="/internal/quiz/new/new-members">
+                  <input type="button" value="De nye" class="primary-blue-button">
+                </a>
+              </div>
+              {% for x in groups %}
+              <div class="main-categories-box">
+                <a href="/internal/quiz/new/{{x.slug}}">
+                    <input type="button" value="{{x.name}}" class="primary-blue-button">
+                </a>
+              </div>
+              {% endfor %}
+              <div class="main-categories-box">
+                <a href="/internal/quiz/high">
+                  <input type="button" value="High-score" class="primary-blue-button">
+                </a>
+              </div>
           </div>
-          {% for x in groups %}
-          <div>
-            <a href="/internal/quiz/new/{{x.slug}}">
-                <input type="button" value="{{x.name}}" class="primary-blue-button">
-            </a>
-          </div>
-          {% endfor %} 
-        </div>
       </div>
 {% endblock %}

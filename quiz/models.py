@@ -5,9 +5,10 @@ from django.db.models.fields.related import ManyToManyField
 from users.models import User
 from random import randint
 from model_utils.managers import QueryManager
-from quiz.consts import InternalGroups
 from django.db.models import Q
 from random import choice, sample
+from django.utils import timezone
+from datetime import timedelta
 
 # Create your models here.
 
@@ -21,6 +22,12 @@ class Quiz(models.Model):
         related_name="related_quiz",
     )
     fake_users = models.ManyToManyField(User, related_name="quiz_fakes")
+    user_quizzed = models.ForeignKey(
+        User, related_name="user_taking_quiz", on_delete=models.CASCADE, null=True
+    )
+    time_started = models.DateTimeField(default=timezone.now)
+    time_end = models.DateTimeField(blank=True, null=True)
+    final_score = models.IntegerField(blank=True, default=0)
 
     @property
     def current_guess(self):
@@ -44,13 +51,27 @@ class Quiz(models.Model):
         users_available = self.fake_users.exclude(
             solution_in_quiz__quiz=self, solution_in_quiz__isnull=False
         )
-        return Participant.objects.create(
-            quiz=self, correct_user=choice(users_available)
-        ).save()
+        return self.participants_in_quiz.create(correct_user=choice(users_available))
 
     @property
     def scramble_pool(self):
         return sample(list(self.fake_users.all()), self.fake_users.count())
+
+    @property
+    def create_participant(self):
+        self.participants_in_quiz.create(correct_user=choice(self.fake_users.all()))
+
+    @property
+    def all_guesses(self):
+        return self.participants_in_quiz.all()
+
+    @property
+    def get_time_diff(self):
+        time_diff = self.time_end - self.time_started
+        return time_diff.total_seconds()
+
+    def __str__(self):
+        return "User: %s,Quiz: %s" % (self.user_quizzed.get_full_name, self.id)
 
 
 class Participant(models.Model):  # QuizAnswer FK -> QUIZ
