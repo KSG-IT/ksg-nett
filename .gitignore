@@ -120,3 +120,7 @@ dump.rdb
 # Settings
 settings_local.py
 .vscode/
+
+#Quiz
+quiz/notes-additional-plans.txt
+

@@ -15,43 +15,25 @@
     max-width:50%;
 }
 
-h4{
-    font-weight: lighter;
-}
-
-
-
-.noob {
-    color:blue;
-    background-color: aqua;
-    font-size: 2em;
-}
-
-.useless_positioning{
-    justify-content:center;
-}
-
 .highscore-page {
     display: grid;
     grid-template-areas:
-            "a a a"
-            "b c d"
-            "b e e";
+            "score-table corrects-table"
+            "score-table corrects-table";
     column-gap: 1em;
 
 }
 
-h2 {
-    grid-area: a;
-}
-
 .highscore-table {
-    grid-area: c;
     display: flex;
     flex-flow: column wrap;
     max-width: 80%;
     border-radius: 2px;
     box-shadow: 2px 2px 2px 1px rgba(0, 0, 0, 0.2);
+}
+
+#total-score {
+    grid-area: score-table;
 }
 
 .highscore-table-data {
@@ -66,7 +48,7 @@ h2 {
 }
 
 #guess-rate {
-    grid-area: d;
+    grid-area: corrects-table;
 }
 
 .highscore-table-cell {
