@@ -64,6 +64,8 @@ class CreateQuoteMutation(DjangoCreateMutation):
     class Meta:
         model = Quote
 
+        auto_context_fields = {"reported_by": "user"}
+
 
 class PatchQuoteMutation(DjangoPatchMutation):
     class Meta:
