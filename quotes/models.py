@@ -88,7 +88,9 @@ class QuoteVote(models.Model):
     # allows for future flexibility such as allowing for extra-value thumbs-up etc.
     # We can also get the total tally now by aggregating the sum of this column.
     value = models.SmallIntegerField()
-    caster = models.ForeignKey(User, on_delete=models.CASCADE)
+    caster = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="quote_votes"
+    )
 
     class Meta:
         verbose_name_plural = "quote votes"
