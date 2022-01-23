@@ -8,9 +8,11 @@
 {% block body_content %}
 
 <div class="highscore-page">
-    <h2>Resultat for Quiz</h2>
-    <div class="highscore-table" id="total-score">
-        <div class="highscore-table-data" id="header">
+    <div class="highscore-header">
+        Resultater for Quiz - samlet
+    </div>
+    <div class="highscore-table score-table-total">
+        <div class="highscore-table-data highscore-table-header">
             <div class="highscore-table-cell">
                 Name
             </div>
@@ -37,13 +39,13 @@
             </div>
         {% endfor %}
     </div>
-    <div class="highscore-table" id="guess-rate">
-        <div class="highscore-table-data" id="header">
+    <div class="highscore-table corrects-table">
+        <div class="highscore-table-data highscore-table-header">
             <div class="highscore-table-cell">
                 Name
             </div>
             <div class="highscore-table-cell">
-                Percentage correct guess
+                Percentage
             </div>
         </div>
         {% for person in guess_rate%}

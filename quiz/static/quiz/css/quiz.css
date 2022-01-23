@@ -9,69 +9,100 @@
 
 .quiz_form_section {
     display: flex;
-    flex-direction: row;
+    flex-flow: row wrap;
+    gap: 1em;
     justify-content: space-between;
-    flex-wrap: wrap;
     max-width:50%;
 }
 
 .highscore-page {
     display: grid;
-    grid-template-areas:
-            "score-table corrects-table"
-            "score-table corrects-table";
-    column-gap: 1em;
+    grid:
+            "header      header" minmax(100px, auto)
+            "score-table corrects-table" minmax(100px, auto);
+    column-gap: 4em;
+    row-gap: 1em;
+    justify-content: center;
+}
 
+.highscore-header {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    grid-area: header;
+    font-weight: bold;
+    font-size: xx-large;
+    min-height: 60px;
 }
 
 .highscore-table {
     display: flex;
     flex-flow: column wrap;
-    max-width: 80%;
-    border-radius: 2px;
-    box-shadow: 2px 2px 2px 1px rgba(0, 0, 0, 0.2);
+    min-width: 350px;
+    border-radius: 8px;
+    padding-top: 10px;
+    box-shadow: 0 2px 6px 0 rgba(0,0,0,0.2);
 }
 
-#total-score {
+.highscore-table-header {
+    font-weight: bold;
+}
+
+.score-table-total {
     grid-area: score-table;
+}
+
+.corrects-table{
+    grid-area: corrects-table;
 }
 
 .highscore-table-data {
     display: flex;
-    justify-content: flex-start;
+    justify-content: space-evenly;
     align-items: center;
     flex-flow: row wrap;
-}
-
-#header {
-    font-weight: bold;
-}
-
-#guess-rate {
-    grid-area: corrects-table;
+    padding: 0 6px;
+    column-gap: 1em;
 }
 
 .highscore-table-cell {
     display: flex;
     flex-flow: row wrap;
     align-items: center;
+    min-height: 35px;
+    flex: auto;
+    justify-content: flex-end;
 }
 .highscore-table-cell:nth-child(1) {
     justify-content: flex-start;
-    flex: 35%;
+    flex: 2 auto;
 }
 .highscore-table-cell:nth-child(2){
-    justify-content: center;
-    flex: 15%;
+    justify-content: flex-end;
+    flex: 2 auto;
 }
 .highscore-table-cell:nth-child(3) {
-    justify-content: center;
-    flex: 15%;
+    justify-content: flex-end;
+    flex: auto;
 }
-
-
 
 
 .highscore-table-data:nth-of-type(even) {
     background-color: #dedede;
+}
+
+.main-page {
+    display: flex;
+    flex-flow: column wrap;
+    justify-content: center;
+    align-items: center;
+}
+
+.main-categories {
+    min-width: 500px;
+}
+
+.main-categories-box {
+    min-width: 200px;
+    font-size: large;
 }

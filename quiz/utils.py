@@ -45,7 +45,7 @@ def end_quiz(quiz):
 
 def count_score():
     time_taken_field = ExpressionWrapper(
-        F("time_end") - F("time_started"), output_field=fields.DurationField()
+        (F("time_end") - F("time_started")), output_field=fields.DurationField()
     )
     score_by_time = (
         Quiz.objects.all()
@@ -54,7 +54,7 @@ def count_score():
         .filter(time_end__isnull=False)
     )
     return [
-        [quiz.user_quizzed, quiz.final_score, round(quiz.time_taken.total_seconds(), 4)]
+        [quiz.user_quizzed, quiz.final_score, round(quiz.time_taken.total_seconds(), 2)]
         for quiz in score_by_time[:10]
     ]
 
@@ -80,7 +80,8 @@ def most_correct_clicks():
             * Subquery(count_correct_guesses, output_field=fields.DecimalField())
             / Subquery(count_guesses, output_field=fields.DecimalField()),
         )
-        .values("first_name", "correct_clicks_cnt")
+        .values("id", "correct_clicks_cnt", "first_name")
         .order_by("-correct_clicks_cnt")
+        .filter(correct_clicks_cnt__isnull=False)
     )
     return most_correct_clicks
