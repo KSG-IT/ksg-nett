@@ -9,33 +9,101 @@
 
 .quiz_form_section {
     display: flex;
-    flex-direction: row;
+    flex-flow: row wrap;
+    gap: 1em;
     justify-content: space-between;
-    flex-wrap: wrap;
-    max-width:50%;
+    mx-width:50%;
 }
 
-h4{
-    font-weight: lighter;
+.highscore-page {
+    display: grid;
+    grid:
+            "header      header" minmax(100px, auto)
+            "score-table corrects-table" minmax(100px, auto);
+    column-gap: 4em;
+    row-gap: 1em;
+    justify-content: center;
 }
 
-.noob {
-    color:blue;
-    background-color: aqua;
-    font-size: 2em;
+.highscore-header {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    grid-area: header;
+    font-weight: bold;
+    font-size: xx-large;
+    min-height: 60px;
 }
 
-table.results_table td {
-    border-style: groove;
-    font-size: 110%;
-    text-align: center;
+.highscore-table {
+    display: flex;
+    flex-flow: column wrap;
+    min-width: 350px;
+    border-radius: 8px;
+    box-shadow: 0 2px 6px 0 rgba(0,0,0,0.2);
+    padding: 0 4px;
 }
 
-table.results_table img{
-    padding: 5px 5px 5px 5px;
-    margin: 50px 50px 50px 50px;
+.highscore-table-header {
+    font-weight: bold;
 }
 
-table.results_table{
-    border-style: solid;
+.score-table-total > div{
+    grid-area: score-table;
+}
+
+.corrects-table > div{
+    grid-area: corrects-table;
+    min-height: 40px;
+}
+
+.highscore-table-data {
+    display: flex;
+    justify-content: space-evenly;
+    align-items: center;
+    flex-flow: row wrap;
+    border-radius: 4px;
+    padding: 0 6px;
+}
+
+.highscore-table-cell {
+    display: flex;
+    flex-flow: row wrap;
+    align-items: center;
+    min-height: 20px;
+    flex: min-content;
+    justify-content: flex-end;
+}
+.highscore-table-cell:nth-child(1) {
+    justify-content: flex-start;
+    flex: 30%;
+}
+.highscore-table-cell:nth-child(2){
+    justify-content: flex-end;
+    flex: 10%;
+}
+.highscore-table-cell:nth-child(3) {
+    justify-content: flex-end;
+    flex: auto;
+}
+
+
+.highscore-table-data:nth-of-type(even) {
+    background-color: #B1E7FF;
+}
+
+.main-page {
+    display: flex;
+    flex-flow: column wrap;
+    justify-content: center;
+    align-items: center;
+}
+
+.main-categories {
+    min-width: 500px;
+}
+
+.main-categories-box {
+    min-width: 200px;
+    font-size: large;
 }
