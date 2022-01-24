@@ -106,18 +106,20 @@ class DeleteUserQuoteVote(graphene.Mutation):
         quote_id = graphene.ID(required=True)
 
     found = graphene.Boolean()
+    quote_sum = graphene.Int()
 
     def mutate(self, info, quote_id):
         _, django_quote_id = from_global_id(quote_id)
-        # we filter instead of .get so we don't trigger an error if vote is not found
-        quote_vote = QuoteVote.objects.filter(
-            quote__pk=django_quote_id, caster=info.context.user
-        )
-        if quote_vote:
+        try:
+            quote = Quote.objects.get(pk=django_quote_id)
+            quote_vote = quote.votes.get(caster=info.context.user)
             quote_vote.delete()
-            return DeleteUserQuoteVote(found=True)
-
-        return DeleteUserQuoteVote(found=False)
+            quote.refresh_from_db()
+            return DeleteUserQuoteVote(found=True, quote_sum=quote.sum)
+        except Quote.DoesNotExist:
+            return None
+        except QuoteVote.DoesNotExist:
+            return None
 
 
 class QuotesMutations(graphene.ObjectType):
