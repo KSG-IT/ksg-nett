@@ -106,6 +106,14 @@ class DeleteQuoteVote(DjangoDeleteMutation):
 
 
 class DeleteUserQuoteVote(graphene.Mutation):
+    """
+    Since a QuoteVote has a unique constraint for 'caster' and 'quote' there can only exist
+    one quote vote object with the same caster and quote. Given this, a delete mutation with
+    quote_id + the user sending the request should give us a single quote vote object. The main
+    motivation behind this approach is that we do not need to query every unique quote vote object
+    for every quote in order to delete a vote from a user.
+    """
+
     class Arguments:
         quote_id = graphene.ID(required=True)
 
