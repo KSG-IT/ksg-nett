@@ -52,6 +52,10 @@ class QuoteQuery(graphene.ObjectType):
     )
     popular_quotes_all_time = graphene.List(QuoteNode)
     popular_quotes_current_semester = graphene.List(QuoteNode)
+    current_semester_shorthand = graphene.String()
+
+    def resolve_current_semester_shorthand(self, info, *args, **kwargs):
+        return Quote.get_current_semester_shorthand()
 
     def resolve_popular_quotes_current_semester(self, info, *args, **kwargs):
         return Quote.get_popular_quotes_in_current_semester()

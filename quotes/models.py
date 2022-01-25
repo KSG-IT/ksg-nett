@@ -57,6 +57,12 @@ class Quote(TimestampedModel):
         return popular_quotes
 
     @classmethod
+    def get_current_semester_shorthand(cls):
+        short_year_format = str(timezone.datetime.now().year)[2:]
+        semester_prefix = "H" if timezone.datetime.now().month > 7 else "V"
+        return f"{semester_prefix}{short_year_format}"
+
+    @classmethod
     def get_popular_quotes_all_time(cls):
         # TODO TESTS
         popular_quotes = (
