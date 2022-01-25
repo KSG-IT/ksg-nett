@@ -50,14 +50,14 @@ class QuoteQuery(graphene.ObjectType):
     approved_quotes = DjangoFilterConnectionField(
         QuoteNode, filterset_class=QuoteFilter
     )
-    top_quotes_all_time = graphene.List(QuoteNode)
-    top_quotes_current_semester = graphene.List(QuoteNode)
+    popular_quotes_all_time = graphene.List(QuoteNode)
+    popular_quotes_current_semester = graphene.List(QuoteNode)
 
-    def resolve_top_quotes_current_semester(self, info, *args, **kwargs):
-        return Quote.get_top_quotes_in_current_semester()
+    def resolve_popular_quotes_current_semester(self, info, *args, **kwargs):
+        return Quote.get_popular_quotes_in_current_semester()
 
-    def resolve_top_quotes_all_time(self, info, *args, **kwargs):
-        return Quote.get_top_quotes_all_time()
+    def resolve_popular_quotes_all_time(self, info, *args, **kwargs):
+        return Quote.get_popular_quotes_all_time()
 
     def resolve_all_quotes(self, info, *args, **kwargs):
         return Quote.objects.all().order_by("created_at")

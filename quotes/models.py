@@ -39,7 +39,7 @@ class Quote(TimestampedModel):
         return cls.objects.filter(verified_by__isnull=False).order_by("-created_at")
 
     @classmethod
-    def get_top_quotes_in_current_semester(cls):
+    def get_popular_quotes_in_current_semester(cls):
         # TODO TESTS
         now = timezone.datetime.now()
         current_month = now.month
@@ -47,24 +47,24 @@ class Quote(TimestampedModel):
             semester_start = timezone.datetime(year=now.year, month=1, day=1)
         else:
             semester_start = timezone.datetime(year=now.year, month=7, day=1)
-        top_quotes = (
+        popular_quotes = (
             cls.objects.filter(
                 verified_by__isnull=False, created_at__gte=semester_start
             )
             .annotate(total_votes=Coalesce(Sum("votes__value"), 0))
             .order_by("-total_votes")[:10]
         )
-        return top_quotes
+        return popular_quotes
 
     @classmethod
-    def get_top_quotes_all_time(cls):
+    def get_popular_quotes_all_time(cls):
         # TODO TESTS
-        top_quotes = (
+        popular_quotes = (
             cls.objects.filter(verified_by__isnull=False)
             .annotate(total_votes=Coalesce(Sum("votes__value"), 0))
             .order_by("-total_votes")[:10]
         )
-        return top_quotes
+        return popular_quotes
 
     def get_semester_of_quote(self) -> str:
         """
