@@ -18,8 +18,6 @@ class TestQuizModel(TestCase):
         self.logged_in_user = UserFactory()
         self.quiz = QuizFactory()
 
-        pass
-
     def test_create_participant_should_relate_to_quiz(self):
         self.assertEqual(self.quiz.participants_in_quiz.count(), 1)
 
