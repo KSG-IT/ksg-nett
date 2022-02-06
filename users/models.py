@@ -11,7 +11,7 @@ from model_utils.models import TimeStampedModel
 
 from common.util import get_semester_year_shorthand
 from users.managers import UsersHaveMadeOutManager
-from organization.consts import InternalGroupPositionType
+from organization.consts import InternalGroupPositionMembershipType
 
 
 class Allergy(models.Model):
@@ -75,11 +75,11 @@ class User(AbstractUser):
     @property
     def active(self):
         return self.ksg_status in [
-            InternalGroupPositionType.ACTIVE_FUNCTIONARY_PANG.value,
-            InternalGroupPositionType.ACTIVE_GANG_MEMBER_PANG.value,
-            InternalGroupPositionType.FUNCTIONARY.value,
-            InternalGroupPositionType.GANG_MEMBER.value,
-            InternalGroupPositionType.HANGAROUND.value,
+            InternalGroupPositionMembershipType.ACTIVE_FUNCTIONARY_PANG.value,
+            InternalGroupPositionMembershipType.ACTIVE_GANG_MEMBER_PANG.value,
+            InternalGroupPositionMembershipType.FUNCTIONARY.value,
+            InternalGroupPositionMembershipType.GANG_MEMBER.value,
+            InternalGroupPositionMembershipType.HANGAROUND.value,
         ]
 
     def get_start_ksg_display(self) -> str:
