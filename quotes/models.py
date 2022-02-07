@@ -4,6 +4,8 @@ from model_utils.managers import QueryManager
 from quotes.managers import QuoteDefaultQuerySet
 from common.models import TimestampedModel
 from users.models import User
+from django.db.models.functions import Coalesce
+from django.utils import timezone
 
 
 class Quote(TimestampedModel):
@@ -28,15 +30,47 @@ class Quote(TimestampedModel):
     )
     context = models.CharField(max_length=200, null=True, blank=True)
 
-    # Managers
-    objects = models.Manager()
-    pending_objects = QueryManager(verified_by__isnull=True)
-    verified_objects = QueryManager(verified_by__isnull=False)
-    highscore_objects = QuoteDefaultQuerySet.as_manager()
-
     @classmethod
     def get_pending_quotes(cls):
-        return cls.objects.filter(verified_by__isnull=True)
+        return cls.objects.filter(verified_by__isnull=True).order_by("-created_at")
+
+    @classmethod
+    def get_approved_quotes(cls):
+        return cls.objects.filter(verified_by__isnull=False).order_by("-created_at")
+
+    @classmethod
+    def get_popular_quotes_in_current_semester(cls):
+        # TODO TESTS
+        now = timezone.datetime.now()
+        current_month = now.month
+        if current_month < 7:
+            semester_start = timezone.datetime(year=now.year, month=1, day=1)
+        else:
+            semester_start = timezone.datetime(year=now.year, month=7, day=1)
+        popular_quotes = (
+            cls.objects.filter(
+                verified_by__isnull=False, created_at__gte=semester_start
+            )
+            .annotate(total_votes=Coalesce(Sum("votes__value"), 0))
+            .order_by("-total_votes")[:10]
+        )
+        return popular_quotes
+
+    @classmethod
+    def get_current_semester_shorthand(cls):
+        short_year_format = str(timezone.datetime.now().year)[2:]
+        semester_prefix = "H" if timezone.datetime.now().month > 7 else "V"
+        return f"{semester_prefix}{short_year_format}"
+
+    @classmethod
+    def get_popular_quotes_all_time(cls):
+        # TODO TESTS
+        popular_quotes = (
+            cls.objects.filter(verified_by__isnull=False)
+            .annotate(total_votes=Coalesce(Sum("votes__value"), 0))
+            .order_by("-total_votes")[:10]
+        )
+        return popular_quotes
 
     def get_semester_of_quote(self) -> str:
         """
@@ -88,7 +122,9 @@ class QuoteVote(models.Model):
     # allows for future flexibility such as allowing for extra-value thumbs-up etc.
     # We can also get the total tally now by aggregating the sum of this column.
     value = models.SmallIntegerField()
-    caster = models.ForeignKey(User, on_delete=models.CASCADE)
+    caster = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="quote_votes"
+    )
 
     class Meta:
         verbose_name_plural = "quote votes"

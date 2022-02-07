@@ -10,6 +10,7 @@ from graphene_django_cud.mutations import (
 from graphene_django import DjangoConnectionField
 from quotes.models import Quote, QuoteVote
 from quotes.filters import QuoteFilter
+from graphql_relay import from_global_id
 
 
 class QuoteNode(DjangoObjectType):
@@ -49,20 +50,33 @@ class QuoteQuery(graphene.ObjectType):
     approved_quotes = DjangoFilterConnectionField(
         QuoteNode, filterset_class=QuoteFilter
     )
+    popular_quotes_all_time = graphene.List(QuoteNode)
+    popular_quotes_current_semester = graphene.List(QuoteNode)
+    current_semester_shorthand = graphene.String()
+
+    def resolve_current_semester_shorthand(self, info, *args, **kwargs):
+        return Quote.get_current_semester_shorthand()
+
+    def resolve_popular_quotes_current_semester(self, info, *args, **kwargs):
+        return Quote.get_popular_quotes_in_current_semester()
+
+    def resolve_popular_quotes_all_time(self, info, *args, **kwargs):
+        return Quote.get_popular_quotes_all_time()
 
     def resolve_all_quotes(self, info, *args, **kwargs):
         return Quote.objects.all().order_by("created_at")
 
     def resolve_pending_quotes(self, info, *args, **kwargs):
-        return Quote.objects.filter(verified_by__isnull=True).order_by("created_at")
+        return Quote.get_pending_quotes()
 
     def resolve_approved_quotes(self, info, *args, **kwargs):
-        return Quote.objects.filter(verified_by__isnull=False).order_by("created_at")
+        return Quote.get_approved_quotes()
 
 
 class CreateQuoteMutation(DjangoCreateMutation):
     class Meta:
         model = Quote
+        auto_context_fields = {"reported_by": "user"}
 
 
 class PatchQuoteMutation(DjangoPatchMutation):
@@ -78,6 +92,7 @@ class DeleteQuoteMutation(DjangoDeleteMutation):
 class CreateQuoteVoteMutation(DjangoCreateMutation):
     class Meta:
         model = QuoteVote
+        auto_context_fields = {"caster": "user"}
 
 
 class PatchQuoteVote(DjangoPatchMutation):
@@ -90,6 +105,35 @@ class DeleteQuoteVote(DjangoDeleteMutation):
         model = QuoteVote
 
 
+class DeleteUserQuoteVote(graphene.Mutation):
+    """
+    Since a QuoteVote has a unique constraint for 'caster' and 'quote' there can only exist
+    one quote vote object with the same caster and quote. Given this, a delete mutation with
+    quote_id + the user sending the request should give us a single quote vote object. The main
+    motivation behind this approach is that we do not need to query every unique quote vote object
+    for every quote in order to delete a vote from a user.
+    """
+
+    class Arguments:
+        quote_id = graphene.ID(required=True)
+
+    found = graphene.Boolean()
+    quote_sum = graphene.Int()
+
+    def mutate(self, info, quote_id):
+        _, django_quote_id = from_global_id(quote_id)
+        try:
+            quote = Quote.objects.get(pk=django_quote_id)
+            quote_vote = quote.votes.get(caster=info.context.user)
+            quote_vote.delete()
+            quote.refresh_from_db()
+            return DeleteUserQuoteVote(found=True, quote_sum=quote.sum)
+        except Quote.DoesNotExist:
+            return None
+        except QuoteVote.DoesNotExist:
+            return None
+
+
 class QuotesMutations(graphene.ObjectType):
     create_quote = CreateQuoteMutation.Field()
     patch_quote = PatchQuoteMutation.Field()
@@ -98,3 +142,5 @@ class QuotesMutations(graphene.ObjectType):
     create_quote_vote = CreateQuoteVoteMutation.Field()
     patch_quote_vote = PatchQuoteMutation.Field()
     delete_quote_vote = DeleteQuoteMutation.Field()
+
+    delete_user_quote_vote = DeleteUserQuoteVote.Field()

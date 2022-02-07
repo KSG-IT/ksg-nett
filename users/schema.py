@@ -15,6 +15,7 @@ from django.db.models.functions import Concat
 from economy.utils import parse_transaction_history
 from economy.schema import BankAccountActivity
 from users.filters import UserFilter
+from graphql_relay import to_global_id
 
 
 class UserNode(DjangoObjectType):
@@ -34,6 +35,13 @@ class UserNode(DjangoObjectType):
         graphene.List(graphene.NonNull(BankAccountActivity))
     )
     all_permissions = graphene.NonNull(graphene.List(graphene.String))
+    upvoted_quote_ids = graphene.NonNull(graphene.List(graphene.ID))
+
+    def resolve_upvoted_quote_ids(self: User, info, **kwargs):
+        return [
+            to_global_id("QuoteNode", quote_vote.quote.id)
+            for quote_vote in self.quote_votes.all()
+        ]
 
     def resolve_full_name(self: User, info, **kwargs):
         if not self.get_full_name():
