@@ -9,7 +9,11 @@ from graphene_django_cud.mutations import (
 )
 from django.db.models import Q
 from graphene_django.filter import DjangoFilterConnectionField
-from admissions.utils import generate_interviews_from_schedule, resend_auth_token_email
+from admissions.utils import (
+    generate_interviews_from_schedule,
+    resend_auth_token_email,
+    obfuscate_admission,
+)
 from admissions.models import (
     Applicant,
     Admission,
@@ -198,6 +202,21 @@ class GenerateInterviewScheduleMutation(graphene.Mutation):
         return GenerateInterviewScheduleMutation(ok=True, interviews_generated=num)
 
 
+class ObfuscateAdmissionMutation(graphene.Mutation):
+    class Arguments:
+        pass
+
+    ok = graphene.Boolean()
+
+    def mutate(self, info, *args, **kwargs):
+        admission = Admission.get_active_admission()
+        if not admission:
+            return ObfuscateAdmissionMutation(ok=False)
+
+        obfuscate_admission(admission)
+        return ObfuscateAdmissionMutation(ok=True)
+
+
 class AdmissionsMutations(graphene.ObjectType):
     create_applicant = CreateApplicantMutation.Field()
     patch_applicant = PatchApplicantMutation.Field()
@@ -211,3 +230,4 @@ class AdmissionsMutations(graphene.ObjectType):
 
     re_send_application_token = ResendApplicantTokenMutation.Field()
     generate_interviews_from_schedule = GenerateInterviewScheduleMutation.Field()
+    obfuscate_admission = ObfuscateAdmissionMutation.Field()

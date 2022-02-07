@@ -62,6 +62,10 @@ class Admission(models.Model):
 
         return active_admission.first()
 
+    @classmethod
+    def get_active_admission(cls):
+        return cls.objects.filter(~Q(status="closed")).first()
+
     def __str__(self):
         return f"Admission for {self.semester}"
 
