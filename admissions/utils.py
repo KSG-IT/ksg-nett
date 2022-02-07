@@ -126,6 +126,42 @@ def send_welcome_to_interview_email(email: str, auth_token: str):
     )
 
 
+def resend_auth_token_email(applicant):
+    content = (
+        _(
+            """
+        Hei og velkommen til KSG sin søkerportal! 
+
+        Trykk på denne linken for å registrere søknaden videre, eller se intervjutiden din.
+
+        Lenke: %(link)s
+        """
+        )
+        % {"link": f"{settings.APP_URL}/applicant-portal/{applicant.token}"}
+    )
+
+    html_content = (
+        _(
+            """
+        Hei og velkommen til KSG sin søkerportal! 
+        <br />
+        Trykk på denne linken for å registrere søknaden videre, eller se intervjutiden din.
+        <br />
+        <a href="%(link)s">Registrer søknad</a><br />
+        <br />
+        """
+        )
+        % {"link": f"{settings.APP_URL}/applicant-portal/{applicant.token}"}
+    )
+
+    return send_email(
+        _("KSG søkerportal"),
+        message=content,
+        html_message=html_content,
+        recipients=[applicant.email],
+    )
+
+
 def read_admission_csv(file):
     """
     This handler could be subjects to change depending on how MG-web changes the portal. Currently the column headers

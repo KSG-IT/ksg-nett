@@ -202,7 +202,6 @@ class Applicant(models.Model):
     admission = models.ForeignKey(
         Admission, on_delete=models.CASCADE, related_name="applicants"
     )
-    # should add some type of auth-token we can send with the email?
     first_name = models.CharField(null=True, max_length=100)
     last_name = models.CharField(null=True, max_length=100)
 

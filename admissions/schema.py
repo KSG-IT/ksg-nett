@@ -7,26 +7,18 @@ from graphene_django_cud.mutations import (
     DjangoDeleteMutation,
     DjangoCreateMutation,
 )
-from django.conf import settings
-from django.utils.translation import ugettext_lazy as _
+from django.db.models import Q
 from graphene_django.filter import DjangoFilterConnectionField
-from common.util import send_email
-from admissions.utils import generate_interviews_from_schedule
+from admissions.utils import generate_interviews_from_schedule, resend_auth_token_email
 from admissions.models import (
     Applicant,
     Admission,
     AdmissionAvailableInternalGroupPositionData,
-    InterviewAdditionalEvaluationStatement,
     InternalGroupPositionPriority,
-    InterviewBooleanEvaluationAnswer,
-    InterviewAdditionalEvaluationAnswer,
     Interview,
-    InterviewBooleanEvaluation,
     InterviewScheduleTemplate,
-    ApplicantUnavailability,
 )
 from admissions.filters import AdmissionFilter, ApplicantFilter
-from organization.models import InternalGroup
 
 
 class InternalGroupPositionPriorityNode(DjangoObjectType):
@@ -41,19 +33,6 @@ class ApplicantNode(DjangoObjectType):
         interfaces = (Node,)
 
     full_name = graphene.String(source="get_full_name")
-
-    first_choice = graphene.Field(InternalGroupPositionPriorityNode)
-    second_choice = graphene.Field(InternalGroupPositionPriorityNode)
-    third_choice = graphene.Field(InternalGroupPositionPriorityNode)
-
-    def resolve_first_choice(self: Applicant, info, *args, **kwargs):
-        return self.objects.filter(priority="first").first()
-
-    def resolve_second_choice(self: Applicant, info, *args, **kwargs):
-        return self.objects.filter(priority="second").first()
-
-    def resolve_third_choice(self: Applicant, info, *args, **kwargs):
-        return self.objects.filter(priority="third").first()
 
     @classmethod
     def get_node(cls, info, id):
@@ -118,38 +97,9 @@ class ResendApplicantTokenMutation(graphene.Mutation):
     def mutate(self, info, email, *args, **kwargs):
         applicant = Applicant.objects.filter(email=email).first()
         if applicant:
-            content = _(
-                """
-                Hei og velkommen til KSG sin søkerportal! 
-
-                Trykk på denne linken for å registrere søknaden videre, eller se intervjutiden din.
-
-                Lenke: %(link)s
-                """
-            ) % {
-                "link": f"{settings.APP_URL}/applicant-portal/{applicant.token}",
-            }
-
-            html_content = _(
-                """
-                Hei og velkommen til KSG sin søkerportal! 
-                <br />
-                Trykk på denne linken for å registrere søknaden videre, eller se intervjutiden din.
-                <br />
-                <a href="%(link)s">Registrer søknad</a><br />
-                <br />
-                """
-            ) % {
-                "link": f"{settings.APP_URL}/applicant-portal/{applicant.token}",
-            }
-
-            return send_email(
-                _("KSG søkerportal"),
-                message=content,
-                html_message=html_content,
-                recipients=[applicant.email],
-            )
-        return ResendApplicantTokenMutation(ok=True)
+            ok = resend_auth_token_email(applicant)
+            return ResendApplicantTokenMutation(ok=ok)
+        return ResendApplicantTokenMutation(ok=False)
 
 
 class ApplicationData(graphene.ObjectType):
@@ -187,7 +137,7 @@ class AdmissionQuery(graphene.ObjectType):
     active_admission = graphene.Field(AdmissionNode)
 
     def resolve_active_admission(self, info, *args, **kwargs):
-        admission = Admission.objects.filter(status="open")
+        admission = Admission.objects.filter(~Q(status="closed"))
         if len(admission) > 1:
             raise Admission.MultipleObjectsReturned
 
