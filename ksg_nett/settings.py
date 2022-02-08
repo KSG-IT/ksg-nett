@@ -198,6 +198,8 @@ HOST_URL = "http://localhost:8000"
 MEDIA_ROOT = "media/"
 MEDIA_URL = "/media/"
 
+APP_URL = "http://localhost:3012"
+
 # localhost crashes url test in users l:65
 # MEDIA_URL = "http://localhost:8000/media/"
 MAX_MEDIA_SIZE = 128 * (1024 ** 2)

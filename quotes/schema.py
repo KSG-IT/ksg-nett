@@ -82,6 +82,7 @@ class CreateQuoteMutation(DjangoCreateMutation):
 class PatchQuoteMutation(DjangoPatchMutation):
     class Meta:
         model = Quote
+        auto_context_fields = {"verified_by": "user"}
 
 
 class DeleteQuoteMutation(DjangoDeleteMutation):
