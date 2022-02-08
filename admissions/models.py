@@ -76,7 +76,7 @@ class InterviewBooleanEvaluation(models.Model):
     "Could the applicant be good for night shifts?"
     """
 
-    statement = models.CharField(max_length=64, null=False, blank=False)
+    statement = models.CharField(max_length=64, null=False, blank=False, unique=True)
 
     def __str__(self):
         return self.statement
@@ -94,7 +94,7 @@ class InterviewBooleanEvaluationAnswer(models.Model):
 
 
 class InterviewAdditionalEvaluationStatement(models.Model):
-    statement = models.CharField(max_length=64)
+    statement = models.CharField(max_length=64, unique=True)
 
     def __str__(self):
         return self.statement
