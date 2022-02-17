@@ -13,7 +13,7 @@ from django.utils.translation import ugettext_lazy as _
 from secrets import token_urlsafe
 from os.path import join as osjoin
 from admissions.utils import send_welcome_to_interview_email
-from django.db.utils import DatabaseError
+import datetime
 
 
 class AdmissionAvailableInternalGroupPositionData(models.Model):
@@ -302,8 +302,17 @@ class ApplicantUnavailability(models.Model):
 class InterviewScheduleTemplate(models.Model):
     """Default template for generating interviews"""
 
-    interview_period_start = models.DateTimeField(null=False)
-    interview_period_end = models.DateTimeField(null=False)
+    interview_period_start_date = models.DateField(null=False)
+    interview_period_end_date = models.DateField(null=False)
+
+    # The time of the first interview for each day in the interview period
+    default_interview_day_start = models.TimeField(
+        default=datetime.time(hour=12, minute=0)
+    )
+    # The time for the last interview for each day in the interview period
+    default_interview_day_end = models.TimeField(
+        default=datetime.time(hour=18, minute=0)
+    )
     default_interview_duration = models.DurationField(
         default=timezone.timedelta(minutes=30)
     )

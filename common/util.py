@@ -230,3 +230,15 @@ def send_email(
             email.attach_file(attachments)
 
     return email.send(fail_silently=fail_silently)
+
+
+def date_time_combiner(date: datetime.date, time: datetime.time):
+    return timezone.datetime(
+        year=date.year,
+        month=date.month,
+        day=date.day,
+        hour=time.hour,
+        minute=time.minute,
+        second=time.second,
+        tzinfo=timezone.timezone(timezone.timedelta()),
+    )

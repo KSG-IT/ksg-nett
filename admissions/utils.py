@@ -35,12 +35,33 @@ def get_available_interview_locations(datetime_from=None, datetime_to=None):
 def generate_interviews_from_schedule(schedule):
     interview_duration = schedule.default_interview_duration
     default_pause_duration = schedule.default_pause_duration
-    datetime_cursor = schedule.interview_period_start
+    default_interview_day_start = schedule.default_interview_day_start
+    default_interview_day_end = schedule.default_interview_day_end
+    interview_period_start_date = schedule.interview_period_start_date
+
+    datetime_cursor = timezone.datetime(
+        year=interview_period_start_date.year,
+        month=interview_period_start_date.month,
+        day=interview_period_start_date.day,
+        hour=default_interview_day_start.hour,
+        minute=default_interview_day_start.minute,
+        tzinfo=timezone.timezone(timezone.timedelta()),
+    )
+    datetime_interview_period_end = timezone.datetime(
+        year=schedule.interview_period_end_date.year,
+        month=schedule.interview_period_end_date.month,
+        day=schedule.interview_period_end_date.day,
+        hour=schedule.default_interview_day_end.hour,
+        minute=schedule.default_interview_day_end.minute,
+        tzinfo=timezone.timezone(timezone.timedelta()),
+    )
+    print(f"{datetime_cursor=}")
+    print(f"{datetime_interview_period_end=}")
 
     # Lazy load model due to circular import errors
     Interview = apps.get_model(app_label="admissions", model_name="Interview")
 
-    while datetime_cursor < schedule.interview_period_end:
+    while datetime_cursor < datetime_interview_period_end:
         # Generate interviews for the first session of the day
         for i in range(schedule.default_block_size):
             available_locations = get_available_interview_locations(
@@ -82,8 +103,8 @@ def generate_interviews_from_schedule(schedule):
             year=datetime_cursor.year,
             month=datetime_cursor.month,
             day=datetime_cursor.day,
-            hour=schedule.interview_period_start.hour,
-            minute=schedule.interview_period_start.minute,
+            hour=default_interview_day_start.hour,
+            minute=default_interview_day_start.minute,
             second=0,
             tzinfo=timezone.timezone(timezone.timedelta()),
         )
