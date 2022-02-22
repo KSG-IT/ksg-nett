@@ -34,33 +34,24 @@ class CommissionMembershipInline(admin.TabularInline):
 class InternalGroupAdmin(admin.ModelAdmin):
     list_display = (
         "name",
-        "type",
         "active_members_count",
     )
-    inlines = (
-        InternalGroupPositionsInline,
-    )
+    inlines = (InternalGroupPositionsInline,)
 
 
 class InternalGroupPositionAdmin(admin.ModelAdmin):
     list_display = (
         "name",
+        "internal_group",
         "active_memberships_count",
     )
-    inlines = (
-        InternalGroupPositionMembershipInline,
-    )
+    inlines = (InternalGroupPositionMembershipInline,)
 
 
 class CommissionAdmin(admin.ModelAdmin):
-    list_display = (
-        "name",
-        "active_holders_count"
-    )
+    list_display = ("name", "active_holders_count")
 
-    inlines = (
-        CommissionMembershipInline,
-    )
+    inlines = (CommissionMembershipInline,)
 
 
 admin.site.register(InternalGroup, InternalGroupAdmin)

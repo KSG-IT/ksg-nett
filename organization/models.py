@@ -4,8 +4,9 @@ from typing import Optional
 
 from django.db import models
 from django.utils import timezone
-from organization.consts import InternalGroupPositionType
+from organization.consts import InternalGroupPositionMembershipType
 from django.utils.translation import ugettext_lazy as _
+from common.util import get_semester_year_shorthand
 
 
 class InternalGroup(models.Model):
@@ -69,6 +70,12 @@ class InternalGroupPositionMembership(models.Model):
 
     date_joined = models.DateField(default=timezone.now, null=False, blank=False)
     date_ended = models.DateField(default=None, null=True, blank=True)
+    type = models.CharField(  # move type from here to the membership objects
+        max_length=32,
+        choices=InternalGroupPositionMembershipType.choices,
+        null=False,
+        blank=False,
+    )
 
     user = models.ForeignKey(
         "users.User",
@@ -81,6 +88,13 @@ class InternalGroupPositionMembership(models.Model):
         on_delete=models.CASCADE,
     )
 
+    def __str__(self):
+        return (
+            f"{self.user}: {self.position.name} {self.type} from "
+            f"{get_semester_year_shorthand(self.date_joined)} to "
+            f"{get_semester_year_shorthand(self.date_ended)}"
+        )
+
 
 class InternalGroupPosition(models.Model):
     """
@@ -88,7 +102,7 @@ class InternalGroupPosition(models.Model):
     """
 
     class Meta:
-        unique_together = ("name", "internal_group", "type")
+        unique_together = ("name", "internal_group")
 
     name = models.CharField(max_length=32)
     internal_group = models.ForeignKey(
@@ -99,12 +113,6 @@ class InternalGroupPosition(models.Model):
         related_name="positions",
     )
     description = models.CharField(max_length=1024, blank=True, null=True)
-    type = models.CharField(
-        max_length=32,
-        choices=InternalGroupPositionType.choices,
-        null=False,
-        blank=False,
-    )
     holders = models.ManyToManyField(
         "users.User",
         related_name="positions",
@@ -120,7 +128,7 @@ class InternalGroupPosition(models.Model):
         return self.active_memberships.count()
 
     def __str__(self):
-        return f"{self.name} {self.get_type_display().lower()}"  # https://docs.djangoproject.com/en/3.1/ref/models/instances/#django.db.models.Model.get_FOO_display
+        return f"{self.internal_group.name}: {self.name}"
 
 
 class Commission(models.Model):

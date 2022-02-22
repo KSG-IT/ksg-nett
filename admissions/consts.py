@@ -8,14 +8,30 @@ class Priority(models.TextChoices):
 
 
 class AdmissionStatus(models.TextChoices):
+    INITIALIZATION = ("initialization", "Initialization")
     OPEN = ("open", "Open")
-    IN_SESSION = ("in-session", "In session")
+    IN_SESSION = ("in-session", "In session")  # Fordelingsmøtet
+    FINALIZATION = (
+        "finalization",
+        "Finalization",
+    )  # Reviewing last step before admitting everyone
     CLOSED = ("closed", "Closed")
 
 
 class ApplicantStatus(models.TextChoices):
-    ACTIVE = ("active", "Active")
-    RETRACTED = ("retracted", "Retracted")
+    # This probably has to be revisited
+    EMAIL_SENT = ("email-sent", "Email sent")
+    HAS_REGISTERED_PROFILE = ("has-registered-profile", "Has registered profile")
+    SCHEDULED_INTERVIEW = ("scheduled-interview", "Scheduled interview")
+    INTERVIEW_FINISHED = ("interview-finished", "Interview finished")
+    DID_NOT_SHOW_UP_FOR_INTERVIEW = (
+        "did-not-show-up-for-interview",
+        "Did not show up for interview",
+    )
+    TO_BE_CALLED = ("to-be-called", "To be called")
+    ACCEPTED = ("accepted", "Accepted")
+    REJECTED = ("rejected", "Rejected")
+    RETRACTED_APPLICATION = ("retracted-application", "Retracted application")
 
 
 class InternalGroupStatus(models.TextChoices):

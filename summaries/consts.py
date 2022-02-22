@@ -7,6 +7,7 @@ class SummaryType(models.TextChoices):
     KAFE_ANSVARLIG = ("kafeansvarlig", "Kafeansvarlig")
     HOVMESTER = ("hovmester", "Hovmester")
     BARSJEF = ("barsjef", "Barsjef")
+    SPRITBARSJEF = ("spritbarsjef", "Spritbarsjef")
     SOUSCHEF = ("souschef", "Souschef")
     ARRANGEMENT = ("arrangement", "Arrangement")
     OKONOMI = ("okonomi", "Økonomi")
