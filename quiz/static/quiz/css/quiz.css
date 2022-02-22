@@ -12,7 +12,7 @@
     flex-flow: row wrap;
     gap: 1em;
     justify-content: space-between;
-    mx-width:50%;
+    max-width:50%;
 }
 
 .highscore-page {

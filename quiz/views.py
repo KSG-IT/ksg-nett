@@ -85,7 +85,5 @@ def quiz_high(request):
     context = {
         "score": score_list,
         "guess_rate": correctly_clicked
-        # "score_points": score_points,
-        # "score_time": score_time,
     }
     return render(request, "quiz/quiz_high.html", context=context)
