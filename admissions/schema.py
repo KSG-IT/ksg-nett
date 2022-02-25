@@ -7,7 +7,6 @@ from graphene_django_cud.mutations import (
     DjangoPatchMutation,
     DjangoDeleteMutation,
     DjangoCreateMutation,
-    DjangoBatchPatchMutation,
 )
 from common.util import date_time_combiner
 from django.db.models import Q
@@ -262,9 +261,8 @@ class AdmissionQuery(graphene.ObjectType):
     def resolve_currently_admission_internal_group_position_data(
         self, info, *args, **kwargs
     ):
-        return (
-            Admission.get_active_admission().available_internal_group_positions_data.all()
-        )
+        admission = Admission.get_active_admission()
+        return admission.available_internal_group_positions_data.all()
 
     def resolve_interview_schedule_template(self, info, *args, **kwargs):
         return InterviewScheduleTemplate.get_interview_schedule_template()
@@ -304,13 +302,13 @@ class InterviewDay(graphene.ObjectType):
 
 
 class InterviewOverviewQuery(graphene.ObjectType):
+    # We use this to orderly structure the interview overview for each day in the interview period
     interview_day_groupings = graphene.List(InterviewDay)
     interview_schedule_template = graphene.Field(InterviewScheduleTemplateNode)
     interview_count = graphene.Int()
     admission_id = graphene.ID()
 
 
-# TODO ADD SOME KIND OF ORERING FIELDS TO THIS
 class InterviewBooleanEvaluationStatementNode(DjangoObjectType):
     class Meta:
         model = InterviewBooleanEvaluation
@@ -402,6 +400,7 @@ class InterviewLocationQuery(graphene.ObjectType):
         return InterviewLocation.objects.all().order_by("name")
 
 
+# === Applicant ===
 class CreateApplicantMutation(DjangoCreateMutation):
     class Meta:
         model = Applicant
@@ -417,6 +416,7 @@ class DeleteApplicantMutation(DjangoDeleteMutation):
         model = Applicant
 
 
+# === Admission ===
 class CreateAdmissionMutation(DjangoCreateMutation):
     class Meta:
         model = Admission
@@ -430,24 +430,6 @@ class PatchAdmissionMutation(DjangoPatchMutation):
 class DeleteAdmissionMutation(DjangoDeleteMutation):
     class Meta:
         model = Admission
-
-
-class GenerateInterviewsMutation(graphene.Mutation):
-    class Arguments:
-        pass
-
-    ok = graphene.Boolean()
-    interviews_generated = graphene.Int()
-
-    def mutate(self, info, *args, **kwargs):
-        # retrieve the schedule template
-        schedule = (
-            InterviewScheduleTemplate.objects.all().first()
-        )  # should handle this a bit better probably
-        generate_interviews_from_schedule(schedule)
-        num = Interview.objects.all().count()
-
-        return GenerateInterviewsMutation(ok=True, interviews_generated=num)
 
 
 class ObfuscateAdmissionMutation(graphene.Mutation):
@@ -465,11 +447,36 @@ class ObfuscateAdmissionMutation(graphene.Mutation):
         return ObfuscateAdmissionMutation(ok=True)
 
 
-class CreateInterviewLocationAvailability(DjangoCreateMutation):
-    class Meta:
-        model = InterviewLocationAvailability
+# === Interview ===
+class GenerateInterviewsMutation(graphene.Mutation):
+    ok = graphene.Boolean()
+    interviews_generated = graphene.Int()
+
+    def mutate(self, info, *args, **kwargs):
+        # retrieve the schedule template
+        schedule = (
+            InterviewScheduleTemplate.objects.all().first()
+        )  # should handle this a bit better probably
+        generate_interviews_from_schedule(schedule)
+        num = Interview.objects.all().count()
+
+        return GenerateInterviewsMutation(ok=True, interviews_generated=num)
 
 
+class DeleteAllInterviewsMutation(graphene.Mutation):
+    count = graphene.Int()
+
+    def mutate(self, info, *args, **kwargs):
+        admission = Admission.get_active_admission()
+        if admission.status == AdmissionStatus.OPEN.value:
+            raise SuspiciousOperation("Admission is open, cannot delete")
+        interviews = Interview.objects.all().all()
+        count = interviews.count()
+        interviews.delete()
+        return DeleteAllInterviewsMutation(count=count)
+
+
+# === InterviewLocation ===
 class CreateInterviewLocationMutation(DjangoCreateMutation):
     class Meta:
         model = InterviewLocation
@@ -481,16 +488,24 @@ class DeleteInterviewLocationMutation(DjangoDeleteMutation):
         exclude_fields = ("order",)
 
 
+# === InterviewLocationAvailability ===
+class CreateInterviewLocationAvailability(DjangoCreateMutation):
+    class Meta:
+        model = InterviewLocationAvailability
+
+
 class DeleteInterviewLocationAvailabilityMutation(DjangoDeleteMutation):
     class Meta:
         model = InterviewLocationAvailability
 
 
+# === InterviewScheduleTemplate ===
 class PatchInterviewScheduleTemplateMutation(DjangoPatchMutation):
     class Meta:
         model = InterviewScheduleTemplate
 
 
+# === InterviewBooleanEvaluation ===
 class CreateInterviewBooleanEvaluationMutation(DjangoCreateMutation):
     class Meta:
         model = InterviewBooleanEvaluation
@@ -516,6 +531,7 @@ class DeleteInterviewBooleanEvaluationMutation(DjangoDeleteMutation):
         model = InterviewBooleanEvaluation
 
 
+# === InterviewAdditionalEvaluationStatement ===
 class CreateInterviewAdditionalEvaluationStatementMutation(DjangoCreateMutation):
     class Meta:
         model = InterviewAdditionalEvaluationStatement
@@ -532,24 +548,7 @@ class DeleteInterviewAdditionalEvaluationStatementMutation(DjangoDeleteMutation)
         model = InterviewAdditionalEvaluationStatement
 
 
-class DeleteAllInterviewsMutation(graphene.Mutation):
-    count = graphene.Int()
-
-    def mutate(self, info, *args, **kwargs):
-        admission = Admission.get_active_admission()
-        if admission.status == AdmissionStatus.OPEN.value:
-            raise SuspiciousOperation("Admission is open, cannot delete")
-        interviews = Interview.objects.all().all()
-        count = interviews.count()
-        interviews.delete()
-        return DeleteAllInterviewsMutation(count=count)
-
-
-class PatchAdmissionAvailableInternalGroupPositionData(DjangoPatchMutation):
-    class Meta:
-        model = AdmissionAvailableInternalGroupPositionData
-
-
+# === AdmissionAvailableInternalGroupPositionData ===
 class CreateAdmissionAvailableInternalGroupPositionData(DjangoCreateMutation):
     class Meta:
         model = AdmissionAvailableInternalGroupPositionData
@@ -560,6 +559,11 @@ class CreateAdmissionAvailableInternalGroupPositionData(DjangoCreateMutation):
         admission_id = Admission.get_active_admission().id
         input["admission"] = admission_id
         return input
+
+
+class PatchAdmissionAvailableInternalGroupPositionData(DjangoPatchMutation):
+    class Meta:
+        model = AdmissionAvailableInternalGroupPositionData
 
 
 class DeleteAdmissionAvailableInternalGroupPositionData(DjangoDeleteMutation):
