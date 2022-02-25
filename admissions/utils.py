@@ -5,6 +5,7 @@ from django.utils.translation import ugettext_lazy as _
 from django.conf import settings
 from django.apps import apps
 import csv
+from common.util import date_time_combiner
 
 
 def get_available_interview_locations(datetime_from=None, datetime_to=None):
@@ -39,43 +40,34 @@ def generate_interviews_from_schedule(schedule):
     default_interview_day_end = schedule.default_interview_day_end
     interview_period_start_date = schedule.interview_period_start_date
 
-    datetime_cursor = timezone.datetime(
-        year=interview_period_start_date.year,
-        month=interview_period_start_date.month,
-        day=interview_period_start_date.day,
-        hour=default_interview_day_start.hour,
-        minute=default_interview_day_start.minute,
-        tzinfo=timezone.timezone(timezone.timedelta()),
+    datetime_cursor = date_time_combiner(
+        interview_period_start_date, default_interview_day_start
     )
-    datetime_interview_period_end = timezone.datetime(
-        year=schedule.interview_period_end_date.year,
-        month=schedule.interview_period_end_date.month,
-        day=schedule.interview_period_end_date.day,
-        hour=schedule.default_interview_day_end.hour,
-        minute=schedule.default_interview_day_end.minute,
-        tzinfo=timezone.timezone(timezone.timedelta()),
+    datetime_interview_period_end = date_time_combiner(
+        schedule.interview_period_end_date, default_interview_day_end
     )
-    print(f"{datetime_cursor=}")
-    print(f"{datetime_interview_period_end=}")
 
     # Lazy load model due to circular import errors
     Interview = apps.get_model(app_label="admissions", model_name="Interview")
 
     while datetime_cursor < datetime_interview_period_end:
+        print(f"{datetime_cursor}")
         # Generate interviews for the first session of the day
         for i in range(schedule.default_block_size):
             available_locations = get_available_interview_locations(
                 datetime_from=datetime_cursor,
                 datetime_to=datetime_cursor + interview_duration,
             )
+            print(f"{available_locations.count()} locations are available")
             for location in available_locations:
-                with transaction.atomic():
-                    Interview.objects.create(
-                        location=location,
-                        interview_start=datetime_cursor,
-                        interview_end=datetime_cursor + interview_duration,
-                    )
-
+                print(
+                    f"Looking at {location} from {datetime_cursor} to {datetime_cursor + interview_duration}"
+                )
+                Interview.objects.create(
+                    location=location,
+                    interview_start=datetime_cursor,
+                    interview_end=datetime_cursor + interview_duration,
+                )
             datetime_cursor += interview_duration
 
         # First session is over. We give the interviewers a break
@@ -99,14 +91,15 @@ def generate_interviews_from_schedule(schedule):
 
         # Interviews for the day is over. Update cursor.
         datetime_cursor += timezone.timedelta(days=1)
-        datetime_cursor = timezone.datetime(
-            year=datetime_cursor.year,
-            month=datetime_cursor.month,
-            day=datetime_cursor.day,
-            hour=default_interview_day_start.hour,
-            minute=default_interview_day_start.minute,
-            second=0,
-            tzinfo=timezone.timezone(timezone.timedelta()),
+        datetime_cursor = timezone.make_aware(
+            timezone.datetime(
+                year=datetime_cursor.year,
+                month=datetime_cursor.month,
+                day=datetime_cursor.day,
+                hour=default_interview_day_start.hour,
+                minute=default_interview_day_start.minute,
+                second=0,
+            )
         )
 
 

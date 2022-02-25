@@ -233,12 +233,13 @@ def send_email(
 
 
 def date_time_combiner(date: datetime.date, time: datetime.time):
-    return timezone.datetime(
-        year=date.year,
-        month=date.month,
-        day=date.day,
-        hour=time.hour,
-        minute=time.minute,
-        second=time.second,
-        tzinfo=timezone.timezone(timezone.timedelta()),
+    return timezone.make_aware(
+        timezone.datetime(
+            year=date.year,
+            month=date.month,
+            day=date.day,
+            hour=time.hour,
+            minute=time.minute,
+            second=time.second,
+        )
     )
