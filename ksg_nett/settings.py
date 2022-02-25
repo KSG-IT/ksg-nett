@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/1.10/ref/settings/
 
 import os
 from datetime import timedelta
+import warnings
 
 from corsheaders.defaults import default_headers
 
@@ -155,13 +156,20 @@ LOGIN_URL = "/"
 
 LANGUAGE_CODE = "en-us"
 
-TIME_ZONE = "UTC"
+TIME_ZONE = "Europe/Belgrade"
 
 USE_I18N = True
 
 USE_L10N = True
 
 USE_TZ = True
+
+warnings.filterwarnings(
+    "error",
+    r"DateTimeField .* received a naive datetime",
+    RuntimeWarning,
+    r"django\.db\.models\.fields",
+)
 
 # Override in production
 LOCALE_PATHS = [
@@ -187,7 +195,6 @@ REST_FRAMEWORK = {
 
 # Graphql
 GRAPHENE = {"SCHEMA": "ksg_nett.schema.schema"}
-
 
 # Media
 STATIC_URL = "/static/"
@@ -225,7 +232,6 @@ SIMPLE_JWT = {
 # This should be changed before production.
 SENSOR_API_TOKEN = "3@Zhg$nH^Dlhw23R"
 
-
 # API DOCS
 # ------------------------------
 SWAGGER_SETTINGS = {
@@ -250,14 +256,12 @@ CHANNEL_LAYERS = {
     }
 }
 
-
 # Redis
 REDIS = {
     "host": os.environ.get("REDIS_HOST", "localhost"),
     "port": os.environ.get("REDIS_PORT", 6379),
 }
 CHAT_STATE_REDIS_DB = 1
-
 
 # Load local and production settings
 try:

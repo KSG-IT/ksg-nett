@@ -2,6 +2,7 @@ from django.db import models
 from django.db.models import Q
 from common.util import get_semester_year_shorthand
 from django.utils import timezone
+from django.db.utils import IntegrityError
 from django.core.validators import MinValueValidator
 from admissions.consts import (
     Priority,
@@ -25,15 +26,19 @@ class AdmissionAvailableInternalGroupPositionData(models.Model):
     class Meta:
         unique_together = ("admission", "internal_group_position")
 
-    admission = models.ForeignKey("admissions.Admission", on_delete=models.CASCADE)
+    admission = models.ForeignKey(
+        "admissions.Admission",
+        on_delete=models.CASCADE,
+        related_name="available_internal_group_positions_data",
+    )
     internal_group_position = models.ForeignKey(
         "organization.InternalGroupPosition", on_delete=models.CASCADE
     )
-    available_positions = models.IntegerField(validators=[MinValueValidator(1)])
+    available_positions = models.IntegerField()
 
 
 class Admission(models.Model):
-    date = models.DateField(blank=True, null=True)
+    date = models.DateField(blank=True, null=True, auto_now=True)
     status = models.CharField(
         choices=AdmissionStatus.choices, default=AdmissionStatus.OPEN, max_length=32
     )
@@ -77,6 +82,7 @@ class InterviewBooleanEvaluation(models.Model):
     """
 
     statement = models.CharField(max_length=64, null=False, blank=False, unique=True)
+    order = models.IntegerField(unique=True)
 
     def __str__(self):
         return self.statement
@@ -94,7 +100,13 @@ class InterviewBooleanEvaluationAnswer(models.Model):
 
 
 class InterviewAdditionalEvaluationStatement(models.Model):
+    """
+    An interview question with a range of values stating how true this statment is for this person.
+    An example would be "Is this person energetic?"
+    """
+
     statement = models.CharField(max_length=64, unique=True)
+    order = models.IntegerField(unique=True)
 
     def __str__(self):
         return self.statement
@@ -183,7 +195,7 @@ class Interview(models.Model):
         An interview cannot overlap in the same location. Whe therefore make the following checks
         """
         try:
-            inter = Interview.objects.get(
+            Interview.objects.get(
                 # First we check if we are trying to start an interview during another one
                 (
                     Q(interview_end__gt=self.interview_start)
@@ -326,6 +338,20 @@ class InterviewScheduleTemplate(models.Model):
 
     def __str__(self):
         return f"Interview schedule template. Generates {self.default_block_size * 2} interviews per location per day"
+
+    @classmethod
+    def get_interview_schedule_template(cls):
+        return cls.objects.all().first()
+
+    def save(self, *args, **kwargs):
+        """
+        An interview cannot overlap in the same location. Whe therefore make the following checks
+        """
+        if InterviewScheduleTemplate.objects.all().count() > 0 and self._state.adding:
+            raise IntegrityError(
+                "Only one InterviewScheduleTemplate can exist at a time"
+            )
+        super(InterviewScheduleTemplate, self).save(*args, **kwargs)
 
 
 class InterviewLocation(models.Model):

@@ -8,7 +8,8 @@ class Priority(models.TextChoices):
 
 
 class AdmissionStatus(models.TextChoices):
-    INITIALIZATION = ("initialization", "Initialization")
+    INITIALIZATION = ("configuration", "Configuration")
+    INTERVIEW_OVERVIEW = ("interview-overview", "Interview overview")
     OPEN = ("open", "Open")
     IN_SESSION = ("in-session", "In session")  # Fordelingsmøtet
     FINALIZATION = (

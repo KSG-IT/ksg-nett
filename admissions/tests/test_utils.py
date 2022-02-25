@@ -179,3 +179,41 @@ class TestObfuscateAdmission(TestCase):
         self.assertNotEqual(self.sander.last_name, "Haga")
         self.assertNotEqual(self.sander.phone, "87654321")
         self.assertNotEqual(self.sander.address, "Klostergata 35")
+
+
+class TestInterviewGenerationEdgeCases(TestCase):
+    def setUp(self) -> None:
+        # We set up 3 locations for interviews
+        self.knaus = InterviewLocation.objects.create(name="Knaus")
+        self.bodegaen = InterviewLocation.objects.create(name="Bodegaen")
+
+        # Initialize the start of the interview period to 12:00
+        self.start = datetime.date.today()
+        self.datetime_start = date_time_combiner(self.start, datetime.time(hour=12))
+
+        # End of interview period is two days later giving us a three day interview period
+        self.interview_period_end_date = self.start + timezone.timedelta(days=2)
+
+        self.schedule = InterviewScheduleTemplate.objects.create(
+            interview_period_start_date=self.start,
+            interview_period_end_date=self.interview_period_end_date,
+            default_interview_day_start=datetime.time(hour=12),
+            default_interview_day_end=datetime.time(hour=20),
+        )
+        InterviewLocationAvailability.objects.create(
+            interview_location=self.knaus,
+            datetime_from=self.datetime_start,
+            datetime_to=self.datetime_start + timezone.timedelta(hours=8),
+        )
+        InterviewLocationAvailability.objects.create(
+            interview_location=self.bodegaen,
+            datetime_from=self.datetime_start + timezone.timedelta(hours=4),
+            datetime_to=self.datetime_start + timezone.timedelta(hours=8),
+        )
+
+    def test__interview_location_not_available_for_first_half__does_not_create_early_interview(
+        self,
+    ):
+        generate_interviews_from_schedule(self.schedule)
+        print(Interview.objects.all())
+        self.assertEqual(Interview.objects.all().count(), 14)

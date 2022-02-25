@@ -16,6 +16,7 @@ from economy.utils import parse_transaction_history
 from economy.schema import BankAccountActivity
 from users.filters import UserFilter
 from graphql_relay import to_global_id
+from schedules.schemas.schema_schedules import ShiftNode
 
 
 class UserNode(DjangoObjectType):
@@ -36,6 +37,11 @@ class UserNode(DjangoObjectType):
     )
     all_permissions = graphene.NonNull(graphene.List(graphene.String))
     upvoted_quote_ids = graphene.NonNull(graphene.List(graphene.ID))
+
+    future_shifts = graphene.List(ShiftNode)
+
+    def resolver_future_shifts(self: User, info, *args, **kwargs):
+        return self.future_shifts
 
     def resolve_upvoted_quote_ids(self: User, info, **kwargs):
         return [

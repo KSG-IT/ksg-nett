@@ -104,6 +104,8 @@ class InternalGroupPosition(models.Model):
         unique_together = ("name", "internal_group")
 
     name = models.CharField(max_length=32)
+    # We mark if this position is usually available to external applicants
+    available_externally = models.BooleanField(default=False)
     internal_group = models.ForeignKey(
         InternalGroup,
         null=False,
