@@ -38,7 +38,7 @@ class AdmissionAvailableInternalGroupPositionData(models.Model):
 
 
 class Admission(models.Model):
-    date = models.DateField(blank=True, null=True, auto_now=True)
+    date = models.DateField(blank=True, null=True, default=timezone.now)
     status = models.CharField(
         choices=AdmissionStatus.choices, default=AdmissionStatus.OPEN, max_length=32
     )
@@ -92,7 +92,11 @@ class InterviewBooleanEvaluationAnswer(models.Model):
     class Meta:
         unique_together = ("interview", "statement")
 
-    interview = models.ForeignKey("admissions.Interview", on_delete=models.CASCADE)
+    interview = models.ForeignKey(
+        "admissions.Interview",
+        on_delete=models.CASCADE,
+        related_name="boolean_evaluation_answers",
+    )
     statement = models.ForeignKey(
         "admissions.InterviewBooleanEvaluation", on_delete=models.CASCADE
     )
@@ -133,7 +137,11 @@ class InterviewAdditionalEvaluationAnswer(models.Model):
         SOMEWHAT = ("somewhat", _("Somewhat"))
         VERY = ("very", _("Very"))
 
-    interview = models.ForeignKey("admissions.Interview", on_delete=models.CASCADE)
+    interview = models.ForeignKey(
+        "admissions.Interview",
+        on_delete=models.CASCADE,
+        related_name="additional_evaluation_statement_answers",
+    )
     statement = models.ForeignKey(
         "admissions.InterviewAdditionalEvaluationStatement", on_delete=models.CASCADE
     )
@@ -229,6 +237,8 @@ class Applicant(models.Model):
     address = models.CharField(default="", blank=True, max_length=30)
     hometown = models.CharField(default="", blank=True, max_length=30)
 
+    wants_digital_interview = models.BooleanField(default=False)
+
     def image_dir(self, filename):
         # We want to save all objects in under the admission
         return osjoin("applicants", str(self.admission.semester), filename)
@@ -244,17 +254,20 @@ class Applicant(models.Model):
     )
 
     interview = models.OneToOneField(
-        Interview, on_delete=models.CASCADE, null=True, blank=True
+        Interview,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="applicant",
     )
 
     @classmethod
     def create_or_update_application(cls, email):
         """Can extend this method in the future to handle adding applications to new positions"""
+        # We can consider changing this to send the email with bcc and then the link kan be requested
         current_admission = Admission.get_or_create_current_admission()
         auth_token = token_urlsafe(32)
         cls.objects.create(email=email, admission=current_admission, token=auth_token)
-
-        return send_welcome_to_interview_email(email, auth_token)
 
     @property
     def get_full_name(self):
