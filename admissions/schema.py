@@ -1,6 +1,7 @@
 import datetime
 import graphene
 from graphene import Node
+from graphql_relay import to_global_id
 from graphene_django import DjangoObjectType
 from django.db import IntegrityError
 from graphene_django_cud.mutations import (
@@ -15,6 +16,9 @@ from admissions.utils import (
     generate_interviews_from_schedule,
     resend_auth_token_email,
     obfuscate_admission,
+    group_interviews_by_date,
+    create_interview_slots,
+    mass_send_welcome_to_interview_email,
 )
 from django.core.exceptions import SuspiciousOperation
 from django.utils import timezone
@@ -33,9 +37,11 @@ from admissions.models import (
 from organization.models import InternalGroupPosition
 from organization.schema import InternalGroupPositionNode
 from admissions.filters import AdmissionFilter, ApplicantFilter
-from admissions.consts import AdmissionStatus
+from admissions.consts import AdmissionStatus, Priority, ApplicantStatus
 from graphene_django_cud.types import TimeDelta
 from graphene import Time, Date
+from graphene_django_cud.util import disambiguate_id
+from users.schema import UserNode
 
 
 class InternalGroupPositionPriorityNode(DjangoObjectType):
@@ -75,6 +81,19 @@ class ApplicantNode(DjangoObjectType):
         interfaces = (Node,)
 
     full_name = graphene.String(source="get_full_name")
+    priorities = graphene.List(InternalGroupPositionPriorityNode)
+
+    def resolve_priorities(self: Applicant, info, *args, **kwargs):
+        first_priority = self.priorities.filter(
+            applicant_priority=Priority.FIRST
+        ).first()
+        second_priority = self.priorities.filter(
+            applicant_priority=Priority.SECOND
+        ).first()
+        third_priority = self.priorities.filter(
+            applicant_priority=Priority.THIRD
+        ).first()
+        return [first_priority, second_priority, third_priority]
 
     @classmethod
     def get_node(cls, info, id):
@@ -177,10 +196,33 @@ class AdmissionNode(DjangoObjectType):
         return Admission.objects.get(pk=id)
 
 
+class BooleanEvaluationAnswer(graphene.ObjectType):
+    statement = graphene.String()
+    answer = graphene.Boolean()
+
+
 class InterviewNode(DjangoObjectType):
     class Meta:
         model = Interview
         interfaces = (Node,)
+
+    interviewers = graphene.List(UserNode)
+    boolean_evaluation_answers = graphene.List(BooleanEvaluationAnswer)
+
+    def resolve_boolean_evaluation_answers(self: Interview, info, *args, **kwargs):
+        evaluations = []
+        for evaluation in self.boolean_evaluation_answers.all().order_by(
+            "statement__order"
+        ):
+            evaluations.append(
+                BooleanEvaluationAnswer(
+                    statement=evaluation.statement.statement, answer=evaluation.value
+                )
+            )
+        return evaluations
+
+    def resolve_interviewers(self: Interview, info, *args, **kwargs):
+        return self.interviewers.all()
 
     @classmethod
     def get_node(cls, info, id):
@@ -189,9 +231,7 @@ class InterviewNode(DjangoObjectType):
 
 class ApplicantQuery(graphene.ObjectType):
     applicant = Node.Field(ApplicantNode)
-    all_applicants = DjangoFilterConnectionField(
-        ApplicantNode, filterset_class=ApplicantFilter
-    )
+    all_applicants = graphene.List(ApplicantNode)
     get_applicant_from_token = graphene.Field(ApplicantNode, token=graphene.String())
 
     def resolve_get_applicant_from_token(self, info, token, *args, **kwargs):
@@ -230,12 +270,15 @@ class CreateApplicationsMutation(graphene.Mutation):
 
     def mutate(self, info, emails):
         faulty_emails = []
+        registered_emails = []
         for email in emails:
             try:
                 Applicant.create_or_update_application(email)
+                registered_emails.append(email)
             except IntegrityError:
                 faulty_emails.append(email)
 
+        mass_send_welcome_to_interview_email(registered_emails)
         return CreateApplicationsMutation(
             ok=True,
             applications_created=len(emails) - len(faulty_emails),
@@ -330,9 +373,23 @@ class InterviewTemplate(graphene.ObjectType):
     )
 
 
+class InterviewSlot(graphene.ObjectType):
+    interview_start = graphene.DateTime()
+    interview_ids = graphene.List(graphene.ID)
+
+
+class AvailableInterviewsDayGrouping(graphene.ObjectType):
+    date = graphene.Date()
+    interview_slots = graphene.List(InterviewSlot)
+
+
 class InterviewQuery(graphene.ObjectType):
     interview = Node.Field(InterviewNode)
     interview_template = graphene.Field(InterviewTemplate)
+
+    interviews_available_for_booking = graphene.List(
+        AvailableInterviewsDayGrouping, day_offset=graphene.Int(required=True)
+    )
 
     def resolve_interview_template(self, info, *args, **kwargs):
         all_boolean_evaluation_statements = (
@@ -345,6 +402,58 @@ class InterviewQuery(graphene.ObjectType):
             interview_boolean_evaluation_statements=all_boolean_evaluation_statements,
             interview_additional_evaluation_statements=all_additional_evaluation_statements,
         )
+
+    def resolve_interviews_available_for_booking(
+        self, info, day_offset, *args, **kwargs
+    ):
+        """
+        The idea here is that we want to parse interviews in such a way that we only return
+        a timestamp for when the interview starts, and a list of ids for interviews that
+        are available for booking. This gives us a bit of security because if the interview
+        is available and an applicant tries to book the same as another one they can just
+        try one of the other interviews.
+        """
+        # We get all interviews available for booking
+        now = timezone.datetime.now()
+        cursor = timezone.make_aware(
+            timezone.datetime(  # Use midnight helper here
+                year=now.year, month=now.month, day=now.day, hour=0, minute=0, second=0
+            )
+            + timezone.timedelta(days=1)
+        )
+        cursor += timezone.timedelta(days=day_offset)
+        cursor_offset = cursor + timezone.timedelta(days=2)
+        available_interviews = Interview.objects.filter(
+            applicant__isnull=True,
+            interview_start__gte=cursor,
+            interview_start__lte=cursor_offset,
+        )
+
+        available_interviews_timeslot_grouping = []
+        parsed_interviews = create_interview_slots(
+            group_interviews_by_date(available_interviews)
+        )
+
+        for day in parsed_interviews:
+            timeslots = []
+            for grouping in day["groupings"]:
+                interviews = grouping["interviews"]
+                interview_ids = [
+                    to_global_id("InterviewNode", interview.id)
+                    for interview in interviews
+                ]
+                timeslots.append(
+                    InterviewSlot(
+                        interview_start=grouping["timestamp"],
+                        interview_ids=interview_ids,
+                    )
+                )
+            available_interviews_timeslot_grouping.append(
+                AvailableInterviewsDayGrouping(
+                    date=day["date"], interview_slots=timeslots
+                )
+            )
+        return available_interviews_timeslot_grouping
 
 
 class InterviewLocationQuery(graphene.ObjectType):
@@ -474,6 +583,39 @@ class DeleteAllInterviewsMutation(graphene.Mutation):
         count = interviews.count()
         interviews.delete()
         return DeleteAllInterviewsMutation(count=count)
+
+
+class BookInterviewMutation(graphene.Mutation):
+    class Arguments:
+        interview_ids = graphene.List(graphene.ID)
+        applicant_token = graphene.String()
+
+    ok = graphene.Boolean()
+
+    def mutate(self, info, interview_ids, applicant_token, *args, **kwargs):
+        applicant = Applicant.objects.get(token=applicant_token)
+        if getattr(applicant, "interview", None):
+            raise SuspiciousOperation("Applicant already has an interview")
+
+        for interview_id in interview_ids:
+            try:
+                django_id = disambiguate_id(interview_id)
+                interview = Interview.objects.get(pk=django_id)
+
+                interview.applicant = applicant
+                interview.save()
+                applicant.status = ApplicantStatus.SCHEDULED_INTERVIEW.value
+                applicant.save()
+                return BookInterviewMutation(ok=True)
+
+            except IntegrityError:  # Someone already booked this interview
+                pass
+            except Interview.DoesNotExist:
+                pass
+            except Applicant.DoesNotExist:
+                return BookInterviewMutation(ok=False)
+
+        return BookInterviewMutation(ok=False)
 
 
 # === InterviewLocation ===
@@ -620,5 +762,6 @@ class AdmissionsMutations(graphene.ObjectType):
 
     re_send_application_token = ResendApplicantTokenMutation.Field()
     generate_interviews = GenerateInterviewsMutation.Field()
+    book_interview = BookInterviewMutation.Field()
     obfuscate_admission = ObfuscateAdmissionMutation.Field()
     delete_all_interviews = DeleteAllInterviewsMutation.Field()
