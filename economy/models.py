@@ -199,7 +199,7 @@ class ProductOrder(models.Model):
         default=SociSession.get_active_session,
     )
 
-    purchased_at = models.DateTimeField(auto_now=True)
+    purchased_at = models.DateTimeField(default=timezone.datetime.now)
 
     @property
     def cost(self) -> int:

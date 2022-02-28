@@ -47,6 +47,8 @@ class Quote(TimestampedModel):
             semester_start = timezone.datetime(year=now.year, month=1, day=1)
         else:
             semester_start = timezone.datetime(year=now.year, month=7, day=1)
+
+        semester_start = timezone.make_aware(semester_start)
         popular_quotes = (
             cls.objects.filter(
                 verified_by__isnull=False, created_at__gte=semester_start

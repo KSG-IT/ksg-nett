@@ -54,6 +54,14 @@ class InternalGroup(models.Model):
     def active_members_count(self) -> int:
         return len(self.active_members)
 
+    @classmethod
+    def get_internal_groups(cls):
+        return cls.objects.filter(type=cls.Type.INTERNAL_GROUP.value).order_by("name")
+
+    @classmethod
+    def get_interest_groups(cls):
+        return cls.objects.filter(type=cls.Type.INTEREST_GROUP.value).order_by("name")
+
     def __str__(self):
         return "Group %s" % self.name
 
@@ -121,6 +129,10 @@ class InternalGroupPosition(models.Model):
         through="organization.InternalGroupPositionMembership",
     )
 
+    @classmethod
+    def get_externally_available_positions(cls):
+        return cls.objects.filter(available_externally=True).order_by("name")
+
     @property
     def active_memberships(self):
         return self.memberships.filter(date_ended__isnull=True)
@@ -130,6 +142,7 @@ class InternalGroupPosition(models.Model):
         return self.active_memberships.count()
 
     def __str__(self):
+
         return f"{self.internal_group.name}: {self.name}"
 
 
