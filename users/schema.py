@@ -40,7 +40,7 @@ class UserNode(DjangoObjectType):
 
     future_shifts = graphene.List(ShiftNode)
 
-    def resolver_future_shifts(self: User, info, *args, **kwargs):
+    def resolve_future_shifts(self: User, info, *args, **kwargs):
         return self.future_shifts
 
     def resolve_upvoted_quote_ids(self: User, info, **kwargs):

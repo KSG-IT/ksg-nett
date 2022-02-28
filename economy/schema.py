@@ -135,7 +135,7 @@ class ProductOrderQuery(graphene.ObjectType):
     all_product_orders = DjangoConnectionField(ProductOrderNode)
 
     def resolve_all_product_orders(self, info, *args, **kwargs):
-        return ProductOrder.objects.all().order_by("created_at")
+        return ProductOrder.objects.all().order_by("-purchased_at")
 
 
 class SociSessionQuery(graphene.ObjectType):
