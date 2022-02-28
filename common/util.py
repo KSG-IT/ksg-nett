@@ -1,3 +1,4 @@
+import random
 import re
 from io import BytesIO
 from sys import getsizeof
@@ -6,9 +7,11 @@ from typing import Union, List, Tuple
 from PIL import Image
 from pydash import strip_tags
 from django.core.mail import send_mail, EmailMultiAlternatives, get_connection
+from graphql_relay import from_global_id
 
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.utils import timezone
+from django.db.models import QuerySet
 
 
 def get_semester_year_shorthand(timestamp: Union[datetime, date]) -> str:
@@ -204,7 +207,7 @@ def send_email(
     subject="KSG-nett",
     message="",
     html_message="",
-    sender="ksg-no-reply@samfundet.no",
+    sender="no-reply@ksg-nett.no",
     recipients=[],
     attachments=None,
     cc=[],
@@ -243,3 +246,35 @@ def date_time_combiner(date: datetime.date, time: datetime.time):
             second=time.second,
         )
     )
+
+
+def get_date_from_datetime(timestamp: timezone.datetime):
+    return date(year=timestamp.year, month=timestamp.month, day=timestamp.day)
+
+
+def parse_datetime_to_midnight(timestamp: timezone.datetime):
+    """Accepts a datetime object and returns the same date but at midnight"""
+    return timezone.make_aware(
+        timezone.datetime(
+            year=timestamp.year,
+            month=timestamp.month,
+            day=timestamp.day,
+            hour=0,
+            minute=0,
+            second=0,
+        )
+    )
+
+
+def validate_qs(queryset):
+    if not issubclass(QuerySet, queryset.__class__):
+        raise ValueError("Positional argument given is not a QuerySet")
+
+
+def chose_random_element(iterable):
+    iterable_length = len(iterable)
+    if iterable_length == 0:
+        raise ValueError(f"Length of iterable is 0")
+
+    random_number = random.randint(0, iterable_length - 1)
+    return iterable[random_number]

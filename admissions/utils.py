@@ -5,7 +5,12 @@ from django.utils.translation import ugettext_lazy as _
 from django.conf import settings
 from django.apps import apps
 import csv
-from common.util import date_time_combiner
+from common.util import (
+    date_time_combiner,
+    get_date_from_datetime,
+    parse_datetime_to_midnight,
+    validate_qs,
+)
 
 
 def get_available_interview_locations(datetime_from=None, datetime_to=None):
@@ -51,14 +56,12 @@ def generate_interviews_from_schedule(schedule):
     Interview = apps.get_model(app_label="admissions", model_name="Interview")
 
     while datetime_cursor < datetime_interview_period_end:
-        print(f"{datetime_cursor}")
         # Generate interviews for the first session of the day
         for i in range(schedule.default_block_size):
             available_locations = get_available_interview_locations(
                 datetime_from=datetime_cursor,
                 datetime_to=datetime_cursor + interview_duration,
             )
-            print(f"{available_locations.count()} locations are available")
             for location in available_locations:
                 print(
                     f"Looking at {location} from {datetime_cursor} to {datetime_cursor + interview_duration}"
@@ -103,16 +106,60 @@ def generate_interviews_from_schedule(schedule):
         )
 
 
-def send_welcome_to_interview_email(email: str, auth_token: str):
+def mass_send_welcome_to_interview_email(emails):
+    """
+    Accepts a list of emails and sends the same email ass bcc to all the recipients.
+    Main advantage here is that we do not need to batch together 150 emails which causes
+    timeouts and slow performance. The applicant can then instead request to be sent their
+    custom auth token from the portal itself.
+    """
     content = (
         _(
             """
                 Hei og velkommen til intervju hos KSG!
-            
+
                 Trykk på denne linken for å registrere søknaden videre
-            
+
                 Lenke: %(link)s
                 """
+        )
+        % {"link": f"{settings.APP_URL}/applicant-portal"}
+    )
+
+    html_content = (
+        _(
+            """
+                Hei og velkommen til intervju hos KSG! 
+                <br />
+                <br />
+                Trykk på denne linken for å registrere søknaden videre
+                <br />
+                <a href="%(link)s">Registrer søknad</a><br />
+                <br />
+                """
+        )
+        % {"link": f"{settings.APP_URL}/applicant-portal"}
+    )
+
+    return send_email(
+        _("Intervju KSG"),
+        message=content,
+        html_message=html_content,
+        recipients=[],
+        bcc=emails,
+    )
+
+
+def send_welcome_to_interview_email(email: str, auth_token: str):
+    content = (
+        _(
+            """
+                        Hei og velkommen til intervju hos KSG!
+                    
+                        Trykk på denne linken for å registrere søknaden videre
+                    
+                        Lenke: %(link)s
+                        """
         )
         % {"link": f"{settings.APP_URL}/applicant-portal/{auth_token}"}
     )
@@ -120,14 +167,14 @@ def send_welcome_to_interview_email(email: str, auth_token: str):
     html_content = (
         _(
             """
-                    Hei og velkommen til intervju hos KSG! 
-                    <br />
-                    <br />
-                    Trykk på denne linken for å registrere søknaden videre
-                    <br />
-                    <a href="%(link)s">Registrer søknad</a><br />
-                    <br />
-                """
+                            Hei og velkommen til intervju hos KSG! 
+                            <br />
+                            <br />
+                            Trykk på denne linken for å registrere søknaden videre
+                            <br />
+                            <a href="%(link)s">Registrer søknad</a><br />
+                            <br />
+                        """
         )
         % {"link": f"{settings.APP_URL}/applicant-portal/{auth_token}"}
     )
@@ -144,12 +191,12 @@ def resend_auth_token_email(applicant):
     content = (
         _(
             """
-        Hei og velkommen til KSG sin søkerportal! 
-
-        Trykk på denne linken for å registrere søknaden videre, eller se intervjutiden din.
-
-        Lenke: %(link)s
-        """
+                Hei og velkommen til KSG sin søkerportal! 
+        
+                Trykk på denne linken for å registrere søknaden videre, eller se intervjutiden din.
+        
+                Lenke: %(link)s
+                """
         )
         % {"link": f"{settings.APP_URL}/applicant-portal/{applicant.token}"}
     )
@@ -157,13 +204,13 @@ def resend_auth_token_email(applicant):
     html_content = (
         _(
             """
-        Hei og velkommen til KSG sin søkerportal! 
-        <br />
-        Trykk på denne linken for å registrere søknaden videre, eller se intervjutiden din.
-        <br />
-        <a href="%(link)s">Registrer søknad</a><br />
-        <br />
-        """
+                Hei og velkommen til KSG sin søkerportal! 
+                <br />
+                Trykk på denne linken for å registrere søknaden videre, eller se intervjutiden din.
+                <br />
+                <a href="%(link)s">Registrer søknad</a><br />
+                <br />
+                """
         )
         % {"link": f"{settings.APP_URL}/applicant-portal/{applicant.token}"}
     )
@@ -211,3 +258,84 @@ def obfuscate_admission(admission):
         applicant.address = fake_data.address
         applicant.phone = fake_data.phone
         applicant.save()
+
+
+def group_interviews_by_date(interviews):
+    """
+    We accept a queryset and sort it into a list of groupings. Each item in the list is a dict which has a
+    day defined through a date object and a list of interviews that occur on this date.
+
+    Example:
+        [
+            {
+                "date": 2022-24-02,
+                "interviews": [Interview1, Interview2, ...]
+            },
+            {
+                "date": 2022-25-02,
+                "interviews": [Interview1, Interview2, ...]
+            }
+            ...
+        ]
+    """
+    validate_qs(interviews)
+
+    interviews = interviews.order_by("interview_start")
+    cursor = parse_datetime_to_midnight(interviews.first().interview_start)
+    cursor_end = interviews.last().interview_start
+    day_offset = timezone.timedelta(days=1)
+    interview_groupings = []
+
+    while cursor <= cursor_end:
+        grouping = interviews.filter(
+            interview_start__gte=cursor, interview_start__lte=cursor + day_offset
+        )
+        if grouping:
+            interview_groupings.append(
+                {"date": get_date_from_datetime(cursor), "interviews": grouping}
+            )
+        cursor += day_offset
+    return interview_groupings
+
+
+def create_interview_slots(interview_days):
+    """
+    Input is assumed to be a list of dictionary objects with a 'date' and 'interviews' keys. The interviews object
+    are ordered in ascending order. We return a nested structure which groups together days with interviews
+    in addition to grouping interviews that have the same timeframe together.
+    """
+    from admissions.models import Interview  # Avoid circular import error
+
+    if not interview_days:
+        return []
+
+    first_interview = interview_days[0]["interviews"][0]
+    if not first_interview:
+        return []
+
+    # We use the inferred duration as our cursor offset
+    inferred_interview_duration = (
+        first_interview.interview_end - first_interview.interview_start
+    )
+    parsed_interviews = []
+
+    for day in interview_days:
+        interviews = day["interviews"]
+        last_interview = interviews.last().interview_end
+
+        if not interviews:
+            continue
+
+        cursor = interviews[0].interview_start
+        day_groupings = []
+        while cursor < last_interview:
+            # Interviews are always created in parallel. Meaning we can use the exact datetime to filter
+            interview_group = Interview.objects.filter(interview_start=cursor)
+            slot = {"timestamp": cursor, "interviews": interview_group}
+            day_groupings.append(slot)
+            cursor += inferred_interview_duration
+
+        interview_day = {"date": day["date"], "groupings": day_groupings}
+        parsed_interviews.append(interview_day)
+
+    return parsed_interviews
