@@ -63,9 +63,6 @@ def generate_interviews_from_schedule(schedule):
                 datetime_to=datetime_cursor + interview_duration,
             )
             for location in available_locations:
-                print(
-                    f"Looking at {location} from {datetime_cursor} to {datetime_cursor + interview_duration}"
-                )
                 Interview.objects.create(
                     location=location,
                     interview_start=datetime_cursor,

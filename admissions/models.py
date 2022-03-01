@@ -356,6 +356,14 @@ class InterviewScheduleTemplate(models.Model):
     def get_interview_schedule_template(cls):
         return cls.objects.all().first()
 
+    @classmethod
+    def get_or_create_interview_schedule_template(cls):
+        schedule = cls.objects.all().first()
+        if not schedule:
+            schedule = cls()
+
+        return schedule
+
     def save(self, *args, **kwargs):
         """
         An interview cannot overlap in the same location. Whe therefore make the following checks
@@ -383,6 +391,7 @@ class InterviewLocation(models.Model):
 class InterviewLocationAvailability(models.Model):
     """Defines when a location is available to us. A location can have multiple intervals where its available to us"""
 
+    # Should rename to just location. This is redundant
     interview_location = models.ForeignKey(
         InterviewLocation, related_name="availability", on_delete=models.CASCADE
     )

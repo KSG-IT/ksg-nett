@@ -13,13 +13,13 @@ from common.util import chose_random_element
 from admissions.models import AdmissionAvailableInternalGroupPositionData
 from summaries.consts import SummaryType
 from summaries.models import Summary
-from common.management.commands.consts import (
+from common.management.commands._consts import (
     SUMMARY_CONTENT,
     QUOTE_CHOICES,
     INTERNAL_GROUP_DATA,
     BANK_ACCOUNT_BALANCE_CHOICES,
 )
-from common.management.commands.utils import (
+from common.management.commands._utils import (
     create_semester_dates,
     create_random_economy_activity,
     EconomicActivityType,

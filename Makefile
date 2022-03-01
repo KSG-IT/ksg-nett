@@ -38,3 +38,8 @@ testdata:
 .PHONY: activeadmission
 activeadmission:
 	poetry run python manage.py generate_active_admission
+
+
+.PHONY: nukeadmission
+nukeadmission:
+	poetry run python manage.py nuke_admission_data
