@@ -20,6 +20,7 @@ from admissions.utils import (
     create_interview_slots,
     mass_send_welcome_to_interview_email,
 )
+from django.db.models.functions import Coalesce
 from django.core.exceptions import SuspiciousOperation
 from django.utils import timezone
 from admissions.models import (
@@ -34,7 +35,7 @@ from admissions.models import (
     InterviewBooleanEvaluation,
     InterviewAdditionalEvaluationStatement,
 )
-from organization.models import InternalGroupPosition
+from organization.models import InternalGroupPosition, InternalGroup
 from organization.schema import InternalGroupPositionNode
 from admissions.filters import AdmissionFilter, ApplicantFilter
 from admissions.consts import AdmissionStatus, Priority, ApplicantStatus
@@ -229,10 +230,30 @@ class InterviewNode(DjangoObjectType):
         return Interview.objects.get(pk=id)
 
 
+class InternalGroupApplicantsData(graphene.ObjectType):
+    """
+    A way to encapsulate the applicants for a given internal group
+        > Resolves all applicants for this group split into their priorities
+    """
+
+    first_priorities = graphene.List(ApplicantNode)
+    second_priorities = graphene.List(ApplicantNode)
+    third_priorities = graphene.List(ApplicantNode)
+
+    """
+    
+    Can consider making a custom node which resolves whether or not they have someone from the relevant internal group
+    Can also maybe just do this with looping over interviewers and checking their internal group position states
+    """
+
+
 class ApplicantQuery(graphene.ObjectType):
     applicant = Node.Field(ApplicantNode)
     all_applicants = graphene.List(ApplicantNode)
     get_applicant_from_token = graphene.Field(ApplicantNode, token=graphene.String())
+    internal_group_applicants_data = graphene.Field(
+        InternalGroupApplicantsData, internal_group=graphene.ID()
+    )
 
     def resolve_get_applicant_from_token(self, info, token, *args, **kwargs):
         applicant = Applicant.objects.filter(token=token).first()
@@ -240,6 +261,44 @@ class ApplicantQuery(graphene.ObjectType):
 
     def resolve_all_applicants(self, info, *args, **kwargs):
         return Applicant.objects.all().order_by("first_name")
+
+    def resolve_internal_group_applicants_data(
+        self, info, internal_group, *args, **kwargs
+    ):
+        django_id = disambiguate_id(internal_group)
+        internal_group = InternalGroup.objects.filter(id=django_id).first()
+        if not internal_group:
+            return None
+
+        first_priorities = (
+            Applicant.objects.all()
+            .filter(
+                priorities__applicant_priority=Priority.FIRST,
+                priorities__internal_group_position__internal_group=internal_group,
+            )
+            .order_by("interview__interview_start")
+        )
+        second_priorities = (
+            Applicant.objects.all()
+            .filter(
+                priorities__applicant_priority=Priority.SECOND,
+                priorities__internal_group_position__internal_group=internal_group,
+            )
+            .order_by("interview__interview_start")
+        )
+        third_priorities = (
+            Applicant.objects.all()
+            .filter(
+                priorities__applicant_priority=Priority.THIRD,
+                priorities__internal_group_position__internal_group=internal_group,
+            )
+            .order_by("interview__interview_start")
+        )
+        return InternalGroupApplicantsData(
+            first_priorities=first_priorities,
+            second_priorities=second_priorities,
+            third_priorities=third_priorities,
+        )
 
 
 class ResendApplicantTokenMutation(graphene.Mutation):
@@ -570,6 +629,46 @@ class GenerateInterviewsMutation(graphene.Mutation):
         num = Interview.objects.all().count()
 
         return GenerateInterviewsMutation(ok=True, interviews_generated=num)
+
+
+class SetSelfAsInterviewerMutation(graphene.Mutation):
+    class Arguments:
+        interview_id = graphene.ID(required=True)
+
+    success = graphene.Boolean()
+
+    def mutate(self, info, interview_id, *args, **kwargs):
+        interview_django_id = disambiguate_id(interview_id)
+        interview = Interview.objects.filter(id=interview_django_id).first()
+        if not interview:
+            return SetSelfAsInterviewerMutation(success=False)
+
+        # Interview exists. Here we can parse whether or not a person from this internal group is here already
+        # ToDo ^
+
+        user = info.context.user
+        interview.interviewers.add(user)
+        interview.save()
+        return SetSelfAsInterviewerMutation(success=True)
+
+
+class RemoveSelfAsInterviewerMutation(graphene.Mutation):
+    class Arguments:
+        interview_id = graphene.ID(required=True)
+
+    success = graphene.Boolean()
+
+    def mutate(self, info, interview_id, *args, **kwargs):
+        interview_django_id = disambiguate_id(interview_id)
+        interview = Interview.objects.filter(id=interview_django_id).first()
+        if not interview:
+            return RemoveSelfAsInterviewerMutation(success=False)
+
+        user = info.context.user
+        interviewers = interview.interviewers.all()
+        interview.interviewers.set(interviewers.exclude(user=user))
+        interview.save()
+        return RemoveSelfAsInterviewerMutation(success=True)
 
 
 class DeleteAllInterviewsMutation(graphene.Mutation):

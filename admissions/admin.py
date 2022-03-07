@@ -34,6 +34,7 @@ class InterviewBooleanEvaluationAnswerInline(admin.TabularInline):
 
 @admin.register(Interview)
 class InterviewAdmin(admin.ModelAdmin):
+    list_display = ("applicant",)
     inlines = (
         InterviewAdditionalEvaluationAnswerInline,
         InterviewBooleanEvaluationAnswerInline,
