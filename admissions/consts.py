@@ -23,6 +23,7 @@ class ApplicantStatus(models.TextChoices):
     # This probably has to be revisited
     EMAIL_SENT = ("email-sent", "Email sent")
     HAS_REGISTERED_PROFILE = ("has-registered-profile", "Has registered profile")
+    HAS_SET_PRIORITIES = ("has-set-priorities", "Has set priorities")
     SCHEDULED_INTERVIEW = ("scheduled-interview", "Scheduled interview")
     INTERVIEW_FINISHED = ("interview-finished", "Interview finished")
     DID_NOT_SHOW_UP_FOR_INTERVIEW = (

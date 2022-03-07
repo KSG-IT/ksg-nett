@@ -52,9 +52,26 @@ def generate_interviews_from_schedule(schedule):
         schedule.interview_period_end_date, default_interview_day_end
     )
 
-    # Lazy load model due to circular import errors
+    # Lazy load models due to circular import errors
     Interview = apps.get_model(app_label="admissions", model_name="Interview")
+    InterviewBooleanEvaluation = apps.get_model(
+        app_label="admissions", model_name="InterviewBooleanEvaluation"
+    )
+    InterviewBooleanEvaluationAnswer = apps.get_model(
+        app_label="admissions", model_name="InterviewBooleanEvaluationAnswer"
+    )
+    InterviewAdditionalEvaluationStatement = apps.get_model(
+        app_label="admissions", model_name="InterviewAdditionalEvaluationStatement"
+    )
+    InterviewAdditionalEvaluationAnswer = apps.get_model(
+        app_label="admissions", model_name="InterviewAdditionalEvaluationAnswer"
+    )
 
+    # We want to prepare the interview questions and add them to all interviews
+    boolean_evaluation_statements = InterviewBooleanEvaluation.objects.all()
+    additional_evaluation_statements = (
+        InterviewAdditionalEvaluationStatement.objects.all()
+    )
     while datetime_cursor < datetime_interview_period_end:
         # Generate interviews for the first session of the day
         for i in range(schedule.default_block_size):
@@ -63,11 +80,19 @@ def generate_interviews_from_schedule(schedule):
                 datetime_to=datetime_cursor + interview_duration,
             )
             for location in available_locations:
-                Interview.objects.create(
+                interview = Interview.objects.create(
                     location=location,
                     interview_start=datetime_cursor,
                     interview_end=datetime_cursor + interview_duration,
                 )
+                for statement in boolean_evaluation_statements:
+                    InterviewBooleanEvaluationAnswer.objects.create(
+                        interview=interview, statement=statement, value=None
+                    )
+                for statement in additional_evaluation_statements:
+                    InterviewAdditionalEvaluationAnswer.objects.create(
+                        interview=interview, statement=statement, answer=None
+                    )
             datetime_cursor += interview_duration
 
         # First session is over. We give the interviewers a break
@@ -113,12 +138,12 @@ def mass_send_welcome_to_interview_email(emails):
     content = (
         _(
             """
-                Hei og velkommen til intervju hos KSG!
-
-                Trykk på denne linken for å registrere søknaden videre
-
-                Lenke: %(link)s
-                """
+                    Hei og velkommen til intervju hos KSG!
+    
+                    Trykk på denne linken for å registrere søknaden videre
+    
+                    Lenke: %(link)s
+                    """
         )
         % {"link": f"{settings.APP_URL}/applicant-portal"}
     )
@@ -126,14 +151,14 @@ def mass_send_welcome_to_interview_email(emails):
     html_content = (
         _(
             """
-                Hei og velkommen til intervju hos KSG! 
-                <br />
-                <br />
-                Trykk på denne linken for å registrere søknaden videre
-                <br />
-                <a href="%(link)s">Registrer søknad</a><br />
-                <br />
-                """
+                    Hei og velkommen til intervju hos KSG! 
+                    <br />
+                    <br />
+                    Trykk på denne linken for å registrere søknaden videre
+                    <br />
+                    <a href="%(link)s">Registrer søknad</a><br />
+                    <br />
+                    """
         )
         % {"link": f"{settings.APP_URL}/applicant-portal"}
     )
@@ -151,12 +176,12 @@ def send_welcome_to_interview_email(email: str, auth_token: str):
     content = (
         _(
             """
-                        Hei og velkommen til intervju hos KSG!
-                    
-                        Trykk på denne linken for å registrere søknaden videre
-                    
-                        Lenke: %(link)s
-                        """
+                            Hei og velkommen til intervju hos KSG!
+                        
+                            Trykk på denne linken for å registrere søknaden videre
+                        
+                            Lenke: %(link)s
+                            """
         )
         % {"link": f"{settings.APP_URL}/applicant-portal/{auth_token}"}
     )
@@ -164,14 +189,14 @@ def send_welcome_to_interview_email(email: str, auth_token: str):
     html_content = (
         _(
             """
-                            Hei og velkommen til intervju hos KSG! 
-                            <br />
-                            <br />
-                            Trykk på denne linken for å registrere søknaden videre
-                            <br />
-                            <a href="%(link)s">Registrer søknad</a><br />
-                            <br />
-                        """
+                                Hei og velkommen til intervju hos KSG! 
+                                <br />
+                                <br />
+                                Trykk på denne linken for å registrere søknaden videre
+                                <br />
+                                <a href="%(link)s">Registrer søknad</a><br />
+                                <br />
+                            """
         )
         % {"link": f"{settings.APP_URL}/applicant-portal/{auth_token}"}
     )
@@ -188,12 +213,12 @@ def resend_auth_token_email(applicant):
     content = (
         _(
             """
-                Hei og velkommen til KSG sin søkerportal! 
-        
-                Trykk på denne linken for å registrere søknaden videre, eller se intervjutiden din.
-        
-                Lenke: %(link)s
-                """
+                    Hei og velkommen til KSG sin søkerportal! 
+            
+                    Trykk på denne linken for å registrere søknaden videre, eller se intervjutiden din.
+            
+                    Lenke: %(link)s
+                    """
         )
         % {"link": f"{settings.APP_URL}/applicant-portal/{applicant.token}"}
     )
@@ -201,13 +226,13 @@ def resend_auth_token_email(applicant):
     html_content = (
         _(
             """
-                Hei og velkommen til KSG sin søkerportal! 
-                <br />
-                Trykk på denne linken for å registrere søknaden videre, eller se intervjutiden din.
-                <br />
-                <a href="%(link)s">Registrer søknad</a><br />
-                <br />
-                """
+                    Hei og velkommen til KSG sin søkerportal! 
+                    <br />
+                    Trykk på denne linken for å registrere søknaden videre, eller se intervjutiden din.
+                    <br />
+                    <a href="%(link)s">Registrer søknad</a><br />
+                    <br />
+                    """
         )
         % {"link": f"{settings.APP_URL}/applicant-portal/{applicant.token}"}
     )

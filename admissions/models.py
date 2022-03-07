@@ -3,7 +3,6 @@ from django.db.models import Q
 from common.util import get_semester_year_shorthand
 from django.utils import timezone
 from django.db.utils import IntegrityError
-from django.core.validators import MinValueValidator
 from admissions.consts import (
     Priority,
     ApplicantStatus,
@@ -13,7 +12,7 @@ from admissions.consts import (
 from django.utils.translation import ugettext_lazy as _
 from secrets import token_urlsafe
 from os.path import join as osjoin
-from admissions.utils import send_welcome_to_interview_email
+from organization.models import InternalGroup
 import datetime
 
 
@@ -55,6 +54,11 @@ class Admission(models.Model):
     @property
     def number_of_applicants(self):
         return self.applicants.count()
+
+    def internal_groups_accepting_applicants(self):
+        positions = self.available_internal_group_positions.all()
+        internal_groups = InternalGroup.objects.filter(positions__in=positions)
+        return internal_groups.order_by("name")
 
     @classmethod
     def get_or_create_current_admission(cls):
@@ -100,7 +104,8 @@ class InterviewBooleanEvaluationAnswer(models.Model):
     statement = models.ForeignKey(
         "admissions.InterviewBooleanEvaluation", on_delete=models.CASCADE
     )
-    value = models.BooleanField(null=False, blank=False)
+    # Nullable because we prepare this before the interview is booked
+    value = models.BooleanField(null=True, blank=True)
 
 
 class InterviewAdditionalEvaluationStatement(models.Model):
@@ -145,12 +150,10 @@ class InterviewAdditionalEvaluationAnswer(models.Model):
     statement = models.ForeignKey(
         "admissions.InterviewAdditionalEvaluationStatement", on_delete=models.CASCADE
     )
+    # Nullable because we prepare this before the interview is booked
     answer = models.CharField(
-        max_length=32, choices=Options.choices, null=False, blank=False
+        max_length=32, choices=Options.choices, null=True, blank=True
     )
-
-    def __str__(self):
-        return self.answer
 
 
 class Interview(models.Model):
@@ -238,6 +241,7 @@ class Applicant(models.Model):
     hometown = models.CharField(default="", blank=True, max_length=30)
 
     wants_digital_interview = models.BooleanField(default=False)
+    will_be_admitted = models.BooleanField(default=False)
 
     def image_dir(self, filename):
         # We want to save all objects in under the admission
@@ -268,6 +272,46 @@ class Applicant(models.Model):
         current_admission = Admission.get_or_create_current_admission()
         auth_token = token_urlsafe(32)
         cls.objects.create(email=email, admission=current_admission, token=auth_token)
+
+    @classmethod
+    def valid_applicants(cls):
+        return Applicant.objects.filter(
+            ~Q(priorities__internal_group_priority=InternalGroupStatus.DO_NOT_WANT),
+            status=ApplicantStatus.INTERVIEW_FINISHED,
+        )
+
+    def add_priority(self, position):
+        # In case a priority has been deleted we need to reorder existing ones first
+        priorities = [Priority.FIRST, Priority.SECOND, Priority.THIRD]
+        # Unfiltered priorities can have None values
+        index = self.priorities.count()
+        if index >= 3:
+            raise IntegrityError("Applicant already has three priorities")
+
+        priority = priorities[index]
+        self.priorities.add(
+            InternalGroupPositionPriority.objects.create(
+                applicant=self,
+                internal_group_position=position,
+                applicant_priority=priority,
+            )
+        )
+
+        self.save()
+
+    @property
+    def get_priorities(self):
+        # get_ pre-pending to avoid name conflicts
+        first_priority = self.priorities.filter(
+            applicant_priority=Priority.FIRST
+        ).first()
+        second_priority = self.priorities.filter(
+            applicant_priority=Priority.SECOND
+        ).first()
+        third_priority = self.priorities.filter(
+            applicant_priority=Priority.THIRD
+        ).first()
+        return [first_priority, second_priority, third_priority]
 
     @property
     def get_full_name(self):

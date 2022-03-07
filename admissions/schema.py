@@ -20,7 +20,6 @@ from admissions.utils import (
     create_interview_slots,
     mass_send_welcome_to_interview_email,
 )
-from django.db.models.functions import Coalesce
 from django.core.exceptions import SuspiciousOperation
 from django.utils import timezone
 from admissions.models import (
@@ -35,20 +34,37 @@ from admissions.models import (
     InterviewBooleanEvaluation,
     InterviewAdditionalEvaluationStatement,
 )
-from organization.models import InternalGroupPosition, InternalGroup
-from organization.schema import InternalGroupPositionNode
-from admissions.filters import AdmissionFilter, ApplicantFilter
-from admissions.consts import AdmissionStatus, Priority, ApplicantStatus
+from organization.models import (
+    InternalGroupPosition,
+    InternalGroup,
+    InternalGroupPositionMembership,
+)
+from organization.schema import InternalGroupPositionNode, InternalGroupNode
+from admissions.filters import AdmissionFilter
+from admissions.consts import (
+    AdmissionStatus,
+    Priority,
+    ApplicantStatus,
+    InternalGroupStatus,
+)
 from graphene_django_cud.types import TimeDelta
 from graphene import Time, Date
 from graphene_django_cud.util import disambiguate_id
 from users.schema import UserNode
+from users.models import User
+from economy.models import SociBankAccount
 
 
 class InternalGroupPositionPriorityNode(DjangoObjectType):
     class Meta:
         model = InternalGroupPositionPriority
         interfaces = (Node,)
+
+    def resolve_internal_group_priority(self, info, *args, **kwargs):
+        # Shady. Should do something else about this
+        if self.internal_group_priority == "":
+            return None
+        return self.internal_group_priority
 
 
 class InterviewLocationAvailabilityNode(DjangoObjectType):
@@ -83,6 +99,36 @@ class ApplicantNode(DjangoObjectType):
 
     full_name = graphene.String(source="get_full_name")
     priorities = graphene.List(InternalGroupPositionPriorityNode)
+
+    interviewer_from_internal_group = graphene.ID(internal_group_id=graphene.ID())
+
+    def resolve_interviewer_from_internal_group(
+        self: Applicant, info, internal_group_id, *args, **kwargs
+    ):
+        """
+        We want to be able to query whether or not there is an interviewer from the respective internal
+        group set up for the given interview. If it exists we return the id so we can determine what piece
+        of UI we want to render in react.
+            > If None the interview isn't covered
+            > If ID it is covered but we want to render differently based on who is logged in
+        """
+        internal_group_id = disambiguate_id(internal_group_id)
+        internal_group = InternalGroup.objects.filter(id=internal_group_id).first()
+        interview = self.interview
+
+        if not internal_group or not interview:
+            return None
+
+        interviewers = interview.interviewers.all()
+        interviewer_from_internal_group = interviewers.filter(
+            internal_group_position_history__date_ended__isnull=True,
+            internal_group_position_history__position__internal_group=internal_group,
+        ).first()  # Should only be one
+
+        if not interviewer_from_internal_group:
+            return None
+
+        return to_global_id("UserNode", interviewer_from_internal_group.id)
 
     def resolve_priorities(self: Applicant, info, *args, **kwargs):
         first_priority = self.priorities.filter(
@@ -236,15 +282,10 @@ class InternalGroupApplicantsData(graphene.ObjectType):
         > Resolves all applicants for this group split into their priorities
     """
 
+    internal_group_name = graphene.String()
     first_priorities = graphene.List(ApplicantNode)
     second_priorities = graphene.List(ApplicantNode)
     third_priorities = graphene.List(ApplicantNode)
-
-    """
-    
-    Can consider making a custom node which resolves whether or not they have someone from the relevant internal group
-    Can also maybe just do this with looping over interviewers and checking their internal group position states
-    """
 
 
 class ApplicantQuery(graphene.ObjectType):
@@ -254,6 +295,15 @@ class ApplicantQuery(graphene.ObjectType):
     internal_group_applicants_data = graphene.Field(
         InternalGroupApplicantsData, internal_group=graphene.ID()
     )
+
+    valid_applicants = graphene.List(ApplicantNode)
+
+    def resolve_valid_applicants(self, info, *args, **kwargs):
+        applicants = Applicant.objects.filter(
+            ~Q(priorities__internal_group_priority=InternalGroupStatus.DO_NOT_WANT),
+            status=ApplicantStatus.INTERVIEW_FINISHED,
+        ).order_by("first_name")
+        return applicants
 
     def resolve_get_applicant_from_token(self, info, token, *args, **kwargs):
         applicant = Applicant.objects.filter(token=token).first()
@@ -295,6 +345,7 @@ class ApplicantQuery(graphene.ObjectType):
             .order_by("interview__interview_start")
         )
         return InternalGroupApplicantsData(
+            internal_group_name=internal_group.name,
             first_priorities=first_priorities,
             second_priorities=second_priorities,
             third_priorities=third_priorities,
@@ -356,11 +407,15 @@ class AdmissionQuery(graphene.ObjectType):
     externally_available_internal_group_positions = graphene.List(
         InternalGroupPositionNode
     )
-    currently_admission_internal_group_position_data = graphene.List(
+    internal_group_positions_available_for_applicants = graphene.List(
+        InternalGroupPositionNode
+    )
+    current_admission_internal_group_position_data = graphene.List(
         AdmissionAvailableInternalGroupPositionDataNode
     )
+    internal_groups_accepting_applicants = graphene.List(InternalGroupNode)
 
-    def resolve_currently_admission_internal_group_position_data(
+    def resolve_current_admission_internal_group_position_data(
         self, info, *args, **kwargs
     ):
         admission = Admission.get_active_admission()
@@ -385,12 +440,27 @@ class AdmissionQuery(graphene.ObjectType):
     def resolve_all_admissions(self, info, *args, **kwargs):
         return Admission.objects.all().order_by("-date")
 
+    # Intended use for admission configuration
     def resolve_externally_available_internal_group_positions(
         self, info, *args, **kwargs
     ):
         return InternalGroupPosition.objects.filter(available_externally=True).order_by(
             "name"
         )
+
+    def resolve_internal_groups_accepting_applicants(self, info, *args, **kwargs):
+        admission = Admission.get_active_admission()
+        if not admission:
+            return []
+        return admission.internal_groups_accepting_applicants()
+
+    def resolve_internal_group_positions_available_for_applicants(
+        self, info, *args, **kwargs
+    ):
+        admission = Admission.get_active_admission()
+        if not admission:
+            return []
+        return admission.available_internal_group_positions.all().order_by("name")
 
 
 class InterviewLocationDateGrouping(graphene.ObjectType):
@@ -445,7 +515,6 @@ class AvailableInterviewsDayGrouping(graphene.ObjectType):
 class InterviewQuery(graphene.ObjectType):
     interview = Node.Field(InterviewNode)
     interview_template = graphene.Field(InterviewTemplate)
-
     interviews_available_for_booking = graphene.List(
         AvailableInterviewsDayGrouping, day_offset=graphene.Int(required=True)
     )
@@ -584,6 +653,82 @@ class DeleteApplicantMutation(DjangoDeleteMutation):
         model = Applicant
 
 
+class ToggleApplicantWillBeAdmittedMutation(graphene.Mutation):
+    class Arguments:
+        id = graphene.ID(required=True)
+
+    success = graphene.Boolean()
+
+    def mutate(self, info, id, *args, **kwargs):
+        applicant_id = disambiguate_id(id)
+        applicant = Applicant.objects.filter(id=applicant_id).first()
+
+        if not applicant:
+            return ToggleApplicantWillBeAdmittedMutation(success=False)
+
+        applicant.will_be_admitted = not applicant.will_be_admitted
+        applicant.save()
+        return ToggleApplicantWillBeAdmittedMutation(success=True)
+
+
+# === InternalGroupPositionPriority ===
+class AddInternalGroupPositionPriorityMutation(graphene.Mutation):
+    class Arguments:
+        internal_group_position_id = graphene.ID(required=True)
+        applicant_id = graphene.ID(required=True)
+
+    success = graphene.Boolean()
+
+    def mutate(self, info, internal_group_position_id, applicant_id, *args, **kwargs):
+        internal_group_position_id = disambiguate_id(internal_group_position_id)
+        applicant_id = disambiguate_id(applicant_id)
+        internal_group_position = InternalGroupPosition.objects.filter(
+            id=internal_group_position_id
+        ).first()
+        applicant = Applicant.objects.filter(id=applicant_id).first()
+
+        if not (internal_group_position and applicant):
+            return AddInternalGroupPositionPriorityMutation(success=False)
+
+        applicant.add_priority(internal_group_position)
+        return AddInternalGroupPositionPriorityMutation(success=True)
+
+
+class DeleteInternalGroupPositionPriority(DjangoDeleteMutation):
+    class Meta:
+        model = InternalGroupPositionPriority
+
+    @classmethod
+    def before_save(cls, root, info, id, obj):
+        # We need to re-order the priorities in case something is deleted out of order
+        priorities = [Priority.FIRST, Priority.SECOND, Priority.THIRD]
+        applicant = obj.applicant
+        unfiltered_priorities = applicant.get_priorities
+        filtered_priorities = []
+        # Unfiltered priorities can have None values. Get rid of them
+        for priority in unfiltered_priorities:
+            if not priority:
+                continue
+            # We don't want to re-add the position we are trying to delete
+            if priority.internal_group_position == obj.internal_group_position:
+                continue
+
+            filtered_priorities.append(priority.internal_group_position)
+
+        # Delete the priorities so we can add them in the right order
+        applicant.priorities.all().delete()
+        for index, position in enumerate(filtered_priorities):
+            priority = priorities[index]
+            applicant.priorities.add(
+                InternalGroupPositionPriority.objects.create(
+                    applicant=applicant,
+                    internal_group_position=position,
+                    applicant_priority=priority,
+                )
+            )
+        return obj
+
+
 # === Admission ===
 class CreateAdmissionMutation(DjangoCreateMutation):
     class Meta:
@@ -600,10 +745,81 @@ class DeleteAdmissionMutation(DjangoDeleteMutation):
         model = Admission
 
 
-class ObfuscateAdmissionMutation(graphene.Mutation):
-    class Arguments:
-        pass
+class CloseAdmissionMutation(graphene.Mutation):
+    failed_user_generation = graphene.List(ApplicantNode)
 
+    def mutate(self, info, *args, **kwargs):
+        """
+        1. Get all applicants we have marked for admission
+        2. Create a user instance for all of them with their data
+        3. Should be able to handle some shitty inputs
+        4. Give them the internal group position they were admitted for
+        5. obfuscate admission
+        6. Close the admission
+        """
+        admission = Admission.get_active_admission()
+        admitted_applicants = Applicant.objects.filter(
+            will_be_admitted=True, admission=admission
+        )
+        failed_user_generation = []
+        for applicant in admitted_applicants:
+            try:
+                applicant_user_profile = User.objects.create(
+                    username=applicant.email,
+                    first_name=applicant.first_name,
+                    last_name=applicant.last_name,
+                    email=applicant.email,
+                    profile_image=applicant.image,
+                    phone=applicant.phone,
+                    start_ksg=datetime.datetime.today(),
+                    study_address=applicant.address,
+                    home_address=applicant.hometown,
+                    study=applicant.study,
+                    date_of_birth=applicant.date_of_birth,
+                )
+                """
+                Unique constraints that can be fucked up here
+                1. How should we handle emails? Do this at applicant stage?
+                2. 
+                """
+                # We give the applicant the internal group position they have been accepted into
+                priorities = applicant.get_priorities
+                for priority in priorities:
+                    # We find the first priority from the applicant where the internal group has marked
+                    # it as "WANT"
+                    if priority is None:
+                        continue
+                    if priority.internal_group_priority != InternalGroupStatus.WANT:
+                        continue
+
+                    internal_group_position = priority.internal_group_position
+                    InternalGroupPositionMembership.objects.create(
+                        position=internal_group_position,
+                        user=applicant_user_profile,
+                        date_joined=datetime.date.today(),
+                    )
+                    # We found their assigned position, eject.
+                    break
+                SociBankAccount.objects.create(
+                    user=applicant_user_profile, balance=0, card_uuid=None
+                )
+
+            except Exception as e:
+                failed_user_generation.append(applicant)
+
+        # User generation is done. Now we want to remove all identifying information
+        obfuscate_admission(admission)
+
+        # It's a wrap folks
+        admission.status = AdmissionStatus.CLOSED
+        admission.save()
+        admitted_applicants.update(will_be_admitted=False)
+
+        return CloseAdmissionMutation(failed_user_generation=failed_user_generation)
+
+
+# This can probably be deleted
+class ObfuscateAdmissionMutation(graphene.Mutation):
     ok = graphene.Boolean()
 
     def mutate(self, info, *args, **kwargs):
@@ -622,12 +838,10 @@ class GenerateInterviewsMutation(graphene.Mutation):
 
     def mutate(self, info, *args, **kwargs):
         # retrieve the schedule template
-        schedule = (
-            InterviewScheduleTemplate.objects.all().first()
-        )  # should handle this a bit better probably
+        schedule = InterviewScheduleTemplate.objects.all().first()
+        # should handle this a bit better probably
         generate_interviews_from_schedule(schedule)
         num = Interview.objects.all().count()
-
         return GenerateInterviewsMutation(ok=True, interviews_generated=num)
 
 
@@ -639,17 +853,27 @@ class SetSelfAsInterviewerMutation(graphene.Mutation):
 
     def mutate(self, info, interview_id, *args, **kwargs):
         interview_django_id = disambiguate_id(interview_id)
-        interview = Interview.objects.filter(id=interview_django_id).first()
+        interview = Interview.objects.filter(pk=interview_django_id).first()
         if not interview:
             return SetSelfAsInterviewerMutation(success=False)
 
-        # Interview exists. Here we can parse whether or not a person from this internal group is here already
-        # ToDo ^
+        # ToDo:
+        # Interview exists. Here we can parse whether or not a person from this internal group is here already as well
 
         user = info.context.user
+        existing_interviewers = interview.interviewers.all()
+        if user in existing_interviewers:
+            # User is already on this interview
+            return SetSelfAsInterviewerMutation(success=True)
+
         interview.interviewers.add(user)
         interview.save()
         return SetSelfAsInterviewerMutation(success=True)
+
+
+class PatchInterviewMutation(DjangoPatchMutation):
+    class Meta:
+        model = Interview
 
 
 class RemoveSelfAsInterviewerMutation(graphene.Mutation):
@@ -666,7 +890,7 @@ class RemoveSelfAsInterviewerMutation(graphene.Mutation):
 
         user = info.context.user
         interviewers = interview.interviewers.all()
-        interview.interviewers.set(interviewers.exclude(user=user))
+        interview.interviewers.set(interviewers.exclude(id=user.id))
         interview.save()
         return RemoveSelfAsInterviewerMutation(success=True)
 
@@ -754,10 +978,8 @@ class CreateInterviewBooleanEvaluationMutation(DjangoCreateMutation):
 
     @classmethod
     def before_mutate(cls, root, info, input):
-        increment = (
-            InterviewBooleanEvaluation.objects.all().order_by(("order")).last().order
-            + 1
-        )
+        count = InterviewBooleanEvaluation.objects.all().count()
+        increment = count + 1
         input["order"] = increment
         return input
 
@@ -829,6 +1051,8 @@ class AdmissionsMutations(graphene.ObjectType):
         DeleteInterviewLocationAvailabilityMutation.Field()
     )
 
+    patch_interview = PatchInterviewMutation.Field()
+
     create_interview_location = CreateInterviewLocationMutation.Field()
     delete_interview_location = DeleteInterviewLocationMutation.Field()
 
@@ -864,3 +1088,14 @@ class AdmissionsMutations(graphene.ObjectType):
     book_interview = BookInterviewMutation.Field()
     obfuscate_admission = ObfuscateAdmissionMutation.Field()
     delete_all_interviews = DeleteAllInterviewsMutation.Field()
+    set_self_as_interviewer = SetSelfAsInterviewerMutation.Field()
+    remove_self_as_interviewer = RemoveSelfAsInterviewerMutation.Field()
+    toggle_applicant_will_be_admitted = ToggleApplicantWillBeAdmittedMutation.Field()
+    close_admission = CloseAdmissionMutation.Field()
+
+    add_internal_group_position_priority = (
+        AddInternalGroupPositionPriorityMutation.Field()
+    )
+    delete_internal_group_position_priority = (
+        DeleteInternalGroupPositionPriority.Field()
+    )

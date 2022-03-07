@@ -215,5 +215,14 @@ class TestInterviewGenerationEdgeCases(TestCase):
         self,
     ):
         generate_interviews_from_schedule(self.schedule)
-        print(Interview.objects.all())
         self.assertEqual(Interview.objects.all().count(), 14)
+
+
+class TestCloseAdmission(TestCase):
+    def setUp(self) -> None:
+        pass
+
+    def test__interview_location_not_available_for_first_half__does_not_create_early_interview(
+        self,
+    ):
+        pass
