@@ -49,7 +49,7 @@ class Command(BaseCommand):
             self.generate_interview_schedule()
 
         except Exception as e:
-            self.stdout.write(self.style.ERROR(f"Something went wrong"))
+            self.stdout.write(self.style.ERROR(f"{e}"))
             raise CommandError(e)
         self.stdout.write(self.style.SUCCESS("Active admission has been generated"))
 
@@ -210,8 +210,14 @@ class Command(BaseCommand):
             applicant.interview = random_interview
             applicant.save()
 
+        self.stdout.write(
+            self.style.SUCCESS("Adding random interviewers to interviews")
+        )
         number_of_interviewers_choices = [3, 4, 5]
         for applicant in finished_with_interview_applicants:
+            self.stdout.write(
+                self.style.SUCCESS(f"Generating interview data for {applicant}")
+            )
             random_interview = (
                 Interview.objects.all()
                 .filter(applicant__isnull=True, interview_start__gte=datetime_today)
@@ -252,3 +258,21 @@ class Command(BaseCommand):
                 )
             applicant.save()
             random_interview.save()
+
+        self.stdout.write(self.style.SUCCESS("Giving all applicants random priorities"))
+        # Now we give the applicants random priorities
+        number_of_priorities_choices = [2, 3]
+        for applicant in Applicant.objects.all():
+            number_of_priorities = chose_random_element(number_of_priorities_choices)
+            positions = (
+                InternalGroupPosition.objects.all()
+                .filter(available_externally=True)
+                .order_by("?")[0:number_of_priorities]
+            )
+            self.stdout.write(
+                self.style.SUCCESS(
+                    f"Adding positions {positions} to {applicant} priorities"
+                )
+            )
+            for position in positions:
+                applicant.add_priority(position)
