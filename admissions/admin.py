@@ -32,6 +32,11 @@ class InterviewBooleanEvaluationAnswerInline(admin.TabularInline):
     extra = 1
 
 
+class InternalGroupPositionPriorityInline(admin.TabularInline):
+    model = InternalGroupPositionPriority
+    extra = 1
+
+
 @admin.register(Interview)
 class InterviewAdmin(admin.ModelAdmin):
     list_display = ("applicant",)
@@ -78,7 +83,7 @@ class AdmissionAdmin(admin.ModelAdmin):
 
 @admin.register(Applicant)
 class ApplicantAdmin(admin.ModelAdmin):
-    pass
+    inlines = [InternalGroupPositionPriorityInline]
 
 
 @admin.register(InternalGroupPositionPriority)
