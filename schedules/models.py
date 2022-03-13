@@ -1,3 +1,4 @@
+from enum import Enum
 from django.db import models
 from model_utils import Choices
 from model_utils.fields import StatusField
@@ -6,6 +7,79 @@ from django.utils.translation import ugettext_lazy as _
 
 from organization.models import InternalGroup
 from users.models import User
+
+
+class ShiftEnum(Enum):
+    LYCHE = "Lyche"
+    EDGAR = "Edgar"
+    BODEGA = "Bodega"
+
+    @classmethod
+    def choices(cls):
+        return tuple((entry.name, entry.value) for entry in cls)
+
+
+# TODO: get this from somewhere else
+roles = [(1, "KAFEANSVARLIG"), (2, "SPRITSJEF"), (3, "BARISTA"), (4, "BARTENDER")]
+
+
+# TODO: rename to Shift when i Nuke the rest
+class NewShift(models.Model):
+    name = models.CharField(max_length=69, unique=True)
+    description = models.TextField(null=True)
+    location = models.CharField(choices=ShiftEnum.choices(), max_length=69)
+    start = models.DateTimeField(null=False, blank=False)
+    end = models.DateTimeField(null=False, blank=False)
+    attendance_time = models.TimeField()
+    # debrief = models.TextField()
+    contact_person = models.ForeignKey(User, on_delete=models.CASCADE)
+
+    # { "BARISTA":1 }, God i hate M2M fields for 2 values because tuples doesn't exists, but performance :)
+    required_shifts = models.JSONField(default=dict)
+
+    @property
+    def is_filled(self):
+        filled_shifts = self.filled_by.all()
+        counter = {}
+        for shift in filled_shifts:
+            # Count the current amount of each role
+            counter[shift.role] = counter.get(shift.role, 0) + 1
+        for key, val in counter:
+            # If a single role is not filled, return false
+            if self.required_shifts[key] > val:
+                return False
+        return True
+
+
+class UserShift(models.Model):
+    # TODO: Retrieve roles from owned role
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="shifts")
+    shift = models.ForeignKey(NewShift, on_delete=models.CASCADE, related_name="filled_by")
+
+    role = models.CharField(choices=roles, max_length=69)
+
+
+class ShiftTrade(models.Model):
+    shift = models.ForeignKey(UserShift, on_delete=models.CASCADE, related_name="trades")
+    verified_by = models.ForeignKey(User, null=True, on_delete=models.SET_NULL)
+
+    TRADE_STATUS_CHOICES = [
+        ("O", "Offered"),
+        ("R", "Requested"),
+        ("C", "Complete")
+    ]
+    status = models.CharField(choices=TRADE_STATUS_CHOICES)
+    offeror = models.ForeignKey(User, on_delete=models.CASCADE)
+    taker = models.ForeignKey(User, null=True, on_delete=models.SET_NULL)
+
+    """
+    TODO: Make a fancy method for changing status.
+    
+    1. When a trade is verified, change the user id for the related shift to the taker's id.
+    2. Make a list of all people who are requesting a shift?
+    3. more
+    """
 
 
 class Schedule(models.Model):
@@ -375,9 +449,9 @@ class ShiftTrade(models.Model):
     @property
     def valid(self):
         return (
-            self.signed_off_by is not None
-            and self.taker is not None
-            and self.shift_taker is not None
+                self.signed_off_by is not None
+                and self.taker is not None
+                and self.shift_taker is not None
         )
 
     @property
