@@ -133,21 +133,21 @@ class ScheduleSlotTypeQuery(graphene.ObjectType):
 class ShiftQuery(graphene.ObjectType):
     shift = Node.Field(ShiftNode)
     all_shifts = DjangoConnectionField(ShiftNode)
-    my_shifts = graphene.NonNull(graphene.List(graphene.NonNull(ShiftNode)))
 
     def resolve_all_shifts(self, info, *args, **kwargs):
         return Shift.objects.all()
-    
-    def resolve_my_shifts(self, info, *args, **kwargs):
-        return Shift.objects.filter(user=info.context.user)
 
 
 class ShiftSlotQuery(graphene.ObjectType):
     shift_slot = Node.Field(ShiftSlotNode)
     all_shift_slots = DjangoConnectionField(ShiftSlotNode)
+    my_shift_slots = graphene.NonNull(graphene.List(graphene.NonNull(ShiftSlotNode)))
 
     def resolve_all_shift_slots(self, info, *args, **kwargs):
-        return ShiftSlot.objects.all()()
+        return ShiftSlot.objects.all()
+
+    def resolve_my_shift_slots(self, info, *args, **kwargs):
+        return ShiftSlot.objects.filter(filled_shift__user=info.context.user)
 
 
 class ShiftTradeQuery(graphene.ObjectType):
