@@ -47,3 +47,4 @@ class InternalGroupStatus(models.TextChoices):
     )
     RESERVE = ("reserve", "Reserve")
     SHOULD_BE_ADMITTED = ("should-be-admitted", "Should be admitted")
+    PASS_AROUND = ("pass-around", "Pass around")

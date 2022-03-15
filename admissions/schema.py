@@ -4,11 +4,13 @@ from graphene import Node
 from graphql_relay import to_global_id
 from graphene_django import DjangoObjectType
 from django.db import IntegrityError
+from enum import Enum
 from graphene_django_cud.mutations import (
     DjangoPatchMutation,
     DjangoDeleteMutation,
     DjangoCreateMutation,
 )
+from django.conf import settings
 from common.util import date_time_combiner
 from django.db.models import Q
 from graphene_django.filter import DjangoFilterConnectionField
@@ -19,6 +21,7 @@ from admissions.utils import (
     group_interviews_by_date,
     create_interview_slots,
     mass_send_welcome_to_interview_email,
+    internal_group_applicant_data,
 )
 from django.core.exceptions import SuspiciousOperation
 from django.utils import timezone
@@ -142,6 +145,12 @@ class ApplicantNode(DjangoObjectType):
         ).first()
         return [first_priority, second_priority, third_priority]
 
+    def resolve_image(self: Applicant, info, **kwargs):
+        if self.image:
+            return f"{settings.HOST_URL}{self.image.url}"
+        else:
+            return None
+
     @classmethod
     def get_node(cls, info, id):
         return Applicant.objects.get(pk=id)
@@ -248,6 +257,11 @@ class BooleanEvaluationAnswer(graphene.ObjectType):
     answer = graphene.Boolean()
 
 
+class AdditionalEvaluationAnswer(graphene.ObjectType):
+    statement = graphene.String()
+    answer = graphene.String()  # Should be an enum
+
+
 class InterviewNode(DjangoObjectType):
     class Meta:
         model = Interview
@@ -255,6 +269,7 @@ class InterviewNode(DjangoObjectType):
 
     interviewers = graphene.List(UserNode)
     boolean_evaluation_answers = graphene.List(BooleanEvaluationAnswer)
+    additional_evaluation_answers = graphene.List(AdditionalEvaluationAnswer)
 
     def resolve_boolean_evaluation_answers(self: Interview, info, *args, **kwargs):
         evaluations = []
@@ -264,6 +279,18 @@ class InterviewNode(DjangoObjectType):
             evaluations.append(
                 BooleanEvaluationAnswer(
                     statement=evaluation.statement.statement, answer=evaluation.value
+                )
+            )
+        return evaluations
+
+    def resolve_additional_evaluation_answers(self: Interview, info, *args, **kwargs):
+        evaluations = []
+        for evaluation in self.additional_evaluation_answers.all().order_by(
+            "statement__order"
+        ):
+            evaluations.append(
+                AdditionalEvaluationAnswer(
+                    statement=evaluation.statement, answer=evaluation.answer
                 )
             )
         return evaluations
@@ -278,14 +305,31 @@ class InterviewNode(DjangoObjectType):
 
 class InternalGroupApplicantsData(graphene.ObjectType):
     """
-    A way to encapsulate the applicants for a given internal group
-        > Resolves all applicants for this group split into their priorities
+    A way to encapsulate the applicants for a given internal group.
     """
 
-    internal_group_name = graphene.String()
+    internal_group = graphene.Field(InternalGroupNode)
+    # This should probably be InternalGroupPositionPriority objects instead
+    # and then we access the applicant data from there instead
     first_priorities = graphene.List(ApplicantNode)
     second_priorities = graphene.List(ApplicantNode)
     third_priorities = graphene.List(ApplicantNode)
+
+    positions_to_fill = graphene.Int()
+    # How far they have come in their process
+    current_progress = graphene.Int()
+
+
+class InternalGroupDiscussionData(graphene.ObjectType):
+    internal_group = graphene.Field(InternalGroupNode)
+    current_applicant_under_discussion = graphene.Field(ApplicantNode)
+
+    # All applicants having this group as their first pick
+    first_picks = graphene.List(InternalGroupPositionPriorityNode)
+    # All applicants which are being sent from other internal groups
+    available_second_picks = graphene.List(InternalGroupPositionPriorityNode)
+    available_third_picks = graphene.List(InternalGroupPositionPriorityNode)
+    processed_applicants = graphene.List(InternalGroupPositionPriorityNode)
 
 
 class ApplicantQuery(graphene.ObjectType):
@@ -295,7 +339,10 @@ class ApplicantQuery(graphene.ObjectType):
     internal_group_applicants_data = graphene.Field(
         InternalGroupApplicantsData, internal_group=graphene.ID()
     )
-
+    all_internal_group_applicant_data = graphene.List(InternalGroupApplicantsData)
+    internal_group_discussion_data = graphene.Field(
+        InternalGroupDiscussionData, internal_group_id=graphene.ID(required=True)
+    )
     valid_applicants = graphene.List(ApplicantNode)
 
     def resolve_valid_applicants(self, info, *args, **kwargs):
@@ -320,35 +367,81 @@ class ApplicantQuery(graphene.ObjectType):
         if not internal_group:
             return None
 
-        first_priorities = (
-            Applicant.objects.all()
-            .filter(
-                priorities__applicant_priority=Priority.FIRST,
-                priorities__internal_group_position__internal_group=internal_group,
-            )
-            .order_by("interview__interview_start")
+        data = internal_group_applicant_data(internal_group)
+        return data
+
+    def resolve_all_internal_group_applicant_data(self, info, *args, **kwargs):
+        admission = Admission.get_active_admission()
+        positions = admission.available_internal_group_positions.all()
+        internal_groups = InternalGroup.objects.filter(positions__in=positions)
+
+        internal_group_data = []
+        for internal_group in internal_groups:
+            data = internal_group_applicant_data(internal_group)
+            internal_group_data.append(data)
+
+        return internal_group_data
+
+    def resolve_internal_group_discussion_data(
+        self, info, internal_group_id, *args, **kwargs
+    ):
+        internal_group_id = disambiguate_id(internal_group_id)
+        internal_group = InternalGroup.objects.filter(id=internal_group_id).first()
+
+        if not internal_group:
+            return None
+
+        # We want to return and filter this instead
+        all_internal_group_priorities = InternalGroupPositionPriority.objects.filter(
+            internal_group_position__internal_group=internal_group,
+            applicant__interview__isnull=False,
+        ).order_by("applicant__first_name")
+
+        # We get everyone who has this internal group as its first pick
+        first_picks = all_internal_group_priorities.filter(
+            applicant_priority=Priority.FIRST, internal_group_priority__isnull=True
+        ).exclude(applicant=internal_group.currently_discussing)
+
+        # Our back burner will be a combination of all second and third picks where their status has been set to
+        # the other group not wanting them or to pass around
+        second_picks = all_internal_group_priorities.filter(
+            applicant_priority=Priority.SECOND,
         )
-        second_priorities = (
-            Applicant.objects.all()
-            .filter(
-                priorities__applicant_priority=Priority.SECOND,
-                priorities__internal_group_position__internal_group=internal_group,
-            )
-            .order_by("interview__interview_start")
+
+        # Here we get the queryset of all users that have this internal group as their second choice but has also
+        # been rejected by their first choice
+        available_second_picks = second_picks.filter(
+            applicant__priorities__applicant_priority=Priority.FIRST,
+            applicant__priorities__internal_group_priority=InternalGroupStatus.DO_NOT_WANT,
+            internal_group_priority__isnull=True,
         )
-        third_priorities = (
-            Applicant.objects.all()
-            .filter(
-                priorities__applicant_priority=Priority.THIRD,
-                priorities__internal_group_position__internal_group=internal_group,
-            )
-            .order_by("interview__interview_start")
+
+        third_picks = all_internal_group_priorities.filter(
+            applicant_priority=Priority.THIRD
         )
-        return InternalGroupApplicantsData(
-            internal_group_name=internal_group.name,
-            first_priorities=first_priorities,
-            second_priorities=second_priorities,
-            third_priorities=third_priorities,
+        # Here we get the queryset of all users that have this internal group as their second choice but has also
+        # been rejected by their first and second choice. Hence the double filter chaining
+        available_third_picks = third_picks.filter(
+            applicant__priorities__applicant_priority=Priority.FIRST,
+            applicant__priorities__internal_group_priority=InternalGroupStatus.DO_NOT_WANT,
+        ).filter(
+            applicant__priorities__applicant_priority=Priority.SECOND,
+            applicant__priorities__internal_group_priority=InternalGroupStatus.DO_NOT_WANT,
+            internal_group_priority__isnull=True,
+        )
+        processed_applicants = all_internal_group_priorities.filter(
+            internal_group_priority__isnull=False
+        )
+
+        currently_discussing = internal_group.currently_discussing
+
+        return InternalGroupDiscussionData(
+            internal_group=internal_group,
+            first_picks=first_picks,
+            available_second_picks=available_second_picks,
+            available_third_picks=available_third_picks,
+            processed_applicants=processed_applicants,
+            current_applicant_under_discussion=currently_discussing,
         )
 
 
@@ -364,10 +457,6 @@ class ResendApplicantTokenMutation(graphene.Mutation):
             ok = resend_auth_token_email(applicant)
             return ResendApplicantTokenMutation(ok=ok)
         return ResendApplicantTokenMutation(ok=False)
-
-
-class ApplicationData(graphene.ObjectType):
-    email = graphene.String()
 
 
 class CreateApplicationsMutation(graphene.Mutation):
@@ -692,6 +781,11 @@ class AddInternalGroupPositionPriorityMutation(graphene.Mutation):
 
         applicant.add_priority(internal_group_position)
         return AddInternalGroupPositionPriorityMutation(success=True)
+
+
+class PatchInternalGroupPositionPriority(DjangoPatchMutation):
+    class Meta:
+        model = InternalGroupPositionPriority
 
 
 class DeleteInternalGroupPositionPriority(DjangoDeleteMutation):
@@ -1096,6 +1190,7 @@ class AdmissionsMutations(graphene.ObjectType):
     add_internal_group_position_priority = (
         AddInternalGroupPositionPriorityMutation.Field()
     )
+    patch_internal_group_position_priority = PatchInternalGroupPositionPriority.Field()
     delete_internal_group_position_priority = (
         DeleteInternalGroupPositionPriority.Field()
     )

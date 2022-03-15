@@ -31,6 +31,12 @@ class InternalGroup(models.Model):
     description = models.TextField(max_length=2048, blank=True, null=True)
     group_image = models.ImageField(upload_to="internalgroups", null=True, blank=True)
 
+    # This field is used during admission when internal groups are discussing candidates
+    # Turns out this doesnt make sense have this after all. Delete this and refactor frontend view
+    currently_discussing = models.OneToOneField(
+        "admissions.Applicant", null=True, blank=True, on_delete=models.SET_NULL
+    )
+
     @property
     def active_members(self):
         """

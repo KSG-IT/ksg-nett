@@ -11,6 +11,7 @@ from common.util import (
     parse_datetime_to_midnight,
     validate_qs,
 )
+from admissions.consts import InternalGroupStatus, Priority
 
 
 def get_available_interview_locations(datetime_from=None, datetime_to=None):
@@ -361,3 +362,52 @@ def create_interview_slots(interview_days):
         parsed_interviews.append(interview_day)
 
     return parsed_interviews
+
+
+def internal_group_applicant_data(internal_group):
+    """
+    Accepts an internal group and retrieves its admission data
+    """
+    from admissions.schema import InternalGroupApplicantsData
+
+    Applicant = apps.get_model(app_label="admissions", model_name="Applicant")
+    Admission = apps.get_model(app_label="admissions", model_name="Admission")
+    InternalGroupPositionPriority = apps.get_model(
+        app_label="admissions", model_name="InternalGroupPositionPriority"
+    )
+
+    first_priorities = Applicant.objects.filter(
+        priorities__applicant_priority=Priority.FIRST,
+        priorities__internal_group_position__internal_group=internal_group,
+    ).order_by("interview__interview_start")
+    second_priorities = Applicant.objects.filter(
+        priorities__applicant_priority=Priority.SECOND,
+        priorities__internal_group_position__internal_group=internal_group,
+    ).order_by("interview__interview_start")
+    third_priorities = Applicant.objects.filter(
+        priorities__applicant_priority=Priority.THIRD,
+        priorities__internal_group_position__internal_group=internal_group,
+    ).order_by("interview__interview_start")
+
+    all_priorities = InternalGroupPositionPriority.objects.filter(
+        internal_group_position__internal_group=internal_group
+    )
+
+    want_count = all_priorities.filter(
+        internal_group_priority=InternalGroupStatus.WANT
+    ).count()
+
+    admission = Admission.get_active_admission()
+    data = admission.available_internal_group_positions_data.filter(
+        internal_group_position__internal_group=internal_group
+    ).first()
+    positions_to_fill = data.available_positions
+
+    return InternalGroupApplicantsData(
+        internal_group=internal_group,
+        first_priorities=first_priorities,
+        second_priorities=second_priorities,
+        third_priorities=third_priorities,
+        current_progress=want_count,
+        positions_to_fill=positions_to_fill,
+    )

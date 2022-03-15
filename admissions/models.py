@@ -145,7 +145,7 @@ class InterviewAdditionalEvaluationAnswer(models.Model):
     interview = models.ForeignKey(
         "admissions.Interview",
         on_delete=models.CASCADE,
-        related_name="additional_evaluation_statement_answers",
+        related_name="additional_evaluation_answers",
     )
     statement = models.ForeignKey(
         "admissions.InterviewAdditionalEvaluationStatement", on_delete=models.CASCADE
@@ -242,6 +242,9 @@ class Applicant(models.Model):
 
     wants_digital_interview = models.BooleanField(default=False)
     will_be_admitted = models.BooleanField(default=False)
+
+    discussion_start = models.DateTimeField(null=True, blank=True)
+    discussion_end = models.DateTimeField(null=True, blank=True)
 
     def image_dir(self, filename):
         # We want to save all objects in under the admission
@@ -346,7 +349,6 @@ class InternalGroupPositionPriority(models.Model):
         max_length=24,
         blank=True,
         null=True,
-        default="",
     )
 
     def __str__(self):
