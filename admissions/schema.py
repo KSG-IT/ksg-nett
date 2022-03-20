@@ -329,6 +329,7 @@ class InternalGroupDiscussionData(graphene.ObjectType):
     # All applicants which are being sent from other internal groups
     available_second_picks = graphene.List(InternalGroupPositionPriorityNode)
     available_third_picks = graphene.List(InternalGroupPositionPriorityNode)
+    available_picks = graphene.List(InternalGroupPositionPriorityNode)
     processed_applicants = graphene.List(InternalGroupPositionPriorityNode)
 
 
@@ -385,6 +386,11 @@ class ApplicantQuery(graphene.ObjectType):
     def resolve_internal_group_discussion_data(
         self, info, internal_group_id, *args, **kwargs
     ):
+        """
+        We want to rework this to work with a table view instead. It probably still makes sense to consider
+        processed applicants are those which have the status WANT and DO_NOT_WANT. Remaining states
+        are PASS_AROUND, RESERVE and SHOULD_BE_ADMITTED.
+        """
         internal_group_id = disambiguate_id(internal_group_id)
         internal_group = InternalGroup.objects.filter(id=internal_group_id).first()
 
@@ -399,7 +405,13 @@ class ApplicantQuery(graphene.ObjectType):
 
         # We get everyone who has this internal group as its first pick
         first_picks = all_internal_group_priorities.filter(
-            applicant_priority=Priority.FIRST, internal_group_priority__isnull=True
+            applicant_priority=Priority.FIRST,
+            internal_group_priority__in=[
+                InternalGroupStatus.PASS_AROUND,
+                InternalGroupStatus.RESERVE,
+                InternalGroupStatus.SHOULD_BE_ADMITTED,
+                None,
+            ],
         ).exclude(applicant=internal_group.currently_discussing)
 
         # Our back burner will be a combination of all second and third picks where their status has been set to
@@ -412,8 +424,16 @@ class ApplicantQuery(graphene.ObjectType):
         # been rejected by their first choice
         available_second_picks = second_picks.filter(
             applicant__priorities__applicant_priority=Priority.FIRST,
-            applicant__priorities__internal_group_priority=InternalGroupStatus.DO_NOT_WANT,
-            internal_group_priority__isnull=True,
+            applicant__priorities__internal_group_priority__in=[
+                InternalGroupStatus.DO_NOT_WANT,
+                InternalGroupStatus.PASS_AROUND,
+            ],
+            internal_group_priority__in=[
+                InternalGroupStatus.PASS_AROUND,
+                InternalGroupStatus.RESERVE,
+                InternalGroupStatus.SHOULD_BE_ADMITTED,
+                None,
+            ],
         )
 
         third_picks = all_internal_group_priorities.filter(
@@ -421,26 +441,51 @@ class ApplicantQuery(graphene.ObjectType):
         )
         # Here we get the queryset of all users that have this internal group as their second choice but has also
         # been rejected by their first and second choice. Hence the double filter chaining
-        available_third_picks = third_picks.filter(
-            applicant__priorities__applicant_priority=Priority.FIRST,
-            applicant__priorities__internal_group_priority=InternalGroupStatus.DO_NOT_WANT,
-        ).filter(
-            applicant__priorities__applicant_priority=Priority.SECOND,
-            applicant__priorities__internal_group_priority=InternalGroupStatus.DO_NOT_WANT,
-            internal_group_priority__isnull=True,
+        available_third_picks = (
+            third_picks.filter(
+                applicant__priorities__applicant_priority=Priority.FIRST,
+                applicant__priorities__internal_group_priority__in=[
+                    InternalGroupStatus.DO_NOT_WANT,
+                    InternalGroupStatus.PASS_AROUND,
+                ],
+            )
+            .filter(
+                applicant__priorities__applicant_priority=Priority.SECOND,
+                applicant__priorities__internal_group_priority__in=[
+                    InternalGroupStatus.DO_NOT_WANT,
+                    InternalGroupStatus.PASS_AROUND,
+                ],
+            )
+            .filter(
+                Q(internal_group_priority=None)
+                | ~Q(
+                    internal_group_priority__in=[
+                        InternalGroupStatus.WANT,
+                        InternalGroupStatus.DO_NOT_WANT,
+                    ]
+                )
+            )
         )
+
         processed_applicants = all_internal_group_priorities.filter(
-            internal_group_priority__isnull=False
+            internal_group_priority__in=[
+                InternalGroupStatus.WANT,
+                InternalGroupStatus.DO_NOT_WANT,
+            ]
         )
+
+        available_picks = first_picks | available_second_picks | available_third_picks
 
         currently_discussing = internal_group.currently_discussing
 
         return InternalGroupDiscussionData(
             internal_group=internal_group,
+            available_picks=available_picks.distinct(),
+            processed_applicants=processed_applicants,
+            # All these below are probably obsolete
             first_picks=first_picks,
             available_second_picks=available_second_picks,
             available_third_picks=available_third_picks,
-            processed_applicants=processed_applicants,
             current_applicant_under_discussion=currently_discussing,
         )
 
@@ -839,6 +884,24 @@ class DeleteAdmissionMutation(DjangoDeleteMutation):
         model = Admission
 
 
+class LockAdmissionMutation(graphene.Mutation):
+    # Final stage before we decide who is admitted into KSG.
+    # Requires that all applicants have been evaluated in som manner
+    admission = graphene.Field(AdmissionNode)
+
+    def mutate(self, info, *args, **kwargs):
+        admission = Admission.get_active_admission()
+        unevaluated_applicants = admission.applicants.filter(
+            priorities__internal_group_priority__isnull=True
+        )
+        if unevaluated_applicants:
+            raise Exception("All applicants have not been considered")
+
+        admission.status = AdmissionStatus.LOCKED
+        admission.save()
+        return LockAdmissionMutation(admission=admission)
+
+
 class CloseAdmissionMutation(graphene.Mutation):
     failed_user_generation = graphene.List(ApplicantNode)
 
@@ -1185,6 +1248,7 @@ class AdmissionsMutations(graphene.ObjectType):
     set_self_as_interviewer = SetSelfAsInterviewerMutation.Field()
     remove_self_as_interviewer = RemoveSelfAsInterviewerMutation.Field()
     toggle_applicant_will_be_admitted = ToggleApplicantWillBeAdmittedMutation.Field()
+    lock_admission = LockAdmissionMutation.Field()
     close_admission = CloseAdmissionMutation.Field()
 
     add_internal_group_position_priority = (

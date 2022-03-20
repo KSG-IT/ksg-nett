@@ -12,9 +12,9 @@ class AdmissionStatus(models.TextChoices):
     INTERVIEW_OVERVIEW = ("interview-overview", "Interview overview")
     OPEN = ("open", "Open")
     IN_SESSION = ("in-session", "In session")  # Fordelingsmøtet
-    FINALIZATION = (
-        "finalization",
-        "Finalization",
+    LOCKED = (
+        "locked",
+        "Locked",
     )  # Reviewing last step before admitting everyone
     CLOSED = ("closed", "Closed")
 
