@@ -271,7 +271,6 @@ class Applicant(models.Model):
     @classmethod
     def create_or_update_application(cls, email):
         """Can extend this method in the future to handle adding applications to new positions"""
-        # We can consider changing this to send the email with bcc and then the link kan be requested
         current_admission = Admission.get_or_create_current_admission()
         auth_token = token_urlsafe(32)
         cls.objects.create(email=email, admission=current_admission, token=auth_token)
