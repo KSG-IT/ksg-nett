@@ -405,14 +405,10 @@ class ApplicantQuery(graphene.ObjectType):
 
         # We get everyone who has this internal group as its first pick
         first_picks = all_internal_group_priorities.filter(
+            ~Q(internal_group_priority=InternalGroupStatus.WANT),
+            ~Q(internal_group_priority=InternalGroupStatus.DO_NOT_WANT),
             applicant_priority=Priority.FIRST,
-            internal_group_priority__in=[
-                InternalGroupStatus.PASS_AROUND,
-                InternalGroupStatus.RESERVE,
-                InternalGroupStatus.SHOULD_BE_ADMITTED,
-                None,
-            ],
-        ).exclude(applicant=internal_group.currently_discussing)
+        )
 
         # Our back burner will be a combination of all second and third picks where their status has been set to
         # the other group not wanting them or to pass around
@@ -423,17 +419,12 @@ class ApplicantQuery(graphene.ObjectType):
         # Here we get the queryset of all users that have this internal group as their second choice but has also
         # been rejected by their first choice
         available_second_picks = second_picks.filter(
+            Q(
+                applicant__priorities__internal_group_priority=InternalGroupStatus.DO_NOT_WANT
+            ),  # Should this be expanded?
+            ~Q(internal_group_priority=InternalGroupStatus.WANT),
+            ~Q(internal_group_priority=InternalGroupStatus.DO_NOT_WANT),
             applicant__priorities__applicant_priority=Priority.FIRST,
-            applicant__priorities__internal_group_priority__in=[
-                InternalGroupStatus.DO_NOT_WANT,
-                InternalGroupStatus.PASS_AROUND,
-            ],
-            internal_group_priority__in=[
-                InternalGroupStatus.PASS_AROUND,
-                InternalGroupStatus.RESERVE,
-                InternalGroupStatus.SHOULD_BE_ADMITTED,
-                None,
-            ],
         )
 
         third_picks = all_internal_group_priorities.filter(
@@ -441,30 +432,22 @@ class ApplicantQuery(graphene.ObjectType):
         )
         # Here we get the queryset of all users that have this internal group as their second choice but has also
         # been rejected by their first and second choice. Hence the double filter chaining
-        available_third_picks = (
-            third_picks.filter(
-                applicant__priorities__applicant_priority=Priority.FIRST,
-                applicant__priorities__internal_group_priority__in=[
-                    InternalGroupStatus.DO_NOT_WANT,
-                    InternalGroupStatus.PASS_AROUND,
-                ],
-            )
-            .filter(
-                applicant__priorities__applicant_priority=Priority.SECOND,
-                applicant__priorities__internal_group_priority__in=[
-                    InternalGroupStatus.DO_NOT_WANT,
-                    InternalGroupStatus.PASS_AROUND,
-                ],
-            )
-            .filter(
-                Q(internal_group_priority=None)
-                | ~Q(
-                    internal_group_priority__in=[
-                        InternalGroupStatus.WANT,
-                        InternalGroupStatus.DO_NOT_WANT,
-                    ]
-                )
-            )
+        available_third_picks = third_picks.filter(
+            Q(
+                applicant__priorities__internal_group_priority=InternalGroupStatus.DO_NOT_WANT
+            ),
+            # Should this be expanded?
+            ~Q(internal_group_priority=InternalGroupStatus.WANT),
+            ~Q(internal_group_priority=InternalGroupStatus.DO_NOT_WANT),
+            applicant__priorities__applicant_priority=Priority.FIRST,
+        ).filter(
+            Q(
+                applicant__priorities__internal_group_priority=InternalGroupStatus.DO_NOT_WANT
+            ),
+            # Should this be expanded?
+            ~Q(internal_group_priority=InternalGroupStatus.WANT),
+            ~Q(internal_group_priority=InternalGroupStatus.DO_NOT_WANT),
+            applicant__priorities__applicant_priority=Priority.SECOND,
         )
 
         processed_applicants = all_internal_group_priorities.filter(
