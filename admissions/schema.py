@@ -390,6 +390,9 @@ class ApplicantQuery(graphene.ObjectType):
         We want to rework this to work with a table view instead. It probably still makes sense to consider
         processed applicants are those which have the status WANT and DO_NOT_WANT. Remaining states
         are PASS_AROUND, RESERVE and SHOULD_BE_ADMITTED.
+
+        Missing data:
+            > Some way to handle free-for-all applicants
         """
         internal_group_id = disambiguate_id(internal_group_id)
         internal_group = InternalGroup.objects.filter(id=internal_group_id).first()
@@ -410,8 +413,6 @@ class ApplicantQuery(graphene.ObjectType):
             applicant_priority=Priority.FIRST,
         )
 
-        # Our back burner will be a combination of all second and third picks where their status has been set to
-        # the other group not wanting them or to pass around
         second_picks = all_internal_group_priorities.filter(
             applicant_priority=Priority.SECOND,
         )
@@ -421,7 +422,7 @@ class ApplicantQuery(graphene.ObjectType):
         available_second_picks = second_picks.filter(
             Q(
                 applicant__priorities__internal_group_priority=InternalGroupStatus.DO_NOT_WANT
-            ),  # Should this be expanded?
+            ),
             ~Q(internal_group_priority=InternalGroupStatus.WANT),
             ~Q(internal_group_priority=InternalGroupStatus.DO_NOT_WANT),
             applicant__priorities__applicant_priority=Priority.FIRST,
@@ -430,13 +431,12 @@ class ApplicantQuery(graphene.ObjectType):
         third_picks = all_internal_group_priorities.filter(
             applicant_priority=Priority.THIRD
         )
-        # Here we get the queryset of all users that have this internal group as their second choice but has also
+        # Here we get the queryset of all users that have this internal group as their third choice but has also
         # been rejected by their first and second choice. Hence the double filter chaining
         available_third_picks = third_picks.filter(
             Q(
                 applicant__priorities__internal_group_priority=InternalGroupStatus.DO_NOT_WANT
             ),
-            # Should this be expanded?
             ~Q(internal_group_priority=InternalGroupStatus.WANT),
             ~Q(internal_group_priority=InternalGroupStatus.DO_NOT_WANT),
             applicant__priorities__applicant_priority=Priority.FIRST,
@@ -444,7 +444,6 @@ class ApplicantQuery(graphene.ObjectType):
             Q(
                 applicant__priorities__internal_group_priority=InternalGroupStatus.DO_NOT_WANT
             ),
-            # Should this be expanded?
             ~Q(internal_group_priority=InternalGroupStatus.WANT),
             ~Q(internal_group_priority=InternalGroupStatus.DO_NOT_WANT),
             applicant__priorities__applicant_priority=Priority.SECOND,
@@ -457,19 +456,13 @@ class ApplicantQuery(graphene.ObjectType):
             ]
         )
 
+        # Merge together all applicants into a single list
         available_picks = first_picks | available_second_picks | available_third_picks
-
-        currently_discussing = internal_group.currently_discussing
 
         return InternalGroupDiscussionData(
             internal_group=internal_group,
             available_picks=available_picks.distinct(),
             processed_applicants=processed_applicants,
-            # All these below are probably obsolete
-            first_picks=first_picks,
-            available_second_picks=available_second_picks,
-            available_third_picks=available_third_picks,
-            current_applicant_under_discussion=currently_discussing,
         )
 
 
