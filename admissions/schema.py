@@ -4,7 +4,6 @@ from graphene import Node
 from graphql_relay import to_global_id
 from graphene_django import DjangoObjectType
 from django.db import IntegrityError
-from enum import Enum
 from graphene_django_cud.mutations import (
     DjangoPatchMutation,
     DjangoDeleteMutation,
@@ -62,12 +61,6 @@ class InternalGroupPositionPriorityNode(DjangoObjectType):
     class Meta:
         model = InternalGroupPositionPriority
         interfaces = (Node,)
-
-    def resolve_internal_group_priority(self, info, *args, **kwargs):
-        # Shady. Should do something else about this
-        if self.internal_group_priority == "":
-            return None
-        return self.internal_group_priority
 
 
 class InterviewLocationAvailabilityNode(DjangoObjectType):
@@ -252,6 +245,14 @@ class AdmissionNode(DjangoObjectType):
         return Admission.objects.get(pk=id)
 
 
+class AdditionalEvaluationAnswerEnum(graphene.Enum):
+    VERY_LITTLE = "VERY"
+    LITTLE = "LITTLE"
+    MEDIUM = "MEDIUM"
+    SOMEWHAT = "SOMEWHAT"
+    VERY = "VERY"
+
+
 class BooleanEvaluationAnswer(graphene.ObjectType):
     statement = graphene.String()
     answer = graphene.Boolean()
@@ -259,7 +260,7 @@ class BooleanEvaluationAnswer(graphene.ObjectType):
 
 class AdditionalEvaluationAnswer(graphene.ObjectType):
     statement = graphene.String()
-    answer = graphene.String()  # Should be an enum
+    answer = AdditionalEvaluationAnswerEnum()
 
 
 class InterviewNode(DjangoObjectType):
