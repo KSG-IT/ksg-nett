@@ -945,19 +945,6 @@ class CloseAdmissionMutation(graphene.Mutation):
         return CloseAdmissionMutation(failed_user_generation=failed_user_generation)
 
 
-# This can probably be deleted
-class ObfuscateAdmissionMutation(graphene.Mutation):
-    ok = graphene.Boolean()
-
-    def mutate(self, info, *args, **kwargs):
-        admission = Admission.get_active_admission()
-        if not admission:
-            return ObfuscateAdmissionMutation(ok=False)
-
-        obfuscate_admission(admission)
-        return ObfuscateAdmissionMutation(ok=True)
-
-
 # === Interview ===
 class GenerateInterviewsMutation(graphene.Mutation):
     ok = graphene.Boolean()
@@ -1213,7 +1200,6 @@ class AdmissionsMutations(graphene.ObjectType):
     re_send_application_token = ResendApplicantTokenMutation.Field()
     generate_interviews = GenerateInterviewsMutation.Field()
     book_interview = BookInterviewMutation.Field()
-    obfuscate_admission = ObfuscateAdmissionMutation.Field()
     delete_all_interviews = DeleteAllInterviewsMutation.Field()
     set_self_as_interviewer = SetSelfAsInterviewerMutation.Field()
     remove_self_as_interviewer = RemoveSelfAsInterviewerMutation.Field()
