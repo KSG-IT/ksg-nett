@@ -1114,6 +1114,13 @@ class CreateInterviewAdditionalEvaluationStatementMutation(DjangoCreateMutation)
         model = InterviewAdditionalEvaluationStatement
         exclude_fields = ("order",)
 
+    @classmethod
+    def before_mutate(cls, root, info, input):
+        count = InterviewAdditionalEvaluationStatement.objects.all().count()
+        increment = count + 1
+        input["order"] = increment
+        return input
+
 
 class PatchInterviewAdditionalEvaluationStatementMutation(DjangoPatchMutation):
     class Meta:
