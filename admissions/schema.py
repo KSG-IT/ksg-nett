@@ -119,7 +119,7 @@ class ApplicantNode(DjangoObjectType):
         interviewer_from_internal_group = interviewers.filter(
             internal_group_position_history__date_ended__isnull=True,
             internal_group_position_history__position__internal_group=internal_group,
-        ).first()  # Should only be one
+        ).first()  # We assume that we have constraint that only allows interviewer from one internal group
 
         if not interviewer_from_internal_group:
             return None
