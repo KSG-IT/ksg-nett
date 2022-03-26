@@ -323,13 +323,6 @@ class InternalGroupApplicantsData(graphene.ObjectType):
 
 class InternalGroupDiscussionData(graphene.ObjectType):
     internal_group = graphene.Field(InternalGroupNode)
-    current_applicant_under_discussion = graphene.Field(ApplicantNode)
-
-    # All applicants having this group as their first pick
-    first_picks = graphene.List(InternalGroupPositionPriorityNode)
-    # All applicants which are being sent from other internal groups
-    available_second_picks = graphene.List(InternalGroupPositionPriorityNode)
-    available_third_picks = graphene.List(InternalGroupPositionPriorityNode)
     available_picks = graphene.List(InternalGroupPositionPriorityNode)
     processed_applicants = graphene.List(InternalGroupPositionPriorityNode)
 
@@ -388,12 +381,12 @@ class ApplicantQuery(graphene.ObjectType):
         self, info, internal_group_id, *args, **kwargs
     ):
         """
-        We want to rework this to work with a table view instead. It probably still makes sense to consider
-        processed applicants are those which have the status WANT and DO_NOT_WANT. Remaining states
-        are PASS_AROUND, RESERVE and SHOULD_BE_ADMITTED.
+        We resolve the data required for an internal group to consider different applicants. This means we try
+        to filter all applicants which are possible for this internal group to evaluate. The internal group
+        will not see an applicant before the applicants other priorities has said they do not want them.
 
-        Missing data:
-            > Some way to handle free-for-all applicants
+        In the future we should probably still resolve these users but instead "disable" them for this group
+        until its their turn to mark the applicant.
         """
         internal_group_id = disambiguate_id(internal_group_id)
         internal_group = InternalGroup.objects.filter(id=internal_group_id).first()
@@ -870,8 +863,8 @@ class LockAdmissionMutation(graphene.Mutation):
         admission = Admission.get_active_admission()
         unevaluated_applicants = admission.applicants.filter(
             priorities__internal_group_priority__isnull=True
-        )
-        if unevaluated_applicants:
+        ).count()
+        if unevaluated_applicants > 0:
             raise Exception("All applicants have not been considered")
 
         admission.status = AdmissionStatus.LOCKED
