@@ -70,10 +70,10 @@ class QuoteManagersTest(TestCase):
         self.unverified_quotes = QuoteFactory.create_batch(4, verified_by=None)
 
     def test_quote_pending_objects__returns_correct_count(self):
-        self.assertEqual(Quote.pending_objects.all().count(), 4)
+        self.assertEqual(Quote.get_pending_quotes().count(), 4)
 
     def test_quote_verified_objects__returns_correct_count(self):
-        self.assertEqual(Quote.verified_objects.all().count(), 2)
+        self.assertEqual(Quote.get_approved_quotes().count(), 2)
 
 
 class QuotePresentationViewsTest(TestCase):
@@ -321,50 +321,6 @@ class QuoteApproveTest(TestCase):
         )
         self.quote.refresh_from_db()
         self.assertEqual(self.quote.verified_by, self.user)
-
-
-class QuoteHighscoreTest(TestCase):
-    def setUp(self):
-        self.quotesH17 = QuoteFactory.create_batch(10, text="This is a quote from H17")
-        for quote in self.quotesH17:
-            quote.created_at = timezone.now().replace(year=2017, month=10, day=15)
-            quote.save()
-        self.quotes_this_semester = QuoteFactory.create_batch(
-            10, text="This is a quote from this semester"
-        )
-
-        # Generates a random set pf votes for each dataset
-        for i in range(len(self.quotes_this_semester)):
-            QuoteVoteFactory.create_batch(5, quote=self.quotesH17[i], value=i / 2)
-
-        for i in range(len(self.quotes_this_semester)):
-            # factory uses same vote value for everything
-            QuoteVoteFactory.create_batch(
-                5, quote=self.quotes_this_semester[i], value=i
-            )
-
-    def test__return_highscore_descending(self):
-        quotes = Quote.highscore_objects.semester_highest_score(timezone.now())
-        flag = True
-        for i in range((len(quotes) - 1)):
-            if quotes[i].sum < quotes[i + 1].sum:
-                flag = False
-        self.assertTrue(flag)
-
-    def test__return_only_from_given_semester(self):
-        quotes = Quote.highscore_objects.semester_highest_score(
-            timezone.now().replace(year=2017, month=10, day=15)
-        )
-        for quote in quotes:
-            self.assertEqual(quote.text, "This is a quote from H17")
-
-    def test__quotes_all_time__returns_descending(self):
-        quotes = Quote.highscore_objects.highest_score_all_time()
-        flag = True
-        for i in range((len(quotes) - 1)):
-            if quotes[i].sum < quotes[i + 1].sum:
-                flag = False
-        self.assertTrue(flag)
 
 
 class QuotePendingViewTest(TestCase):

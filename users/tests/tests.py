@@ -17,7 +17,7 @@ from users.models import UsersHaveMadeOut, User
 from users.tests.factories import UserFactory, UsersHaveMadeOutFactory
 from users.views import user_detail, klinekart
 
-from organization.consts import InternalGroupPositionType
+from organization.consts import InternalGroupPositionMembershipType
 
 
 class UserProfileTest(TestCase):

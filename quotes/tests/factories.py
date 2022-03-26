@@ -14,7 +14,7 @@ class QuoteFactory(DjangoModelFactory):
     class Meta:
         model = Quote
 
-    text = Faker('text')
+    text = Faker("text")
     verified_by = SubFactory(UserFactory)
     reported_by = SubFactory(UserFactory)
 
@@ -30,8 +30,8 @@ class QuoteFactory(DjangoModelFactory):
                 self.tagged.add(user)
         else:
             self.tagged.set(UserFactory.create_batch(2))
-    
-    # created_at = Faker('past_datetime', tzinfo=pytz.timezone(settings.TIME_ZONE))
+
+    created_at = Faker("past_datetime", tzinfo=pytz.timezone(settings.TIME_ZONE))
 
 
 class QuoteVoteFactory(DjangoModelFactory):

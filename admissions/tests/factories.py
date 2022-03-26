@@ -8,6 +8,8 @@ from admissions.models import (
     InterviewLocationAvailability,
     Admission,
 )
+from admissions.consts import ApplicantStatus
+from admissions.tests.consts import APPLICANT_FACTORY_STATUS_CHOICES
 
 
 class AdmissionFactory(factory.django.DjangoModelFactory):
@@ -26,6 +28,7 @@ class ApplicantFactory(factory.django.DjangoModelFactory):
     hometown = factory.Faker("address")
     address = factory.Faker("address")
     date_of_birth = factory.Faker("date")
+    status = factory.fuzzy.FuzzyChoice(APPLICANT_FACTORY_STATUS_CHOICES)
 
 
 class InterviewLocationFactory(factory.django.DjangoModelFactory):
