@@ -5,34 +5,38 @@ from model_utils.fields import StatusField
 from model_utils.models import TimeFramedModel
 from django.utils.translation import ugettext_lazy as _
 
-from organization.models import InternalGroup
+from organization.models import InternalGroup, InternalGroupPosition
 from users.models import User
 
 
-class ShiftEnum(Enum):
-    LYCHE = "Lyche"
-    EDGAR = "Edgar"
-    BODEGA = "Bodega"
+class Schedule(models.Model):
+    """
+    The Schedule model contains the entire schedule for one type of shifts.
+    I.e. all 'Bodega'-shifts have one schedule, all 'Lyche kjøkken'-shifts have one schedule,
+    and so on.
+    """
 
-    @classmethod
-    def choices(cls):
-        return tuple((entry.name, entry.value) for entry in cls)
+    name = models.CharField(max_length=100, unique=True)
 
+    def __str__(self):
+        return "Schedule %s" % self.name
 
-# TODO: get this from somewhere else
-roles = [(1, "KAFEANSVARLIG"), (2, "SPRITSJEF"), (3, "BARISTA"), (4, "BARTENDER")]
+    def __repr__(self):
+        return "Schedule(name=%s)" % self.name
+
+    class Meta:
+        verbose_name_plural = "schedules"
 
 
 # TODO: rename to Shift when i Nuke the rest
-class NewShift(models.Model):
+class Shift(models.Model):
     name = models.CharField(max_length=69, unique=True)
     description = models.TextField(null=True)
-    location = models.CharField(choices=ShiftEnum.choices(), max_length=69)
+    schedule = models.ForeignKey(Schedule, on_delete=models.SET_NULL, null=True)
     start = models.DateTimeField(null=False, blank=False)
     end = models.DateTimeField(null=False, blank=False)
-    attendance_time = models.TimeField()
     # debrief = models.TextField()
-    contact_person = models.ForeignKey(User, on_delete=models.CASCADE)
+    created_by = models.ForeignKey(User, on_delete=models.CASCADE)
 
     # { "BARISTA":1 }, God i hate M2M fields for 2 values because tuples doesn't exists, but performance :)
     required_shifts = models.JSONField(default=dict)
@@ -55,9 +59,9 @@ class UserShift(models.Model):
     # TODO: Retrieve roles from owned role
 
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="shifts")
-    shift = models.ForeignKey(NewShift, on_delete=models.CASCADE, related_name="filled_by")
+    shift = models.ForeignKey(Shift, on_delete=models.CASCADE, related_name="filled_by")
 
-    role = models.CharField(choices=roles, max_length=69)
+    role = models.ForeignKey(InternalGroupPosition, on_delete=models.SET_NULL, null=True)
 
 
 class ShiftTrade(models.Model):
@@ -82,23 +86,7 @@ class ShiftTrade(models.Model):
     """
 
 
-class Schedule(models.Model):
-    """
-    The Schedule model contains the entire schedule for one type of shifts.
-    I.e. all 'Bodega'-shifts have one schedule, all 'Lyche kjøkken'-shifts have one schedule,
-    and so on.
-    """
 
-    name = models.CharField(max_length=100, unique=True)
-
-    def __str__(self):
-        return "Schedule %s" % self.name
-
-    def __repr__(self):
-        return "Schedule(name=%s)" % self.name
-
-    class Meta:
-        verbose_name_plural = "schedules"
 
 
 class ShiftSlotGroup(models.Model):
@@ -228,32 +216,6 @@ class ShiftSlot(models.Model):
 
     class Meta:
         verbose_name_plural = "Shift slots"
-
-
-class Shift(models.Model):
-    """
-    The Shift model represents a shift-slot filled by
-    a person.
-    """
-
-    user = models.ForeignKey(User, null=False, blank=False, on_delete=models.CASCADE)
-
-    slot = models.OneToOneField(
-        ShiftSlot,
-        null=False,
-        blank=False,
-        related_name="filled_shift",
-        on_delete=models.CASCADE,
-    )
-
-    def __str__(self):
-        return "Shift %s taken by %s" % (str(self.slot), self.user.first_name)
-
-    def __repr__(self):
-        return "Shift(slot=%d, user=%s)" % (self.slot.id, self.user.first_name)
-
-    class Meta:
-        verbose_name_plural = "shifts"
 
 
 class ScheduleTemplate(models.Model):
