@@ -1,5 +1,11 @@
 import graphene
-from admissions.schema import AdmissionQuery, ApplicantQuery, AdmissionsMutations
+from admissions.schema import (
+    AdmissionQuery,
+    ApplicantQuery,
+    AdmissionsMutations,
+    InterviewLocationQuery,
+    InterviewQuery,
+)
 from common.schema import DashboardQuery, SidebarQuery
 from users.schema import UserQuery, UserMutations
 from login.schema import LoginMutations, AuthenticationQuery
@@ -43,6 +49,7 @@ from sensors.schema import SensorMeasurementQuery, SensorsMutations
 from summaries.schema import SummaryQuery, SummariesMutations
 from events.schema import EventQuery, EventMutations
 
+
 class Query(
     AdmissionQuery,
     ApplicantQuery,
@@ -61,6 +68,8 @@ class Query(
     InternalGroupQuery,
     InternalGroupPositionQuery,
     InternalGroupPositionMembershipQuery,
+    InterviewQuery,
+    InterviewLocationQuery,
     ShiftQuery,
     ScheduleQuery,
     ShiftSlotQuery,

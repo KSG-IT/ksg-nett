@@ -2,7 +2,6 @@ import random
 
 from factory import Faker, SubFactory, sequence, Sequence
 from factory.django import DjangoModelFactory
-
 from factory.django import FileField
 from users.models import User, UsersHaveMadeOut
 

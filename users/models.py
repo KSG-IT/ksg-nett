@@ -117,10 +117,11 @@ class User(AbstractUser):
 
     @property
     def ksg_status(self):
+        # ToDo Rework this shit. Doesn't make sense
         return (
             self.internal_group_position_history.filter(date_ended__isnull=True)
             .first()
-            .position.type
+            .position
             if self.internal_group_position_history.filter(
                 date_ended__isnull=True
             ).first()

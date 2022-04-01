@@ -2,7 +2,7 @@ from django.db import models
 from django.db.models import Q
 from common.util import get_semester_year_shorthand
 from django.utils import timezone
-from django.core.validators import MinValueValidator
+from django.db.utils import IntegrityError
 from admissions.consts import (
     Priority,
     ApplicantStatus,
@@ -12,8 +12,8 @@ from admissions.consts import (
 from django.utils.translation import ugettext_lazy as _
 from secrets import token_urlsafe
 from os.path import join as osjoin
-from admissions.utils import send_welcome_to_interview_email
-from django.db.utils import DatabaseError
+from organization.models import InternalGroup
+import datetime
 
 
 class AdmissionAvailableInternalGroupPositionData(models.Model):
@@ -25,15 +25,19 @@ class AdmissionAvailableInternalGroupPositionData(models.Model):
     class Meta:
         unique_together = ("admission", "internal_group_position")
 
-    admission = models.ForeignKey("admissions.Admission", on_delete=models.CASCADE)
+    admission = models.ForeignKey(
+        "admissions.Admission",
+        on_delete=models.CASCADE,
+        related_name="available_internal_group_positions_data",
+    )
     internal_group_position = models.ForeignKey(
         "organization.InternalGroupPosition", on_delete=models.CASCADE
     )
-    available_positions = models.IntegerField(validators=[MinValueValidator(1)])
+    available_positions = models.IntegerField()
 
 
 class Admission(models.Model):
-    date = models.DateField(blank=True, null=True)
+    date = models.DateField(blank=True, null=True, default=timezone.now)
     status = models.CharField(
         choices=AdmissionStatus.choices, default=AdmissionStatus.OPEN, max_length=32
     )
@@ -50,6 +54,11 @@ class Admission(models.Model):
     @property
     def number_of_applicants(self):
         return self.applicants.count()
+
+    def internal_groups_accepting_applicants(self):
+        positions = self.available_internal_group_positions.all()
+        internal_groups = InternalGroup.objects.filter(positions__in=positions)
+        return internal_groups.order_by("name")
 
     @classmethod
     def get_or_create_current_admission(cls):
@@ -77,6 +86,7 @@ class InterviewBooleanEvaluation(models.Model):
     """
 
     statement = models.CharField(max_length=64, null=False, blank=False, unique=True)
+    order = models.IntegerField(unique=True)
 
     def __str__(self):
         return self.statement
@@ -86,15 +96,26 @@ class InterviewBooleanEvaluationAnswer(models.Model):
     class Meta:
         unique_together = ("interview", "statement")
 
-    interview = models.ForeignKey("admissions.Interview", on_delete=models.CASCADE)
+    interview = models.ForeignKey(
+        "admissions.Interview",
+        on_delete=models.CASCADE,
+        related_name="boolean_evaluation_answers",
+    )
     statement = models.ForeignKey(
         "admissions.InterviewBooleanEvaluation", on_delete=models.CASCADE
     )
-    value = models.BooleanField(null=False, blank=False)
+    # Nullable because we prepare this before the interview is booked
+    value = models.BooleanField(null=True, blank=True)
 
 
 class InterviewAdditionalEvaluationStatement(models.Model):
+    """
+    An interview question with a range of values stating how true this statment is for this person.
+    An example would be "Is this person energetic?"
+    """
+
     statement = models.CharField(max_length=64, unique=True)
+    order = models.IntegerField(unique=True)
 
     def __str__(self):
         return self.statement
@@ -121,16 +142,18 @@ class InterviewAdditionalEvaluationAnswer(models.Model):
         SOMEWHAT = ("somewhat", _("Somewhat"))
         VERY = ("very", _("Very"))
 
-    interview = models.ForeignKey("admissions.Interview", on_delete=models.CASCADE)
+    interview = models.ForeignKey(
+        "admissions.Interview",
+        on_delete=models.CASCADE,
+        related_name="additional_evaluation_answers",
+    )
     statement = models.ForeignKey(
         "admissions.InterviewAdditionalEvaluationStatement", on_delete=models.CASCADE
     )
+    # Nullable because we prepare this before the interview is booked
     answer = models.CharField(
-        max_length=32, choices=Options.choices, null=False, blank=False
+        max_length=32, choices=Options.choices, null=True, blank=True
     )
-
-    def __str__(self):
-        return self.answer
 
 
 class Interview(models.Model):
@@ -183,7 +206,7 @@ class Interview(models.Model):
         An interview cannot overlap in the same location. Whe therefore make the following checks
         """
         try:
-            inter = Interview.objects.get(
+            Interview.objects.get(
                 # First we check if we are trying to start an interview during another one
                 (
                     Q(interview_end__gt=self.interview_start)
@@ -217,6 +240,12 @@ class Applicant(models.Model):
     address = models.CharField(default="", blank=True, max_length=30)
     hometown = models.CharField(default="", blank=True, max_length=30)
 
+    wants_digital_interview = models.BooleanField(default=False)
+    will_be_admitted = models.BooleanField(default=False)
+
+    discussion_start = models.DateTimeField(null=True, blank=True)
+    discussion_end = models.DateTimeField(null=True, blank=True)
+
     def image_dir(self, filename):
         # We want to save all objects in under the admission
         return osjoin("applicants", str(self.admission.semester), filename)
@@ -232,7 +261,11 @@ class Applicant(models.Model):
     )
 
     interview = models.OneToOneField(
-        Interview, on_delete=models.CASCADE, null=True, blank=True
+        Interview,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="applicant",
     )
 
     @classmethod
@@ -242,7 +275,45 @@ class Applicant(models.Model):
         auth_token = token_urlsafe(32)
         cls.objects.create(email=email, admission=current_admission, token=auth_token)
 
-        return send_welcome_to_interview_email(email, auth_token)
+    @classmethod
+    def valid_applicants(cls):
+        return Applicant.objects.filter(
+            ~Q(priorities__internal_group_priority=InternalGroupStatus.DO_NOT_WANT),
+            status=ApplicantStatus.INTERVIEW_FINISHED,
+        )
+
+    def add_priority(self, position):
+        # In case a priority has been deleted we need to reorder existing ones first
+        priorities = [Priority.FIRST, Priority.SECOND, Priority.THIRD]
+        # Unfiltered priorities can have None values
+        index = self.priorities.count()
+        if index >= 3:
+            raise IntegrityError("Applicant already has three priorities")
+
+        priority = priorities[index]
+        self.priorities.add(
+            InternalGroupPositionPriority.objects.create(
+                applicant=self,
+                internal_group_position=position,
+                applicant_priority=priority,
+            )
+        )
+
+        self.save()
+
+    @property
+    def get_priorities(self):
+        # get_ pre-pending to avoid name conflicts
+        first_priority = self.priorities.filter(
+            applicant_priority=Priority.FIRST
+        ).first()
+        second_priority = self.priorities.filter(
+            applicant_priority=Priority.SECOND
+        ).first()
+        third_priority = self.priorities.filter(
+            applicant_priority=Priority.THIRD
+        ).first()
+        return [first_priority, second_priority, third_priority]
 
     @property
     def get_full_name(self):
@@ -277,7 +348,6 @@ class InternalGroupPositionPriority(models.Model):
         max_length=24,
         blank=True,
         null=True,
-        default="",
     )
 
     def __str__(self):
@@ -302,8 +372,17 @@ class ApplicantUnavailability(models.Model):
 class InterviewScheduleTemplate(models.Model):
     """Default template for generating interviews"""
 
-    interview_period_start = models.DateTimeField(null=False)
-    interview_period_end = models.DateTimeField(null=False)
+    interview_period_start_date = models.DateField(null=False)
+    interview_period_end_date = models.DateField(null=False)
+
+    # The time of the first interview for each day in the interview period
+    default_interview_day_start = models.TimeField(
+        default=datetime.time(hour=12, minute=0)
+    )
+    # The time for the last interview for each day in the interview period
+    default_interview_day_end = models.TimeField(
+        default=datetime.time(hour=18, minute=0)
+    )
     default_interview_duration = models.DurationField(
         default=timezone.timedelta(minutes=30)
     )
@@ -317,6 +396,28 @@ class InterviewScheduleTemplate(models.Model):
 
     def __str__(self):
         return f"Interview schedule template. Generates {self.default_block_size * 2} interviews per location per day"
+
+    @classmethod
+    def get_interview_schedule_template(cls):
+        return cls.objects.all().first()
+
+    @classmethod
+    def get_or_create_interview_schedule_template(cls):
+        schedule = cls.objects.all().first()
+        if not schedule:
+            schedule = cls()
+
+        return schedule
+
+    def save(self, *args, **kwargs):
+        """
+        An interview cannot overlap in the same location. Whe therefore make the following checks
+        """
+        if InterviewScheduleTemplate.objects.all().count() > 0 and self._state.adding:
+            raise IntegrityError(
+                "Only one InterviewScheduleTemplate can exist at a time"
+            )
+        super(InterviewScheduleTemplate, self).save(*args, **kwargs)
 
 
 class InterviewLocation(models.Model):
@@ -335,6 +436,7 @@ class InterviewLocation(models.Model):
 class InterviewLocationAvailability(models.Model):
     """Defines when a location is available to us. A location can have multiple intervals where its available to us"""
 
+    # Should rename to just location. This is redundant
     interview_location = models.ForeignKey(
         InterviewLocation, related_name="availability", on_delete=models.CASCADE
     )
