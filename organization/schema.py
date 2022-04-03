@@ -81,7 +81,7 @@ class CommitteeNode(DjangoObjectType):
 # QUERIES
 class InternalGroupQuery(graphene.ObjectType):
     internal_group = Node.Field(InternalGroupNode)
-    all_internal_groups = DjangoConnectionField(InternalGroupNode)
+    all_internal_groups = graphene.List(InternalGroupNode)
 
     def resolve_all_internal_groups(self, info, *args, **kwargs):
         return InternalGroup.objects.all().order_by("name")
