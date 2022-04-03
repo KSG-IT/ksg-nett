@@ -21,6 +21,7 @@ from schedules.schemas.schema_schedules import ShiftNode
 from organization.models import InternalGroup, InternalGroupPositionMembership
 from graphene_django_cud.util import disambiguate_id
 from organization.schema import InternalGroupPositionMembershipNode
+from organization.graphql import InternalGroupPositionTypeEnum
 
 
 class UserNode(DjangoObjectType):
@@ -82,19 +83,6 @@ class UserNode(DjangoObjectType):
     @classmethod
     def get_node(cls, info, id):
         return User.objects.get(pk=id)
-
-
-class InternalGroupPositionTypeEnum(graphene.Enum):
-    # This should be generated from text choices somehow
-    FUNCTIONARY = "functionary"
-    ACTIVE_FUNCTIONARY_PANG = "active-functionary-pang"
-    OLD_FUNCTIONARY_PANG = "old-functionary-pang"
-    GANG_MEMBER = "gang-member"
-    ACTIVE_GANG_MEMBER_PANG = "active-gang-member-pang"
-    OLD_GANG_MEMBER_PANG = "old-gang-member-pang"
-    INTEREST_GROUP_MEMBER = "interest-group-member"
-    HANGAROUND = "hangaround"
-    TEMPORARY_LEAVE = "temporary-leave"
 
 
 class ManageInternalGroupUserObject(graphene.ObjectType):
