@@ -11,12 +11,16 @@ from django.conf import settings
 from users.models import (
     User,
 )
+from common.util import get_semester_year_shorthand
 from django.db.models.functions import Concat
 from economy.utils import parse_transaction_history
 from economy.schema import BankAccountActivity
 from users.filters import UserFilter
 from graphql_relay import to_global_id
 from schedules.schemas.schema_schedules import ShiftNode
+from organization.models import InternalGroup, InternalGroupPositionMembership
+from graphene_django_cud.util import disambiguate_id
+from organization.schema import InternalGroupPositionMembershipNode
 
 
 class UserNode(DjangoObjectType):
@@ -80,11 +84,81 @@ class UserNode(DjangoObjectType):
         return User.objects.get(pk=id)
 
 
+class InternalGroupPositionTypeEnum(graphene.Enum):
+    # This should be generated from text choices somehow
+    FUNCTIONARY = "functionary"
+    ACTIVE_FUNCTIONARY_PANG = "active-functionary-pang"
+    OLD_FUNCTIONARY_PANG = "old-functionary-pang"
+    GANG_MEMBER = "gang-member"
+    ACTIVE_GANG_MEMBER_PANG = "active-gang-member-pang"
+    OLD_GANG_MEMBER_PANG = "old-gang-member-pang"
+    INTEREST_GROUP_MEMBER = "interest-group-member"
+    HANGAROUND = "hangaround"
+    TEMPORARY_LEAVE = "temporary-leave"
+
+
+class ManageInternalGroupUserObject(graphene.ObjectType):
+    # We return a flattened usertype structure to reduce the data handling overhead on the frontend
+    user_id = graphene.ID()
+    full_name = graphene.String()
+    internal_group_position_membership = graphene.Field(
+        InternalGroupPositionMembershipNode
+    )
+    position_name = graphene.String()
+    internal_group_position_type = InternalGroupPositionTypeEnum()
+    # Signifies the semester this person started having this specific membership
+    date_joined_semester_shorthand = graphene.String()
+
+
 class UserQuery(graphene.ObjectType):
     user = Node.Field(UserNode)
     me = graphene.Field(UserNode)
     all_users = DjangoFilterConnectionField(UserNode, filterset_class=UserFilter)
     all_active_users = DjangoFilterConnectionField(UserNode, filterset_class=UserFilter)
+    manage_users_data = graphene.List(
+        ManageInternalGroupUserObject,
+        active_only=graphene.Boolean(required=True),
+        internal_group_id=graphene.ID(),
+    )
+
+    def resolve_manage_users_data(
+        self, info, active_only, internal_group_id, *args, **kwargs
+    ):
+        django_id = disambiguate_id(internal_group_id)
+        internal_group = InternalGroup.objects.filter(pk=django_id).first()
+
+        if not internal_group:
+            return []
+
+        internal_group_position_memberships = (
+            InternalGroupPositionMembership.objects.filter(
+                position__internal_group=internal_group
+            )
+        ).order_by("user__first_name")
+
+        if active_only:
+            # Additional filtering
+            internal_group_position_memberships = (
+                internal_group_position_memberships.filter(
+                    user__is_active=True, date_ended__isnull=True
+                )
+            )
+
+        membership_list = []
+        for membership in internal_group_position_memberships:
+            membership_list.append(
+                ManageInternalGroupUserObject(
+                    user_id=to_global_id("UserNode", membership.user.id),
+                    full_name=membership.user.get_full_name(),
+                    internal_group_position_membership=membership,
+                    internal_group_position_type=membership.type,
+                    position_name=membership.position.name,
+                    date_joined_semester_shorthand=get_semester_year_shorthand(
+                        membership.date_joined
+                    ),
+                )
+            )
+        return membership_list
 
     def resolve_me(self, info, *args, **kwargs):
         if not hasattr(info.context, "user") or not info.context.user.is_authenticated:
