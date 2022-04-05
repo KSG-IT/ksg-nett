@@ -131,6 +131,18 @@ class UserQuery(graphene.ObjectType):
                     user__is_active=True, date_ended__isnull=True
                 )
             )
+        # We need to get rid of multiple entries of the same user
+        for membership in internal_group_position_memberships.all():
+            user_memberships = internal_group_position_memberships.filter(
+                user=membership.user
+            ).order_by("date_joined")
+            freshest_membership = user_memberships.last()
+            user_memberships = user_memberships.exclude(id=freshest_membership.id)
+            exclude_ids = [membership.id for membership in user_memberships]
+            # Nested exclusion. We prune away the other memberships besides the freshest one
+            internal_group_position_memberships = (
+                internal_group_position_memberships.exclude(id__in=exclude_ids)
+            )
 
         membership_list = []
         for membership in internal_group_position_memberships:
