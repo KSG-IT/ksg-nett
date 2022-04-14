@@ -94,7 +94,7 @@ class InternalGroupQuery(graphene.ObjectType):
 
 class InternalGroupPositionQuery(graphene.ObjectType):
     internal_group_position = Node.Field(InternalGroupPositionNode)
-    all_internal_group_positions = DjangoConnectionField(InternalGroupPositionNode)
+    all_internal_group_positions = graphene.List(InternalGroupPositionNode)
 
     def resolve_all_internal_group_positions(self, info, *args, **kwargs):
         return InternalGroupPosition.objects.all()
