@@ -28,34 +28,34 @@ class InternalGroupPositionMembershipData(graphene.ObjectType):
     users = graphene.List(UserNode)
 
 
-
-
 class InternalGroupNode(DjangoObjectType):
     class Meta:
         model = InternalGroup
-        filter_fields = ['type', 'name']
+        filter_fields = ["type", "name"]
         interfaces = (Node,)
 
     membership_data = graphene.List(InternalGroupPositionMembershipData)
 
     def resolve_membership_data(self: InternalGroup, info, *args, **kwargs):
         positions = self.positions.all()
-        all_users = User.objects.all().filter(internal_group_position_history__position__internal_group=self, internal_group_position_history__date_ended__isnull=True)
+        all_users = User.objects.all().filter(
+            internal_group_position_history__position__internal_group=self,
+            internal_group_position_history__date_ended__isnull=True,
+        )
 
         user_groupings = []
         for position in positions:
             position_grouping_object = InternalGroupPositionMembershipData(
                 internal_group_position_name=position.name,
-                users= all_users.filter(internal_group_position_history__position=position).order_by("first_name") # filter against this position internal_group_position_history__position
-        )
+                users=all_users.filter(
+                    internal_group_position_history__position=position
+                ).order_by(
+                    "first_name"
+                ),  # filter against this position internal_group_position_history__position
+            )
             user_groupings.append(position_grouping_object)
 
         return user_groupings
-
-
-
-
-
 
     @classmethod
     def get_node(cls, info, id):
@@ -73,9 +73,11 @@ class InternalGroupNode(DjangoObjectType):
         else:
             return None
 
+
 class GroupType(graphene.Enum):
     INTERNAL_GROUP = InternalGroup.Type.INTERNAL_GROUP
     INTEREST_GROUP = InternalGroup.Type.INTEREST_GROUP
+
 
 class InternalGroupPositionNode(DjangoObjectType):
     class Meta:
@@ -136,8 +138,6 @@ class InternalGroupQuery(graphene.ObjectType):
         return InternalGroup.objects.filter(type=Type)
 
 
-
-
 class InternalGroupPositionQuery(graphene.ObjectType):
     internal_group_position = Node.Field(InternalGroupPositionNode)
     all_internal_group_positions = DjangoConnectionField(InternalGroupPositionNode)
@@ -154,13 +154,15 @@ class InternalGroupPositionMembershipQuery(graphene.ObjectType):
     all_active_internal_group_position_memberships = DjangoConnectionField(
         InternalGroupPositionMembershipNode
     )
-    internal_group_position_memberships = graphene.List(InternalGroupPositionMembershipNode)
+    internal_group_position_memberships = graphene.List(
+        InternalGroupPositionMembershipNode
+    )
 
     def resolve_all_internal_group_position_memberships(self, info, *args, **kwargs):
         return InternalGroupPositionMembership.objects.all()
 
     def resolve_all_active_internal_group_position_memberships(
-            self, info, *args, **kwargs
+        self, info, *args, **kwargs
     ):
         return InternalGroupPositionMembership.objects.filter(
             date_ended__isnull=True
