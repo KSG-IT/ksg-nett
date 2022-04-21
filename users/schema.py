@@ -124,13 +124,6 @@ class UserQuery(graphene.ObjectType):
             )
         ).order_by("user__first_name")
 
-        if active_only:
-            # Additional filtering
-            internal_group_position_memberships = (
-                internal_group_position_memberships.filter(
-                    user__is_active=True, date_ended__isnull=True
-                )
-            )
         # We need to get rid of multiple entries of the same user
         for membership in internal_group_position_memberships.all():
             user_memberships = internal_group_position_memberships.filter(
@@ -144,6 +137,13 @@ class UserQuery(graphene.ObjectType):
                 internal_group_position_memberships.exclude(id__in=exclude_ids)
             )
 
+        if active_only:
+            # Additional filtering
+            internal_group_position_memberships = (
+                internal_group_position_memberships.filter(
+                    user__is_active=True, date_ended__isnull=True
+                )
+            )
         membership_list = []
         for membership in internal_group_position_memberships:
             membership_list.append(
