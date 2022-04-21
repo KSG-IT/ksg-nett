@@ -69,9 +69,13 @@ class SociBankAccountNode(DjangoObjectType):
         interfaces = (Node,)
 
     deposits = graphene.NonNull(graphene.List(graphene.NonNull(DepositNode)))
+    last_deposits = graphene.NonNull(graphene.List(graphene.NonNull(DepositNode)))
 
     def resolve_deposits(self: SociBankAccount, info, **kwargs):
         return self.deposits.all().order_by("-created_at")
+
+    def resolve_last_deposits(self: SociBankAccount, info, **kwargs):
+        return self.deposits.all().order_by("-created_at")[:10]
 
     @classmethod
     def get_node(cls, info, id):
