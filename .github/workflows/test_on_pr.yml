@@ -1,0 +1,11 @@
+name: Run tests on PRs
+
+on:
+  pull_request:
+    branches:
+      - master
+      - develop
+
+jobs:
+  test:
+    uses: ./.github/workflows/tests.yml
