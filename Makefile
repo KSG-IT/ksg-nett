@@ -14,7 +14,7 @@ migrate:
 	poetry run python manage.py migrate
 
 .PHONY: migrate-cooler
-migrate:
+migrate-cooler:
 	docker run --rm ksg-nett poetry run python manage.py migrate
 
 .PHONY: migrations
