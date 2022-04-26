@@ -20,7 +20,6 @@ from graphql_relay import to_global_id
 from schedules.schemas.schema_schedules import ShiftNode
 from organization.models import InternalGroup, InternalGroupPositionMembership
 from graphene_django_cud.util import disambiguate_id
-from organization.schema import InternalGroupPositionMembershipNode
 from organization.graphql import InternalGroupPositionTypeEnum
 
 
@@ -90,7 +89,7 @@ class ManageInternalGroupUserObject(graphene.ObjectType):
     user_id = graphene.ID()
     full_name = graphene.String()
     internal_group_position_membership = graphene.Field(
-        InternalGroupPositionMembershipNode
+        "organization.schema.InternalGroupPositionMembershipNode"
     )
     position_name = graphene.String()
     internal_group_position_type = InternalGroupPositionTypeEnum()
@@ -124,13 +123,6 @@ class UserQuery(graphene.ObjectType):
             )
         ).order_by("user__first_name")
 
-        if active_only:
-            # Additional filtering
-            internal_group_position_memberships = (
-                internal_group_position_memberships.filter(
-                    user__is_active=True, date_ended__isnull=True
-                )
-            )
         # We need to get rid of multiple entries of the same user
         for membership in internal_group_position_memberships.all():
             user_memberships = internal_group_position_memberships.filter(
@@ -144,6 +136,13 @@ class UserQuery(graphene.ObjectType):
                 internal_group_position_memberships.exclude(id__in=exclude_ids)
             )
 
+        if active_only:
+            # Additional filtering
+            internal_group_position_memberships = (
+                internal_group_position_memberships.filter(
+                    user__is_active=True, date_ended__isnull=True
+                )
+            )
         membership_list = []
         for membership in internal_group_position_memberships:
             membership_list.append(

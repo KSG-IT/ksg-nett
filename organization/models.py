@@ -30,6 +30,7 @@ class InternalGroup(models.Model):
     )
     description = models.TextField(max_length=2048, blank=True, null=True)
     group_image = models.ImageField(upload_to="internalgroups", null=True, blank=True)
+    group_icon = models.ImageField(upload_to="internalgroups", null=True, blank=True)
 
     @property
     def active_members(self):
@@ -48,6 +49,11 @@ class InternalGroup(models.Model):
     def group_image_url(self) -> Optional[str]:
         if self.group_image and hasattr(self.group_image, "url"):
             return self.group_image.url
+        return None
+
+    def group_icon_url(self) -> Optional[str]:
+        if self.group_icon and hasattr(self.group_icon, "url"):
+            return self.group_icon.url
         return None
 
     @property

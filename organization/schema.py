@@ -1,5 +1,4 @@
 import datetime
-
 import graphene
 from graphene import Node
 from graphene_django import DjangoObjectType
@@ -10,6 +9,7 @@ from graphene_django_cud.mutations import (
 )
 from graphene_django import DjangoConnectionField
 
+from ksg_nett import settings
 from organization.models import (
     InternalGroup,
     InternalGroupPosition,
@@ -19,18 +19,58 @@ from organization.models import (
     Committee,
 )
 from graphene_django_cud.util import disambiguate_id
-from users.models import User
 from organization.graphql import InternalGroupPositionTypeEnum
+from users.schema import UserNode
+from users.models import User
+
+
+class InternalGroupPositionMembershipData(graphene.ObjectType):
+    internal_group_position_name = graphene.String()
+    users = graphene.List(UserNode)
 
 
 class InternalGroupNode(DjangoObjectType):
     class Meta:
         model = InternalGroup
+        filter_fields = ["type", "name"]
         interfaces = (Node,)
+
+    membership_data = graphene.List(InternalGroupPositionMembershipData)
+
+    def resolve_membership_data(self: InternalGroup, info, *args, **kwargs):
+        positions = self.positions.all()
+        all_users = User.objects.filter(
+            internal_group_position_history__position__internal_group=self,
+            internal_group_position_history__date_ended__isnull=True,
+        )
+
+        user_groupings = []
+        for position in positions:
+            position_grouping_object = InternalGroupPositionMembershipData(
+                internal_group_position_name=position.name,
+                users=all_users.filter(
+                    internal_group_position_history__position=position
+                ).order_by("first_name"),
+            )
+            user_groupings.append(position_grouping_object)
+
+        return user_groupings
 
     @classmethod
     def get_node(cls, info, id):
         return InternalGroup.objects.get(pk=id)
+
+    def resolve_group_image(self: InternalGroup, info, **kwargs):
+        if self.group_image:
+            return f"{settings.HOST_URL}{self.group_image.url}"
+        else:
+            return None
+
+    def resolve_group_icon(self: InternalGroup, info, **kwargs):
+        if self.group_icon:
+            return f"{settings.HOST_URL}{self.group_icon.url}"
+        else:
+            return None
 
 
 class InternalGroupPositionNode(DjangoObjectType):
@@ -83,13 +123,24 @@ class CommitteeNode(DjangoObjectType):
         return Committee.objects.get(pk=id)
 
 
+class InternalGroupTypeEnum(graphene.Enum):
+    INTERNAL_GROUP = InternalGroup.Type.INTERNAL_GROUP
+    INTEREST_GROUP = InternalGroup.Type.INTEREST_GROUP
+
+
 # QUERIES
 class InternalGroupQuery(graphene.ObjectType):
     internal_group = Node.Field(InternalGroupNode)
     all_internal_groups = graphene.List(InternalGroupNode)
+    all_internal_groups_by_type = graphene.List(
+        InternalGroupNode, internal_group_type=InternalGroupTypeEnum()
+    )
 
     def resolve_all_internal_groups(self, info, *args, **kwargs):
         return InternalGroup.objects.all().order_by("name")
+
+    def resolve_all_internal_groups_by_type(self, info, internal_group_type, **kwargs):
+        return InternalGroup.objects.filter(type=internal_group_type).order_by("name")
 
 
 class InternalGroupPositionQuery(graphene.ObjectType):
@@ -106,6 +157,9 @@ class InternalGroupPositionMembershipQuery(graphene.ObjectType):
         InternalGroupPositionMembershipNode
     )
     all_active_internal_group_position_memberships = DjangoConnectionField(
+        InternalGroupPositionMembershipNode
+    )
+    internal_group_position_memberships = graphene.List(
         InternalGroupPositionMembershipNode
     )
 
@@ -192,7 +246,7 @@ class AssignNewInternalGroupPositionMembership(graphene.Mutation):
         internal_group_position_id,
         internal_group_position_type,
         *args,
-        **kwargs
+        **kwargs,
     ):
         django_user_id = disambiguate_id(user_id)
         user = User.objects.filter(pk=django_user_id).first()
