@@ -20,7 +20,6 @@ from graphql_relay import to_global_id
 from schedules.schemas.schema_schedules import ShiftNode
 from organization.models import InternalGroup, InternalGroupPositionMembership
 from graphene_django_cud.util import disambiguate_id
-from organization.schema import InternalGroupPositionMembershipNode
 from organization.graphql import InternalGroupPositionTypeEnum
 
 
@@ -90,7 +89,7 @@ class ManageInternalGroupUserObject(graphene.ObjectType):
     user_id = graphene.ID()
     full_name = graphene.String()
     internal_group_position_membership = graphene.Field(
-        InternalGroupPositionMembershipNode
+        "organization.schema.InternalGroupPositionMembershipNode"
     )
     position_name = graphene.String()
     internal_group_position_type = InternalGroupPositionTypeEnum()
