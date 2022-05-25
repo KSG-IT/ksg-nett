@@ -118,14 +118,24 @@ class SociProductQuery(graphene.ObjectType):
 
 class DepositQuery(graphene.ObjectType):
     deposit = Node.Field(DepositNode)
-    all_deposits = DjangoConnectionField(DepositNode)
+    all_deposits = DjangoConnectionField(
+        DepositNode, q=graphene.String(), unverified_only=graphene.Boolean()
+    )
     all_pending_deposits = graphene.List(
         DepositNode
     )  # Pending will never be more than a couple at a time
     all_approved_deposits = DjangoConnectionField(DepositNode)
 
-    def resolve_all_deposits(self, info, *args, **kwargs):
-        return Deposit.objects.all().order_by("-created_at")
+    def resolve_all_deposits(self, info, q, unverified_only, *args, **kwargs):
+        # ToDo implement user fullname search filtering
+        return (
+            Deposit.objects.all()
+            .filter(
+                account__user__first_name__contains=q,
+                signed_off_by__isnull=not unverified_only,
+            )
+            .order_by("-created_at")
+        )
 
     def resolve_all_pending_deposits(self, info, *args, **kwargs):
         return Deposit.objects.filter(signed_off_by__isnull=True).order_by(
