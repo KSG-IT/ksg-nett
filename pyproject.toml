@@ -27,7 +27,7 @@ django-filter = "^2.4.0"
 sentry-sdk = "^0.19.5"
 boto3 = "^1.16.63"
 django-storages = "^1.11.1"
-pyjwt = "^2.3.0"
+pyjwt = "^2.4.0"
 pydash = "^5.1.0"
 
 [tool.poetry.dev-dependencies]
