@@ -105,7 +105,7 @@ class InterviewBooleanEvaluationAnswer(models.Model):
         "admissions.InterviewBooleanEvaluation", on_delete=models.CASCADE
     )
     # Nullable because we prepare this before the interview is booked
-    value = models.BooleanField(null=True, blank=True)
+    value = models.BooleanField(default=None, null=True, blank=True)
 
 
 class InterviewAdditionalEvaluationStatement(models.Model):
@@ -152,7 +152,7 @@ class InterviewAdditionalEvaluationAnswer(models.Model):
     )
     # Nullable because we prepare this before the interview is booked
     answer = models.CharField(
-        max_length=32, choices=Options.choices, null=True, blank=True
+        default=None, max_length=32, choices=Options.choices, null=True, blank=True
     )
 
 

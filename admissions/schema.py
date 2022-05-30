@@ -35,6 +35,8 @@ from admissions.models import (
     InterviewScheduleTemplate,
     InterviewBooleanEvaluation,
     InterviewAdditionalEvaluationStatement,
+    InterviewBooleanEvaluationAnswer,
+    InterviewAdditionalEvaluationAnswer,
 )
 from organization.models import (
     InternalGroupPosition,
@@ -253,14 +255,16 @@ class AdditionalEvaluationAnswerEnum(graphene.Enum):
     VERY = "VERY"
 
 
-class BooleanEvaluationAnswer(graphene.ObjectType):
-    statement = graphene.String()
-    answer = graphene.Boolean()
+class InterviewBooleanEvaluationAnswerNode(DjangoObjectType):
+    class Meta:
+        model = InterviewBooleanEvaluationAnswer
+        interfaces = (Node,)
 
 
-class AdditionalEvaluationAnswer(graphene.ObjectType):
-    statement = graphene.String()
-    answer = AdditionalEvaluationAnswerEnum()
+class InterviewAdditionalEvaluationAnswerNode(DjangoObjectType):
+    class Meta:
+        model = InterviewAdditionalEvaluationAnswer
+        interfaces = (Node,)
 
 
 class InterviewNode(DjangoObjectType):
@@ -269,32 +273,16 @@ class InterviewNode(DjangoObjectType):
         interfaces = (Node,)
 
     interviewers = graphene.List(UserNode)
-    boolean_evaluation_answers = graphene.List(BooleanEvaluationAnswer)
-    additional_evaluation_answers = graphene.List(AdditionalEvaluationAnswer)
+    boolean_evaluation_answers = graphene.List(InterviewBooleanEvaluationAnswerNode)
+    additional_evaluation_answers = graphene.List(
+        InterviewAdditionalEvaluationAnswerNode
+    )
 
     def resolve_boolean_evaluation_answers(self: Interview, info, *args, **kwargs):
-        evaluations = []
-        for evaluation in self.boolean_evaluation_answers.all().order_by(
-            "statement__order"
-        ):
-            evaluations.append(
-                BooleanEvaluationAnswer(
-                    statement=evaluation.statement.statement, answer=evaluation.value
-                )
-            )
-        return evaluations
+        return self.boolean_evaluation_answers.all().order_by("statement__order")
 
     def resolve_additional_evaluation_answers(self: Interview, info, *args, **kwargs):
-        evaluations = []
-        for evaluation in self.additional_evaluation_answers.all().order_by(
-            "statement__order"
-        ):
-            evaluations.append(
-                AdditionalEvaluationAnswer(
-                    statement=evaluation.statement, answer=evaluation.answer
-                )
-            )
-        return evaluations
+        return self.additional_evaluation_answers.all().order_by("statement__order")
 
     def resolve_interviewers(self: Interview, info, *args, **kwargs):
         return self.interviewers.all()
