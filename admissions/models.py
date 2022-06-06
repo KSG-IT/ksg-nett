@@ -184,10 +184,6 @@ class Interview(models.Model):
     total_evaluation = models.CharField(
         max_length=32, choices=EvaluationOptions.choices, default=None, null=True
     )
-    can_commit_three_semesters = models.BooleanField(default=True)
-    cannot_commit_three_semesters_details = models.CharField(
-        max_length=128, null=True, blank=True
-    )
 
     boolean_evaluations = models.ManyToManyField(
         InterviewBooleanEvaluation, through=InterviewBooleanEvaluationAnswer
@@ -242,6 +238,11 @@ class Applicant(models.Model):
 
     wants_digital_interview = models.BooleanField(default=False)
     will_be_admitted = models.BooleanField(default=False)
+
+    can_commit_three_semesters = models.BooleanField(default=True)
+    cannot_commit_three_semesters_details = models.CharField(
+        max_length=128, null=True, blank=True
+    )
 
     discussion_start = models.DateTimeField(null=True, blank=True)
     discussion_end = models.DateTimeField(null=True, blank=True)
