@@ -243,6 +243,7 @@ class Applicant(models.Model):
     cannot_commit_three_semesters_details = models.CharField(
         max_length=128, null=True, blank=True
     )
+    open_for_other_positions = models.BooleanField(default=False)
 
     discussion_start = models.DateTimeField(null=True, blank=True)
     discussion_end = models.DateTimeField(null=True, blank=True)
