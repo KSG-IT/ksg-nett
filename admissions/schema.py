@@ -976,6 +976,9 @@ class SetSelfAsInterviewerMutation(graphene.Mutation):
 class PatchInterviewMutation(DjangoPatchMutation):
     class Meta:
         model = Interview
+        one_to_one_extras = {
+            "applicant": {"type": "InterviewPatchApplicantInput", "operation": "patch"}
+        }
 
 
 class RemoveSelfAsInterviewerMutation(graphene.Mutation):
@@ -1091,6 +1094,11 @@ class PatchInterviewBooleanEvaluationMutation(DjangoPatchMutation):
         model = InterviewBooleanEvaluation
 
 
+class PatchInterviewBooleanEvaluationAnswerMutation(DjangoPatchMutation):
+    class Meta:
+        model = InterviewBooleanEvaluationAnswer
+
+
 class DeleteInterviewBooleanEvaluationMutation(DjangoDeleteMutation):
     class Meta:
         model = InterviewBooleanEvaluation
@@ -1108,6 +1116,12 @@ class CreateInterviewAdditionalEvaluationStatementMutation(DjangoCreateMutation)
         increment = count + 1
         input["order"] = increment
         return input
+
+
+# === InterviewAdditionalEvaluationAnswer ===
+class PatchInterviewAdditionalEvaluationAnswer(DjangoPatchMutation):
+    class Meta:
+        model = InterviewAdditionalEvaluationAnswer
 
 
 class PatchInterviewAdditionalEvaluationStatementMutation(DjangoPatchMutation):
@@ -1172,6 +1186,13 @@ class AdmissionsMutations(graphene.ObjectType):
         DeleteInterviewBooleanEvaluationMutation.Field()
     )
     patch_interview_boolean_evaluation = PatchInterviewBooleanEvaluationMutation.Field()
+    patch_interview_boolean_evaluation_answer = (
+        PatchInterviewBooleanEvaluationAnswerMutation.Field()
+    )
+
+    patch_interview_additional_evaluation_answer = (
+        PatchInterviewAdditionalEvaluationAnswer.Field()
+    )
 
     create_interview_additional_evaluation_statement = (
         CreateInterviewAdditionalEvaluationStatementMutation.Field()
