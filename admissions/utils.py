@@ -107,11 +107,19 @@ def generate_interviews_from_schedule(schedule):
             )
             for location in available_locations:
                 with transaction.atomic():
-                    Interview.objects.create(
+                    interview = Interview.objects.create(
                         location=location,
                         interview_start=datetime_cursor,
                         interview_end=datetime_cursor + interview_duration,
                     )
+                    for statement in boolean_evaluation_statements:
+                        InterviewBooleanEvaluationAnswer.objects.create(
+                            interview=interview, statement=statement, value=None
+                        )
+                    for statement in additional_evaluation_statements:
+                        InterviewAdditionalEvaluationAnswer.objects.create(
+                            interview=interview, statement=statement, answer=None
+                        )
 
             datetime_cursor += interview_duration
 
