@@ -304,7 +304,10 @@ def group_interviews_by_date(interviews):
     validate_qs(interviews)
 
     interviews = interviews.order_by("interview_start")
-    cursor = parse_datetime_to_midnight(interviews.first().interview_start)
+    interview_sample = interviews.first()
+    if not interview_sample:
+        return []
+    cursor = parse_datetime_to_midnight(interview_sample.interview_start)
     cursor_end = interviews.last().interview_start
     day_offset = timezone.timedelta(days=1)
     interview_groupings = []
