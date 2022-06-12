@@ -157,10 +157,6 @@ class InterviewAdditionalEvaluationAnswer(models.Model):
 
 
 class Interview(models.Model):
-    """
-    An interview is a combination of a
-    """
-
     class Meta:
         unique_together = ("interview_start", "interview_end", "location")
 
@@ -182,7 +178,11 @@ class Interview(models.Model):
         "users.User", related_name="interviews_attended"
     )
     total_evaluation = models.CharField(
-        max_length=32, choices=EvaluationOptions.choices, default=None, null=True
+        max_length=32,
+        choices=EvaluationOptions.choices,
+        default=None,
+        null=True,
+        blank=True,
     )
 
     boolean_evaluations = models.ManyToManyField(
@@ -322,6 +322,8 @@ class Applicant(models.Model):
         return f"{self.first_name} {self.last_name}"
 
     def __str__(self):
+        if not self.first_name:
+            return "Unregistered applicant"
         return f"Applicant {self.get_full_name}"
 
 

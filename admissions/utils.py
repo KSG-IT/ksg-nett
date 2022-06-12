@@ -47,6 +47,7 @@ def generate_interviews_from_schedule(schedule):
                 location=location,
                 interview_start=datetime_cursor,
                 interview_end=datetime_cursor + interview_duration,
+                total_evaluation=None,
             )
             for statement in boolean_evaluation_statements:
                 InterviewBooleanEvaluationAnswer.objects.create(
