@@ -144,6 +144,7 @@ class Command(BaseCommand):
 
         # Interview generation
         generate_interviews_from_schedule(schedule)
+        self.stdout.write(self.style.SUCCESS("GENERATEDF INTEVIEWS"))
         interview_period_datetime_start = date_time_combiner(last_week, day_start)
         number_of_interviews = Interview.objects.filter(
             interview_start__gte=interview_period_datetime_start
@@ -221,47 +222,50 @@ class Command(BaseCommand):
             random_interview = (
                 Interview.objects.all()
                 .filter(applicant__isnull=True, interview_start__gte=datetime_today)
-                .order_by("?")
                 .first()
             )
             applicant.interview = random_interview
             applicant.save()
+            self.stdout.write(self.style.SUCCESS("Assigned interview"))
             number_of_interviewers = chose_random_element(
                 number_of_interviewers_choices
             )
             random_interviewers = get_random_model_objects(User, number_of_interviewers)
             random_interview.interviewers.set(random_interviewers)
+            self.stdout.write(self.style.SUCCESS("Assigned interviewers"))
             random_interview.discussion = INTERVIEW_DISCUSSION_TEXT
             random_interview.notes = INTERVIEW_NOTES_TEXT
+            self.stdout.write(self.style.SUCCESS("Discussion and notes content set"))
 
-            boolean_evaluations = InterviewBooleanEvaluation.objects.all()
-            additional_evaluations = (
-                InterviewAdditionalEvaluationStatement.objects.all()
-            )
+            self.stdout.write(self.style.SUCCESS("Populating boolean evaluations"))
 
-            for statement in boolean_evaluations:
+            # Interviews come pre-generated with the evaluations.
+            for (
+                boolean_evaluation_answer
+            ) in random_interview.boolean_evaluation_answers.all():
                 random_answer = chose_random_element([True, False])
-                InterviewBooleanEvaluationAnswer.objects.create(
-                    interview=random_interview, statement=statement, value=random_answer
-                )
+                boolean_evaluation_answer.value = random_answer
+                boolean_evaluation_answer.save()
+
             additional_evaluation_answer_choices = (
                 InterviewAdditionalEvaluationAnswer.Options.values
             )
-            for statement in additional_evaluations:
+            for (
+                additional_evaluation_answer
+            ) in random_interview.additional_evaluation_answers.all():
                 random_answer = chose_random_element(
                     additional_evaluation_answer_choices
                 )
-                InterviewAdditionalEvaluationAnswer.objects.create(
-                    interview=random_interview,
-                    statement=statement,
-                    answer=random_answer,
-                )
+                additional_evaluation_answer.answer = random_answer
+                additional_evaluation_answer.save()
+
+            # These two are probably redundant?
             applicant.save()
             random_interview.save()
 
         self.stdout.write(self.style.SUCCESS("Giving all applicants random priorities"))
         # Now we give the applicants random priorities
-        number_of_priorities_choices = [2, 3]
+        number_of_priorities_choices = [2, 3, 3, 3, 3]
         for applicant in Applicant.objects.all():
             number_of_priorities = chose_random_element(number_of_priorities_choices)
             positions = (

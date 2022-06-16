@@ -42,7 +42,7 @@ def get_available_interview_locations(datetime_from=None, datetime_to=None):
 def generate_interviews_from_schedule(schedule):
     # Double check if this thing does what its supposed to do
     def generate_interview_and_evaluations_for_location(location):
-        with transaction.atomic:
+        with transaction.atomic():
             interview = Interview.objects.create(
                 location=location,
                 interview_start=datetime_cursor,
