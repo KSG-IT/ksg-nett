@@ -127,18 +127,8 @@ class InterviewAdditionalEvaluationAnswer(models.Model):
 
     class Options(models.TextChoices):
         VERY_LITTLE = ("very-little", _("Very little"))
-        LITTLE = (
-            "little",
-            _(
-                "Little",
-            ),
-        )
-        MEDIUM = (
-            "medium",
-            _(
-                "Medium",
-            ),
-        )
+        LITTLE = ("little", _("Little"))
+        MEDIUM = ("medium", _("Medium"))
         SOMEWHAT = ("somewhat", _("Somewhat"))
         VERY = ("very", _("Very"))
 
@@ -163,10 +153,7 @@ class Interview(models.Model):
     class EvaluationOptions(models.TextChoices):
         VERY_POOR = ("very-poor", _("Very poor"))
         POOR = ("poor", _("Poor"))
-        MEDIUM = (
-            "medium",
-            _("Medium"),
-        )
+        MEDIUM = ("medium", _("Medium"))
         GOOD = ("good", _("Good"))
         VERY_GOOD = ("very-good", _("Very good"))
 
@@ -343,7 +330,6 @@ class InternalGroupPositionPriority(models.Model):
     )
 
     # Tells us how the applicant prioritizes internal groups in their application
-    # This should maybe have more options than three?
     applicant_priority = models.CharField(choices=Priority.choices, max_length=12)
 
     # Tells us how an internal group prioritizes an applicant, null means not considered yet
