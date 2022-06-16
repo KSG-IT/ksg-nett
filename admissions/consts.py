@@ -33,8 +33,9 @@ class ApplicantStatus(models.TextChoices):
 
 class InternalGroupStatus(models.TextChoices):
     WANT = ("want", "Want")
+    PROBABLY_WANT = ("probably-want", "Probably want")
     DO_NOT_WANT = ("do-not-want", "Do not want")
     RESERVE = ("reserve", "Reserve")
     CURRENTLY_DISCUSSING = ("currently-discussing", "Currently discussing")
-    SHOULD_BE_ADMITTED = ("should-be-admitted", "Should be admitted")
     PASS_AROUND = ("pass-around", "Pass around")
+    INTERESTED = ("interested", "Interested")
