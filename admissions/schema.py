@@ -311,8 +311,9 @@ class InternalGroupApplicantsData(graphene.ObjectType):
 
 class InternalGroupDiscussionData(graphene.ObjectType):
     internal_group = graphene.Field(InternalGroupNode)
-    available_picks = graphene.List(InternalGroupPositionPriorityNode)
     processed_applicants = graphene.List(InternalGroupPositionPriorityNode)
+    applicants_open_for_other_positions = graphene.List(ApplicantNode)
+    applicants = graphene.List(ApplicantNode)
 
 
 class ApplicantQuery(graphene.ObjectType):
@@ -369,12 +370,11 @@ class ApplicantQuery(graphene.ObjectType):
         self, info, internal_group_id, *args, **kwargs
     ):
         """
-        We resolve the data required for an internal group to consider different applicants. This means we try
-        to filter all applicants which are possible for this internal group to evaluate. The internal group
-        will not see an applicant before the applicants other priorities has said they do not want them.
+        Resolves data for the discussion view for a given internal group. This includes fields
+        with all applicants having applied to this internal group, filtering of processed
+        applicants and in the future other metrics like progress and remaining applicants
+        to evaluate.
 
-        In the future we should probably still resolve these users but instead "disable" them for this group
-        until its their turn to mark the applicant.
         """
         internal_group_id = disambiguate_id(internal_group_id)
         internal_group = InternalGroup.objects.filter(id=internal_group_id).first()
@@ -388,49 +388,7 @@ class ApplicantQuery(graphene.ObjectType):
             applicant__interview__isnull=False,
         ).order_by("applicant__first_name")
 
-        # We get everyone who has this internal group as its first pick
-        first_picks = all_internal_group_priorities.filter(
-            ~Q(internal_group_priority=InternalGroupStatus.WANT),
-            ~Q(internal_group_priority=InternalGroupStatus.DO_NOT_WANT),
-            applicant_priority=Priority.FIRST,
-        )
-
-        second_picks = all_internal_group_priorities.filter(
-            applicant_priority=Priority.SECOND,
-        )
-
-        # Here we get the queryset of all users that have this internal group as their second choice but has also
-        # been rejected by their first choice
-        available_second_picks = second_picks.filter(
-            Q(
-                applicant__priorities__internal_group_priority=InternalGroupStatus.DO_NOT_WANT
-            ),
-            ~Q(internal_group_priority=InternalGroupStatus.WANT),
-            ~Q(internal_group_priority=InternalGroupStatus.DO_NOT_WANT),
-            applicant__priorities__applicant_priority=Priority.FIRST,
-        )
-
-        third_picks = all_internal_group_priorities.filter(
-            applicant_priority=Priority.THIRD
-        )
-        # Here we get the queryset of all users that have this internal group as their third choice but has also
-        # been rejected by their first and second choice. Hence the double filter chaining
-        available_third_picks = third_picks.filter(
-            Q(
-                applicant__priorities__internal_group_priority=InternalGroupStatus.DO_NOT_WANT
-            ),
-            ~Q(internal_group_priority=InternalGroupStatus.WANT),
-            ~Q(internal_group_priority=InternalGroupStatus.DO_NOT_WANT),
-            applicant__priorities__applicant_priority=Priority.FIRST,
-        ).filter(
-            Q(
-                applicant__priorities__internal_group_priority=InternalGroupStatus.DO_NOT_WANT
-            ),
-            ~Q(internal_group_priority=InternalGroupStatus.WANT),
-            ~Q(internal_group_priority=InternalGroupStatus.DO_NOT_WANT),
-            applicant__priorities__applicant_priority=Priority.SECOND,
-        )
-
+        # This can be a simplified data model in the future
         processed_applicants = all_internal_group_priorities.filter(
             internal_group_priority__in=[
                 InternalGroupStatus.WANT,
@@ -438,13 +396,34 @@ class ApplicantQuery(graphene.ObjectType):
             ]
         )
 
-        # Merge together all applicants into a single list
-        available_picks = first_picks | available_second_picks | available_third_picks
+        # All applicants that have applied to this internal group and finished their interview
+        applicants = (
+            Applicant.objects.filter(
+                priorities__internal_group_position__internal_group=internal_group,
+                status=ApplicantStatus.INTERVIEW_FINISHED,
+            )
+            .exclude(
+                priorities__internal_group_position__internal_group=internal_group,
+                priorities__internal_group_priority=InternalGroupStatus.DO_NOT_WANT,
+            )
+            .distinct()
+        )
+
+        # Also throw in applicants open for other positions.
+        applicants_open_for_other_positions = (
+            Applicant.objects.filter(
+                open_for_other_positions=True,
+                status=ApplicantStatus.INTERVIEW_FINISHED,
+            )
+            .exclude(pk__in=applicants)
+            .distinct()
+        )
 
         return InternalGroupDiscussionData(
             internal_group=internal_group,
-            available_picks=available_picks.distinct(),
             processed_applicants=processed_applicants,
+            applicants_open_for_other_positions=applicants_open_for_other_positions,
+            applicants=applicants,
         )
 
 
