@@ -7,10 +7,7 @@ from admissions.models import (
     InterviewLocation,
     InterviewLocationAvailability,
     AdmissionAvailableInternalGroupPositionData,
-    InterviewBooleanEvaluation,
-    InterviewBooleanEvaluationAnswer,
     InterviewAdditionalEvaluationAnswer,
-    InterviewAdditionalEvaluationStatement,
 )
 from admissions.tests.factories import ApplicantFactory
 from admissions.consts import AdmissionStatus, ApplicantStatus
@@ -144,7 +141,7 @@ class Command(BaseCommand):
 
         # Interview generation
         generate_interviews_from_schedule(schedule)
-        self.stdout.write(self.style.SUCCESS("GENERATEDF INTEVIEWS"))
+        self.stdout.write(self.style.SUCCESS("Generating interviews"))
         interview_period_datetime_start = date_time_combiner(last_week, day_start)
         number_of_interviews = Interview.objects.filter(
             interview_start__gte=interview_period_datetime_start
@@ -154,8 +151,11 @@ class Command(BaseCommand):
         )
 
         # Applicant generation distributed randomly across the admission
-        self.stdout.write(self.style.SUCCESS("Creating 200 applicants "))
-        ApplicantFactory.create_batch(200, admission=admission)
+        NUMBER_OF_APPLICANTS = 200
+        self.stdout.write(
+            self.style.SUCCESS(f"Creating {NUMBER_OF_APPLICANTS} applicants ")
+        )
+        ApplicantFactory.create_batch(NUMBER_OF_APPLICANTS, admission=admission)
 
         # Applicants now need to be filtered by status and their data parsed.
         # Example being purging data for those who just got an email or assigning them to interviews
