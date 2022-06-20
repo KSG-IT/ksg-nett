@@ -314,6 +314,34 @@ class Applicant(models.Model):
         return f"Applicant {self.get_full_name}"
 
 
+class ApplicantInterest(models.Model):
+    """
+    A way to track when an internal group is interested in an applicant that has not
+    explicitly applied to said internal group
+    """
+
+    class Meta:
+        verbose_name = "Applicant interest"
+        verbose_name_plural = "Applicant interests"
+
+    class Type(models.TextChoices):
+        WANT = ("want", "Want")
+        NEED = ("need", "Need")
+
+    applicant = models.ForeignKey(
+        Applicant, on_delete=models.CASCADE, related_name="internal_group_interests"
+    )
+    internal_group = models.ForeignKey(
+        InternalGroup, on_delete=models.CASCADE, related_name="applicant_interests"
+    )
+
+    # Do we want this distinction?
+    # type = models.CharField(max_length=32, choices=Type.choices)
+
+    def __str__(self):
+        return f"{self.internal_group.name} interest in {self.applicant}"
+
+
 class InternalGroupPositionPriority(models.Model):
     class Meta:
         verbose_name = "Internal group position priority"
