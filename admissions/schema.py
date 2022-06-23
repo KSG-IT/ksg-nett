@@ -21,11 +21,15 @@ from admissions.utils import (
     create_interview_slots,
     mass_send_welcome_to_interview_email,
     internal_group_applicant_data,
+    admission_applicant_preview,
+    get_admission_final_applicant_qs,
+    get_applicant_offered_position,
 )
 from django.core.exceptions import SuspiciousOperation
 from django.utils import timezone
 from admissions.models import (
     Applicant,
+    ApplicantInterest,
     Admission,
     AdmissionAvailableInternalGroupPositionData,
     InternalGroupPositionPriority,
@@ -90,6 +94,16 @@ class InterviewLocationNode(DjangoObjectType):
         return InterviewLocation.objects.get(pk=id)
 
 
+class ApplicantInterestNode(DjangoObjectType):
+    class Meta:
+        model = ApplicantInterest
+        interfaces = (Node,)
+
+    @classmethod
+    def get_node(cls, info, id):
+        return ApplicantInterest.objects.get(pk=id)
+
+
 class ApplicantNode(DjangoObjectType):
     class Meta:
         model = Applicant
@@ -97,8 +111,12 @@ class ApplicantNode(DjangoObjectType):
 
     full_name = graphene.String(source="get_full_name")
     priorities = graphene.List(InternalGroupPositionPriorityNode)
+    internal_group_interests = graphene.List(ApplicantInterestNode)
 
     interviewer_from_internal_group = graphene.ID(internal_group_id=graphene.ID())
+
+    def resolve_internal_group_interests(self: Applicant, info, *args, **kwargs):
+        return self.internal_group_interests.all()
 
     def resolve_interviewer_from_internal_group(
         self: Applicant, info, internal_group_id, *args, **kwargs
@@ -316,6 +334,11 @@ class InternalGroupDiscussionData(graphene.ObjectType):
     applicants = graphene.List(ApplicantNode)
 
 
+class CloseAdmissionQueryData(graphene.ObjectType):
+    valid_applicants = graphene.List(ApplicantNode)
+    applicant_interests = graphene.List(ApplicantInterestNode)
+
+
 class ApplicantQuery(graphene.ObjectType):
     applicant = Node.Field(ApplicantNode)
     all_applicants = graphene.List(ApplicantNode)
@@ -327,14 +350,32 @@ class ApplicantQuery(graphene.ObjectType):
     internal_group_discussion_data = graphene.Field(
         InternalGroupDiscussionData, internal_group_id=graphene.ID(required=True)
     )
-    valid_applicants = graphene.List(ApplicantNode)
+    valid_applicants = graphene.Field(CloseAdmissionQueryData)
 
     def resolve_valid_applicants(self, info, *args, **kwargs):
-        applicants = Applicant.objects.filter(
-            ~Q(priorities__internal_group_priority=InternalGroupStatus.DO_NOT_WANT),
-            status=ApplicantStatus.INTERVIEW_FINISHED,
-        ).order_by("first_name")
-        return applicants
+        # Can we do an annotation here? Kind of like unwanted = all_priorities = DO_NOT_WANT
+        valid_applicants = (
+            Applicant.objects.filter(
+                priorities__internal_group_priority__in=[
+                    InternalGroupStatus.WANT,
+                    InternalGroupStatus.RESERVE,
+                    InternalGroupStatus.PROBABLY_WANT,
+                ],
+                status=ApplicantStatus.INTERVIEW_FINISHED,
+            )
+            .order_by("first_name")
+            .distinct()
+        )
+
+        print(valid_applicants)
+        active_admissions = Admission.get_active_admission()
+        applicant_interests = ApplicantInterest.objects.filter(
+            applicant__admission=active_admissions
+        ).order_by("applicant__first_name")
+
+        return CloseAdmissionQueryData(
+            valid_applicants=valid_applicants, applicant_interests=applicant_interests
+        )
 
     def resolve_get_applicant_from_token(self, info, token, *args, **kwargs):
         applicant = Applicant.objects.filter(token=token).first()
@@ -397,17 +438,10 @@ class ApplicantQuery(graphene.ObjectType):
         )
 
         # All applicants that have applied to this internal group and finished their interview
-        applicants = (
-            Applicant.objects.filter(
-                priorities__internal_group_position__internal_group=internal_group,
-                status=ApplicantStatus.INTERVIEW_FINISHED,
-            )
-            .exclude(
-                priorities__internal_group_position__internal_group=internal_group,
-                priorities__internal_group_priority=InternalGroupStatus.DO_NOT_WANT,
-            )
-            .distinct()
-        )
+        applicants = Applicant.objects.filter(
+            priorities__internal_group_position__internal_group=internal_group,
+            status=ApplicantStatus.INTERVIEW_FINISHED,
+        ).distinct()
 
         # Also throw in applicants open for other positions.
         applicants_open_for_other_positions = (
@@ -467,6 +501,20 @@ class CreateApplicationsMutation(graphene.Mutation):
         )
 
 
+class ApplicantPreview(graphene.ObjectType):
+    class ApplicantPriorityEnum(graphene.Enum):
+        FIRST = "FIRST"
+        SECOND = "SECOND"
+        THIRD = "THIRD"
+        NA = "N/A"
+
+    full_name = graphene.String()
+    id = graphene.GlobalID()
+    offered_internal_group_position_name = graphene.String()
+    applicant_priority = graphene.String()
+    phone = graphene.String()
+
+
 class AdmissionQuery(graphene.ObjectType):
     admission = Node.Field(AdmissionNode)
     all_admissions = DjangoFilterConnectionField(
@@ -485,6 +533,13 @@ class AdmissionQuery(graphene.ObjectType):
         AdmissionAvailableInternalGroupPositionDataNode
     )
     internal_groups_accepting_applicants = graphene.List(InternalGroupNode)
+
+    admission_applicants_preview = graphene.List(ApplicantPreview)
+
+    def resolve_admission_applicants_preview(self, info, *args, **kwargs):
+        admission = Admission.get_active_admission()
+        final_applicant_preview = admission_applicant_preview(admission)
+        return final_applicant_preview
 
     def resolve_current_admission_internal_group_position_data(
         self, info, *args, **kwargs
@@ -742,6 +797,64 @@ class ToggleApplicantWillBeAdmittedMutation(graphene.Mutation):
         return ToggleApplicantWillBeAdmittedMutation(success=True)
 
 
+# === ApplicantInterest ===
+class CreateApplicantInterestMutation(DjangoCreateMutation):
+    class Meta:
+        model = ApplicantInterest
+
+
+class DeleteApplicantInterestMutation(DjangoDeleteMutation):
+    class Meta:
+        model = ApplicantInterest
+
+
+class GiveApplicantToInternalGroupMutation(graphene.Mutation):
+    class Arguments:
+        applicant_interest_id = graphene.ID(required=True)
+
+    success = graphene.NonNull(graphene.Boolean)
+
+    def mutate(self, info, applicant_interest_id, *args, **kwargs):
+        applicant_interest_id = disambiguate_id(applicant_interest_id)
+        applicant_interest = ApplicantInterest.objects.get(pk=applicant_interest_id)
+
+        # There exists a row for each interest between an InternalGroup and an Applicant
+        # meaning we can use the InternalGroup accessed from the interest instance
+        internal_group = applicant_interest.internal_group
+        admission = Admission.get_active_admission()
+
+        # DANGER: If an internal group has more than one position available externally
+        # this could lead to some obscure bugs.
+        inferred_offered_positions = (
+            admission.available_internal_group_positions.filter(
+                internal_group=internal_group
+            )
+        )
+
+        # Raise an error so its easier to catch if this happens and we should do something
+        # about this in the future.
+        # Famous last words Alexander Orvik 23.06.2022
+        if inferred_offered_positions.count() > 1:
+            raise Exception(
+                "Internal group has more than two positions available externally"
+            )
+
+        position = inferred_offered_positions.first()
+        applicant_interest.position_to_be_offered = position
+        applicant_interest.save()
+
+        # We have given away the applicant. Now we need to reset any other offers
+        applicant = applicant_interest.applicant
+        for interest in applicant.internal_group_interests.all():
+            if interest == applicant_interest:
+                # Should not reset the one we just changed
+                continue
+            interest.position_to_be_offered = None
+            interest.save()
+
+        return GiveApplicantToInternalGroupMutation(success=True)
+
+
 # === InternalGroupPositionPriority ===
 class AddInternalGroupPositionPriorityMutation(graphene.Mutation):
     class Arguments:
@@ -829,10 +942,11 @@ class LockAdmissionMutation(graphene.Mutation):
     def mutate(self, info, *args, **kwargs):
         admission = Admission.get_active_admission()
         unevaluated_applicants = admission.applicants.filter(
-            priorities__internal_group_priority__isnull=True
-        ).count()
-        if unevaluated_applicants > 0:
-            raise Exception("All applicants have not been considered")
+            priorities__internal_group_priority__isnull=True,
+            status=ApplicantStatus.INTERVIEW_FINISHED,
+        )
+        if unevaluated_applicants.count() > 0:
+            raise Exception("All valid applicants have not been considered")
 
         admission.status = AdmissionStatus.LOCKED
         admission.save()
@@ -844,20 +958,21 @@ class CloseAdmissionMutation(graphene.Mutation):
 
     def mutate(self, info, *args, **kwargs):
         """
-        1. Get all applicants we have marked for admission
+        1. Get all applicants we have marked for admission or with and
+           offer from an internal group
         2. Create a user instance for all of them with their data
-        3. Should be able to handle some shitty inputs
-        4. Give them the internal group position they were admitted for
-        5. obfuscate admission
-        6. Close the admission
+        3. Give them the internal group position they were admitted for
+        4. obfuscate identifying applicant information
+        5. Close the admission
         """
+        # Step 1)
         admission = Admission.get_active_admission()
-        admitted_applicants = Applicant.objects.filter(
-            will_be_admitted=True, admission=admission
-        )
+        admitted_applicants = get_admission_final_applicant_qs(admission)
         failed_user_generation = []
+
         for applicant in admitted_applicants:
             try:
+                # Step 2)
                 applicant_user_profile = User.objects.create(
                     username=applicant.email,
                     first_name=applicant.first_name,
@@ -872,43 +987,37 @@ class CloseAdmissionMutation(graphene.Mutation):
                     date_of_birth=applicant.date_of_birth,
                 )
                 """
-                Unique constraints that can be fucked up here
-                1. How should we handle emails? Do this at applicant stage?
-                2. 
+                Unique constraints can be fucked up here
+                    1. How should we handle emails? Do this at applicant stage?
+                    2. Phone number 
                 """
+                # Step 3)
                 # We give the applicant the internal group position they have been accepted into
-                priorities = applicant.get_priorities
-                for priority in priorities:
-                    # We find the first priority from the applicant where the internal group has marked
-                    # it as "WANT"
-                    if priority is None:
-                        continue
-                    if priority.internal_group_priority != InternalGroupStatus.WANT:
-                        continue
+                internal_group_position = get_applicant_offered_position(applicant)
+                internal_group_position = internal_group_position
+                InternalGroupPositionMembership.objects.create(
+                    position=internal_group_position,
+                    user=applicant_user_profile,
+                    date_joined=datetime.date.today(),
+                )
 
-                    internal_group_position = priority.internal_group_position
-                    InternalGroupPositionMembership.objects.create(
-                        position=internal_group_position,
-                        user=applicant_user_profile,
-                        date_joined=datetime.date.today(),
-                    )
-                    # We found their assigned position, eject.
-                    break
                 SociBankAccount.objects.create(
                     user=applicant_user_profile, balance=0, card_uuid=None
                 )
 
             except Exception as e:
+                # Should we write this out to some model or a log?
                 failed_user_generation.append(applicant)
 
+        # Step 4)
         # User generation is done. Now we want to remove all identifying information
         obfuscate_admission(admission)
 
+        # Step 5)
         # It's a wrap folks
         admission.status = AdmissionStatus.CLOSED
         admission.save()
         admitted_applicants.update(will_be_admitted=False)
-
         return CloseAdmissionMutation(failed_user_generation=failed_user_generation)
 
 
@@ -1140,6 +1249,11 @@ class AdmissionsMutations(graphene.ObjectType):
     create_applicant = CreateApplicantMutation.Field()
     patch_applicant = PatchApplicantMutation.Field()
     delete_applicant = DeleteApplicantMutation.Field()
+
+    create_applicant_interest = CreateApplicantInterestMutation.Field()
+    delete_applicant_interest = DeleteApplicantInterestMutation.Field()
+
+    give_applicant_to_internal_group = GiveApplicantToInternalGroupMutation.Field()
 
     create_applications = CreateApplicationsMutation.Field()
 
