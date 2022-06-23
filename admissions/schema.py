@@ -350,6 +350,8 @@ class ApplicantQuery(graphene.ObjectType):
     internal_group_discussion_data = graphene.Field(
         InternalGroupDiscussionData, internal_group_id=graphene.ID(required=True)
     )
+
+    # Needs renaming
     valid_applicants = graphene.Field(CloseAdmissionQueryData)
 
     def resolve_valid_applicants(self, info, *args, **kwargs):
@@ -367,11 +369,12 @@ class ApplicantQuery(graphene.ObjectType):
             .distinct()
         )
 
-        print(valid_applicants)
         active_admissions = Admission.get_active_admission()
-        applicant_interests = ApplicantInterest.objects.filter(
-            applicant__admission=active_admissions
-        ).order_by("applicant__first_name")
+        applicant_interests = (
+            ApplicantInterest.objects.filter(applicant__admission=active_admissions)
+            .exclude(applicant__pk__in=valid_applicants)
+            .order_by("applicant__first_name")
+        )
 
         return CloseAdmissionQueryData(
             valid_applicants=valid_applicants, applicant_interests=applicant_interests
@@ -855,6 +858,20 @@ class GiveApplicantToInternalGroupMutation(graphene.Mutation):
         return GiveApplicantToInternalGroupMutation(success=True)
 
 
+class ResetApplicantInternalGroupPositionOfferMutation(graphene.Mutation):
+    class Arguments:
+        applicant_interest_id = graphene.ID()
+
+    applicant_interest = graphene.Field(ApplicantInterestNode)
+
+    def mutate(self, info, applicant_interest_id, *args, **kwargs):
+        applicant_interest_id = disambiguate_id(applicant_interest_id)
+        applicant_interest = ApplicantInterest.objects.get(pk=applicant_interest_id)
+        applicant_interest.position_to_be_offered = None
+        applicant_interest.save()
+        return applicant_interest
+
+
 # === InternalGroupPositionPriority ===
 class AddInternalGroupPositionPriorityMutation(graphene.Mutation):
     class Arguments:
@@ -1254,6 +1271,9 @@ class AdmissionsMutations(graphene.ObjectType):
     delete_applicant_interest = DeleteApplicantInterestMutation.Field()
 
     give_applicant_to_internal_group = GiveApplicantToInternalGroupMutation.Field()
+    reset_applicant_internal_group_position_offer = (
+        ResetApplicantInternalGroupPositionOfferMutation.Field()
+    )
 
     create_applications = CreateApplicationsMutation.Field()
 
