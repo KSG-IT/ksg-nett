@@ -1,3 +1,4 @@
+import math
 from django.utils import timezone
 from django.db import transaction
 from common.util import send_email
@@ -12,6 +13,8 @@ from common.util import (
     validate_qs,
 )
 from admissions.consts import InternalGroupStatus, Priority
+from graphql_relay import to_global_id
+from admissions.models import ApplicantInterest
 
 
 def get_available_interview_locations(datetime_from=None, datetime_to=None):
@@ -140,12 +143,12 @@ def mass_send_welcome_to_interview_email(emails):
     content = (
         _(
             """
-                    Hei og velkommen til intervju hos KSG!
-    
-                    Trykk på denne linken for å registrere søknaden videre
-    
-                    Lenke: %(link)s
-                    """
+                            Hei og velkommen til intervju hos KSG!
+            
+                            Trykk på denne linken for å registrere søknaden videre
+            
+                            Lenke: %(link)s
+                            """
         )
         % {"link": f"{settings.APP_URL}/applicant-portal"}
     )
@@ -153,14 +156,14 @@ def mass_send_welcome_to_interview_email(emails):
     html_content = (
         _(
             """
-                    Hei og velkommen til intervju hos KSG! 
-                    <br />
-                    <br />
-                    Trykk på denne linken for å registrere søknaden videre
-                    <br />
-                    <a href="%(link)s">Registrer søknad</a><br />
-                    <br />
-                    """
+                            Hei og velkommen til intervju hos KSG! 
+                            <br />
+                            <br />
+                            Trykk på denne linken for å registrere søknaden videre
+                            <br />
+                            <a href="%(link)s">Registrer søknad</a><br />
+                            <br />
+                            """
         )
         % {"link": f"{settings.APP_URL}/applicant-portal"}
     )
@@ -178,12 +181,12 @@ def send_welcome_to_interview_email(email: str, auth_token: str):
     content = (
         _(
             """
-                            Hei og velkommen til intervju hos KSG!
-                        
-                            Trykk på denne linken for å registrere søknaden videre
-                        
-                            Lenke: %(link)s
-                            """
+                                    Hei og velkommen til intervju hos KSG!
+                                
+                                    Trykk på denne linken for å registrere søknaden videre
+                                
+                                    Lenke: %(link)s
+                                    """
         )
         % {"link": f"{settings.APP_URL}/applicant-portal/{auth_token}"}
     )
@@ -191,14 +194,14 @@ def send_welcome_to_interview_email(email: str, auth_token: str):
     html_content = (
         _(
             """
-                                Hei og velkommen til intervju hos KSG! 
-                                <br />
-                                <br />
-                                Trykk på denne linken for å registrere søknaden videre
-                                <br />
-                                <a href="%(link)s">Registrer søknad</a><br />
-                                <br />
-                            """
+                                        Hei og velkommen til intervju hos KSG! 
+                                        <br />
+                                        <br />
+                                        Trykk på denne linken for å registrere søknaden videre
+                                        <br />
+                                        <a href="%(link)s">Registrer søknad</a><br />
+                                        <br />
+                                    """
         )
         % {"link": f"{settings.APP_URL}/applicant-portal/{auth_token}"}
     )
@@ -215,12 +218,12 @@ def resend_auth_token_email(applicant):
     content = (
         _(
             """
-                    Hei og velkommen til KSG sin søkerportal! 
-            
-                    Trykk på denne linken for å registrere søknaden videre, eller se intervjutiden din.
-            
-                    Lenke: %(link)s
-                    """
+                            Hei og velkommen til KSG sin søkerportal! 
+                    
+                            Trykk på denne linken for å registrere søknaden videre, eller se intervjutiden din.
+                    
+                            Lenke: %(link)s
+                            """
         )
         % {"link": f"{settings.APP_URL}/applicant-portal/{applicant.token}"}
     )
@@ -228,13 +231,13 @@ def resend_auth_token_email(applicant):
     html_content = (
         _(
             """
-                    Hei og velkommen til KSG sin søkerportal! 
-                    <br />
-                    Trykk på denne linken for å registrere søknaden videre, eller se intervjutiden din.
-                    <br />
-                    <a href="%(link)s">Registrer søknad</a><br />
-                    <br />
-                    """
+                            Hei og velkommen til KSG sin søkerportal! 
+                            <br />
+                            Trykk på denne linken for å registrere søknaden videre, eller se intervjutiden din.
+                            <br />
+                            <a href="%(link)s">Registrer søknad</a><br />
+                            <br />
+                            """
         )
         % {"link": f"{settings.APP_URL}/applicant-portal/{applicant.token}"}
     )
@@ -407,11 +410,179 @@ def internal_group_applicant_data(internal_group):
     ).first()
     positions_to_fill = data.available_positions
 
+    # This now counts people who did not interview, we should probably have a
+    # purge step when moving from open admission to discussion
+    # maybe have this in its own mutation
+    """
+    Admission 
+    Configure -> Open -> Discussing -> Locked -> Closed
+    This should be a irreversible process and each step should imply some transition handling
+    If we go from configure to open we create interview objects
+    If we go from Open to Discussing we should delete all data on people who did not interview
+    If we go from Discussing to Locked we throw error if we have not evaluated everyone
+    If we go from locked to closed we create user accounts
+    Should probably not send an email. When we call and say yes this should probably be its own table?
+    I am missing some intermediary stage here
+    """
+    evaluated = all_priorities.filter(internal_group_priority__isnull=False).count()
+    current_progress = int(math.ceil((evaluated / positions_to_fill) * 100))
+
     return InternalGroupApplicantsData(
         internal_group=internal_group,
         first_priorities=first_priorities,
         second_priorities=second_priorities,
         third_priorities=third_priorities,
-        current_progress=want_count,
+        current_progress=current_progress,
         positions_to_fill=positions_to_fill,
     )
+
+
+def priority_to_number(internal_group_position_priority_option):
+    if internal_group_position_priority_option == InternalGroupStatus.WANT:
+        return 100
+    elif internal_group_position_priority_option == InternalGroupStatus.PROBABLY_WANT:
+        return 90
+    elif internal_group_position_priority_option == InternalGroupStatus.RESERVE:
+        return 80
+    elif internal_group_position_priority_option == InternalGroupStatus.INTERESTED:
+        return 70
+    else:
+        return 0
+
+
+def get_applicant_position_offer(applicant):
+    """
+    Accepts an applicant and returns the name of the internal group position
+    they stand go receive if admitted
+    """
+    applicant_priorities = applicant.get_priorities
+    for priority in applicant_priorities:
+        if priority.internal_group_priority == InternalGroupStatus.WANT:
+            return priority
+
+    for priority in applicant_priorities:
+        if priority.internal_group_priority == InternalGroupStatus.PROBABLY_WANT:
+            return priority
+
+    for priority in applicant_priorities:
+        if priority.internal_group_priority == InternalGroupStatus.INTERESTED:
+            return priority
+
+    for priority in applicant_priorities:
+        if priority.internal_group_priority == InternalGroupStatus.RESERVE:
+            return priority
+
+    raise Exception(f"Applicant {applicant.get_full_name} is not really wanted")
+
+
+def get_applicants_who_will_be_accepted(admission):
+    return admission.applicants.filter(will_be_admitted=True)
+
+
+def get_applicant_interest_qs_with_offers(admission):
+    return ApplicantInterest.objects.filter(
+        applicant__admission=admission, position_to_be_offered__isnull=False
+    )
+
+
+def parse_applicant_interest_qs_to_gql_applicant_preview(applicant_interest_qs):
+    from .schema import ApplicantPreview
+
+    parsed_applicant_interests = []
+    for applicant_interest in applicant_interest_qs:
+        flattened_applicant_data = ApplicantPreview(
+            id=to_global_id("ApplicantNode", applicant_interest.applicant.id),
+            full_name=applicant_interest.applicant.get_full_name,
+            phone=applicant_interest.applicant.phone,
+            offered_internal_group_position_name=applicant_interest.position_to_be_offered.name,
+            applicant_priority="N/A",
+        )
+        parsed_applicant_interests.append(flattened_applicant_data)
+    return parsed_applicant_interests
+
+
+def parse_applicant_qs_to_gql_applicant_preview(applicant_qs):
+    from admissions.schema import ApplicantPreview
+
+    parsed_applicant_list = []
+    for applicant in applicant_qs:
+        priority = get_applicant_position_offer(applicant)
+        flattened_applicant_data = ApplicantPreview(
+            id=to_global_id("ApplicantNode", applicant.id),
+            full_name=applicant.get_full_name,
+            phone=applicant.phone,
+            offered_internal_group_position_name=priority.internal_group_position.name,
+            applicant_priority=priority.applicant_priority,
+        )
+        parsed_applicant_list.append(flattened_applicant_data)
+
+    return parsed_applicant_list
+
+
+def admission_applicant_preview(admission):
+    """
+    Gets all Applicant and ApplicantInterest instances that will be
+    offered a position in the provided admission and returns them
+    as a parsed list of graphene.ObjectType ApplicantPreview objects.
+
+    :param admission: An Admission model instance of the applicants we want to parse
+    :returns: A list of applicants who will be given an offer
+    """
+    applicants = get_applicants_who_will_be_accepted(admission)
+    # Then we expand this with applicants with interest.
+    parsed_applicants = parse_applicant_qs_to_gql_applicant_preview(applicants)
+
+    applicant_interests = get_applicant_interest_qs_with_offers(admission)
+    parsed_applicant_interests = parse_applicant_interest_qs_to_gql_applicant_preview(
+        applicant_interests
+    )
+
+    final_applicant_list = [*parsed_applicants, *parsed_applicant_interests]
+    # Can consider re-ordering by name here
+    return final_applicant_list
+
+
+def get_admission_final_applicant_qs(admission):
+    """
+    Retrieves all applicants who will be joining KSG, including those who have been offered
+    some other position.
+    """
+    applicants = get_applicants_who_will_be_accepted(admission)
+    applicants_with_alternate_offer = admission.applicants.filter(
+        internal_group_interests__position_to_be_offered__isnull=False
+    )
+    merged_queryset = applicants | applicants_with_alternate_offer
+    return merged_queryset
+
+
+def get_applicant_offered_position(applicant):
+    """
+    Accepts an Applicant model instance and returns the position they will be offered
+    """
+
+    applicant_priorities = applicant.get_priorities
+    for priority in applicant_priorities:
+        if priority.internal_group_priority == InternalGroupStatus.WANT:
+            return priority.internal_group_position
+
+    # No one explicitly wants them, lets check if they are considered a reserve
+    for priority in applicant_priorities:
+        if priority.internal_group_priority == InternalGroupStatus.RESERVE:
+            return priority.internal_group_position
+
+    # Still nothing, maybe they have been offered a position
+    applicant_interests = applicant.internal_group_interests.all()
+
+    # There should only be one valid offer
+    if applicant_interests.count() > 1:
+        raise Exception(
+            f"Applicant {applicant.get_full_name} has more than one registered offer, should only be one"
+        )
+
+    interest = applicant_interests.first()
+    if not interest:
+        raise Exception(
+            f"Applicant {applicant.get_full_name} is not wanted by anyone. Why are they in this list?"
+        )
+
+    return interest.position_to_be_offered
