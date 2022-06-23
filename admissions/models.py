@@ -334,6 +334,13 @@ class ApplicantInterest(models.Model):
     internal_group = models.ForeignKey(
         InternalGroup, on_delete=models.CASCADE, related_name="applicant_interests"
     )
+    position_to_be_offered = models.ForeignKey(
+        "organization.InternalGroupPosition",
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
+        related_name="applicant_interest_offers",
+    )
 
     # Do we want this distinction?
     # type = models.CharField(max_length=32, choices=Type.choices)
