@@ -472,6 +472,17 @@ def get_applicant_position_offer(applicant):
         if priority.internal_group_priority == InternalGroupStatus.RESERVE:
             return priority
 
+    interests = applicant.internal_group_interests.filter(
+        position_to_be_offered__isnull=False
+    )
+    if interests > 1:
+        raise Exception(f"{applicant.get_full_name} has more than one offer")
+
+    interest = interests.first()
+
+    if interest:
+        return interest.position_to_be_offered
+
     raise Exception(f"Applicant {applicant.get_full_name} is not really wanted")
 
 
