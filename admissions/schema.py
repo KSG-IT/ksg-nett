@@ -360,7 +360,6 @@ class ApplicantQuery(graphene.ObjectType):
                 priorities__internal_group_priority__in=[
                     InternalGroupStatus.WANT,
                     InternalGroupStatus.RESERVE,
-                    InternalGroupStatus.PROBABLY_WANT,
                 ],
                 status=ApplicantStatus.INTERVIEW_FINISHED,
             )
