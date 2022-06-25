@@ -334,7 +334,7 @@ class InternalGroupDiscussionData(graphene.ObjectType):
     applicants = graphene.List(ApplicantNode)
 
 
-class CloseAdmissionQueryData(graphene.ObjectType):
+class CloseAdmissionData(graphene.ObjectType):
     valid_applicants = graphene.List(ApplicantNode)
     applicant_interests = graphene.List(ApplicantInterestNode)
 
@@ -351,10 +351,9 @@ class ApplicantQuery(graphene.ObjectType):
         InternalGroupDiscussionData, internal_group_id=graphene.ID(required=True)
     )
 
-    # Needs renaming
-    valid_applicants = graphene.Field(CloseAdmissionQueryData)
+    close_admission_data = graphene.Field(CloseAdmissionData)
 
-    def resolve_valid_applicants(self, info, *args, **kwargs):
+    def resolve_close_admission_data(self, info, *args, **kwargs):
         # Can we do an annotation here? Kind of like unwanted = all_priorities = DO_NOT_WANT
         valid_applicants = (
             Applicant.objects.filter(
@@ -376,7 +375,7 @@ class ApplicantQuery(graphene.ObjectType):
             .order_by("applicant__first_name")
         )
 
-        return CloseAdmissionQueryData(
+        return CloseAdmissionData(
             valid_applicants=valid_applicants, applicant_interests=applicant_interests
         )
 
