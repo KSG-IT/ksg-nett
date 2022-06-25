@@ -645,6 +645,7 @@ class InterviewQuery(graphene.ObjectType):
     interviews_available_for_booking = graphene.List(
         AvailableInterviewsDayGrouping, day_offset=graphene.Int(required=True)
     )
+    my_interviews = graphene.List(InterviewNode)
 
     def resolve_interview_template(self, info, *args, **kwargs):
         all_boolean_evaluation_statements = (
@@ -657,6 +658,13 @@ class InterviewQuery(graphene.ObjectType):
             interview_boolean_evaluation_statements=all_boolean_evaluation_statements,
             interview_additional_evaluation_statements=all_additional_evaluation_statements,
         )
+
+    def resolve_my_interviews(self, info, *args, **kwargs):
+        me = info.context.user
+        admission = Admission.get_active_admission()
+        return me.interviews_attended.filter(
+            applicant__admission=admission, applicant__isnull=False
+        ).order_by("interview_start")
 
     def resolve_interviews_available_for_booking(
         self, info, day_offset, *args, **kwargs
