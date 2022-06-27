@@ -568,7 +568,9 @@ def get_admission_final_applicant_qs(admission):
 
 def get_applicant_offered_position(applicant):
     """
-    Accepts an Applicant model instance and returns the position they will be offered
+    Accepts an Applicant model instance and returns the position they will be offered.
+
+    This might be a duplicate method
     """
 
     applicant_priorities = applicant.get_priorities
@@ -582,7 +584,9 @@ def get_applicant_offered_position(applicant):
             return priority.internal_group_position
 
     # Still nothing, maybe they have been offered a position
-    applicant_interests = applicant.internal_group_interests.all()
+    applicant_interests = applicant.internal_group_interests.filter(
+        position_to_be_offered__isnull=False
+    )
 
     # There should only be one valid offer
     if applicant_interests.count() > 1:
