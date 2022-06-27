@@ -104,3 +104,8 @@ class InterviewScheduleLocationAvailabilityAdmin(admin.ModelAdmin):
 @admin.register(ApplicantInterest)
 class ApplicantInterestAdmin(admin.ModelAdmin):
     pass
+
+
+@admin.register(AdmissionAvailableInternalGroupPositionData)
+class AdmissionAvailableInternalGroupPositionDataAdmin(admin.ModelAdmin):
+    pass
