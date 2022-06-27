@@ -12,7 +12,9 @@ from admissions.consts import (
 from django.utils.translation import ugettext_lazy as _
 from secrets import token_urlsafe
 from os.path import join as osjoin
-from organization.models import InternalGroup
+
+from organization.consts import InternalGroupPositionMembershipType
+from organization.models import InternalGroup, InternalGroupPositionMembership
 import datetime
 
 
@@ -32,6 +34,12 @@ class AdmissionAvailableInternalGroupPositionData(models.Model):
     )
     internal_group_position = models.ForeignKey(
         "organization.InternalGroupPosition", on_delete=models.CASCADE
+    )
+    membership_type = models.CharField(
+        max_length=32,
+        choices=InternalGroupPositionMembershipType.choices,
+        null=False,
+        blank=False,
     )
     available_positions = models.IntegerField()
 

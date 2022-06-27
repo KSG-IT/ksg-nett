@@ -996,6 +996,15 @@ class CloseAdmissionMutation(graphene.Mutation):
         for applicant in admitted_applicants:
             try:
                 # Step 2)
+                email_check = User.objects.filter(email=applicant.email)
+
+                if email_check:
+                    print(f"Someone with the email {applicant.email} already exists")
+
+                phone_check = User.objects.filter(phone=applicant.phone)
+                if phone_check:
+                    print(f"Someone with the email {applicant.phone} already exists")
+
                 applicant_user_profile = User.objects.create(
                     username=applicant.email,
                     first_name=applicant.first_name,
@@ -1017,11 +1026,20 @@ class CloseAdmissionMutation(graphene.Mutation):
                 # Step 3)
                 # We give the applicant the internal group position they have been accepted into
                 internal_group_position = get_applicant_offered_position(applicant)
-                internal_group_position = internal_group_position
+
+                # Need to establish the membership type which we infer from the position data.
+                # Should be unique for each admission + position. Raises Exception otherwise
+                membership_type = (
+                    AdmissionAvailableInternalGroupPositionData.objects.get(
+                        admission=admission,
+                        internal_group_position=internal_group_position,
+                    ).membership_type
+                )
                 InternalGroupPositionMembership.objects.create(
                     position=internal_group_position,
                     user=applicant_user_profile,
                     date_joined=datetime.date.today(),
+                    type=membership_type,
                 )
 
                 SociBankAccount.objects.create(
@@ -1029,6 +1047,7 @@ class CloseAdmissionMutation(graphene.Mutation):
                 )
 
             except Exception as e:
+                print(e)
                 # Should we write this out to some model or a log?
                 failed_user_generation.append(applicant)
 
