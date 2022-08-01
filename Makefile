@@ -3,7 +3,7 @@ BACKEND_SERVICE_NAME = django
 
 .PHONY: test
 test:
-	poetry run python manage.py test
+	poetry run py.test
 
 .PHONY: test-coverage
 test-coverage:

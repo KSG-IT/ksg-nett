@@ -35,6 +35,8 @@ from admissions.models import (
     InterviewScheduleTemplate,
     InterviewBooleanEvaluation,
     InterviewAdditionalEvaluationStatement,
+    InterviewBooleanEvaluationAnswer,
+    InterviewAdditionalEvaluationAnswer,
 )
 from organization.models import (
     InternalGroupPosition,
@@ -253,14 +255,16 @@ class AdditionalEvaluationAnswerEnum(graphene.Enum):
     VERY = "VERY"
 
 
-class BooleanEvaluationAnswer(graphene.ObjectType):
-    statement = graphene.String()
-    answer = graphene.Boolean()
+class InterviewBooleanEvaluationAnswerNode(DjangoObjectType):
+    class Meta:
+        model = InterviewBooleanEvaluationAnswer
+        interfaces = (Node,)
 
 
-class AdditionalEvaluationAnswer(graphene.ObjectType):
-    statement = graphene.String()
-    answer = AdditionalEvaluationAnswerEnum()
+class InterviewAdditionalEvaluationAnswerNode(DjangoObjectType):
+    class Meta:
+        model = InterviewAdditionalEvaluationAnswer
+        interfaces = (Node,)
 
 
 class InterviewNode(DjangoObjectType):
@@ -269,32 +273,16 @@ class InterviewNode(DjangoObjectType):
         interfaces = (Node,)
 
     interviewers = graphene.List(UserNode)
-    boolean_evaluation_answers = graphene.List(BooleanEvaluationAnswer)
-    additional_evaluation_answers = graphene.List(AdditionalEvaluationAnswer)
+    boolean_evaluation_answers = graphene.List(InterviewBooleanEvaluationAnswerNode)
+    additional_evaluation_answers = graphene.List(
+        InterviewAdditionalEvaluationAnswerNode
+    )
 
     def resolve_boolean_evaluation_answers(self: Interview, info, *args, **kwargs):
-        evaluations = []
-        for evaluation in self.boolean_evaluation_answers.all().order_by(
-            "statement__order"
-        ):
-            evaluations.append(
-                BooleanEvaluationAnswer(
-                    statement=evaluation.statement.statement, answer=evaluation.value
-                )
-            )
-        return evaluations
+        return self.boolean_evaluation_answers.all().order_by("statement__order")
 
     def resolve_additional_evaluation_answers(self: Interview, info, *args, **kwargs):
-        evaluations = []
-        for evaluation in self.additional_evaluation_answers.all().order_by(
-            "statement__order"
-        ):
-            evaluations.append(
-                AdditionalEvaluationAnswer(
-                    statement=evaluation.statement, answer=evaluation.answer
-                )
-            )
-        return evaluations
+        return self.additional_evaluation_answers.all().order_by("statement__order")
 
     def resolve_interviewers(self: Interview, info, *args, **kwargs):
         return self.interviewers.all()
@@ -988,6 +976,9 @@ class SetSelfAsInterviewerMutation(graphene.Mutation):
 class PatchInterviewMutation(DjangoPatchMutation):
     class Meta:
         model = Interview
+        one_to_one_extras = {
+            "applicant": {"type": "InterviewPatchApplicantInput", "operation": "patch"}
+        }
 
 
 class RemoveSelfAsInterviewerMutation(graphene.Mutation):
@@ -1103,6 +1094,11 @@ class PatchInterviewBooleanEvaluationMutation(DjangoPatchMutation):
         model = InterviewBooleanEvaluation
 
 
+class PatchInterviewBooleanEvaluationAnswerMutation(DjangoPatchMutation):
+    class Meta:
+        model = InterviewBooleanEvaluationAnswer
+
+
 class DeleteInterviewBooleanEvaluationMutation(DjangoDeleteMutation):
     class Meta:
         model = InterviewBooleanEvaluation
@@ -1120,6 +1116,12 @@ class CreateInterviewAdditionalEvaluationStatementMutation(DjangoCreateMutation)
         increment = count + 1
         input["order"] = increment
         return input
+
+
+# === InterviewAdditionalEvaluationAnswer ===
+class PatchInterviewAdditionalEvaluationAnswer(DjangoPatchMutation):
+    class Meta:
+        model = InterviewAdditionalEvaluationAnswer
 
 
 class PatchInterviewAdditionalEvaluationStatementMutation(DjangoPatchMutation):
@@ -1184,6 +1186,13 @@ class AdmissionsMutations(graphene.ObjectType):
         DeleteInterviewBooleanEvaluationMutation.Field()
     )
     patch_interview_boolean_evaluation = PatchInterviewBooleanEvaluationMutation.Field()
+    patch_interview_boolean_evaluation_answer = (
+        PatchInterviewBooleanEvaluationAnswerMutation.Field()
+    )
+
+    patch_interview_additional_evaluation_answer = (
+        PatchInterviewAdditionalEvaluationAnswer.Field()
+    )
 
     create_interview_additional_evaluation_statement = (
         CreateInterviewAdditionalEvaluationStatementMutation.Field()

@@ -40,6 +40,24 @@ def get_available_interview_locations(datetime_from=None, datetime_to=None):
 
 
 def generate_interviews_from_schedule(schedule):
+    # Double check if this thing does what its supposed to do
+    def generate_interview_and_evaluations_for_location(location):
+        with transaction.atomic:
+            interview = Interview.objects.create(
+                location=location,
+                interview_start=datetime_cursor,
+                interview_end=datetime_cursor + interview_duration,
+                total_evaluation=None,
+            )
+            for statement in boolean_evaluation_statements:
+                InterviewBooleanEvaluationAnswer.objects.create(
+                    interview=interview, statement=statement, value=None
+                )
+            for statement in additional_evaluation_statements:
+                InterviewAdditionalEvaluationAnswer.objects.create(
+                    interview=interview, statement=statement, answer=None
+                )
+
     interview_duration = schedule.default_interview_duration
     default_pause_duration = schedule.default_pause_duration
     default_interview_day_start = schedule.default_interview_day_start
@@ -81,19 +99,7 @@ def generate_interviews_from_schedule(schedule):
                 datetime_to=datetime_cursor + interview_duration,
             )
             for location in available_locations:
-                interview = Interview.objects.create(
-                    location=location,
-                    interview_start=datetime_cursor,
-                    interview_end=datetime_cursor + interview_duration,
-                )
-                for statement in boolean_evaluation_statements:
-                    InterviewBooleanEvaluationAnswer.objects.create(
-                        interview=interview, statement=statement, value=None
-                    )
-                for statement in additional_evaluation_statements:
-                    InterviewAdditionalEvaluationAnswer.objects.create(
-                        interview=interview, statement=statement, answer=None
-                    )
+                generate_interview_and_evaluations_for_location(location)
             datetime_cursor += interview_duration
 
         # First session is over. We give the interviewers a break
@@ -106,12 +112,7 @@ def generate_interviews_from_schedule(schedule):
                 datetime_to=datetime_cursor + interview_duration,
             )
             for location in available_locations:
-                with transaction.atomic():
-                    Interview.objects.create(
-                        location=location,
-                        interview_start=datetime_cursor,
-                        interview_end=datetime_cursor + interview_duration,
-                    )
+                generate_interview_and_evaluations_for_location(location)
 
             datetime_cursor += interview_duration
 
@@ -304,7 +305,10 @@ def group_interviews_by_date(interviews):
     validate_qs(interviews)
 
     interviews = interviews.order_by("interview_start")
-    cursor = parse_datetime_to_midnight(interviews.first().interview_start)
+    interview_sample = interviews.first()
+    if not interview_sample:
+        return []
+    cursor = parse_datetime_to_midnight(interview_sample.interview_start)
     cursor_end = interviews.last().interview_start
     day_offset = timezone.timedelta(days=1)
     interview_groupings = []

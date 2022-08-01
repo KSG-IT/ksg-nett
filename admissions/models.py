@@ -105,7 +105,7 @@ class InterviewBooleanEvaluationAnswer(models.Model):
         "admissions.InterviewBooleanEvaluation", on_delete=models.CASCADE
     )
     # Nullable because we prepare this before the interview is booked
-    value = models.BooleanField(null=True, blank=True)
+    value = models.BooleanField(default=None, null=True, blank=True)
 
 
 class InterviewAdditionalEvaluationStatement(models.Model):
@@ -152,15 +152,11 @@ class InterviewAdditionalEvaluationAnswer(models.Model):
     )
     # Nullable because we prepare this before the interview is booked
     answer = models.CharField(
-        max_length=32, choices=Options.choices, null=True, blank=True
+        default=None, max_length=32, choices=Options.choices, null=True, blank=True
     )
 
 
 class Interview(models.Model):
-    """
-    An interview is a combination of a
-    """
-
     class Meta:
         unique_together = ("interview_start", "interview_end", "location")
 
@@ -182,11 +178,11 @@ class Interview(models.Model):
         "users.User", related_name="interviews_attended"
     )
     total_evaluation = models.CharField(
-        max_length=32, choices=EvaluationOptions.choices, default=None, null=True
-    )
-    can_commit_three_semesters = models.BooleanField(default=True)
-    cannot_commit_three_semesters_details = models.CharField(
-        max_length=128, null=True, blank=True
+        max_length=32,
+        choices=EvaluationOptions.choices,
+        default=None,
+        null=True,
+        blank=True,
     )
 
     boolean_evaluations = models.ManyToManyField(
@@ -242,6 +238,12 @@ class Applicant(models.Model):
 
     wants_digital_interview = models.BooleanField(default=False)
     will_be_admitted = models.BooleanField(default=False)
+
+    can_commit_three_semesters = models.BooleanField(default=True)
+    cannot_commit_three_semesters_details = models.CharField(
+        max_length=128, null=True, blank=True
+    )
+    open_for_other_positions = models.BooleanField(default=False)
 
     discussion_start = models.DateTimeField(null=True, blank=True)
     discussion_end = models.DateTimeField(null=True, blank=True)
@@ -320,6 +322,8 @@ class Applicant(models.Model):
         return f"{self.first_name} {self.last_name}"
 
     def __str__(self):
+        if not self.first_name:
+            return "Unregistered applicant"
         return f"Applicant {self.get_full_name}"
 
 
