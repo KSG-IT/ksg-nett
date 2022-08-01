@@ -12,7 +12,9 @@ from admissions.consts import (
 from django.utils.translation import ugettext_lazy as _
 from secrets import token_urlsafe
 from os.path import join as osjoin
-from organization.models import InternalGroup
+
+from organization.consts import InternalGroupPositionMembershipType
+from organization.models import InternalGroup, InternalGroupPositionMembership
 import datetime
 
 
@@ -32,6 +34,12 @@ class AdmissionAvailableInternalGroupPositionData(models.Model):
     )
     internal_group_position = models.ForeignKey(
         "organization.InternalGroupPosition", on_delete=models.CASCADE
+    )
+    membership_type = models.CharField(
+        max_length=32,
+        choices=InternalGroupPositionMembershipType.choices,
+        null=False,
+        blank=False,
     )
     available_positions = models.IntegerField()
 
@@ -127,18 +135,8 @@ class InterviewAdditionalEvaluationAnswer(models.Model):
 
     class Options(models.TextChoices):
         VERY_LITTLE = ("very-little", _("Very little"))
-        LITTLE = (
-            "little",
-            _(
-                "Little",
-            ),
-        )
-        MEDIUM = (
-            "medium",
-            _(
-                "Medium",
-            ),
-        )
+        LITTLE = ("little", _("Little"))
+        MEDIUM = ("medium", _("Medium"))
         SOMEWHAT = ("somewhat", _("Somewhat"))
         VERY = ("very", _("Very"))
 
@@ -163,10 +161,7 @@ class Interview(models.Model):
     class EvaluationOptions(models.TextChoices):
         VERY_POOR = ("very-poor", _("Very poor"))
         POOR = ("poor", _("Poor"))
-        MEDIUM = (
-            "medium",
-            _("Medium"),
-        )
+        MEDIUM = ("medium", _("Medium"))
         GOOD = ("good", _("Good"))
         VERY_GOOD = ("very-good", _("Very good"))
 
@@ -327,6 +322,41 @@ class Applicant(models.Model):
         return f"Applicant {self.get_full_name}"
 
 
+class ApplicantInterest(models.Model):
+    """
+    A way to track when an internal group is interested in an applicant that has not
+    explicitly applied to said internal group
+    """
+
+    class Meta:
+        verbose_name = "Applicant interest"
+        verbose_name_plural = "Applicant interests"
+
+    class Type(models.TextChoices):
+        WANT = ("want", "Want")
+        NEED = ("need", "Need")
+
+    applicant = models.ForeignKey(
+        Applicant, on_delete=models.CASCADE, related_name="internal_group_interests"
+    )
+    internal_group = models.ForeignKey(
+        InternalGroup, on_delete=models.CASCADE, related_name="applicant_interests"
+    )
+    position_to_be_offered = models.ForeignKey(
+        "organization.InternalGroupPosition",
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
+        related_name="applicant_interest_offers",
+    )
+
+    # Do we want this distinction?
+    # type = models.CharField(max_length=32, choices=Type.choices)
+
+    def __str__(self):
+        return f"{self.internal_group.name} interest in {self.applicant}"
+
+
 class InternalGroupPositionPriority(models.Model):
     class Meta:
         verbose_name = "Internal group position priority"
@@ -343,7 +373,6 @@ class InternalGroupPositionPriority(models.Model):
     )
 
     # Tells us how the applicant prioritizes internal groups in their application
-    # This should maybe have more options than three?
     applicant_priority = models.CharField(choices=Priority.choices, max_length=12)
 
     # Tells us how an internal group prioritizes an applicant, null means not considered yet

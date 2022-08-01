@@ -13,6 +13,7 @@ from admissions.models import (
     InterviewLocation,
     InterviewLocationAvailability,
     ApplicantUnavailability,
+    ApplicantInterest,
     AdmissionAvailableInternalGroupPositionData,
 )
 
@@ -39,7 +40,6 @@ class InternalGroupPositionPriorityInline(admin.TabularInline):
 
 @admin.register(Interview)
 class InterviewAdmin(admin.ModelAdmin):
-    list_display = ("applicant",)
     inlines = (
         InterviewAdditionalEvaluationAnswerInline,
         InterviewBooleanEvaluationAnswerInline,
@@ -98,4 +98,14 @@ class InterviewScheduleLocationTemplateAdmin(admin.ModelAdmin):
 
 @admin.register(InterviewLocationAvailability)
 class InterviewScheduleLocationAvailabilityAdmin(admin.ModelAdmin):
+    pass
+
+
+@admin.register(ApplicantInterest)
+class ApplicantInterestAdmin(admin.ModelAdmin):
+    pass
+
+
+@admin.register(AdmissionAvailableInternalGroupPositionData)
+class AdmissionAvailableInternalGroupPositionDataAdmin(admin.ModelAdmin):
     pass
