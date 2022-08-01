@@ -12,7 +12,7 @@ from common.util import (
     parse_datetime_to_midnight,
     validate_qs,
 )
-from admissions.consts import InternalGroupStatus, Priority
+from admissions.consts import InternalGroupStatus, Priority, ApplicantStatus
 from graphql_relay import to_global_id
 from admissions.models import ApplicantInterest
 
@@ -373,7 +373,9 @@ def create_interview_slots(interview_days):
 
 def internal_group_applicant_data(internal_group):
     """
-    Accepts an internal group and retrieves its admission data
+    Accepts an internal group and retrieves its admission data. This is explicitly used
+    for the dashboard where interviewers assign themselves to interviews. Not to be
+    confused with the Discussion Data.
     """
     from admissions.schema import InternalGroupApplicantsData
 
@@ -383,18 +385,31 @@ def internal_group_applicant_data(internal_group):
         app_label="admissions", model_name="InternalGroupPositionPriority"
     )
 
-    first_priorities = Applicant.objects.filter(
-        priorities__applicant_priority=Priority.FIRST,
-        priorities__internal_group_position__internal_group=internal_group,
-    ).order_by("interview__interview_start")
-    second_priorities = Applicant.objects.filter(
-        priorities__applicant_priority=Priority.SECOND,
-        priorities__internal_group_position__internal_group=internal_group,
-    ).order_by("interview__interview_start")
-    third_priorities = Applicant.objects.filter(
-        priorities__applicant_priority=Priority.THIRD,
-        priorities__internal_group_position__internal_group=internal_group,
-    ).order_by("interview__interview_start")
+    # Is it possible to sort by and append all that are null
+    first_priorities = (
+        Applicant.objects.filter(
+            priorities__applicant_priority=Priority.FIRST,
+            priorities__internal_group_position__internal_group=internal_group,
+        )
+        .exclude(status=ApplicantStatus.RETRACTED_APPLICATION)
+        .order_by("interview__interview_start")
+    )
+    second_priorities = (
+        Applicant.objects.filter(
+            priorities__applicant_priority=Priority.SECOND,
+            priorities__internal_group_position__internal_group=internal_group,
+        )
+        .exclude(status=ApplicantStatus.RETRACTED_APPLICATION)
+        .order_by("interview__interview_start")
+    )
+    third_priorities = (
+        Applicant.objects.filter(
+            priorities__applicant_priority=Priority.THIRD,
+            priorities__internal_group_position__internal_group=internal_group,
+        )
+        .exclude(status=ApplicantStatus.RETRACTED_APPLICATION)
+        .order_by("interview__interview_start")
+    )
 
     all_priorities = InternalGroupPositionPriority.objects.filter(
         internal_group_position__internal_group=internal_group

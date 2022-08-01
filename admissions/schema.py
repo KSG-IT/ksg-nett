@@ -114,10 +114,46 @@ class ApplicantNode(DjangoObjectType):
     internal_group_interests = graphene.List(ApplicantInterestNode)
 
     interviewer_from_internal_group = graphene.ID(internal_group_id=graphene.ID())
+    interview_is_covered = graphene.Boolean(internal_group_id=graphene.ID())
+
+    i_am_attending_interview = graphene.Boolean()
+
+    def resolve_i_am_attending_interview(self: Applicant, info, *args, **kwargs):
+        user = info.context.user
+        if not user:
+            return False
+        interview = self.interview
+        if not interview:
+            return False
+
+        interviewers = interview.interviewers
+        return interviewers.filter(pk=user.id).exists()
+
+    def resolve_interview_is_covered(
+        self: Applicant, info, internal_group_id, *args, **kwargs
+    ):
+        internal_group_id = disambiguate_id(internal_group_id)
+        internal_group = InternalGroup.objects.get(id=internal_group_id)
+
+        interview = self.interview
+
+        if not interview:
+            return False
+
+        interviewers = interview.interviewers.all()
+        interviewers_from_internal_group = interviewers.filter(
+            internal_group_position_history__date_ended__isnull=True,
+            internal_group_position_history__position__internal_group=internal_group,
+        )
+        if interviewers_from_internal_group:
+            return True
+
+        return False
 
     def resolve_internal_group_interests(self: Applicant, info, *args, **kwargs):
         return self.internal_group_interests.all()
 
+    # This will be deprecated
     def resolve_interviewer_from_internal_group(
         self: Applicant, info, internal_group_id, *args, **kwargs
     ):
@@ -341,7 +377,11 @@ class CloseAdmissionData(graphene.ObjectType):
 
 class ApplicantQuery(graphene.ObjectType):
     applicant = Node.Field(ApplicantNode)
-    all_applicants = graphene.List(ApplicantNode)
+    all_applicants = graphene.List(
+        ApplicantNode
+    )  # Can consider eliminating this endpoint?
+    current_applicants = graphene.List(ApplicantNode)
+
     get_applicant_from_token = graphene.Field(ApplicantNode, token=graphene.String())
     internal_group_applicants_data = graphene.Field(
         InternalGroupApplicantsData, internal_group=graphene.ID()
@@ -352,6 +392,12 @@ class ApplicantQuery(graphene.ObjectType):
     )
 
     close_admission_data = graphene.Field(CloseAdmissionData)
+
+    def resolve_current_applicants(self, info, *args, **kwargs):
+        active_admission = Admission.get_active_admission()
+        return Applicant.objects.filter(admission=active_admission).order_by(
+            "first_name"
+        )
 
     def resolve_close_admission_data(self, info, *args, **kwargs):
         # Can we do an annotation here? Kind of like unwanted = all_priorities = DO_NOT_WANT
