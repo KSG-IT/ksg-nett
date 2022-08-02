@@ -1,3 +1,5 @@
+import pytz
+from django.conf import settings
 from django.test import TestCase
 
 from admissions.tests.factories import AdmissionFactory, ApplicantFactory
@@ -113,10 +115,20 @@ class TestGetAvailableInterviewLocations(TestCase):
         now = timezone.datetime.now()
         locations = get_available_interview_locations(
             datetime_from=timezone.datetime(
-                now.year, now.month, now.day, hour=9, minute=00
+                now.year,
+                now.month,
+                now.day,
+                hour=9,
+                minute=00,
+                tzinfo=pytz.timezone(settings.TIME_ZONE),
             ),
             datetime_to=timezone.datetime(
-                now.year, now.month, now.day, hour=9, minute=45
+                now.year,
+                now.month,
+                now.day,
+                hour=9,
+                minute=45,
+                tzinfo=pytz.timezone(settings.TIME_ZONE),
             ),
         )
         self.assertEqual(locations.count(), 0)
@@ -125,10 +137,20 @@ class TestGetAvailableInterviewLocations(TestCase):
         now = timezone.datetime.now()
         locations = get_available_interview_locations(
             datetime_from=timezone.datetime(
-                now.year, now.month, now.day, hour=12, minute=00
+                now.year,
+                now.month,
+                now.day,
+                hour=12,
+                minute=00,
+                tzinfo=pytz.timezone(settings.TIME_ZONE),
             ),
             datetime_to=timezone.datetime(
-                now.year, now.month, now.day, hour=12, minute=45
+                now.year,
+                now.month,
+                now.day,
+                hour=12,
+                minute=45,
+                tzinfo=pytz.timezone(settings.TIME_ZONE),
             ),
         )
         self.assertEqual(locations.count(), 3)
@@ -138,10 +160,20 @@ class TestGetAvailableInterviewLocations(TestCase):
         now = timezone.datetime.now() + timezone.timedelta(days=1)
         locations = get_available_interview_locations(
             datetime_from=timezone.datetime(
-                now.year, now.month, now.day, hour=12, minute=00
+                now.year,
+                now.month,
+                now.day,
+                hour=12,
+                minute=00,
+                tzinfo=pytz.timezone(settings.TIME_ZONE),
             ),
             datetime_to=timezone.datetime(
-                now.year, now.month, now.day, hour=12, minute=45
+                now.year,
+                now.month,
+                now.day,
+                hour=12,
+                minute=45,
+                tzinfo=pytz.timezone(settings.TIME_ZONE),
             ),
         )
         self.assertEqual(locations.count(), 2)
