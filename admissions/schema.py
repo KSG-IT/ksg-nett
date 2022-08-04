@@ -25,7 +25,7 @@ from admissions.utils import (
     get_admission_final_applicant_qs,
     get_applicant_offered_position,
 )
-from django.core.exceptions import SuspiciousOperation
+from django.core.exceptions import SuspiciousOperation, ValidationError
 from django.utils import timezone
 from admissions.models import (
     Applicant,
@@ -827,6 +827,22 @@ class CreateApplicantMutation(DjangoCreateMutation):
 class PatchApplicantMutation(DjangoPatchMutation):
     class Meta:
         model = Applicant
+
+    def validate_phone(root, info, value, input, ex1, ex2):
+        print(ex1, ex2)
+        if value == "":
+            raise ValidationError("Phone number cannot be empty")
+
+        user_phone_check = User.objects.filter(phone=value).exists()
+        if user_phone_check:
+            raise ValidationError(
+                "This phone number is already in use by another user."
+            )
+        applicant_phone_check = Applicant.objects.filter(phone=value).exists()
+        if applicant_phone_check:
+            raise ValidationError(
+                "This phone number is already in use by another applicant."
+            )
 
 
 class DeleteApplicantMutation(DjangoDeleteMutation):
