@@ -63,7 +63,7 @@ class UserNode(DjangoObjectType):
 
     def resolve_profile_image(self: User, info, **kwargs):
         if self.profile_image:
-            return f"{settings.HOST_URL}{self.profile_image.url}"
+            return self.profile_image.url
         else:
             return None
 
