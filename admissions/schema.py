@@ -828,8 +828,11 @@ class PatchApplicantMutation(DjangoPatchMutation):
     class Meta:
         model = Applicant
 
-    def validate_phone(root, info, value, input, ex1, ex2):
-        print(ex1, ex2)
+    @classmethod
+    def validate_phone_number(
+        cls, root, info, value, input, id, obj: User, *args, **kwargs
+    ):
+
         if value == "":
             raise ValidationError("Phone number cannot be empty")
 
