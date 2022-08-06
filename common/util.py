@@ -207,7 +207,7 @@ def send_email(
     subject="KSG-nett",
     message="",
     html_message="",
-    sender="no-reply@ksg-nett.no",
+    sender="orvik@ksg-nett.no",
     recipients=[],
     attachments=None,
     cc=[],
