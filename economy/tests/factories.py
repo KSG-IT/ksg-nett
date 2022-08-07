@@ -55,6 +55,7 @@ class ProductOrderFactory(DjangoModelFactory):
     order_size = 1
     source = SubFactory(SociBankAccountFactory)
     session = SubFactory(SociSessionFactory)
+    purchased_at = Faker("date_time", tzinfo=pytz.timezone(settings.TIME_ZONE))
 
 
 class TransferFactory(DjangoModelFactory):
@@ -64,6 +65,7 @@ class TransferFactory(DjangoModelFactory):
     source = SubFactory(SociBankAccountFactory)
     destination = SubFactory(SociBankAccountFactory)
     amount = Faker("random_number", digits=4, fix_len=True)
+    created = Faker("date_time", tzinfo=pytz.timezone(settings.TIME_ZONE))
 
 
 class DepositFactory(DjangoModelFactory):
@@ -74,6 +76,7 @@ class DepositFactory(DjangoModelFactory):
     description = Faker("text")
     amount = Faker("random_number", digits=4, fix_len=True)
     receipt = ImageField()
+    created_at = Faker("date_time", tzinfo=pytz.timezone(settings.TIME_ZONE))
 
     signed_off_by = SubFactory("users.tests.factories.UserFactory")
     signed_off_time = None
@@ -91,3 +94,4 @@ class DepositCommentFactory(DjangoModelFactory):
     deposit = SubFactory(DepositFactory)
     user = SubFactory("users.tests.factories.UserFactory")
     comment = Faker("text")
+    created = Faker("date_time", tzinfo=pytz.timezone(settings.TIME_ZONE))
