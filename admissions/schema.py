@@ -10,6 +10,8 @@ from graphene_django_cud.mutations import (
     DjangoCreateMutation,
 )
 from django.conf import settings
+
+from common.decorators import gql_has_permissions
 from common.util import date_time_combiner
 from django.db.models import Q
 from graphene_django.filter import DjangoFilterConnectionField
@@ -393,12 +395,14 @@ class ApplicantQuery(graphene.ObjectType):
 
     close_admission_data = graphene.Field(CloseAdmissionData)
 
+    @gql_has_permissions("admissions.view_admission")
     def resolve_current_applicants(self, info, *args, **kwargs):
         active_admission = Admission.get_active_admission()
         return Applicant.objects.filter(admission=active_admission).order_by(
             "first_name"
         )
 
+    @gql_has_permissions("admissions.view_admission")
     def resolve_close_admission_data(self, info, *args, **kwargs):
         # Can we do an annotation here? Kind of like unwanted = all_priorities = DO_NOT_WANT
         valid_applicants = (
@@ -428,9 +432,11 @@ class ApplicantQuery(graphene.ObjectType):
         applicant = Applicant.objects.filter(token=token).first()
         return applicant
 
+    @gql_has_permissions("admissions.view_applicant")
     def resolve_all_applicants(self, info, *args, **kwargs):
         return Applicant.objects.all().order_by("first_name")
 
+    @gql_has_permissions("admissions.view_applicant")
     def resolve_internal_group_applicants_data(
         self, info, internal_group, *args, **kwargs
     ):
@@ -442,6 +448,7 @@ class ApplicantQuery(graphene.ObjectType):
         data = internal_group_applicant_data(internal_group)
         return data
 
+    @gql_has_permissions("admissions.view_applicant")
     def resolve_all_internal_group_applicant_data(self, info, *args, **kwargs):
         admission = Admission.get_active_admission()
         positions = admission.available_internal_group_positions.all()
@@ -454,6 +461,7 @@ class ApplicantQuery(graphene.ObjectType):
 
         return internal_group_data
 
+    @gql_has_permissions("admissions.view_applicant")
     def resolve_internal_group_discussion_data(
         self, info, internal_group_id, *args, **kwargs
     ):
@@ -530,6 +538,7 @@ class CreateApplicationsMutation(graphene.Mutation):
     applications_created = graphene.Int()
     faulty_emails = graphene.List(graphene.String)
 
+    @gql_has_permissions("admissions.add_applicant")
     def mutate(self, info, emails):
         faulty_emails = []
         registered_emails = []
@@ -621,6 +630,7 @@ class AdmissionQuery(graphene.ObjectType):
             "name"
         )
 
+    @gql_has_permissions("admissions.view_admission")
     def resolve_internal_groups_accepting_applicants(self, info, *args, **kwargs):
         admission = Admission.get_active_admission()
         if not admission:
@@ -851,6 +861,7 @@ class PatchApplicantMutation(DjangoPatchMutation):
 class DeleteApplicantMutation(DjangoDeleteMutation):
     class Meta:
         model = Applicant
+        permissions = ("admissions.delete_applicant",)
 
 
 class ToggleApplicantWillBeAdmittedMutation(graphene.Mutation):
@@ -859,6 +870,8 @@ class ToggleApplicantWillBeAdmittedMutation(graphene.Mutation):
 
     success = graphene.Boolean()
 
+    @classmethod
+    @gql_has_permissions("admissions.change_admission")
     def mutate(self, info, id, *args, **kwargs):
         applicant_id = disambiguate_id(id)
         applicant = Applicant.objects.filter(id=applicant_id).first()
@@ -875,11 +888,13 @@ class ToggleApplicantWillBeAdmittedMutation(graphene.Mutation):
 class CreateApplicantInterestMutation(DjangoCreateMutation):
     class Meta:
         model = ApplicantInterest
+        permissions = ("admissions.add_applicantinterest",)
 
 
 class DeleteApplicantInterestMutation(DjangoDeleteMutation):
     class Meta:
         model = ApplicantInterest
+        permissions = ("admissions.delete_applicantinterest",)
 
 
 class GiveApplicantToInternalGroupMutation(graphene.Mutation):
@@ -888,6 +903,8 @@ class GiveApplicantToInternalGroupMutation(graphene.Mutation):
 
     success = graphene.NonNull(graphene.Boolean)
 
+    @classmethod
+    @gql_has_permissions("admissions.change_applicantinterest")
     def mutate(self, info, applicant_interest_id, *args, **kwargs):
         applicant_interest_id = disambiguate_id(applicant_interest_id)
         applicant_interest = ApplicantInterest.objects.get(pk=applicant_interest_id)
@@ -1027,6 +1044,7 @@ class LockAdmissionMutation(graphene.Mutation):
     # Requires that all applicants have been evaluated in som manner
     admission = graphene.Field(AdmissionNode)
 
+    @gql_has_permissions("admissions.change_admission")
     def mutate(self, info, *args, **kwargs):
         admission = Admission.get_active_admission()
         unevaluated_applicants = admission.applicants.filter(
@@ -1044,6 +1062,7 @@ class LockAdmissionMutation(graphene.Mutation):
 class CloseAdmissionMutation(graphene.Mutation):
     failed_user_generation = graphene.List(ApplicantNode)
 
+    @gql_has_permissions("admissions.change_admission")
     def mutate(self, info, *args, **kwargs):
         """
         1. Get all applicants we have marked for admission or with and
