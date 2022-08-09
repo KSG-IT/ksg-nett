@@ -523,6 +523,9 @@ class ResendApplicantTokenMutation(graphene.Mutation):
     ok = graphene.Boolean()
 
     def mutate(self, info, email, *args, **kwargs):
+        active_admission = Admission.get_active_admission()
+        if not active_admission or not active_admission.status == AdmissionStatus.OPEN:
+            raise Exception("Admission is not open")
         applicant = Applicant.objects.filter(email=email).first()
         if applicant:
             ok = resend_auth_token_email(applicant)
