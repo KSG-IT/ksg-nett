@@ -1,10 +1,11 @@
-import math
+import math, os, io
 from django.utils import timezone
 from django.db import transaction
 from common.util import send_email
 from django.utils.translation import ugettext_lazy as _
 from django.conf import settings
 from django.apps import apps
+
 import csv
 from common.util import (
     date_time_combiner,
@@ -259,14 +260,48 @@ def read_admission_csv(file):
         > Save a row number cursor and then the csv can just be re-uploaded?
         > Has to be very robust aginst user input
     """
-    with open(file, newline="") as csv_file:
-        admission = csv.reader(csv_file, delimiter=",")
-        header = next(admission)
-        for row in admission:
-            name = row[0]
-            phone_number = row[1]
-            email = row[2]
-            stilling = row[4]
+    applicants = []
+    email_tracker = []
+    decoded_file = file.read().decode("utf-8")
+    lines = decoded_file.split("\n")
+    for row in lines[1:]:
+        if row == "":
+            break
+
+        # We respect the user's capitalization of their email
+        email = row.split(",")[2].strip()
+        row = row.lower()
+        cells = row.split(",")
+
+        cells = [cell.strip() for cell in cells]
+        name = cells[0]
+        name_split = name.split(" ")
+
+        # Remove any items in the list which are just an empty space
+        cleaned_name_split = [x for x in name_split if x != ""]
+        # Want to capitalize the first letter of every string
+        parsed_name_split = [word[0].upper() + word[1:] for word in cleaned_name_split]
+
+        # Only caveat are any names brought together with a '-', like Anne-Marie -> Anne-marie
+        last_name = parsed_name_split[-1]
+        first_name = " ".join(parsed_name_split[:-1])
+
+        phone_number = cells[1]
+
+        if email in email_tracker:
+            continue
+
+        applicant_data = {
+            "name": f"{first_name} {last_name}",
+            "first_name": first_name,
+            "last_name": last_name,
+            "phone": phone_number,
+            "email": email,
+        }
+        applicants.append(applicant_data)
+        email_tracker.append(email)
+
+    return applicants
 
 
 def obfuscate_admission(admission):
