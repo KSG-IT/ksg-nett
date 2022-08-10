@@ -1,4 +1,6 @@
 import datetime
+from secrets import token_urlsafe
+
 import graphene
 from graphene import Node
 from graphql_relay import to_global_id
@@ -437,12 +439,14 @@ class CreateApplicantsFromCSVDataMutation(graphene.Mutation):
         emails = []
         for applicant in applicants:
             try:
+                auth_token = token_urlsafe(32)
                 applicant = Applicant.objects.create(
                     admission=admission,
                     first_name=applicant["first_name"],
                     last_name=applicant["last_name"],
                     email=applicant["email"],
                     phone=applicant["phone"],
+                    token=auth_token,
                 )
                 emails.append(applicant.email)
             except Exception as e:
