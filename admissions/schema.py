@@ -11,6 +11,7 @@ from graphene_django_cud.mutations import (
 )
 from django.conf import settings
 
+from graphene_file_upload.scalars import Upload
 from common.decorators import gql_has_permissions
 from common.util import date_time_combiner
 from django.db.models import Q
@@ -26,6 +27,7 @@ from admissions.utils import (
     admission_applicant_preview,
     get_admission_final_applicant_qs,
     get_applicant_offered_position,
+    read_admission_csv,
 )
 from django.core.exceptions import SuspiciousOperation, ValidationError
 from django.utils import timezone
@@ -375,6 +377,81 @@ class InternalGroupDiscussionData(graphene.ObjectType):
 class CloseAdmissionData(graphene.ObjectType):
     valid_applicants = graphene.List(ApplicantNode)
     applicant_interests = graphene.List(ApplicantInterestNode)
+
+
+class ApplicantCSVData(graphene.ObjectType):
+    full_name = graphene.String()
+    first_name = graphene.String()
+    last_name = graphene.String()
+    email = graphene.String()
+    phone = graphene.String()
+
+
+class ApplicantCSVDataInput(graphene.InputObjectType):
+    full_name = graphene.String()
+    first_name = graphene.String()
+    last_name = graphene.String()
+    email = graphene.String()
+    phone = graphene.String()
+
+
+class UploadApplicantsCSVMutation(graphene.Mutation):
+    """
+    Not working yet.
+    """
+
+    class Arguments:
+        applicants_file = Upload(required=True)
+
+    valid_applicants = graphene.List(ApplicantCSVData)
+
+    def mutate(self, info, applicants_file, *args, **kwargs):
+        applicant_data = read_admission_csv(applicants_file)
+        valid_applicants = [
+            ApplicantCSVData(
+                full_name=applicant["name"],
+                first_name=applicant["first_name"],
+                last_name=applicant["last_name"],
+                email=applicant["email"],
+                phone=applicant["phone"],
+            )
+            for applicant in applicant_data
+        ]
+        return UploadApplicantsCSVMutation(valid_applicants=valid_applicants)
+
+
+class CreateApplicantsFromCSVDataMutation(graphene.Mutation):
+    """
+    Not to be confused with UploadApplicantsCSVMutation. This mutation
+    accepts a list of parsed data from UploadApplicantsCSVMutation and
+    creates actual applicant instances
+    """
+
+    class Arguments:
+        applicants = graphene.List(ApplicantCSVDataInput)
+
+    ok = graphene.Boolean()
+
+    def mutate(self, info, applicants, *args, **kwargs):
+        admission = Admission.get_active_admission()
+        emails = []
+        for applicant in applicants:
+            try:
+                applicant = Applicant.objects.create(
+                    admission=admission,
+                    first_name=applicant["first_name"],
+                    last_name=applicant["last_name"],
+                    email=applicant["email"],
+                    phone=applicant["phone"],
+                )
+                emails.append(applicant.email)
+            except Exception as e:
+                print("Failed to create applicant")
+                print(e)
+
+        ok = mass_send_welcome_to_interview_email(emails)
+
+        return CreateApplicantsFromCSVDataMutation(ok=ok)
 
 
 class ApplicantQuery(graphene.ObjectType):
@@ -1155,6 +1232,7 @@ class GenerateInterviewsMutation(graphene.Mutation):
     ok = graphene.Boolean()
     interviews_generated = graphene.Int()
 
+    @gql_has_permissions("admissions.change_interview")
     def mutate(self, info, *args, **kwargs):
         # retrieve the schedule template
         schedule = InterviewScheduleTemplate.objects.all().first()
@@ -1378,6 +1456,8 @@ class AdmissionsMutations(graphene.ObjectType):
     create_applicant = CreateApplicantMutation.Field()
     patch_applicant = PatchApplicantMutation.Field()
     delete_applicant = DeleteApplicantMutation.Field()
+    upload_applicants_csv = UploadApplicantsCSVMutation.Field()
+    create_applicants_from_csv_data = CreateApplicantsFromCSVDataMutation.Field()
 
     create_applicant_interest = CreateApplicantInterestMutation.Field()
     delete_applicant_interest = DeleteApplicantInterestMutation.Field()
