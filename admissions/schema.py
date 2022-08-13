@@ -954,7 +954,6 @@ class ToggleApplicantWillBeAdmittedMutation(graphene.Mutation):
 
     success = graphene.Boolean()
 
-    @classmethod
     @gql_has_permissions("admissions.change_admission")
     def mutate(self, info, id, *args, **kwargs):
         applicant_id = disambiguate_id(id)
@@ -987,7 +986,6 @@ class GiveApplicantToInternalGroupMutation(graphene.Mutation):
 
     success = graphene.NonNull(graphene.Boolean)
 
-    @classmethod
     @gql_has_permissions("admissions.change_applicantinterest")
     def mutate(self, info, applicant_interest_id, *args, **kwargs):
         applicant_interest_id = disambiguate_id(applicant_interest_id)
@@ -1380,7 +1378,6 @@ class CreateInterviewBooleanEvaluationMutation(DjangoCreateMutation):
         model = InterviewBooleanEvaluation
         exclude_fields = ("order",)
 
-    @classmethod
     def before_mutate(cls, root, info, input):
         count = InterviewBooleanEvaluation.objects.all().count()
         increment = count + 1
