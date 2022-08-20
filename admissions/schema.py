@@ -48,6 +48,7 @@ from admissions.models import (
     InterviewBooleanEvaluationAnswer,
     InterviewAdditionalEvaluationAnswer,
 )
+from organization.consts import InternalGroupPositionMembershipType
 from organization.models import (
     InternalGroupPosition,
     InternalGroup,
@@ -265,6 +266,12 @@ class AdmissionAvailableInternalGroupPositionDataNode(DjangoObjectType):
     class Meta:
         model = AdmissionAvailableInternalGroupPositionData
         interfaces = (Node,)
+
+    class MembershipType(graphene.Enum):
+        GANG_MEMBER = InternalGroupPositionMembershipType.GANG_MEMBER
+        FUNCTIONARY = InternalGroupPositionMembershipType.FUNCTIONARY
+
+    membership_type = MembershipType()
 
     @classmethod
     def get_node(cls, info, id):

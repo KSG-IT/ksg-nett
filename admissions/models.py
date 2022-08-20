@@ -1,3 +1,4 @@
+import graphene
 from django.db import models
 from django.db.models import Q
 from common.util import get_semester_year_shorthand
@@ -38,6 +39,7 @@ class AdmissionAvailableInternalGroupPositionData(models.Model):
     membership_type = models.CharField(
         max_length=32,
         choices=InternalGroupPositionMembershipType.choices,
+        default=InternalGroupPositionMembershipType.GANG_MEMBER,
         null=False,
         blank=False,
     )
