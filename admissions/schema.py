@@ -203,7 +203,7 @@ class ApplicantNode(DjangoObjectType):
 
     def resolve_image(self: Applicant, info, **kwargs):
         if self.image:
-            return f"{settings.HOST_URL}{self.image.url}"
+            return f"{self.image.url}"
         else:
             return None
 
