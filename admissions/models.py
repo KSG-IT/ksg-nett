@@ -1,5 +1,5 @@
 import graphene
-from django.db import models
+from django.db import models, transaction
 from django.db.models import Q
 from common.util import get_semester_year_shorthand
 from django.utils import timezone
@@ -299,6 +299,25 @@ class Applicant(models.Model):
         )
 
         self.save()
+
+    def update_priority_order(self, new_priority_order):
+        """
+        We assume we receive a list of internal group positions in the desired order. We create a single
+        transaction where were delete and then re-create the priority order.
+        """
+        priorities = [Priority.FIRST, Priority.SECOND, Priority.THIRD]
+        with transaction.atomic():
+            self.priorities.all().delete()
+
+            for index, position in enumerate(new_priority_order):
+                print(position)
+                print(self)
+                print(priorities[index])
+                InternalGroupPositionPriority.objects.create(
+                    applicant=self,
+                    internal_group_position=position,
+                    applicant_priority=priorities[index],
+                )
 
     @property
     def get_priorities(self):

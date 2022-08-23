@@ -1082,6 +1082,41 @@ class AddInternalGroupPositionPriorityMutation(graphene.Mutation):
         return AddInternalGroupPositionPriorityMutation(success=True)
 
 
+class UpdateInternalGroupPositionPriorityOrderMutation(graphene.Mutation):
+    class Arguments:
+        applicant_id = graphene.ID(required=True)
+        priority_order = graphene.List(graphene.ID, required=True)
+
+    internal_group_position_priorities = graphene.List(
+        InternalGroupPositionPriorityNode
+    )
+
+    @gql_has_permissions("admissions.change_internalgrouppositionpriority")
+    def mutate(self, info, applicant_id, priority_order, *args, **kwargs):
+        # Ids can be None
+        trimmed_global_ids = []
+        for priority_order_id in priority_order:
+            if not priority_order_id:
+                continue
+            trimmed_global_ids.append(priority_order_id)
+
+        applicant_id = disambiguate_id(applicant_id)
+        applicant = Applicant.objects.get(id=applicant_id)
+        ids = [disambiguate_id(global_id) for global_id in trimmed_global_ids]
+
+        parsed_priorities = []
+        for id in ids:
+            parsed_priorities.append(InternalGroupPosition.objects.get(id=id))
+
+        applicant.update_priority_order(parsed_priorities)
+        applicant.refresh_from_db()
+
+        new_priorities = applicant.get_priorities
+        return UpdateInternalGroupPositionPriorityOrderMutation(
+            internal_group_position_priorities=new_priorities
+        )
+
+
 class PatchInternalGroupPositionPriority(DjangoPatchMutation):
     class Meta:
         model = InternalGroupPositionPriority
@@ -1476,6 +1511,9 @@ class AdmissionsMutations(graphene.ObjectType):
     delete_applicant = DeleteApplicantMutation.Field()
     upload_applicants_csv = UploadApplicantsCSVMutation.Field()
     create_applicants_from_csv_data = CreateApplicantsFromCSVDataMutation.Field()
+    update_internal_group_position_priority_order = (
+        UpdateInternalGroupPositionPriorityOrderMutation.Field()
+    )
 
     create_applicant_interest = CreateApplicantInterestMutation.Field()
     delete_applicant_interest = DeleteApplicantInterestMutation.Field()
