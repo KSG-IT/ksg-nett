@@ -395,7 +395,7 @@ def create_interview_slots(interview_days):
         day_groupings = []
         while cursor < last_interview:
             # Interviews are always created in parallel. Meaning we can use the exact datetime to filter
-            interview_group = Interview.objects.filter(interview_start=cursor)
+            interview_group = Interview.objects.filter(interview_start=cursor, applicant__isnull=True)
             slot = {"timestamp": cursor, "interviews": interview_group}
             day_groupings.append(slot)
             cursor += inferred_interview_duration
