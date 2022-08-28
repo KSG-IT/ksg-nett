@@ -144,9 +144,9 @@ def mass_send_welcome_to_interview_email(emails):
     content = (
         _(
             """
-                            Hei og velkommen til intervju hos KSG!
+                            Hei og takk for at du søker KSG!
             
-                            Trykk på denne linken for å registrere søknaden videre
+                            Trykk på denne linken for å få tilsendt innloggingsinformasjon.
             
                             Lenke: %(link)s
                             """
@@ -157,10 +157,10 @@ def mass_send_welcome_to_interview_email(emails):
     html_content = (
         _(
             """
-                            Hei og velkommen til intervju hos KSG! 
+                            Hei og takk for at du søker KSG!
                             <br />
                             <br />
-                            Trykk på denne linken for å registrere søknaden videre
+                            Trykk på denne linken for å få tilsendt innloggingsinformasjon.
                             <br />
                             <a href="%(link)s">Registrer søknad</a><br />
                             <br />
@@ -182,12 +182,16 @@ def send_welcome_to_interview_email(email: str, auth_token: str):
     content = (
         _(
             """
-                                    Hei og velkommen til intervju hos KSG!
-                                
-                                    Trykk på denne linken for å registrere søknaden videre
-                                
-                                    Lenke: %(link)s
-                                    """
+            Hei og velkommen til intervju hos KSG!
+            
+            Du får nå silsendt en lenke som lar deg registrere personlige opplysninger,
+            hvilket verv du er interessert i hos oss og velge et intervjutidspunkt som passer
+            deg.
+        
+            Trykk på denne linken for å registrere søknaden videre
+        
+            Lenke: %(link)s
+            """
         )
         % {"link": f"{settings.APP_URL}/applicant-portal/{auth_token}"}
     )
@@ -195,14 +199,16 @@ def send_welcome_to_interview_email(email: str, auth_token: str):
     html_content = (
         _(
             """
-                                        Hei og velkommen til intervju hos KSG! 
-                                        <br />
-                                        <br />
-                                        Trykk på denne linken for å registrere søknaden videre
-                                        <br />
-                                        <a href="%(link)s">Registrer søknad</a><br />
-                                        <br />
-                                    """
+            Hei og velkommen til intervju hos KSG! 
+            <br />
+            <br />
+            Du får nå silsendt en lenke som lar deg registrere personlige opplysninger,
+            hvilket verv du er interessert i hos oss og velge et intervjutidspunkt som passer
+            deg.
+            <br />
+            <a href="%(link)s">Registrer søknad</a><br />
+            <br />
+            """
         )
         % {"link": f"{settings.APP_URL}/applicant-portal/{auth_token}"}
     )
@@ -219,12 +225,12 @@ def resend_auth_token_email(applicant):
     content = (
         _(
             """
-                            Hei og velkommen til KSG sin søkerportal! 
-                    
-                            Trykk på denne linken for å registrere søknaden videre, eller se intervjutiden din.
-                    
-                            Lenke: %(link)s
-                            """
+            Hei og velkommen til KSG sin søkerportal! 
+    
+            Trykk på denne linken for å registrere søknaden videre, eller se intervjutiden din.
+    
+            Lenke: %(link)s
+            """
         )
         % {"link": f"{settings.APP_URL}/applicant-portal/{applicant.token}"}
     )
@@ -232,13 +238,13 @@ def resend_auth_token_email(applicant):
     html_content = (
         _(
             """
-                            Hei og velkommen til KSG sin søkerportal! 
-                            <br />
-                            Trykk på denne linken for å registrere søknaden videre, eller se intervjutiden din.
-                            <br />
-                            <a href="%(link)s">Registrer søknad</a><br />
-                            <br />
-                            """
+            Hei og velkommen til KSG sin søkerportal! 
+            <br />
+            Trykk på denne linken for å registrere søknaden videre, eller se intervjutiden din.
+            <br />
+            <a href="%(link)s">Registrer søknad</a><br />
+            <br />
+            """
         )
         % {"link": f"{settings.APP_URL}/applicant-portal/{applicant.token}"}
     )
@@ -395,7 +401,9 @@ def create_interview_slots(interview_days):
         day_groupings = []
         while cursor < last_interview:
             # Interviews are always created in parallel. Meaning we can use the exact datetime to filter
-            interview_group = Interview.objects.filter(interview_start=cursor, applicant__isnull=True)
+            interview_group = Interview.objects.filter(
+                interview_start=cursor, applicant__isnull=True
+            )
             slot = {"timestamp": cursor, "interviews": interview_group}
             day_groupings.append(slot)
             cursor += inferred_interview_duration

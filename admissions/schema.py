@@ -889,9 +889,9 @@ class InterviewLocationQuery(graphene.ObjectType):
         next_day = timezone.timedelta(days=1)
         start_of_day = datetime.time(hour=0, minute=0, second=0)
 
-        interview_pool = Interview.objects.filter(
-            admission=Admission.get_active_admission()
-        )
+        # Needs to be deleted after interview period is done
+        interview_pool = Interview.objects.all()
+
         while date_cursor <= interview_period_end:
             interview_locations = []
             # First we retrieve all interviews in a 24 hour time period
