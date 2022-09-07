@@ -23,9 +23,7 @@ class TestImageCompression(TestCase):
         return File(file_obj, name=name)
 
     def test__image_compression_function__reduces_image_size(self):
-        compressed_image = compress_image(
-            self.image, max_width=6000, max_height=2000, quality=70
-        )
+        compressed_image = compress_image(self.image, "test", "jpeg")
         self.assertLess(compressed_image.size, self.initial_image_size)
 
 
