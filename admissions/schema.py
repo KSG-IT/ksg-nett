@@ -11,12 +11,10 @@ from graphene_django_cud.mutations import (
     DjangoDeleteMutation,
     DjangoCreateMutation,
 )
-from django.conf import settings
-
 from graphene_file_upload.scalars import Upload
 from common.decorators import gql_has_permissions
-from common.util import date_time_combiner
-from django.db.models import Q
+from common.util import date_time_combiner, compress_image
+from django.db.models import Q, Case, When, Value
 from graphene_django.filter import DjangoFilterConnectionField
 from admissions.utils import (
     generate_interviews_from_schedule,
@@ -30,11 +28,13 @@ from admissions.utils import (
     get_admission_final_applicant_qs,
     get_applicant_offered_position,
     read_admission_csv,
+    send_applicant_notice_email,
 )
 from django.core.exceptions import SuspiciousOperation, ValidationError
 from django.utils import timezone
 from admissions.models import (
     Applicant,
+    ApplicantComment,
     ApplicantInterest,
     Admission,
     AdmissionAvailableInternalGroupPositionData,
@@ -111,6 +111,22 @@ class ApplicantInterestNode(DjangoObjectType):
         return ApplicantInterest.objects.get(pk=id)
 
 
+class ApplicantNoticeMethodEnum(graphene.Enum):
+    EMAIL = "email"
+    CALL = "call"
+
+
+class ApplicantCommentNode(DjangoObjectType):
+    class Meta:
+        model = ApplicantComment
+        interfaces = (Node,)
+
+    @classmethod
+    @gql_has_permissions("admissions.view_applicantcomment")
+    def get_node(cls, info, id):
+        return ApplicantComment.objects.get(pk=id)
+
+
 class ApplicantNode(DjangoObjectType):
     class Meta:
         model = Applicant
@@ -122,6 +138,8 @@ class ApplicantNode(DjangoObjectType):
 
     interviewer_from_internal_group = graphene.ID(internal_group_id=graphene.ID())
     interview_is_covered = graphene.Boolean(internal_group_id=graphene.ID())
+    notice_method = ApplicantNoticeMethodEnum()
+    comments = graphene.List(ApplicantCommentNode)
 
     i_am_attending_interview = graphene.Boolean()
 
@@ -156,6 +174,9 @@ class ApplicantNode(DjangoObjectType):
             return True
 
         return False
+
+    def resolve_comments(self: Applicant, info, **kwargs):
+        return self.comments.all().order_by("created_at")
 
     def resolve_internal_group_interests(self: Applicant, info, *args, **kwargs):
         return self.internal_group_interests.all()
@@ -208,6 +229,7 @@ class ApplicantNode(DjangoObjectType):
             return None
 
     @classmethod
+    @gql_has_permissions("admissions.view_applicant")
     def get_node(cls, info, id):
         return Applicant.objects.get(pk=id)
 
@@ -378,7 +400,6 @@ class InternalGroupApplicantsData(graphene.ObjectType):
 
 class InternalGroupDiscussionData(graphene.ObjectType):
     internal_group = graphene.Field(InternalGroupNode)
-    processed_applicants = graphene.List(InternalGroupPositionPriorityNode)
     applicants_open_for_other_positions = graphene.List(ApplicantNode)
     applicants = graphene.List(ApplicantNode)
 
@@ -480,6 +501,7 @@ class ApplicantQuery(graphene.ObjectType):
     internal_group_discussion_data = graphene.Field(
         InternalGroupDiscussionData, internal_group_id=graphene.ID(required=True)
     )
+    applicant_notices = graphene.List(ApplicantNode)
 
     close_admission_data = graphene.Field(CloseAdmissionData)
 
@@ -517,7 +539,7 @@ class ApplicantQuery(graphene.ObjectType):
         )
 
     def resolve_get_applicant_from_token(self, info, token, *args, **kwargs):
-        applicant = Applicant.objects.filter(token=token).first()
+        applicant = Applicant.objects.get(token=token)
         return applicant
 
     @gql_has_permissions("admissions.view_applicant")
@@ -561,30 +583,25 @@ class ApplicantQuery(graphene.ObjectType):
 
         """
         internal_group_id = disambiguate_id(internal_group_id)
-        internal_group = InternalGroup.objects.filter(id=internal_group_id).first()
-
-        if not internal_group:
-            return None
-
-        # We want to return and filter this instead
-        all_internal_group_priorities = InternalGroupPositionPriority.objects.filter(
-            internal_group_position__internal_group=internal_group,
-            applicant__interview__isnull=False,
-        ).order_by("applicant__first_name")
-
-        # This can be a simplified data model in the future
-        processed_applicants = all_internal_group_priorities.filter(
-            internal_group_priority__in=[
-                InternalGroupStatus.WANT,
-                InternalGroupStatus.DO_NOT_WANT,
-            ]
-        )
+        internal_group = InternalGroup.objects.get(pk=internal_group_id)
 
         # All applicants that have applied to this internal group and finished their interview
-        applicants = Applicant.objects.filter(
-            priorities__internal_group_position__internal_group=internal_group,
-            status=ApplicantStatus.INTERVIEW_FINISHED,
-        ).distinct()
+        applicants = (
+            Applicant.objects.filter(
+                priorities__internal_group_position__internal_group=internal_group,
+                status=ApplicantStatus.INTERVIEW_FINISHED,
+            )
+            .distinct()
+            .order_by(
+                Case(
+                    When(priorities__applicant_priority=Priority.FIRST, then=Value(2)),
+                    When(priorities__applicant_priority=Priority.SECOND, then=Value(1)),
+                    When(priorities__applicant_priority=Priority.THIRD, then=Value(0)),
+                ),
+            )
+            # I don't know why this has to be here, even when the case above is flipped
+            # it still gives it in the order of Third to First priority
+        ).reverse()
 
         # Also throw in applicants open for other positions.
         applicants_open_for_other_positions = (
@@ -598,10 +615,19 @@ class ApplicantQuery(graphene.ObjectType):
 
         return InternalGroupDiscussionData(
             internal_group=internal_group,
-            processed_applicants=processed_applicants,
             applicants_open_for_other_positions=applicants_open_for_other_positions,
             applicants=applicants,
         )
+
+    def resolve_applicant_notices(self, info, *args, **kwargs):
+        admission = Admission.get_active_admission()
+        return Applicant.objects.filter(
+            admission=admission,
+            status__in=[
+                ApplicantStatus.EMAIL_SENT,
+                ApplicantStatus.HAS_REGISTERED_PROFILE,
+            ],
+        ).order_by("last_activity")
 
 
 class ResendApplicantTokenMutation(graphene.Mutation):
@@ -614,7 +640,7 @@ class ResendApplicantTokenMutation(graphene.Mutation):
         active_admission = Admission.get_active_admission()
         if not active_admission or not active_admission.status == AdmissionStatus.OPEN:
             raise Exception("Admission is not open")
-        applicant = Applicant.objects.filter(email=email).first()
+        applicant = Applicant.objects.filter(email__iexact=email).first()
         if applicant:
             ok = resend_auth_token_email(applicant)
             return ResendApplicantTokenMutation(ok=ok)
@@ -962,11 +988,42 @@ class PatchApplicantMutation(DjangoPatchMutation):
                 "This phone number is already in use by another applicant."
             )
 
+    @staticmethod
+    def handle_image(image, name, info):
+        file_type = image.name.split(".")[-1]
+        return compress_image(image, image.name, file_type)
+
 
 class DeleteApplicantMutation(DjangoDeleteMutation):
     class Meta:
         model = Applicant
         permissions = ("admissions.delete_applicant",)
+
+
+class CreateApplicantCommentMutation(DjangoCreateMutation):
+    class Meta:
+        model = ApplicantComment
+        permissions = ("admissions.add_applicantcomment",)
+        auto_context_fields = {"user": "user"}
+        exclude_fields = ("user",)
+
+
+class SendApplicantNoticeEmailMutation(graphene.Mutation):
+    class Arguments:
+        applicant_id = graphene.ID(required=True)
+
+    ok = graphene.Boolean()
+
+    @gql_has_permissions("admissions.change_applicant")
+    def mutate(self, info, applicant_id):
+        applicant_id = disambiguate_id(applicant_id)
+        applicant = Applicant.objects.get(id=applicant_id)
+        ok = send_applicant_notice_email(applicant)
+        if ok:
+            applicant.notice_method = Applicant.NoticeMethod.EMAIL
+            applicant.last_notice = timezone.now()
+            applicant.save()
+        return SendApplicantNoticeEmailMutation(ok=ok)
 
 
 class ToggleApplicantWillBeAdmittedMutation(graphene.Mutation):
@@ -1208,7 +1265,8 @@ class CloseAdmissionMutation(graphene.Mutation):
         2. Create a user instance for all of them with their data
         3. Give them the internal group position they were admitted for
         4. obfuscate identifying applicant information
-        5. Close the admission
+        5. Delete all applicant comments and interviews
+        6. Close the admission
         """
         # Step 1)
         admission = Admission.get_active_admission()
@@ -1278,6 +1336,11 @@ class CloseAdmissionMutation(graphene.Mutation):
         obfuscate_admission(admission)
 
         # Step 5)
+        # Delete all applicant comments and interviews
+        ApplicantComment.objects.all().delete()
+        Interview.objects.all().delete()
+
+        # Step 6)
         # It's a wrap folks
         admission.status = AdmissionStatus.CLOSED
         admission.save()
@@ -1308,14 +1371,18 @@ class SetSelfAsInterviewerMutation(graphene.Mutation):
 
     def mutate(self, info, interview_id, *args, **kwargs):
         interview_django_id = disambiguate_id(interview_id)
-        interview = Interview.objects.filter(pk=interview_django_id).first()
-        if not interview:
-            return SetSelfAsInterviewerMutation(success=False)
+        interview = Interview.objects.get(pk=interview_django_id)
 
-        # ToDo:
-        # Interview exists. Here we can parse whether or not a person from this internal group is here already as well
-
+        now = timezone.now()
         user = info.context.user
+        if interview.interview_end < now:
+            raise Exception(f"Cannot assign {user} to interview that is over")
+
+        if user.interviews_attended.filter(
+            interview_start=interview.interview_start
+        ).exists():
+            raise Exception(f"{user} is already attending an interview at this time")
+
         existing_interviewers = interview.interviewers.all()
         if user in existing_interviewers:
             # User is already on this interview
@@ -1434,6 +1501,7 @@ class CreateInterviewBooleanEvaluationMutation(DjangoCreateMutation):
         model = InterviewBooleanEvaluation
         exclude_fields = ("order",)
 
+    @classmethod
     def before_mutate(cls, root, info, input):
         count = InterviewBooleanEvaluation.objects.all().count()
         increment = count + 1
@@ -1518,6 +1586,9 @@ class AdmissionsMutations(graphene.ObjectType):
     update_internal_group_position_priority_order = (
         UpdateInternalGroupPositionPriorityOrderMutation.Field()
     )
+    send_applicant_notice = SendApplicantNoticeEmailMutation.Field()
+
+    create_applicant_comment = CreateApplicantCommentMutation.Field()
 
     create_applicant_interest = CreateApplicantInterestMutation.Field()
     delete_applicant_interest = DeleteApplicantInterestMutation.Field()
