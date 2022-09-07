@@ -3,6 +3,7 @@ from django.contrib import admin
 from admissions.models import (
     Admission,
     Applicant,
+    ApplicantComment,
     InternalGroupPositionPriority,
     Interview,
     InterviewAdditionalEvaluationStatement,
@@ -108,4 +109,9 @@ class ApplicantInterestAdmin(admin.ModelAdmin):
 
 @admin.register(AdmissionAvailableInternalGroupPositionData)
 class AdmissionAvailableInternalGroupPositionDataAdmin(admin.ModelAdmin):
+    pass
+
+
+@admin.register(ApplicantComment)
+class ApplicantCommentAdmin(admin.ModelAdmin):
     pass

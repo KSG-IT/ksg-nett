@@ -134,6 +134,44 @@ def generate_interviews_from_schedule(schedule):
         )
 
 
+def send_applicant_notice_email(applicant):
+    content = (
+        _(
+            """
+                Hei!
+                
+                Vi ser at du har søkt KSG og det har gått litt tid siden vi sist
+                har hørt fra deg. 
+    
+                Lenke: %(link)s
+                """
+        )
+        % {"link": f"{settings.APP_URL}/applicant-portal/{applicant.token}"}
+    )
+
+    html_content = (
+        _(
+            """
+                                Hei og takk for at du søker KSG!
+                                <br />
+                                <br />
+                                Trykk på denne linken for å få tilsendt innloggingsinformasjon.
+                                <br />
+                                <a href="%(link)s">Registrer søknad</a><br />
+                                <br />
+                                """
+        )
+        % {"link": f"{settings.APP_URL}/applicant-portal/{applicant.token}"}
+    )
+
+    return send_email(
+        _("Intervju KSG"),
+        message=content,
+        html_message=html_content,
+        recipients=[applicant.email],
+    )
+
+
 def mass_send_welcome_to_interview_email(emails):
     """
     Accepts a list of emails and sends the same email ass bcc to all the recipients.

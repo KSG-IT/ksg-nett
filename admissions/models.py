@@ -219,6 +219,10 @@ class Interview(models.Model):
 
 
 class Applicant(models.Model):
+    class NoticeMethod(models.TextChoices):
+        EMAIL = ("email", _("Email"))
+        CALL = ("call", _("Call"))
+
     admission = models.ForeignKey(
         Admission, on_delete=models.CASCADE, related_name="applicants"
     )
@@ -244,6 +248,18 @@ class Applicant(models.Model):
 
     discussion_start = models.DateTimeField(null=True, blank=True)
     discussion_end = models.DateTimeField(null=True, blank=True)
+
+    # Used to track if the applicant has been been given notice that they
+    # have called in to an interview or not
+    last_activity = models.DateTimeField(null=True, blank=True)
+    last_notice = models.DateTimeField(null=True, blank=True)
+    notice_method = models.CharField(
+        default=None, choices=NoticeMethod.choices, max_length=32, null=True, blank=True
+    )
+    notice_comment = models.TextField(default="", null=False, blank=True)
+    notice_user = models.ForeignKey(
+        "users.User", on_delete=models.SET_NULL, null=True, blank=True
+    )
 
     def image_dir(self, filename):
         # We want to save all objects in under the admission
@@ -376,6 +392,24 @@ class ApplicantInterest(models.Model):
 
     def __str__(self):
         return f"{self.internal_group.name} interest in {self.applicant}"
+
+
+class ApplicantComment(models.Model):
+    class Meta:
+        verbose_name = "Applicant comment"
+        verbose_name_plural = "Applicant comments"
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    user = models.ForeignKey(
+        "users.User", on_delete=models.CASCADE, related_name="applicant_comments"
+    )
+    applicant = models.ForeignKey(
+        Applicant, on_delete=models.CASCADE, related_name="comments"
+    )
+    text = models.TextField()
+
+    def __str__(self):
+        return f"{self.user} comment on {self.applicant}"
 
 
 class InternalGroupPositionPriority(models.Model):
