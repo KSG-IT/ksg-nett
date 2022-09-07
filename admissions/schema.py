@@ -585,9 +585,12 @@ class ApplicantQuery(graphene.ObjectType):
         internal_group_id = disambiguate_id(internal_group_id)
         internal_group = InternalGroup.objects.get(pk=internal_group_id)
 
+        active_admission = Admission.get_active_admission()
+        all_applicants = Applicant.objects.filter(admission=active_admission)
+
         # All applicants that have applied to this internal group and finished their interview
         applicants = (
-            Applicant.objects.filter(
+            all_applicants.filter(
                 priorities__internal_group_position__internal_group=internal_group,
                 status=ApplicantStatus.INTERVIEW_FINISHED,
             )
@@ -605,7 +608,7 @@ class ApplicantQuery(graphene.ObjectType):
 
         # Also throw in applicants open for other positions.
         applicants_open_for_other_positions = (
-            Applicant.objects.filter(
+            all_applicants.filter(
                 open_for_other_positions=True,
                 status=ApplicantStatus.INTERVIEW_FINISHED,
             )
