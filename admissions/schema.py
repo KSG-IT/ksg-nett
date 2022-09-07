@@ -871,10 +871,12 @@ class InterviewQuery(graphene.ObjectType):
         cursor_offset = cursor + timezone.timedelta(days=2)
         available_interviews = Interview.objects.filter(
             applicant__isnull=True,
+        )
+
+        available_interviews = available_interviews.filter(
             interview_start__gte=cursor,
             interview_start__lte=cursor_offset,
         )
-
         available_interviews_timeslot_grouping = []
         parsed_interviews = create_interview_slots(
             group_interviews_by_date(available_interviews)
