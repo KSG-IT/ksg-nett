@@ -465,10 +465,12 @@ def internal_group_applicant_data(internal_group):
     InternalGroupPositionPriority = apps.get_model(
         app_label="admissions", model_name="InternalGroupPositionPriority"
     )
+    active_admission = Admission.get_active_admission()
+    all_applicants = Applicant.objects.filter(admission=active_admission)
 
     # Is it possible to sort by and append all that are null
     first_priorities = (
-        Applicant.objects.filter(
+        all_applicants.filter(
             priorities__applicant_priority=Priority.FIRST,
             priorities__internal_group_position__internal_group=internal_group,
         )
@@ -476,7 +478,7 @@ def internal_group_applicant_data(internal_group):
         .order_by("interview__interview_start")
     )
     second_priorities = (
-        Applicant.objects.filter(
+        all_applicants.filter(
             priorities__applicant_priority=Priority.SECOND,
             priorities__internal_group_position__internal_group=internal_group,
         )
@@ -484,7 +486,7 @@ def internal_group_applicant_data(internal_group):
         .order_by("interview__interview_start")
     )
     third_priorities = (
-        Applicant.objects.filter(
+        all_applicants.filter(
             priorities__applicant_priority=Priority.THIRD,
             priorities__internal_group_position__internal_group=internal_group,
         )
@@ -495,7 +497,6 @@ def internal_group_applicant_data(internal_group):
     all_priorities = InternalGroupPositionPriority.objects.filter(
         internal_group_position__internal_group=internal_group
     )
-
     want_count = all_priorities.filter(
         internal_group_priority=InternalGroupStatus.WANT
     ).count()
