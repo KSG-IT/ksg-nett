@@ -1,14 +1,16 @@
+import random
 import re
+import sys
 from io import BytesIO
-from sys import getsizeof
 from datetime import datetime, date
 from typing import Union, List, Tuple
 from PIL import Image
 from pydash import strip_tags
-from django.core.mail import send_mail, EmailMultiAlternatives, get_connection
-
+from django.core.mail import EmailMultiAlternatives
+from django.conf import settings
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.utils import timezone
+from django.db.models import QuerySet
 
 
 def get_semester_year_shorthand(timestamp: Union[datetime, date]) -> str:
@@ -174,37 +176,73 @@ def is_valid_semester_year_shorthand(shorthand: str) -> bool:
     return re.match(r"[HV]\d{2}", shorthand) is not None
 
 
-def compress_image(image, max_width, max_height, quality):
-    """
-    Utility function which compresses image based on parameters such as maximum width and height
-    in addition to a quality reduction as a percentage of original image quality.
-    :param image: Image to be compressed
-    :param max_width: Maximum width of compressed image
-    :param max_height: Maximum height of compressed image
-    :param quality: Quality reduction in whole number percentage 0-100
-    :return InMemoryUploadedFile: Returns compressed image as Django InMemoryUploadedFile object
-    """
-    temp_image = Image.open(image).convert("RGB")
-    temp_image.thumbnail((max_width, max_height))
+def compress_png(png: Image):
+    w, h = png.size
+    if w > h:
+        if w >= settings.PNG_COMPRESSION_HIGH_QUALITY:
+            w_compressed = settings.PNG_COMPRESSION_HIGH_QUALITY
+        elif w >= settings.PNG_COMPRESSION_MEDIUM_QUALITY:
+            w_compressed = settings.PNG_COMPRESSION_MEDIUM_QUALITY
+        else:
+            w_compressed = settings.PNG_COMPRESSION_LOW_QUALITY
+        h_compressed = w_compressed / (w / h)
+    else:
+        if h >= settings.PNG_COMPRESSION_HIGH_QUALITY:
+            h_compressed = settings.PNG_COMPRESSION_HIGH_QUALITY
+        elif h >= settings.PNG_COMPRESSION_MEDIUM_QUALITY:
+            h_compressed = settings.PNG_COMPRESSION_MEDIUM_QUALITY
+        else:
+            h_compressed = settings.PNG_COMPRESSION_LOW_QUALITY
+        w_compressed = h_compressed * (w / h)
+    png.thumbnail((w_compressed, h_compressed))
+
+
+def compress_image(image, image_name, file_type):
+    content_types = {
+        "JPG": "image/jpeg",
+        "JPEG": "image/jpeg",
+        "PNG": "image/png",
+    }
+
+    file_type = file_type.upper()
+    format_type = "JPEG" if file_type == "JPG" else file_type.upper()
+
+    if file_type not in content_types:
+        raise ValueError("File type not supported")
+
+    content_type = content_types[file_type]
+
+    quality = settings.APPLICANT_IMAGE_COMPRESSION_VALUE
     output_io_stream = BytesIO()
-    temp_image.save(output_io_stream, format="JPEG", quality=quality)
+
+    if file_type == "PNG":
+        temp_image = Image.open(image)
+        w, h = temp_image.size
+        if w >= settings.MAX_PNG_WIDTH or h >= settings.MAX_PNG_HEIGHT:
+            compress_png(temp_image)
+        temp_image.save(output_io_stream, format=format_type)
+    else:
+        temp_image = Image.open(image).convert("RGB")
+
+        temp_image.save(output_io_stream, format="JPEG", optimize=True, quality=quality)
+
     output_io_stream.seek(0)
-    compressed_image = InMemoryUploadedFile(
+    compressed_file = InMemoryUploadedFile(
         output_io_stream,
         "ImageField",
-        "%s.jpg" % image.name.split(".")[0],
-        "image/jpeg",
-        getsizeof(output_io_stream),
+        image_name,
+        content_type,
+        sys.getsizeof(output_io_stream),
         None,
     )
-    return compressed_image
+    return compressed_file
 
 
 def send_email(
     subject="KSG-nett",
     message="",
     html_message="",
-    sender="ksg-no-reply@samfundet.no",
+    sender="orvik@ksg-nett.no",
     recipients=[],
     attachments=None,
     cc=[],
@@ -230,3 +268,48 @@ def send_email(
             email.attach_file(attachments)
 
     return email.send(fail_silently=fail_silently)
+
+
+def date_time_combiner(date: datetime.date, time: datetime.time):
+    return timezone.make_aware(
+        timezone.datetime(
+            year=date.year,
+            month=date.month,
+            day=date.day,
+            hour=time.hour,
+            minute=time.minute,
+            second=time.second,
+        )
+    )
+
+
+def get_date_from_datetime(timestamp: timezone.datetime):
+    return date(year=timestamp.year, month=timestamp.month, day=timestamp.day)
+
+
+def parse_datetime_to_midnight(timestamp: timezone.datetime):
+    """Accepts a datetime object and returns the same date but at midnight"""
+    return timezone.make_aware(
+        timezone.datetime(
+            year=timestamp.year,
+            month=timestamp.month,
+            day=timestamp.day,
+            hour=0,
+            minute=0,
+            second=0,
+        )
+    )
+
+
+def validate_qs(queryset):
+    if not issubclass(QuerySet, queryset.__class__):
+        raise ValueError("Positional argument given is not a QuerySet")
+
+
+def chose_random_element(iterable):
+    iterable_length = len(iterable)
+    if iterable_length == 0:
+        raise ValueError(f"Length of iterable is 0")
+
+    random_number = random.randint(0, iterable_length - 1)
+    return iterable[random_number]

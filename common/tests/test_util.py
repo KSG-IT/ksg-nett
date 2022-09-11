@@ -2,7 +2,9 @@ from django.test import TestCase
 from common.util import compress_image
 from PIL import Image
 from django.core.files.base import File
+import random
 from io import BytesIO
+from django.utils import timezone
 
 
 class TestImageCompression(TestCase):
@@ -21,7 +23,16 @@ class TestImageCompression(TestCase):
         return File(file_obj, name=name)
 
     def test__image_compression_function__reduces_image_size(self):
-        compressed_image = compress_image(
-            self.image, max_width=6000, max_height=2000, quality=70
-        )
+        compressed_image = compress_image(self.image, "test", "jpeg")
         self.assertLess(compressed_image.size, self.initial_image_size)
+
+
+def random_datetime(interval_start, interval_end):
+    """Returns a random datetime between two datetime objects"""
+    if not interval_start or not interval_end:
+        raise ValueError("No arguments can be None")
+
+    delta = interval_end - interval_start
+    int_delta = (delta.days * 24 * 60 * 60) + delta.seconds
+    random_second = random.randrange(int_delta)
+    return interval_start + timezone.timedelta(seconds=random_second)

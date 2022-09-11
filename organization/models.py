@@ -30,6 +30,7 @@ class InternalGroup(models.Model):
     )
     description = models.TextField(max_length=2048, blank=True, null=True)
     group_image = models.ImageField(upload_to="internalgroups", null=True, blank=True)
+    group_icon = models.ImageField(upload_to="internalgroups", null=True, blank=True)
 
     @property
     def active_members(self):
@@ -50,9 +51,22 @@ class InternalGroup(models.Model):
             return self.group_image.url
         return None
 
+    def group_icon_url(self) -> Optional[str]:
+        if self.group_icon and hasattr(self.group_icon, "url"):
+            return self.group_icon.url
+        return None
+
     @property
     def active_members_count(self) -> int:
         return len(self.active_members)
+
+    @classmethod
+    def get_internal_groups(cls):
+        return cls.objects.filter(type=cls.Type.INTERNAL_GROUP.value).order_by("name")
+
+    @classmethod
+    def get_interest_groups(cls):
+        return cls.objects.filter(type=cls.Type.INTEREST_GROUP.value).order_by("name")
 
     def __str__(self):
         return "Group %s" % self.name
@@ -104,6 +118,8 @@ class InternalGroupPosition(models.Model):
         unique_together = ("name", "internal_group")
 
     name = models.CharField(max_length=32)
+    # We mark if this position is usually available to external applicants
+    available_externally = models.BooleanField(default=False)
     internal_group = models.ForeignKey(
         InternalGroup,
         null=False,
@@ -119,6 +135,10 @@ class InternalGroupPosition(models.Model):
         through="organization.InternalGroupPositionMembership",
     )
 
+    @classmethod
+    def get_externally_available_positions(cls):
+        return cls.objects.filter(available_externally=True).order_by("name")
+
     @property
     def active_memberships(self):
         return self.memberships.filter(date_ended__isnull=True)
@@ -128,6 +148,7 @@ class InternalGroupPosition(models.Model):
         return self.active_memberships.count()
 
     def __str__(self):
+
         return f"{self.internal_group.name}: {self.name}"
 
 

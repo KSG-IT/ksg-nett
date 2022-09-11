@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/1.10/ref/settings/
 
 import os
 from datetime import timedelta
+import warnings
 
 from corsheaders.defaults import default_headers
 
@@ -155,13 +156,20 @@ LOGIN_URL = "/"
 
 LANGUAGE_CODE = "en-us"
 
-TIME_ZONE = "UTC"
+TIME_ZONE = "Europe/Belgrade"
 
 USE_I18N = True
 
 USE_L10N = True
 
 USE_TZ = True
+
+warnings.filterwarnings(
+    "error",
+    r"DateTimeField .* received a naive datetime",
+    RuntimeWarning,
+    r"django\.db\.models\.fields",
+)
 
 # Override in production
 LOCALE_PATHS = [
@@ -188,7 +196,6 @@ REST_FRAMEWORK = {
 # Graphql
 GRAPHENE = {"SCHEMA": "ksg_nett.schema.schema"}
 
-
 # Media
 STATIC_URL = "/static/"
 STATIC_ROOT = "static/"
@@ -196,13 +203,22 @@ STATIC_ROOT = "static/"
 HOST_URL = "http://localhost:8000"
 
 MEDIA_ROOT = "media/"
-MEDIA_URL = "/media/"
+MEDIA_URL = "http://localhost:8000/media/"
 
 APP_URL = "http://localhost:3012"
 
-# localhost crashes url test in users l:65
-# MEDIA_URL = "http://localhost:8000/media/"
-MAX_MEDIA_SIZE = 128 * (1024 ** 2)
+MAX_MEDIA_SIZE = 128 * (1024**2)
+
+# Given in percentage
+APPLICANT_IMAGE_COMPRESSION_VALUE = 50
+
+# Compression
+IMAGE_COMPRESSION_VALUE = 80
+MAX_PNG_WIDTH = 1200
+MAX_PNG_HEIGHT = 1200
+PNG_COMPRESSION_LOW_QUALITY = 1200
+PNG_COMPRESSION_MEDIUM_QUALITY = 2000
+PNG_COMPRESSION_HIGH_QUALITY = 2800
 
 # Simple JWT SETTINGS
 # -----------------------------
@@ -224,7 +240,6 @@ SIMPLE_JWT = {
 # Sensor token. This is used to authenticate incoming sensor API requests.
 # This should be changed before production.
 SENSOR_API_TOKEN = "3@Zhg$nH^Dlhw23R"
-
 
 # API DOCS
 # ------------------------------
@@ -250,14 +265,12 @@ CHANNEL_LAYERS = {
     }
 }
 
-
 # Redis
 REDIS = {
     "host": os.environ.get("REDIS_HOST", "localhost"),
     "port": os.environ.get("REDIS_PORT", 6379),
 }
 CHAT_STATE_REDIS_DB = 1
-
 
 # Load local and production settings
 try:

@@ -23,11 +23,11 @@ class TestParseTransactionHistory(TestCase):
             * All objects are of BankAccountType
         """
         parsed_activities = parse_transaction_history(self.bank_account)
-        self.assertEquals(13, len(parsed_activities))
+        self.assertEqual(13, len(parsed_activities))
         assert all(
             isinstance(activity, BankAccountActivity) for activity in parsed_activities
         )
 
     def test__parse_transaction_history_with_slice_kwarg__returns_sliced_length(self):
         parsed_activities = parse_transaction_history(self.bank_account, 5)
-        self.assertEquals(5, len(parsed_activities))
+        self.assertEqual(5, len(parsed_activities))

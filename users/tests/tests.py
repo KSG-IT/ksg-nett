@@ -17,7 +17,7 @@ from users.models import UsersHaveMadeOut, User
 from users.tests.factories import UserFactory, UsersHaveMadeOutFactory
 from users.views import user_detail, klinekart
 
-from organization.consts import InternalGroupPositionType
+from organization.consts import InternalGroupPositionMembershipType
 
 
 class UserProfileTest(TestCase):
@@ -57,74 +57,6 @@ class UserProfileTest(TestCase):
         user.start_ksg = timezone.datetime(year=2018, month=8, day=1)
         user.save()
         self.assertEqual(user.get_start_ksg_display(), "H18")
-
-
-class UserDetailViewTest(TestCase):
-    def setUp(self):
-        self.user = UserFactory(username="username")
-        self.url = reverse("user_detail", kwargs={"user_id": self.user.id})
-        self.user.set_password("password")
-        self.user.save()
-        self.user_detail_url = reverse(user_detail, kwargs={"user_id": self.user.id})
-
-    def test_user_detail__not_logged_in__redirects(self):
-        response = self.client.get(self.user_detail_url)
-        self.assertEqual(response.status_code, 302)
-
-    def test_user_detail__logged_in_user_does_not_exist__returns_404_not_found(self):
-        self.client.login(username="username", password="password")
-        response = self.client.get(reverse(user_detail, kwargs={"user_id": 1337}))
-        self.assertEqual(response.status_code, 404)
-
-    def test_user_detail__logged_in_user_exists__renders_profile_page(self):
-        self.client.login(username="username", password="password")
-        response = self.client.get(
-            reverse(user_detail, kwargs={"user_id": self.user.id})
-        )
-        # Decode so we can do string-comparison/containment checks
-        content = response.content.decode()
-        self.assertTemplateUsed(response, "users/profile_page.html")
-
-        # Check that some key properties of the user is rendered
-        self.assertIn(self.user.get_full_name(), content)
-        self.assertIn(self.user.get_start_ksg_display(), content)
-        self.assertIn(self.user.email, content)
-        self.assertIn(self.user.phone, content)
-
-
-class UserUpdateViewTest(TestCase):
-    def setUp(self):
-        self.user = UserFactory.create()
-        self.client.force_login(self.user)
-        self.data = {
-            "first_name": "Alexander",
-            "last_name": "Orvik",
-            "phone": self.user.phone,
-            "study": self.user.study,
-            "biography": self.user.biography,
-            "email": self.user.email,
-            "home_address": self.user.home_address,
-            "study_address": self.user.study_address,
-            "in_relationship": self.user.in_relationship,
-        }
-
-    def test__update_user_view_valid_request__updates_user_and_returns_302(self):
-        response = self.client.post(
-            "/users/" + str(self.user.id) + "/update", data=self.data
-        )
-        self.user.refresh_from_db()
-        self.assertEquals(response.status_code, 302)
-        self.assertEquals(self.user.get_full_name(), "Alexander Orvik")
-
-    def test__update_user_view_invalid_request_type__returns_METHOD_NOT_ALLOWED(self):
-        response = self.client.patch(
-            "/users/" + str(self.user.id) + "/update", data=self.data
-        )
-        self.assertEquals(response.status_code, 405)
-
-    def test__update_user_view_GET_request__renders_template_with_context(self):
-        response = self.client.get("/users/" + str(self.user.id) + "/update")
-        self.assertTemplateUsed(response, "users/update_profile_page.html")
 
 
 class UsersHaveMadeOutModelTest(TestCase):

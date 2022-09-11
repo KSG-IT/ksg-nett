@@ -23,28 +23,40 @@ from api.api_docs import SchemaView
 from graphene_file_upload.django import FileUploadGraphQLView
 from django.views.decorators.csrf import csrf_exempt
 
+
 def trigger_error(request):
     division_by_zero = 1 / 0
 
 
-
 urlpatterns = [
     # Website
-    path('', include('login.urls')),
-    path('', include('common.urls')),
-    path('external/', include('external.urls')),
-    path('internal/', include('internal.urls')),
-    path('users/', include('users.urls')),
-
+    path("", include("login.urls")),
+    path("", include("common.urls")),
+    path("external/", include("external.urls")),
+    path("internal/", include("internal.urls")),
+    path("users/", include("users.urls")),
+    path("admissions/", include("admissions.urls")),
     # Developer
-    path('admin/', admin.site.urls),
+    path("admin/", admin.site.urls),
     path("graphql/", csrf_exempt(FileUploadGraphQLView.as_view(graphiql=True))),
-    path('sentry-debug/', trigger_error),
-    path('api/', include(
-        ([
-             path('', include('api.urls')),
-             path('docs/', SchemaView.with_ui('redoc', cache_timeout=None), name='schema-redoc'),
-         ], 'api'), namespace='api')),
+    path("sentry-debug/", trigger_error),
+    path(
+        "api/",
+        include(
+            (
+                [
+                    path("", include("api.urls")),
+                    path(
+                        "docs/",
+                        SchemaView.with_ui("redoc", cache_timeout=None),
+                        name="schema-redoc",
+                    ),
+                ],
+                "api",
+            ),
+            namespace="api",
+        ),
+    ),
 ]
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
