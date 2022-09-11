@@ -8,6 +8,8 @@ from graphene_django_cud.mutations import (
     DjangoCreateMutation,
 )
 from django.conf import settings
+
+from quotes.schema import QuoteNode
 from users.models import (
     User,
 )
@@ -29,6 +31,7 @@ class UserNode(DjangoObjectType):
     initials = graphene.NonNull(graphene.String)
     profile_image = graphene.String()
     balance = graphene.NonNull(graphene.Int)
+    ksg_status = graphene.String()
     bank_account_activity = graphene.NonNull(
         graphene.List(graphene.NonNull(BankAccountActivity))
     )
@@ -37,11 +40,27 @@ class UserNode(DjangoObjectType):
     )
     all_permissions = graphene.NonNull(graphene.List(graphene.String))
     upvoted_quote_ids = graphene.NonNull(graphene.List(graphene.ID))
+    internal_group_position_membership_history = graphene.List(
+        "organization.schema.InternalGroupPositionMembershipNode"
+    )
+
+    def resolve_internal_group_position_membership_history(
+        self: User, info, *args, **kwargs
+    ):
+        return self.internal_group_position_history.order_by("-date_joined")
+
+    tagged_and_verified_quotes = graphene.List(QuoteNode)
 
     future_shifts = graphene.List(ShiftNode)
 
     def resolve_future_shifts(self: User, info, *args, **kwargs):
         return self.future_shifts
+
+    def resolve_ksg_status(self: User, info, *args, **kwargs):
+        return self.ksg_status
+
+    def resolve_tagged_and_verified_quotes(self: User, info, *args, **kwargs):
+        return self.quotes.filter(verified_by__isnull=False).order_by("-created_at")
 
     def resolve_upvoted_quote_ids(self: User, info, **kwargs):
         return [

@@ -120,7 +120,7 @@ class User(AbstractUser):
         return (
             self.internal_group_position_history.filter(date_ended__isnull=True)
             .first()
-            .position.type
+            .position.name
             if self.internal_group_position_history.filter(
                 date_ended__isnull=True
             ).first()
