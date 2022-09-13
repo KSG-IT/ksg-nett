@@ -1,40 +1,54 @@
 from django.contrib import admin
-from django.forms import ModelForm
 
-from organization.models import InternalGroupPosition
 from schedules.models import (
     Schedule,
     ShiftTrade,
     Shift,
-    ScheduleSlotType,
+    ShiftSlot,
+    ScheduleTemplate,
+    ShiftTemplate,
+    ScheduleRole,
 )
 
+
+class ScheduleRoleInline(admin.TabularInline):
+    model = ScheduleRole
+    extra = 0
+
+
 class ScheduleAdmin(admin.ModelAdmin):
-    pass
+    inlines = (ScheduleRoleInline,)
 
 
-class ShiftInline(admin.TabularInline):
-    model = Shift
-
-
-class ShiftSlotAdmin(admin.ModelAdmin):
-    inlines = (ShiftInline,)
+class ShiftSlotInline(admin.TabularInline):
+    model = ShiftSlot
 
 
 class ShiftAdmin(admin.ModelAdmin):
+    inlines = (ShiftSlotInline,)
+    extras = 2
+
+
+class ShiftSlotAdmin(admin.ModelAdmin):
     pass
 
 
-class RequiredRoleInline(admin.TabularInline):
-    model = InternalGroupPosition
-    extra = 4
+class ShiftTemplateInline(admin.TabularInline):
+    model = ShiftTemplate
 
 
+class ScheduleTemplateAdmin(admin.ModelAdmin):
+    inlines = (ShiftTemplateInline,)
+    extras = 1
 
 
+class ShiftTemplateAdmin(admin.ModelAdmin):
+    pass
 
 
 admin.site.register(Schedule, ScheduleAdmin)
-admin.site.register(ScheduleSlotType)
 admin.site.register(Shift, ShiftAdmin)
 admin.site.register(ShiftTrade)
+admin.site.register(ShiftSlot, ShiftSlotAdmin)
+admin.site.register(ScheduleTemplate, ScheduleTemplateAdmin)
+admin.site.register(ShiftTemplate, ShiftTemplateAdmin)
