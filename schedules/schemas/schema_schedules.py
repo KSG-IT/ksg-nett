@@ -78,6 +78,7 @@ class ShiftNode(DjangoObjectType):
     is_filled = graphene.Boolean(source="is_filled")
     required_roles = graphene.List(RequiredRole)
     slots = graphene.NonNull(graphene.List(graphene.NonNull(ShiftSlotNode)))
+    filled_slots = graphene.NonNull(graphene.List(graphene.NonNull(ShiftSlotNode)))
 
     def resolve_users(self, info):
         shift_slots = ShiftSlot.objects.filter(shift=self)
@@ -86,6 +87,9 @@ class ShiftNode(DjangoObjectType):
 
     def resolve_slots(self: Shift, info):
         return self.slots.all()
+
+    def resolve_filled_slots(self: Shift, info):
+        return self.slots.filter(user__isnull=False)
 
     @classmethod
     def get_node(cls, info, id):
@@ -106,6 +110,15 @@ class ShiftQuery(graphene.ObjectType):
         date_from=graphene.Date(required=True),
         date_to=graphene.Date(required=True),
     )
+
+    my_upcoming_shifts = graphene.List(ShiftNode)
+
+    def resolve_my_upcoming_shifts(self, info, *args, **kwargs):
+        me = info.context.user
+        return Shift.objects.filter(
+            datetime_end__gt=timezone.now(),
+            slots__user=me,
+        ).order_by("-datetime_start")
 
     def resolve_all_shifts(self, info, date_from, date_to, *args, **kwargs):
         datetime_from = timezone.datetime(
