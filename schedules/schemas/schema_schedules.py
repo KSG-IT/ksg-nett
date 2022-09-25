@@ -111,6 +111,8 @@ class ShiftQuery(graphene.ObjectType):
         date_to=graphene.Date(required=True),
     )
 
+    all_my_shifts = graphene.List(ShiftNode)
+
     my_upcoming_shifts = graphene.List(ShiftNode)
 
     def resolve_my_upcoming_shifts(self, info, *args, **kwargs):
@@ -119,6 +121,10 @@ class ShiftQuery(graphene.ObjectType):
             datetime_end__gt=timezone.now(),
             slots__user=me,
         ).order_by("-datetime_start")
+
+    def resolve_all_my_shifts(self, info, *args, **kwargs):
+        me = info.context.user
+        return Shift.objects.filter(slots__user=me).order_by("-datetime_start")
 
     def resolve_all_shifts(self, info, date_from, date_to, *args, **kwargs):
         datetime_from = timezone.datetime(
