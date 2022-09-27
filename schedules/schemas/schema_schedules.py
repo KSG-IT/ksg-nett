@@ -12,7 +12,6 @@ from schedules.models import (
     Shift,
     ShiftTrade,
     ShiftSlot,
-    ScheduleRole,
 )
 from users.models import User
 from django.utils import timezone
@@ -57,16 +56,6 @@ class ShiftSlotNode(DjangoObjectType):
     @classmethod
     def get_node(cls, info, id):
         return ShiftSlot.objects.get(pk=id)
-
-
-class ScheduleRoleNode(DjangoObjectType):
-    class Meta:
-        model = ScheduleRole
-        interfaces = (Node,)
-
-    @classmethod
-    def get_node(cls, info, id):
-        return ScheduleRole.objects.get(pk=id)
 
 
 class ShiftNode(DjangoObjectType):

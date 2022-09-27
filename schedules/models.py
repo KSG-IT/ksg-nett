@@ -23,25 +23,6 @@ class Schedule(models.Model):
         return f"Schedule(name={self.name})"
 
 
-class ScheduleRole(models.Model):
-    """
-    Roles are unique to a schedule. Edgar has 'Barista' and 'Kaféansvarlig'
-    whereas Uglevakt and Brannvakt only has 'ugle' and 'brannansvarlig'
-    """
-
-    class Meta:
-        verbose_name_plural = "schedule roles"
-        unique_together = ("schedule", "name")
-
-    schedule = models.ForeignKey(
-        Schedule, on_delete=models.CASCADE, related_name="roles"
-    )
-    name = models.CharField(max_length=100, null=False, blank=False)
-
-    def __str__(self):
-        return self.name
-
-
 class Shift(models.Model):
     class Meta:
         verbose_name_plural = "shifts"
@@ -76,6 +57,25 @@ class ShiftSlot(models.Model):
     class Meta:
         verbose_name_plural = "Shift slots"
 
+    class RoleOption(models.TextChoices):
+        UGLE = ("UGLE", "Ugle")
+        BRANNVAKT = ("BRANNVAKT", "Brannvakt")
+        BARISTA = ("BARISTA", "Barista")
+        KAFEANSVARLIG = ("KAFEANSVARLIG", "Kaféansvarlig")
+        BARSERVITOR = ("BARSERVITOR", "Barservitør")
+        HOVMESTER = ("HOVMESTER", "Hovmester")
+        KOKK = ("KOKK", "Kokk")
+        SOUSCHEF = ("SOUSCHEF", "Souschef")
+        RYDDEVAKT = ("RYDDEVAKT", "Ryddevakt")
+        ARRANGEMENTBARTENDER = ("ARRANGEMENTBARTENDER", "Arrangementbartender")
+        ARRANGAMENTANSVARLIG = ("ARRANGAMENTANSVARLIUG", "Arrangementansvarlig")
+        BRYGGER = ("BRYGGER", "Brygger")
+        BARTENDER = ("BARTENDER", "Bartender")
+        BARSJEF = ("BARSJEF", "Barsjef")
+        BARVAKT = ("BARVAKT", "Barvakt")  # Soci
+        SPRITBARTENDER = ("SPRITBARTENDER", "Spritbartender")
+        SPRITBARSJEF = ("SPRITBARSJEF", "Spritbarsjef")
+
     shift = models.ForeignKey(Shift, on_delete=models.CASCADE, related_name="slots")
     user = models.ForeignKey(
         User,
@@ -85,12 +85,8 @@ class ShiftSlot(models.Model):
         on_delete=models.CASCADE,
         related_name="filled_shifts",
     )
-    role = models.ForeignKey(
-        ScheduleRole,
-        null=False,
-        blank=False,
-        on_delete=models.DO_NOTHING,
-        related_name="shift_slots",
+    role = models.CharField(
+        max_length=64, choices=RoleOption.choices, null=False, blank=False
     )
 
 
@@ -188,13 +184,13 @@ class ShiftSlotTemplate(models.Model):
     shift_template = models.ForeignKey(
         ShiftTemplate, blank=False, null=False, on_delete=models.CASCADE
     )
-    role = models.ForeignKey(
-        ScheduleRole, blank=False, null=False, on_delete=models.CASCADE
+    role = models.CharField(
+        max_length=64, choices=ShiftSlot.RoleOption.choices, null=False, blank=False
     )
     count = models.IntegerField()
 
     def __str__(self):
         return "Template for ShiftSlot %s for shift-template %s" % (
-            self.role.name,
+            self.role,
             self.shift_template.name,
         )
