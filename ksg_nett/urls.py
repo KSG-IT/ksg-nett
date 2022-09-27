@@ -59,7 +59,7 @@ urlpatterns = [
     ),
 ]
 
-urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+urlpatterns += static("/media", document_root=settings.MEDIA_ROOT)
 
 # TODO: When we are ready to move to production, we should consider moving media serving
 # to a service such as AWS s3

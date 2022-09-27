@@ -30,21 +30,9 @@ from quotes.schema import QuoteQuery, QuotesMutations
 from schedules.schemas.schema_schedules import (
     ShiftQuery,
     ScheduleQuery,
-    ShiftSlotQuery,
-    ShiftTradeQuery,
-    ShiftSlotGroupQuery,
-    ShiftSlotGroupDayRuleQuery,
-    ShiftTradeOfferQuery,
-    ShiftSlotGroupInterestQuery,
-    ScheduleSlotTypeQuery,
     SchedulesMutations,
 )
-from schedules.schemas.schema_scheduls_templates import (
-    ScheduleTemplateQuery,
-    ShiftSlotTemplateQuery,
-    ShiftSlotGroupTemplateQuery,
-    SchedulesTemplateMutations,
-)
+
 from sensors.schema import SensorMeasurementQuery, SensorsMutations
 from summaries.schema import SummaryQuery, SummariesMutations
 from events.schema import EventQuery, EventMutations
@@ -72,16 +60,6 @@ class Query(
     InterviewLocationQuery,
     ShiftQuery,
     ScheduleQuery,
-    ShiftSlotQuery,
-    ShiftTradeQuery,
-    ShiftSlotGroupQuery,
-    ShiftSlotGroupDayRuleQuery,
-    ShiftTradeOfferQuery,
-    ShiftSlotGroupInterestQuery,
-    ScheduleSlotTypeQuery,
-    ScheduleTemplateQuery,
-    ShiftSlotTemplateQuery,
-    ShiftSlotGroupTemplateQuery,
     SensorMeasurementQuery,
     SummaryQuery,
     QuoteQuery,
@@ -99,7 +77,6 @@ class Mutation(
     UserMutations,
     QuotesMutations,
     SchedulesMutations,
-    SchedulesTemplateMutations,
     SensorsMutations,
     SummariesMutations,
     EventMutations,
