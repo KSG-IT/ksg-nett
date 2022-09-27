@@ -69,7 +69,7 @@ class Shift(models.Model):
     datetime_end = models.DateTimeField(null=False, blank=False)
 
     def __str__(self):
-        return f"{self.schedule.name}: {self.name}"
+        return f"{self.datetime_start.strftime('%Y-%-m-%-d')} {self.schedule.name}: {self.name}"
 
 
 class ShiftSlot(models.Model):
