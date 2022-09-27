@@ -2,7 +2,7 @@
 [![Build Status](https://travis-ci.org/KSG-IT/ksg-nett.svg?branch=develop)](https://travis-ci.org/KSG-IT/ksg-nett)
 
 ## Overview
-This repository contains the source code for [KSG](https://www.samfundet.no/kafe-og-serveringsgjengen)'s web page. The project is written in Django exposing a graphQL API using graphene. KSG-nett is a two-part webapplication, this being the frontend and requires a fucntioning [frontend](https://www.github.com/KSG-IT/ksg-nett-frontend) instance to be running. Follow the link and the quickstart section over there in addition to here to get everything up and running.
+This repository contains the source code for [KSG](https://www.samfundet.no/kafe-og-serveringsgjengen)'s web page. The project is written in Django exposing a graphQL API using graphene. KSG-nett is a two-part webapplication, this being the backend and requires a fucntioning [frontend](https://www.github.com/KSG-IT/ksg-nett-frontend) instance to be running. Follow the link and the quickstart section over there in addition to here to get everything up and running.
 
 ## Quickstart
 Dependencies are managed with `poetry`. To run the code do the following

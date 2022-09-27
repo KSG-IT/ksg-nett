@@ -28,16 +28,14 @@ def quotes_approve(request, quote_id):
 @login_required
 def quotes_highscore(request):
     if request.method == "GET":
-        this_semester = Quote.highscore_objects.semester_highest_score(timezone.now())
-        all_time = Quote.highscore_objects.highest_score_all_time()
+        this_semester = Quote.get_popular_quotes_in_current_semester()
+        all_time = Quote.get_popular_quotes_all_time()
         combined_list = list(zip(this_semester, all_time))
         ctx = {
-            "highscore_this_semester": Quote.highscore_objects.semester_highest_score(
-                timezone.now()
-            ),
-            "highscore_all_time": Quote.highscore_objects.highest_score_all_time(),
+            "highscore_this_semester": Quote.get_popular_quotes_in_current_semester(),
+            "highscore_all_time": Quote.get_popular_quotes_all_time(),
             "highscore_combined": combined_list,  # Can be used in the future so we can style the rows together
-            "pending": Quote.pending_objects.order_by("-created_at"),
+            "pending": Quote.get_pending_quotes().order_by("-created_at"),
         }
         return render(
             request, template_name="quotes/quotes_highscore.html", context=ctx
@@ -49,8 +47,8 @@ def quotes_highscore(request):
 @login_required
 def quotes_list(request):
     ctx = {
-        "pending": Quote.pending_objects.all().order_by("-created_at"),
-        "quotes": Quote.verified_objects.all().order_by("-created_at"),
+        "pending": Quote.get_pending_quotes().order_by("-created_at"),
+        "quotes": Quote.get_approved_quotes().order_by("-created_at"),
         "current_semester": get_semester_year_shorthand(timezone.now()),
     }
     return render(request, template_name="quotes/quotes_list.html", context=ctx)
@@ -59,7 +57,7 @@ def quotes_list(request):
 @login_required
 def quotes_pending(request):
     ctx = {
-        "pending": Quote.pending_objects.all().order_by("-created_at"),
+        "pending": Quote.get_pending_quotes().order_by("-created_at"),
         "current_semester": get_semester_year_shorthand(timezone.now()),
     }
     return render(request, template_name="quotes/quotes_pending.html", context=ctx)
@@ -68,7 +66,7 @@ def quotes_pending(request):
 @login_required
 def quotes_add(request):
     if request.method == "GET":
-        ctx = {"pending": Quote.pending_objects.all(), "quote_form": QuoteForm()}
+        ctx = {"pending": Quote.get_pending_quotes(), "quote_form": QuoteForm()}
         return render(request, template_name="quotes/quotes_add.html", context=ctx)
     elif request.method == "POST":
         form = QuoteForm(request.POST)
@@ -123,7 +121,7 @@ def quotes_delete(request, quote_id):
 @login_required
 def vote_up(request, quote_id):
     if request.method == "POST":
-        quote = get_object_or_404(Quote.verified_objects, pk=quote_id)
+        quote = get_object_or_404(Quote.get_approved_quotes(), pk=quote_id)
         user = request.user
         quote_vote = QuoteVote.objects.filter(quote=quote, caster=user).first()
 
@@ -149,7 +147,7 @@ def vote_up(request, quote_id):
 @login_required
 def vote_down(request, quote_id):
     if request.method == "POST":
-        quote = get_object_or_404(Quote.verified_objects, pk=quote_id)
+        quote = get_object_or_404(Quote.get_approved_quotes(), pk=quote_id)
         user = request.user
         quote_vote = QuoteVote.objects.filter(quote=quote, caster=user).first()
 

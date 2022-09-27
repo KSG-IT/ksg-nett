@@ -203,13 +203,22 @@ STATIC_ROOT = "static/"
 HOST_URL = "http://localhost:8000"
 
 MEDIA_ROOT = "media/"
-MEDIA_URL = "/media/"
+MEDIA_URL = "http://localhost:8000/media/"
 
 APP_URL = "http://localhost:3012"
 
-# localhost crashes url test in users l:65
-# MEDIA_URL = "http://localhost:8000/media/"
-MAX_MEDIA_SIZE = 128 * (1024 ** 2)
+MAX_MEDIA_SIZE = 128 * (1024**2)
+
+# Given in percentage
+APPLICANT_IMAGE_COMPRESSION_VALUE = 50
+
+# Compression
+IMAGE_COMPRESSION_VALUE = 80
+MAX_PNG_WIDTH = 1200
+MAX_PNG_HEIGHT = 1200
+PNG_COMPRESSION_LOW_QUALITY = 1200
+PNG_COMPRESSION_MEDIUM_QUALITY = 2000
+PNG_COMPRESSION_HIGH_QUALITY = 2800
 
 # Simple JWT SETTINGS
 # -----------------------------

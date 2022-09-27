@@ -1,8 +1,7 @@
+import datetime
 import graphene
-from django.db.models import Q
 from graphene import Node
-from graphene_django import DjangoObjectType, DjangoListField
-from graphene_django.filter import DjangoFilterConnectionField
+from graphene_django import DjangoObjectType
 from graphene_django_cud.mutations import (
     DjangoPatchMutation,
     DjangoDeleteMutation,
@@ -19,6 +18,8 @@ from organization.models import (
     Commission,
     Committee,
 )
+from graphene_django_cud.util import disambiguate_id
+from organization.graphql import InternalGroupPositionTypeEnum
 from users.schema import UserNode
 from users.models import User
 from django.utils import timezone
@@ -39,7 +40,7 @@ class InternalGroupNode(DjangoObjectType):
 
     def resolve_membership_data(self: InternalGroup, info, *args, **kwargs):
         positions = self.positions.all()
-        all_users = User.objects.all().filter(
+        all_users = User.objects.filter(
             internal_group_position_history__position__internal_group=self,
             internal_group_position_history__date_ended__isnull=True,
         )
@@ -50,9 +51,7 @@ class InternalGroupNode(DjangoObjectType):
                 internal_group_position_name=position.name,
                 users=all_users.filter(
                     internal_group_position_history__position=position
-                ).order_by(
-                    "first_name"
-                ),  # filter against this position internal_group_position_history__position
+                ).order_by("first_name"),
             )
             user_groupings.append(position_grouping_object)
 
@@ -73,11 +72,6 @@ class InternalGroupNode(DjangoObjectType):
             return f"{settings.HOST_URL}{self.group_icon.url}"
         else:
             return None
-
-
-class GroupType(graphene.Enum):
-    INTERNAL_GROUP = InternalGroup.Type.INTERNAL_GROUP
-    INTEREST_GROUP = InternalGroup.Type.INTEREST_GROUP
 
 
 class InternalGroupPositionNode(DjangoObjectType):
@@ -139,18 +133,29 @@ class CommitteeNode(DjangoObjectType):
         return Committee.objects.get(pk=id)
 
 
+class InternalGroupTypeEnum(graphene.Enum):
+    INTERNAL_GROUP = InternalGroup.Type.INTERNAL_GROUP
+    INTEREST_GROUP = InternalGroup.Type.INTEREST_GROUP
+
+
 # QUERIES
 class InternalGroupQuery(graphene.ObjectType):
     internal_group = Node.Field(InternalGroupNode)
-    all_internal_groups = graphene.List(InternalGroupNode, Type=GroupType())
+    all_internal_groups = graphene.List(InternalGroupNode)
+    all_internal_groups_by_type = graphene.List(
+        InternalGroupNode, internal_group_type=InternalGroupTypeEnum()
+    )
 
-    def resolve_all_internal_groups(self, info, Type, **kwargs):
-        return InternalGroup.objects.filter(type=Type).order_by("name")
+    def resolve_all_internal_groups(self, info, *args, **kwargs):
+        return InternalGroup.objects.all().order_by("name")
+
+    def resolve_all_internal_groups_by_type(self, info, internal_group_type, **kwargs):
+        return InternalGroup.objects.filter(type=internal_group_type).order_by("name")
 
 
 class InternalGroupPositionQuery(graphene.ObjectType):
     internal_group_position = Node.Field(InternalGroupPositionNode)
-    all_internal_group_positions = DjangoConnectionField(InternalGroupPositionNode)
+    all_internal_group_positions = graphene.List(InternalGroupPositionNode)
 
     def resolve_all_internal_group_positions(self, info, *args, **kwargs):
         return InternalGroupPosition.objects.all()
@@ -234,6 +239,58 @@ class DeleteInternalGroupPosition(DjangoDeleteMutation):
         model = InternalGroupPosition
 
 
+class AssignNewInternalGroupPositionMembership(graphene.Mutation):
+    class Arguments:
+        user_id = graphene.ID()
+        internal_group_position_id = graphene.ID()
+        internal_group_position_type = InternalGroupPositionTypeEnum()
+
+    internal_group_position_membership = graphene.Field(
+        InternalGroupPositionMembershipNode
+    )
+
+    def mutate(
+        self,
+        info,
+        user_id,
+        internal_group_position_id,
+        internal_group_position_type,
+        *args,
+        **kwargs,
+    ):
+        django_user_id = disambiguate_id(user_id)
+        user = User.objects.filter(pk=django_user_id).first()
+        if not user:
+            return None
+
+        django_internal_group_position_id = disambiguate_id(internal_group_position_id)
+        internal_group_position = InternalGroupPosition.objects.filter(
+            pk=django_internal_group_position_id
+        ).first()
+        if not internal_group_position:
+            return None
+
+        # We have found relevant model instances and now need to check any active memberships to terminate
+        active_membership = user.current_internal_group_position_membership
+        today = datetime.date.today()
+        if active_membership:
+            active_membership.date_ended = today
+            active_membership.save()
+
+        new_internal_group_position_membership = (
+            InternalGroupPositionMembership.objects.create(
+                user=user,
+                type=internal_group_position_type,
+                position=internal_group_position,
+                date_joined=datetime.date.today(),
+            )
+        )
+
+        return AssignNewInternalGroupPositionMembership(
+            internal_group_position_membership=new_internal_group_position_membership
+        )
+
+
 class CreateInternalGroupPositionMembershipMutation(DjangoCreateMutation):
     class Meta:
         model = InternalGroupPositionMembership
@@ -313,6 +370,9 @@ class OrganizationMutations(graphene.ObjectType):
         DeleteInternalGroupPositionMembership.Field()
     )
 
+    assign_new_internal_group_position_membership = (
+        AssignNewInternalGroupPositionMembership.Field()
+    )
     create_commission_membership = CreateCommissionMembershipMutation.Field()
     patch_commission_membership = PatchCommissionMembershipMutation.Field()
     delete_commission_membership = DeleteCommissionMembership.Field()

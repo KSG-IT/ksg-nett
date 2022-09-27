@@ -1,6 +1,10 @@
+import datetime
+
 import graphene
+import calendar
 from graphene import Node
-from django.db.models import Q
+from django.db.models import Q, F, Sum
+from django.db.models.functions import Coalesce
 from graphene_django import DjangoObjectType
 from django.utils import timezone
 from graphene_django_cud.mutations import (
@@ -65,9 +69,13 @@ class SociBankAccountNode(DjangoObjectType):
         interfaces = (Node,)
 
     deposits = graphene.NonNull(graphene.List(graphene.NonNull(DepositNode)))
+    last_deposits = graphene.NonNull(graphene.List(graphene.NonNull(DepositNode)))
 
     def resolve_deposits(self: SociBankAccount, info, **kwargs):
         return self.deposits.all().order_by("-created_at")
+
+    def resolve_last_deposits(self: SociBankAccount, info, **kwargs):
+        return self.deposits.all().order_by("-created_at")[:10]
 
     @classmethod
     def get_node(cls, info, id):
@@ -110,14 +118,24 @@ class SociProductQuery(graphene.ObjectType):
 
 class DepositQuery(graphene.ObjectType):
     deposit = Node.Field(DepositNode)
-    all_deposits = DjangoConnectionField(DepositNode)
+    all_deposits = DjangoConnectionField(
+        DepositNode, q=graphene.String(), unverified_only=graphene.Boolean()
+    )
     all_pending_deposits = graphene.List(
         DepositNode
     )  # Pending will never be more than a couple at a time
     all_approved_deposits = DjangoConnectionField(DepositNode)
 
-    def resolve_all_deposits(self, info, *args, **kwargs):
-        return Deposit.objects.all().order_by("-created_at")
+    def resolve_all_deposits(self, info, q, unverified_only, *args, **kwargs):
+        # ToDo implement user fullname search filtering
+        return (
+            Deposit.objects.all()
+            .filter(
+                account__user__first_name__contains=q,
+                signed_off_by__isnull=not unverified_only,
+            )
+            .order_by("-created_at")
+        )
 
     def resolve_all_pending_deposits(self, info, *args, **kwargs):
         return Deposit.objects.filter(signed_off_by__isnull=True).order_by(
@@ -146,10 +164,30 @@ class SociSessionQuery(graphene.ObjectType):
         return SociSession.objects.all().order_by("created_at")
 
 
+class ExpenditureDay(graphene.ObjectType):
+    day = graphene.Date()
+    sum = graphene.Int()
+
+
+class TotalExpenditure(graphene.ObjectType):
+    data = graphene.List(ExpenditureDay)
+    total = graphene.Int()
+
+
+class TotalExpenditureDateRange(graphene.Enum):
+    THIS_MONTH = "this-month"
+    THIS_SEMESTER = "this-semester"
+    ALL_SEMESTERS = "all-semesters"
+    ALL_TIME = "all-time"
+
+
 class SociBankAccountQuery(graphene.ObjectType):
     soci_bank_account = Node.Field(SociBankAccountNode)
     all_soci_bank_accounts = DjangoConnectionField(SociBankAccountNode)
     my_bank_account = graphene.Field(graphene.NonNull(SociBankAccountNode))
+    my_expenditures = graphene.Field(
+        TotalExpenditure, date_range=TotalExpenditureDateRange()
+    )
 
     def resolve_my_bank_account(self, info, *args, **kwargs):
         if not hasattr(info.context, "user") or not info.context.user.is_authenticated:
@@ -158,6 +196,51 @@ class SociBankAccountQuery(graphene.ObjectType):
 
     def resolve_all_soci_bank_accounts(self, info, *args, **kwargs):
         return SociBankAccount.objects.all()
+
+    def resolve_my_expenditures(self, info, date_range, *args, **kwargs):
+        data = []
+        total = 0
+
+        my_bank_account = info.context.user.bank_account
+
+        cal = calendar.Calendar()
+        today = datetime.date.today()
+        iterator = cal.itermonthdates(today.year, today.month)
+        for day in iterator:
+            # Won't be any more data in the future
+            if day > today:
+                data.append(ExpenditureDay(day=day, sum=0))
+                continue
+
+            # The iterator returns days in prev month if they are contained in within the first week
+            if day.month != today.month:
+                continue
+
+            # Create a day datetime range for each day
+            day_min = timezone.make_aware(
+                timezone.datetime(
+                    year=day.year,
+                    month=day.month,
+                    day=day.day,
+                    hour=0,
+                    minute=0,
+                    second=0,
+                )
+            )
+            day_max = day_min + timezone.timedelta(hours=23, minutes=59, seconds=59)
+            # https://blog.zdsmith.com/posts/comparing-dates-and-datetimes-in-the-django-orm.html
+
+            purchases = my_bank_account.product_orders.filter(
+                purchased_at__range=(day_min, day_max)
+            )
+            purchase_sum = purchases.aggregate(
+                purchase_sum=Coalesce(Sum(F("order_size") * F("product__price")), 0)
+            )["purchase_sum"]
+            expenditure_day = ExpenditureDay(day=day, sum=purchase_sum)
+            total += purchase_sum
+            data.append(expenditure_day)
+
+        return TotalExpenditure(data=data, total=total)
 
 
 class CreateSociProductMutation(DjangoCreateMutation):

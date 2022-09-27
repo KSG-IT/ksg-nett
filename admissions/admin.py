@@ -3,6 +3,7 @@ from django.contrib import admin
 from admissions.models import (
     Admission,
     Applicant,
+    ApplicantComment,
     InternalGroupPositionPriority,
     Interview,
     InterviewAdditionalEvaluationStatement,
@@ -13,6 +14,7 @@ from admissions.models import (
     InterviewLocation,
     InterviewLocationAvailability,
     ApplicantUnavailability,
+    ApplicantInterest,
     AdmissionAvailableInternalGroupPositionData,
 )
 
@@ -29,6 +31,11 @@ class InterviewAdditionalEvaluationAnswerInline(admin.TabularInline):
 
 class InterviewBooleanEvaluationAnswerInline(admin.TabularInline):
     model = InterviewBooleanEvaluationAnswer
+    extra = 1
+
+
+class InternalGroupPositionPriorityInline(admin.TabularInline):
+    model = InternalGroupPositionPriority
     extra = 1
 
 
@@ -77,7 +84,7 @@ class AdmissionAdmin(admin.ModelAdmin):
 
 @admin.register(Applicant)
 class ApplicantAdmin(admin.ModelAdmin):
-    pass
+    inlines = [InternalGroupPositionPriorityInline]
 
 
 @admin.register(InternalGroupPositionPriority)
@@ -92,4 +99,19 @@ class InterviewScheduleLocationTemplateAdmin(admin.ModelAdmin):
 
 @admin.register(InterviewLocationAvailability)
 class InterviewScheduleLocationAvailabilityAdmin(admin.ModelAdmin):
+    pass
+
+
+@admin.register(ApplicantInterest)
+class ApplicantInterestAdmin(admin.ModelAdmin):
+    pass
+
+
+@admin.register(AdmissionAvailableInternalGroupPositionData)
+class AdmissionAvailableInternalGroupPositionDataAdmin(admin.ModelAdmin):
+    pass
+
+
+@admin.register(ApplicantComment)
+class ApplicantCommentAdmin(admin.ModelAdmin):
     pass

@@ -9,20 +9,16 @@ class Priority(models.TextChoices):
 
 class AdmissionStatus(models.TextChoices):
     INITIALIZATION = ("configuration", "Configuration")
-    INTERVIEW_OVERVIEW = ("interview-overview", "Interview overview")
     OPEN = ("open", "Open")
-    IN_SESSION = ("in-session", "In session")  # Fordelingsmøtet
-    FINALIZATION = (
-        "finalization",
-        "Finalization",
-    )  # Reviewing last step before admitting everyone
+    IN_SESSION = ("in-session", "In session")
+    LOCKED = ("locked", "Locked")
     CLOSED = ("closed", "Closed")
 
 
 class ApplicantStatus(models.TextChoices):
-    # This probably has to be revisited
     EMAIL_SENT = ("email-sent", "Email sent")
     HAS_REGISTERED_PROFILE = ("has-registered-profile", "Has registered profile")
+    HAS_SET_PRIORITIES = ("has-set-priorities", "Has set priorities")
     SCHEDULED_INTERVIEW = ("scheduled-interview", "Scheduled interview")
     INTERVIEW_FINISHED = ("interview-finished", "Interview finished")
     DID_NOT_SHOW_UP_FOR_INTERVIEW = (
@@ -36,13 +32,10 @@ class ApplicantStatus(models.TextChoices):
 
 
 class InternalGroupStatus(models.TextChoices):
-    WANT = (
-        "want",
-        "Want",
-    )
-    DO_NOT_WANT = (
-        "do-not-want",
-        "Do not want",
-    )
+    WANT = ("want", "Want")
+    PROBABLY_WANT = ("probably-want", "Probably want")
+    DO_NOT_WANT = ("do-not-want", "Do not want")
     RESERVE = ("reserve", "Reserve")
-    SHOULD_BE_ADMITTED = ("should-be-admitted", "Should be admitted")
+    CURRENTLY_DISCUSSING = ("currently-discussing", "Currently discussing")
+    PASS_AROUND = ("pass-around", "Pass around")
+    INTERESTED = ("interested", "Interested")

@@ -12,6 +12,7 @@ from model_utils.models import TimeStampedModel
 from common.util import get_semester_year_shorthand
 from users.managers import UsersHaveMadeOutManager
 from organization.consts import InternalGroupPositionMembershipType
+from organization.models import InternalGroup
 
 
 class Allergy(models.Model):
@@ -117,10 +118,11 @@ class User(AbstractUser):
 
     @property
     def ksg_status(self):
+        # ToDo Rework this shit. Doesn't make sense
         return (
             self.internal_group_position_history.filter(date_ended__isnull=True)
             .first()
-            .position.name
+            .position
             if self.internal_group_position_history.filter(
                 date_ended__isnull=True
             ).first()
@@ -134,6 +136,13 @@ class User(AbstractUser):
     @property
     def last_transactions(self):
         return self.bank_account.transaction_history[:10]
+
+    @property
+    def current_internal_group_position_membership(self):
+        return self.internal_group_position_history.filter(
+            position__internal_group__type=InternalGroup.Type.INTERNAL_GROUP,
+            date_ended__isnull=True,
+        ).first()
 
     class Meta:
         default_related_name = "users"
