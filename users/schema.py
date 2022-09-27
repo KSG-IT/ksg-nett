@@ -7,8 +7,6 @@ from graphene_django_cud.mutations import (
     DjangoDeleteMutation,
     DjangoCreateMutation,
 )
-from django.conf import settings
-
 from quotes.schema import QuoteNode
 from users.models import (
     User,
