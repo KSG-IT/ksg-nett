@@ -46,9 +46,14 @@ class ShiftTemplateAdmin(admin.ModelAdmin):
     pass
 
 
+class ScheduleRoleAdmin(admin.ModelAdmin):
+    pass
+
+
 admin.site.register(Schedule, ScheduleAdmin)
 admin.site.register(Shift, ShiftAdmin)
 admin.site.register(ShiftTrade)
 admin.site.register(ShiftSlot, ShiftSlotAdmin)
 admin.site.register(ScheduleTemplate, ScheduleTemplateAdmin)
 admin.site.register(ShiftTemplate, ShiftTemplateAdmin)
+admin.site.register(ScheduleRole, ScheduleRoleAdmin)
