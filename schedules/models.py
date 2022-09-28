@@ -170,6 +170,9 @@ class ShiftTemplate(models.Model):
     schedule_template = models.ForeignKey(
         ScheduleTemplate, blank=False, null=False, on_delete=models.CASCADE
     )
+    location = models.CharField(
+        max_length=64, choices=Shift.Location.choices, null=True, blank=True
+    )
     day = models.CharField(
         choices=Day.choices,
         max_length=32,

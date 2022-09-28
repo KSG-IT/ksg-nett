@@ -6,6 +6,7 @@ from schedules.models import (
     Shift,
     ShiftSlot,
     ScheduleTemplate,
+    ShiftSlotTemplate,
     ShiftTemplate,
 )
 
@@ -36,11 +37,15 @@ class ScheduleTemplateAdmin(admin.ModelAdmin):
     extras = 1
 
 
+class ShiftSlotTemplateInline(admin.TabularInline):
+    model = ShiftSlotTemplate
+
+
 class ShiftTemplateAdmin(admin.ModelAdmin):
-    pass
+    inlines = (ShiftSlotTemplateInline,)
 
 
-class ScheduleRoleAdmin(admin.ModelAdmin):
+class ShiftSlotTemplateAdmin(admin.ModelAdmin):
     pass
 
 
@@ -50,3 +55,4 @@ admin.site.register(ShiftTrade)
 admin.site.register(ShiftSlot, ShiftSlotAdmin)
 admin.site.register(ScheduleTemplate, ScheduleTemplateAdmin)
 admin.site.register(ShiftTemplate, ShiftTemplateAdmin)
+admin.site.register(ShiftSlotTemplate, ShiftSlotTemplateAdmin)
