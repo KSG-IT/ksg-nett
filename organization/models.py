@@ -108,6 +108,17 @@ class InternalGroupPositionMembership(models.Model):
             f"{get_semester_year_shorthand(self.date_ended)}"
         )
 
+    def get_semester_of_membership(self, start) -> str:
+        if start:
+            short_year_format = str(self.date_joined.year)[2:]
+            semester_prefix = "H" if self.date_joined.month > 7 else "V"
+        elif not start and self.date_ended:
+            short_year_format = str(self.date_ended.year)[2:]
+            semester_prefix = "H" if self.date_ended.month > 7 else "V"
+        else:
+            return ""
+        return f"{semester_prefix}{short_year_format}"
+
 
 class InternalGroupPosition(models.Model):
     """

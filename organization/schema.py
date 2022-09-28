@@ -22,6 +22,7 @@ from graphene_django_cud.util import disambiguate_id
 from organization.graphql import InternalGroupPositionTypeEnum
 from users.schema import UserNode
 from users.models import User
+from django.utils import timezone
 
 
 class InternalGroupPositionMembershipData(graphene.ObjectType):
@@ -88,9 +89,18 @@ class InternalGroupPositionMembershipNode(DjangoObjectType):
         model = InternalGroupPositionMembership
         interfaces = (Node,)
 
+    membership_start = graphene.String()
+    membership_end = graphene.String()
+
     @classmethod
     def get_node(cls, info, id):
         return InternalGroupPositionMembership.objects.get(pk=id)
+
+    def resolve_membership_start(self: InternalGroupPositionMembership, info, **kwargs):
+        return self.get_semester_of_membership(start=True)
+
+    def resolve_membership_end(self: InternalGroupPositionMembership, info, **kwargs):
+        return self.get_semester_of_membership(start=False)
 
 
 class CommissionMembershipNode(DjangoObjectType):
