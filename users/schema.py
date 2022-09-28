@@ -207,6 +207,15 @@ class PatchUserMutation(DjangoPatchMutation):
     class Meta:
         model = User
         exclude_fields = ("password",)
+        permissions = ("users.change_user",)
+
+    @staticmethod
+    def handle_first_name(first_name: str, name, info):
+        return first_name.strip("")
+
+    @staticmethod
+    def handle_last_name(last_name: str, name, info):
+        return last_name.strip("")
 
 
 class UserMutations(graphene.ObjectType):

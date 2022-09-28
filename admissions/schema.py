@@ -968,11 +968,13 @@ class InterviewLocationQuery(graphene.ObjectType):
 class CreateApplicantMutation(DjangoCreateMutation):
     class Meta:
         model = Applicant
+        permissions = ("admissions.add_applicant",)
 
 
 class PatchApplicantMutation(DjangoPatchMutation):
     class Meta:
         model = Applicant
+        permissions = ("admissions.change_applicant",)
 
     @classmethod
     def validate_phone_number(
