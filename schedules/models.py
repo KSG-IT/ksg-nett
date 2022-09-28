@@ -111,6 +111,11 @@ class ShiftTrade(models.Model):
 
 
 class ScheduleTemplate(models.Model):
+    """
+    Groups together a weeks worth of shifts that can be applied to an arbitrary week.
+    Most internal groups will only have a ordinary week (standard uke) and 'immen'.
+    """
+
     name = models.CharField(max_length=100)
     schedule = models.ForeignKey(
         Schedule, blank=False, null=False, on_delete=models.CASCADE
@@ -136,6 +141,20 @@ class ScheduleTemplate(models.Model):
 
 
 class ShiftTemplate(models.Model):
+    """
+    A shift template encapsulates a shift occurring in the context of a Week.
+    If we have the schedule template 'Standard uke' that belongs to the internal
+    group 'Bargjengen' A typical ShiftTemplate would be
+
+    ShiftTemplate(
+        name='Helgevakt',
+        location='BODEGAEN',
+        day='FRIDAY',
+        time_start='20:00'
+        time_end='03:00'
+    )
+    """
+
     class Day(models.TextChoices):
         MONDAY = "MONDAY", _("Monday")
         TUESDAY = "TUESDAY", _("Tuesday")
@@ -145,11 +164,17 @@ class ShiftTemplate(models.Model):
         SATURDAY = "SATURDAY", _("Saturday")
         SUNDAY = "SUNDAY", _("Sunday")
 
-    name = models.CharField(max_length=100)
+    name = models.CharField(
+        max_length=100, help_text="Name that will be applied to the generated shift"
+    )
     schedule_template = models.ForeignKey(
         ScheduleTemplate, blank=False, null=False, on_delete=models.CASCADE
     )
-    day = models.CharField(choices=Day.choices, max_length=32)
+    day = models.CharField(
+        choices=Day.choices,
+        max_length=32,
+        help_text="Day of the week this shift occurs",
+    )
 
     # time_end < time_start means that the shift is over midnight
     time_start = models.TimeField()
@@ -168,12 +193,12 @@ class ShiftTemplate(models.Model):
         )
 
     class Meta:
-        verbose_name_plural = "shift slot group templates"
+        verbose_name_plural = "Shift templates"
 
 
 class ShiftSlotTemplate(models.Model):
     class Meta:
-        verbose_name_plural = "shift slot templates"
+        verbose_name_plural = "Shift slot templates"
         unique_together = (
             (
                 "shift_template",

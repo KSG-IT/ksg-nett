@@ -27,11 +27,12 @@ from organization.schema import (
     OrganizationMutations,
 )
 from quotes.schema import QuoteQuery, QuotesMutations
-from schedules.schemas.schema_schedules import (
+from schedules.schemas.schedules import (
     ShiftQuery,
     ScheduleQuery,
     SchedulesMutations,
 )
+from schedules.schemas.templates import ScheduleTemplateQuery, ScheduleTemplateMutations
 
 from sensors.schema import SensorMeasurementQuery, SensorsMutations
 from summaries.schema import SummaryQuery, SummariesMutations
@@ -60,6 +61,7 @@ class Query(
     InterviewLocationQuery,
     ShiftQuery,
     ScheduleQuery,
+    ScheduleTemplateQuery,
     SensorMeasurementQuery,
     SummaryQuery,
     QuoteQuery,
@@ -77,6 +79,7 @@ class Mutation(
     UserMutations,
     QuotesMutations,
     SchedulesMutations,
+    ScheduleTemplateMutations,
     SensorsMutations,
     SummariesMutations,
     EventMutations,
