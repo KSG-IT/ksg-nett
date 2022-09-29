@@ -44,7 +44,11 @@ class Shift(models.Model):
         max_length=64, choices=Location.choices, blank=True, null=True
     )
     schedule = models.ForeignKey(
-        Schedule, on_delete=models.CASCADE, null=False, blank=False
+        Schedule,
+        on_delete=models.CASCADE,
+        null=False,
+        blank=False,
+        related_name="shifts",
     )
     datetime_start = models.DateTimeField(null=False, blank=False)
     datetime_end = models.DateTimeField(null=False, blank=False)
@@ -168,7 +172,11 @@ class ShiftTemplate(models.Model):
         max_length=100, help_text="Name that will be applied to the generated shift"
     )
     schedule_template = models.ForeignKey(
-        ScheduleTemplate, blank=False, null=False, on_delete=models.CASCADE
+        ScheduleTemplate,
+        blank=False,
+        null=False,
+        on_delete=models.CASCADE,
+        related_name="shift_templates",
     )
     location = models.CharField(
         max_length=64, choices=Shift.Location.choices, null=True, blank=True
@@ -210,7 +218,11 @@ class ShiftSlotTemplate(models.Model):
         )
 
     shift_template = models.ForeignKey(
-        ShiftTemplate, blank=False, null=False, on_delete=models.CASCADE
+        ShiftTemplate,
+        blank=False,
+        null=False,
+        on_delete=models.CASCADE,
+        related_name="shift_slot_templates",
     )
     role = models.CharField(
         max_length=64, choices=ShiftSlot.RoleOption.choices, null=False, blank=False
