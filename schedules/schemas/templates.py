@@ -7,6 +7,8 @@ from graphene_django_cud.mutations import (
     DjangoDeleteMutation,
     DjangoCreateMutation,
 )
+
+from common.decorators import gql_has_permissions
 from schedules.models import (
     ScheduleTemplate,
     ShiftTemplate,
@@ -23,7 +25,11 @@ class ScheduleTemplateNode(DjangoObjectType):
 
 
 class ScheduleTemplateQuery(graphene.ObjectType):
-    pass
+    all_schedule_templates = graphene.List(ScheduleTemplateNode)
+
+    @gql_has_permissions("schedules.view_scheduletemplate")
+    def resolve_all_schedule_templates(self, info, *args, **kwargs):
+        return ScheduleTemplate.objects.all().order_by("schedule__name")
 
 
 class ScheduleTemplateMutations(graphene.ObjectType):
