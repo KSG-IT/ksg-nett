@@ -14,7 +14,6 @@ def apply_schedule_template(
     """
     first_day_of_week = apply_from - datetime.timedelta(days=apply_from.weekday())
 
-    # 0 implies only applying to the provided week
     for week in range(number_of_weeks):
         for shift_template in template.shift_templates.all():
             day_offset = get_shift_template_day_offset(shift_template.day)
@@ -52,7 +51,9 @@ def shift_template_timestamps_to_datetime(
     time_start = shift_template.time_start
     time_end = shift_template.time_end
 
-    datetime_start = datetime.datetime.combine(shift_date, time_start)
+    datetime_start = datetime.datetime.combine(
+        shift_date, time_start, tzinfo=pytz.timezone(settings.TIME_ZONE)
+    )
 
     if time_end < time_start:
         # Shift happens over midnight. We combine the next day with this time
@@ -68,7 +69,7 @@ def shift_template_timestamps_to_datetime(
         )
 
     # convert to timezone using pytz
-    datetime_start = datetime_start.astimezone(pytz.timezone("Europe/Oslo"))
+    datetime_start = datetime_start.astimezone(pytz.timezone(settings.TIME_ZONE))
 
     return datetime_start, datetime_end
 

@@ -1,3 +1,5 @@
+import datetime
+
 from django.db import models
 from model_utils.models import TimeFramedModel
 from django.utils.translation import ugettext_lazy as _
