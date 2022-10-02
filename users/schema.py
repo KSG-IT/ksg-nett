@@ -17,7 +17,7 @@ from economy.utils import parse_transaction_history
 from economy.schema import BankAccountActivity
 from users.filters import UserFilter
 from graphql_relay import to_global_id
-from schedules.schemas.schema_schedules import ShiftNode
+from schedules.schemas.schedules import ShiftSlotNode
 from organization.models import InternalGroup, InternalGroupPositionMembership
 from graphene_django_cud.util import disambiguate_id
 from organization.graphql import InternalGroupPositionTypeEnum
@@ -53,7 +53,7 @@ class UserNode(DjangoObjectType):
 
     tagged_and_verified_quotes = graphene.List(QuoteNode)
 
-    future_shifts = graphene.List(ShiftNode)
+    future_shifts = graphene.List(ShiftSlotNode)
 
     def resolve_future_shifts(self: User, info, *args, **kwargs):
         return self.future_shifts
