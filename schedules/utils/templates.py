@@ -22,6 +22,7 @@ def apply_shift_template(shift_template: ShiftTemplate, monday_of_week: datetime
         schedule=shift_template.schedule_template.schedule,
         datetime_start=datetime_start,
         datetime_end=datetime_end,
+        location=shift_template.location,
     )
     if not created:
         # This can maybe be replaced with a 'generated' hash.
@@ -46,11 +47,14 @@ def apply_schedule_template(
     Runs through all the shift templates and applies them to the schedule
     """
     first_day_of_week = apply_from - datetime.timedelta(days=apply_from.weekday())
-
+    shifts_created = 0
     for week in range(number_of_weeks):
         for shift_template in template.shift_templates.all():
             apply_shift_template(shift_template, first_day_of_week)
+            shifts_created += 1
             first_day_of_week += datetime.timedelta(days=7)
+
+    return shifts_created
 
 
 def shift_template_timestamps_to_datetime(
