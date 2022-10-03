@@ -53,6 +53,11 @@ class ShiftSlotNode(DjangoObjectType):
         model = ShiftSlot
         interfaces = (Node,)
 
+    role_display = graphene.String()
+
+    def get_role_display(self):
+        return self.get_role_display()
+
     @classmethod
     def get_node(cls, info, id):
         return ShiftSlot.objects.get(pk=id)
@@ -68,6 +73,10 @@ class ShiftNode(DjangoObjectType):
     required_roles = graphene.List(RequiredRole)
     slots = graphene.NonNull(graphene.List(graphene.NonNull(ShiftSlotNode)))
     filled_slots = graphene.NonNull(graphene.List(graphene.NonNull(ShiftSlotNode)))
+    location_display = graphene.String()
+
+    def resolve_location_display(self: Shift, info):
+        return self.get_location_display()
 
     def resolve_users(self, info):
         shift_slots = ShiftSlot.objects.filter(shift=self)
