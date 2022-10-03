@@ -87,8 +87,8 @@ class TestApplyScheduleTemplateHelper(TestCase):
         )
 
     def test__schedule_template__is_applied_correctly(self):
-        apply_schedule_template(self.template, datetime.date.today(), 0)
+        apply_schedule_template(self.template, datetime.date.today(), 1)
 
         slots = ShiftSlot.objects.filter(shift__schedule=self.schedule)
-        self.assertEqual(self.schedule.shifts.count(), 2)
+        self.assertEqual(self.schedule.shifts.all().count(), 2)
         self.assertEqual(slots.count(), 11)

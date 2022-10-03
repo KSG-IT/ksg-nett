@@ -74,7 +74,7 @@ class ShiftSlot(models.Model):
         SOUSCHEF = ("SOUSCHEF", "Souschef")
         RYDDEVAKT = ("RYDDEVAKT", "Ryddevakt")
         ARRANGEMENTBARTENDER = ("ARRANGEMENTBARTENDER", "Arrangementbartender")
-        ARRANGAMENTANSVARLIG = ("ARRANGAMENTANSVARLIUG", "Arrangementansvarlig")
+        ARRANGAMENTANSVARLIG = ("ARRANGEMENTANSVARLIG", "Arrangementansvarlig")
         BRYGGER = ("BRYGGER", "Brygger")
         BARTENDER = ("BARTENDER", "Bartender")
         BARSJEF = ("BARSJEF", "Barsjef")

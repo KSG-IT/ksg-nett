@@ -12,7 +12,13 @@ from graphene_django_cud.mutations import (
 )
 
 from common.decorators import gql_has_permissions
-from schedules.models import ScheduleTemplate, ShiftTemplate
+from schedules.models import ScheduleTemplate, ShiftTemplate, ShiftSlotTemplate
+
+
+class ShiftSlotTemplateNode(DjangoObjectType):
+    class Meta:
+        model = ShiftSlotTemplate
+        interfaces = (Node,)
 
 
 class ShiftTemplateNode(DjangoObjectType):
@@ -21,6 +27,7 @@ class ShiftTemplateNode(DjangoObjectType):
         interfaces = (Node,)
 
     duration = graphene.String()
+    shift_slot_templates = graphene.List(ShiftSlotTemplateNode)
 
     def resolve_duration(self: ShiftTemplate, info):
         from schedules.utils.templates import shift_template_timestamps_to_datetime
@@ -29,6 +36,9 @@ class ShiftTemplateNode(DjangoObjectType):
             datetime.date.today(), self
         )
         return datetime_end - datetime_start
+
+    def resolve_shift_slot_templates(self: ShiftTemplate, info):
+        return self.shift_slot_templates.all()
 
     @classmethod
     @gql_has_permissions("schedules.view_shifttemplate")
@@ -55,6 +65,7 @@ class ScheduleTemplateNode(DjangoObjectType):
                 When(day=ShiftTemplate.Day.SATURDAY, then=Value(5)),
                 When(day=ShiftTemplate.Day.SUNDAY, then=Value(6)),
             ),
+            "location",
             "time_start",
         )
 
@@ -73,5 +84,48 @@ class ScheduleTemplateQuery(graphene.ObjectType):
         return ScheduleTemplate.objects.all().order_by("schedule__name")
 
 
+class CreateScheduleTemplateMutation(DjangoCreateMutation):
+    class Meta:
+        model = ScheduleTemplate
+        permissions = ("schedules.add_scheduletemplate",)
+
+
+class CreateShiftSlotTemplateMutation(DjangoCreateMutation):
+    class Meta:
+        model = ShiftSlotTemplate
+        permissions = ("schedules.add_shiftslottemplate",)
+
+
+class PatchShiftSlotTemplateMutation(DjangoPatchMutation):
+    class Meta:
+        model = ShiftSlotTemplate
+        permissions = ("schedules.change_shiftslottemplate",)
+
+
+class DeleteShiftSlotTemplateMutation(DjangoDeleteMutation):
+    class Meta:
+        model = ShiftSlotTemplate
+        permissions = ("schedules.delete_shiftslottemplate",)
+
+
+class CreateShiftTemplateMutation(DjangoCreateMutation):
+    class Meta:
+        model = ShiftTemplate
+        permissions = ("schedules.add_shifttemplate",)
+
+
+class DeleteShiftTemplateMutation(DjangoDeleteMutation):
+    class Meta:
+        model = ShiftTemplate
+        permissions = ("schedules.delete_shifttemplate",)
+
+
 class ScheduleTemplateMutations(graphene.ObjectType):
-    pass
+    create_schedule_template = CreateScheduleTemplateMutation.Field()
+
+    create_shift_slot_template = CreateShiftSlotTemplateMutation.Field()
+    patch_shift_slot_template = PatchShiftSlotTemplateMutation.Field()
+    delete_shift_slot_template = DeleteShiftSlotTemplateMutation.Field()
+
+    create_shift_template = CreateShiftTemplateMutation.Field()
+    delete_shift_template = DeleteShiftTemplateMutation.Field()

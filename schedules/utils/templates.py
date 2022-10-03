@@ -29,6 +29,7 @@ def apply_schedule_template(
                 datetime_start=datetime_start,
                 datetime_end=datetime_end,
             )
+            print(shift)
             for slot_template in shift_template.shift_slot_templates.all():
                 # For each template slot we have a slot count set for each specific role.
                 # Typically 1 shift leader and 3-5 workers
