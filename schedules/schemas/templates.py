@@ -90,6 +90,12 @@ class CreateScheduleTemplateMutation(DjangoCreateMutation):
         permissions = ("schedules.add_scheduletemplate",)
 
 
+class DeleteScheduleTemplateMutation(DjangoDeleteMutation):
+    class Meta:
+        model = ScheduleTemplate
+        permissions = ("schedules.delete_scheduletemplate",)
+
+
 class CreateShiftSlotTemplateMutation(DjangoCreateMutation):
     class Meta:
         model = ShiftSlotTemplate
@@ -122,6 +128,7 @@ class DeleteShiftTemplateMutation(DjangoDeleteMutation):
 
 class ScheduleTemplateMutations(graphene.ObjectType):
     create_schedule_template = CreateScheduleTemplateMutation.Field()
+    delete_schedule_template = DeleteScheduleTemplateMutation.Field()
 
     create_shift_slot_template = CreateShiftSlotTemplateMutation.Field()
     patch_shift_slot_template = PatchShiftSlotTemplateMutation.Field()
