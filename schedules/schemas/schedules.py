@@ -55,7 +55,7 @@ class ShiftSlotNode(DjangoObjectType):
 
     role_display = graphene.String()
 
-    def get_role_display(self):
+    def resolve_role_display(self, info):
         return self.get_role_display()
 
     @classmethod
@@ -75,7 +75,7 @@ class ShiftNode(DjangoObjectType):
     filled_slots = graphene.NonNull(graphene.List(graphene.NonNull(ShiftSlotNode)))
     location_display = graphene.String()
 
-    def resolve_location_display(self: Shift, info):
+    def resolve_location_display(self, info):
         return self.get_location_display()
 
     def resolve_users(self, info):
