@@ -62,23 +62,24 @@ class ShiftSlot(models.Model):
         verbose_name_plural = "Shift slots"
 
     class RoleOption(models.TextChoices):
-        UGLE = ("UGLE", "Ugle")
-        BRANNVAKT = ("BRANNVAKT", "Brannvakt")
         BARISTA = ("BARISTA", "Barista")
         KAFEANSVARLIG = ("KAFEANSVARLIG", "Kaféansvarlig")
         BARSERVITOR = ("BARSERVITOR", "Barservitør")
         HOVMESTER = ("HOVMESTER", "Hovmester")
         KOKK = ("KOKK", "Kokk")
         SOUSCHEF = ("SOUSCHEF", "Souschef")
-        RYDDEVAKT = ("RYDDEVAKT", "Ryddevakt")
         ARRANGEMENTBARTENDER = ("ARRANGEMENTBARTENDER", "Arrangementbartender")
-        ARRANGAMENTANSVARLIG = ("ARRANGAMENTANSVARLIUG", "Arrangementansvarlig")
+        ARRANGAMENTANSVARLIG = ("ARRANGEMENTANSVARLIG", "Arrangementansvarlig")
         BRYGGER = ("BRYGGER", "Brygger")
         BARTENDER = ("BARTENDER", "Bartender")
         BARSJEF = ("BARSJEF", "Barsjef")
-        BARVAKT = ("BARVAKT", "Barvakt")  # Soci
         SPRITBARTENDER = ("SPRITBARTENDER", "Spritbartender")
         SPRITBARSJEF = ("SPRITBARSJEF", "Spritbarsjef")
+
+        UGLE = ("UGLE", "Ugle")
+        BRANNVAKT = ("BRANNVAKT", "Brannvakt")
+        RYDDEVAKT = ("RYDDEVAKT", "Ryddevakt")
+        SOCIVAKT = ("SOCIVAKT", "Socivakt")
 
     shift = models.ForeignKey(Shift, on_delete=models.CASCADE, related_name="slots")
     user = models.ForeignKey(

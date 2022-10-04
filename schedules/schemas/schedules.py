@@ -2,50 +2,24 @@ import graphene
 import pytz
 from graphene import Node
 from graphene_django import DjangoObjectType
+import datetime
 from graphene_django_cud.mutations import (
     DjangoPatchMutation,
     DjangoDeleteMutation,
     DjangoCreateMutation,
 )
+
+from common.decorators import gql_has_permissions
 from schedules.models import (
     Schedule,
     Shift,
     ShiftTrade,
     ShiftSlot,
 )
+from schedules.utils.templates import apply_schedule_template
 from users.models import User
 from django.utils import timezone
 from django.conf import settings
-
-
-class RequiredRole(graphene.ObjectType):
-    name = graphene.NonNull(graphene.String)
-    amount = graphene.NonNull(graphene.Int)
-
-
-class RequiredRoleInput(graphene.InputObjectType):
-    name = graphene.NonNull(graphene.String)
-    amount = graphene.NonNull(graphene.Int)
-
-
-class ScheduleNode(DjangoObjectType):
-    class Meta:
-        model = Schedule
-        interfaces = (Node,)
-
-    @classmethod
-    def get_node(cls, info, id):
-        return Schedule.objects.get(pk=id)
-
-
-class ShiftTradeNode(DjangoObjectType):
-    class Meta:
-        model = ShiftTrade
-        interfaces = (Node,)
-
-    @classmethod
-    def get_node(cls, info, id):
-        return ShiftTrade.objects.get(pk=id)
 
 
 class ShiftSlotNode(DjangoObjectType):
@@ -70,7 +44,6 @@ class ShiftNode(DjangoObjectType):
 
     users = graphene.NonNull(graphene.List(graphene.NonNull("users.schema.UserNode")))
     is_filled = graphene.Boolean(source="is_filled")
-    required_roles = graphene.List(RequiredRole)
     slots = graphene.NonNull(graphene.List(graphene.NonNull(ShiftSlotNode)))
     filled_slots = graphene.NonNull(graphene.List(graphene.NonNull(ShiftSlotNode)))
     location_display = graphene.String()
@@ -92,6 +65,43 @@ class ShiftNode(DjangoObjectType):
     @classmethod
     def get_node(cls, info, id):
         return Shift.objects.get(pk=id)
+
+
+class ScheduleNode(DjangoObjectType):
+    class Meta:
+        model = Schedule
+        interfaces = (Node,)
+
+    shifts_from_range = graphene.List(
+        ShiftNode, shifts_from=graphene.Date(), number_of_weeks=graphene.Int()
+    )
+
+    def resolve_shifts_from_range(self: Schedule, info, shifts_from, number_of_weeks):
+        # get monday and sunday at midnight from shifts_from variable
+        monday = shifts_from - timezone.timedelta(days=shifts_from.weekday())
+        monday = timezone.datetime.combine(
+            monday, datetime.time(), tzinfo=pytz.timezone(settings.TIME_ZONE)
+        )
+        sunday = monday + timezone.timedelta(days=6)
+        sunday = sunday + timezone.timedelta(days=7) * number_of_weeks
+        shifts = Shift.objects.filter(
+            schedule=self, datetime_start__gte=monday, datetime_end__lte=sunday
+        ).order_by("datetime_start")
+        return shifts
+
+    @classmethod
+    def get_node(cls, info, id):
+        return Schedule.objects.get(pk=id)
+
+
+class ShiftTradeNode(DjangoObjectType):
+    class Meta:
+        model = ShiftTrade
+        interfaces = (Node,)
+
+    @classmethod
+    def get_node(cls, info, id):
+        return ShiftTrade.objects.get(pk=id)
 
 
 class ScheduleQuery(graphene.ObjectType):
@@ -148,24 +158,32 @@ class ShiftQuery(graphene.ObjectType):
         ).order_by("-datetime_start")
 
 
+# === MUTATIONS ===
 class CreateShiftMutation(DjangoCreateMutation):
     class Meta:
         model = Shift
         exclude_fields = ("filled_by", "created_by")
         auto_context_fields = {"created_by": "user"}
-
-    field_types = {"required_roles": graphene.List(RequiredRoleInput)}
-
-    @classmethod
-    def before_mutate(cls, root, info, input):
-        return input
-
-    @classmethod
-    def handle_required_roles(cls, value):
-        return value
+        permissions = ("schedules.add_shift",)
 
 
-# === MUTATIONS ===
+class CreateShiftsFromTemplateMutation(graphene.Mutation):
+    class Arguments:
+        schedule_template_id = graphene.ID(required=True)
+        apply_from = graphene.Date(required=True)
+        number_of_weeks = graphene.Int(required=True)
+
+    shifts_created = graphene.Int()
+
+    @gql_has_permissions("schedules.add_shift")
+    def mutate(self, info, schedule_template_id, apply_from, number_of_weeks):
+        schedule_template = Schedule.objects.get(pk=schedule_template_id)
+        shifts_created = apply_schedule_template(
+            schedule_template, apply_from, number_of_weeks
+        )
+        return CreateShiftsFromTemplateMutation(shifts_created=shifts_created)
+
+
 class PatchShiftMutation(DjangoPatchMutation):
     class Meta:
         model = Shift
