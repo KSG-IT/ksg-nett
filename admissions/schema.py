@@ -974,7 +974,8 @@ class CreateApplicantMutation(DjangoCreateMutation):
 class PatchApplicantMutation(DjangoPatchMutation):
     class Meta:
         model = Applicant
-        permissions = ("admissions.change_applicant",)
+        # Split this into own mutation for applicant to use with token
+        # permissions = ("admissions.change_applicant",)
 
     @classmethod
     def validate_phone_number(
