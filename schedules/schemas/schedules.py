@@ -8,6 +8,7 @@ from graphene_django_cud.mutations import (
     DjangoDeleteMutation,
     DjangoCreateMutation,
 )
+from graphene_django_cud.util import disambiguate_id
 
 from common.decorators import gql_has_permissions
 from schedules.models import (
@@ -16,6 +17,7 @@ from schedules.models import (
     ShiftTrade,
     ShiftSlot,
 )
+from schedules.utils.schedules import normalize_shifts
 from schedules.utils.templates import apply_schedule_template
 from users.models import User
 from django.utils import timezone
@@ -68,17 +70,7 @@ class ScheduleNode(DjangoObjectType):
     )
 
     def resolve_shifts_from_range(self: Schedule, info, shifts_from, number_of_weeks):
-        # get monday and sunday at midnight from shifts_from variable
-        monday = shifts_from - timezone.timedelta(days=shifts_from.weekday())
-        monday = timezone.datetime.combine(
-            monday, datetime.time(), tzinfo=pytz.timezone(settings.TIME_ZONE)
-        )
-        sunday = monday + timezone.timedelta(days=6)
-        sunday = sunday + timezone.timedelta(days=7) * number_of_weeks
-        shifts = Shift.objects.filter(
-            schedule=self, datetime_start__gte=monday, datetime_end__lte=sunday
-        ).order_by("datetime_start")
-        return shifts
+        return self.shifts_from_range(shifts_from, number_of_weeks)
 
     @classmethod
     def get_node(cls, info, id):
@@ -103,6 +95,38 @@ class ScheduleQuery(graphene.ObjectType):
         return Schedule.objects.all().order_by("name")
 
 
+# === Single location grouping types ===
+class ShiftDayGroup(graphene.ObjectType):
+    date = graphene.Date()
+    shifts = graphene.List(ShiftNode)
+
+
+class ShiftDayWeek(graphene.ObjectType):
+    shift_days = graphene.List(ShiftDayGroup)
+    date = graphene.Date()
+
+
+# === Location grouping types ===
+class ShiftLocationDayGroup(graphene.ObjectType):
+    location = graphene.String()
+    shifts = graphene.List(ShiftNode)
+
+
+class ShiftLocationDay(graphene.ObjectType):
+    locations = graphene.List(ShiftLocationDayGroup)
+    date = graphene.Date()
+
+
+class ShiftLocationWeek(graphene.ObjectType):
+    date = graphene.Date()
+    shift_days = graphene.List(ShiftLocationDay)
+
+
+class ShiftGroupWeeksUnion(graphene.Union):
+    class Meta:
+        types = (ShiftLocationWeek, ShiftDayWeek)
+
+
 class ShiftQuery(graphene.ObjectType):
     all_shifts = graphene.List(
         ShiftNode,
@@ -111,8 +135,22 @@ class ShiftQuery(graphene.ObjectType):
     )
 
     all_my_shifts = graphene.List(ShiftNode)
-
     my_upcoming_shifts = graphene.List(ShiftNode)
+
+    normalized_shifts_from_range = graphene.List(
+        ShiftGroupWeeksUnion,
+        schedule_id=graphene.ID(required=True),
+        shifts_from=graphene.Date(),
+        number_of_weeks=graphene.Int(),
+    )
+
+    def resolve_normalized_shifts_from_range(
+        self, info, schedule_id, shifts_from, number_of_weeks
+    ):
+        schedule_id = disambiguate_id(schedule_id)
+        schedule = Schedule.objects.get(pk=schedule_id)
+        shifts = schedule.shifts_from_range(shifts_from, number_of_weeks)
+        return normalize_shifts(shifts, schedule.display_mode)
 
     def resolve_my_upcoming_shifts(self, info, *args, **kwargs):
         me = info.context.user
@@ -215,6 +253,23 @@ class DeleteShiftTradeMutation(DjangoDeleteMutation):
         model = ShiftTrade
 
 
+class GenerateMutation(graphene.Mutation):
+    class Arguments:
+        schedule_template_id = graphene.ID(required=True)
+        start_date = graphene.Date(required=True)
+        number_of_weeks = graphene.Int(required=True)
+
+    shifts_created = graphene.Int()
+
+    def mutate(self, info, schedule_template_id, start_date, number_of_weeks):
+        from schedules.schemas.templates import ScheduleTemplate
+
+        schedule_template_id = disambiguate_id(schedule_template_id)
+        schedule_template = ScheduleTemplate.objects.get(pk=schedule_template_id)
+        count = apply_schedule_template(schedule_template, start_date, number_of_weeks)
+        return GenerateMutation(shifts_created=count)
+
+
 class SchedulesMutations(graphene.ObjectType):
     create_shift = CreateShiftMutation.Field()
     delete_shift = DeleteShiftMutation.Field()
@@ -223,3 +278,5 @@ class SchedulesMutations(graphene.ObjectType):
     create_schedule = CreateScheduleMutation.Field()
     patch_schedule = PatchScheduleMutation.Field()
     delete_schedule = DeleteScheduleMutation.Field()
+
+    generate = GenerateMutation.Field()

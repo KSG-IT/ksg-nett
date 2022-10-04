@@ -1,8 +1,13 @@
+import pytz
+import datetime
 from django.db import models
 from model_utils.models import TimeFramedModel
 from django.utils.translation import ugettext_lazy as _
 from organization.models import InternalGroup, InternalGroupPosition
 from users.models import User
+from django.utils import timezone
+
+from django.conf import settings
 
 
 class Schedule(models.Model):
@@ -14,7 +19,29 @@ class Schedule(models.Model):
     class Meta:
         verbose_name_plural = "schedules"
 
+    class DisplayModeOptions(models.TextChoices):
+        SINGLE_LOCATION = "SINGLE_LOCATION", _("Single location")
+        MULTIPLE_LOCATIONS = "MULTIPLE_LOCATIONS", _("Multiple locations")
+
     name = models.CharField(max_length=100, unique=True)
+    display_mode = models.CharField(
+        max_length=20,
+        choices=DisplayModeOptions.choices,
+        default=DisplayModeOptions.SINGLE_LOCATION,
+    )
+
+    def shifts_from_range(self, shifts_from, number_of_weeks):
+        monday = shifts_from - timezone.timedelta(days=shifts_from.weekday())
+        monday = timezone.datetime.combine(
+            monday, datetime.time(), tzinfo=pytz.timezone(settings.TIME_ZONE)
+        )
+        sunday = monday + timezone.timedelta(days=6)
+        sunday = sunday + timezone.timedelta(days=7) * number_of_weeks
+        shifts = Shift.objects.filter(
+            schedule=self, datetime_start__gte=monday, datetime_end__lte=sunday
+        ).order_by("datetime_start")
+
+        return shifts
 
     def __str__(self):
         return self.name
