@@ -4,9 +4,6 @@ from django.conf import settings
 
 
 def group_shifts_by_day(shifts):
-    """
-    Groups shifts by day.
-    """
     from schedules.schemas.schedules import (
         ShiftDayGroup,
         ShiftDayWeek,
@@ -14,32 +11,13 @@ def group_shifts_by_day(shifts):
 
     if not shifts:
         return []
-    # Get first date of shift
 
-    print(shifts)
     first_date = shifts.first().datetime_start
     last_date = shifts.last().datetime_start
-    # get monday from first date
+
     monday = first_date - timezone.timedelta(days=first_date.weekday())
-    monday = timezone.datetime(
-        year=monday.year,
-        month=monday.month,
-        day=monday.day,
-        tzinfo=pytz.timezone(settings.TIME_ZONE),
-        hour=0,
-        minute=0,
-        second=0,
-    )
     sunday = monday + timezone.timedelta(days=6)
-    sunday = timezone.datetime(
-        year=sunday.year,
-        month=sunday.month,
-        day=sunday.day,
-        tzinfo=pytz.timezone(settings.TIME_ZONE),
-        hour=23,
-        minute=59,
-        second=59,
-    )
+
     cursor = monday
     week_groupings = []
     while cursor <= last_date:
@@ -49,14 +27,10 @@ def group_shifts_by_day(shifts):
         day_grouping = []
         day_cursor = monday
         while day_cursor <= sunday:
-            datetime_day_midnight = timezone.datetime(
-                day_cursor.year,
-                day_cursor.month,
-                day_cursor.day,
-                23,
-                59,
-                59,
-                tzinfo=pytz.timezone(settings.TIME_ZONE),
+            datetime_day_midnight = day_cursor.replace(
+                hour=23,
+                minute=59,
+                second=59,
             )
             day_shifts = week_shifts.filter(
                 datetime_start__gte=day_cursor,
@@ -64,9 +38,10 @@ def group_shifts_by_day(shifts):
             )
             if day_shifts:
                 day_grouping.append(ShiftDayGroup(shifts=day_shifts, date=day_cursor))
-            day_cursor += timezone.timedelta(days=1)
-        week_groupings.append(ShiftDayWeek(shift_days=day_grouping, date=monday))
 
+            day_cursor += timezone.timedelta(days=1)
+
+        week_groupings.append(ShiftDayWeek(shift_days=day_grouping, date=monday))
         monday += timezone.timedelta(days=7)
         sunday += timezone.timedelta(days=7)
         cursor += timezone.timedelta(days=7)
@@ -75,9 +50,6 @@ def group_shifts_by_day(shifts):
 
 
 def group_shifts_by_location(shifts):
-    """
-    Groups shifts by location.
-    """
     from schedules.schemas.schedules import (
         ShiftLocationDayGroup,
         ShiftLocationDay,
@@ -87,30 +59,20 @@ def group_shifts_by_location(shifts):
     if not shifts:
         return []
 
-    # Get first date of shift
     first_date = shifts.first().datetime_start
     last_date = shifts.last().datetime_start
 
-    # get monday from first date
     monday = first_date - timezone.timedelta(days=first_date.weekday())
-    monday = timezone.datetime(
-        year=monday.year,
-        month=monday.month,
-        day=monday.day,
-        tzinfo=pytz.timezone(settings.TIME_ZONE),
+    monday = monday.replace(
         hour=0,
         minute=0,
         second=0,
     )
     sunday = monday + timezone.timedelta(days=6)
-    sunday = timezone.datetime(
-        year=sunday.year,
-        month=sunday.month,
-        day=sunday.day,
+    sunday = sunday.replace(
         hour=23,
         minute=59,
         second=59,
-        tzinfo=pytz.timezone(settings.TIME_ZONE),
     )
     # Reset to midnight of first day
     day_cursor = first_date - timezone.timedelta(
@@ -129,7 +91,6 @@ def group_shifts_by_location(shifts):
 
     shift_location_weeks = []
     for shift_week in shifts_week:
-        # Get shifts for current day
         shift_days = []
         week_last_shift = shift_week.last().datetime_start
 
@@ -142,9 +103,12 @@ def group_shifts_by_location(shifts):
                 day_cursor += timezone.timedelta(days=1)
                 continue
 
-            # Get locations for current day
-            location_names = list(day_shifts.values_list("location", flat=True))
-            location_names = list(set(location_names))
+            # values_list returns querylist with duplicates
+            # Get unique values by forcing qs to a list and then recasting
+            # it to a set and back to a list
+            location_names = list(
+                set(list(day_shifts.values_list("location", flat=True)))
+            )
 
             # Get shifts for each location
             location_shifts = []

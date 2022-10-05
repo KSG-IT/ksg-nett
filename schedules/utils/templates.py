@@ -1,6 +1,7 @@
 import datetime
 import pytz
 from django.conf import settings
+from django.utils import timezone
 from schedules.models import ShiftTemplate, Shift, ShiftSlot, ScheduleTemplate
 
 
@@ -11,6 +12,15 @@ def apply_shift_template(shift_template: ShiftTemplate, monday_of_week: datetime
 
     day_offset = get_shift_template_day_offset(shift_template.day)
     shift_date = monday_of_week + datetime.timedelta(days=day_offset)
+    shift_date = timezone.datetime(
+        year=shift_date.year,
+        month=shift_date.month,
+        day=shift_date.day,
+        hour=0,
+        minute=0,
+        second=0,
+        tzinfo=pytz.timezone(settings.TIME_ZONE),
+    )
     datetime_start, datetime_end = shift_template_timestamps_to_datetime(
         shift_date, shift_template
     )
@@ -62,25 +72,19 @@ def shift_template_timestamps_to_datetime(
     time_start = shift_template.time_start
     time_end = shift_template.time_end
 
-    datetime_start = datetime.datetime.combine(
-        shift_date, time_start, tzinfo=pytz.timezone(settings.TIME_ZONE)
+    datetime_start = datetime.datetime.combine(shift_date, time_start)
+    datetime_start = timezone.make_aware(
+        datetime_start, timezone=pytz.timezone(settings.TIME_ZONE)
     )
 
     if time_end < time_start:
         # Shift happens over midnight. We combine the next day with this time
-        datetime_end = datetime.datetime.combine(
-            shift_date + datetime.timedelta(days=1),
-            time_end,
-            tzinfo=pytz.timezone(settings.TIME_ZONE),
-        )
-    else:
-        # Shift happens within a single day
-        datetime_end = datetime.datetime.combine(
-            shift_date, time_end, tzinfo=pytz.timezone(settings.TIME_ZONE)
-        )
+        shift_date = shift_date + datetime.timedelta(days=1)
 
-    # convert to timezone using pytz
-    datetime_start = datetime_start.astimezone(pytz.timezone(settings.TIME_ZONE))
+    datetime_end = datetime.datetime.combine(shift_date, time_end)
+    datetime_end = timezone.make_aware(
+        datetime_end, timezone=pytz.timezone(settings.TIME_ZONE)
+    )
 
     return datetime_start, datetime_end
 
