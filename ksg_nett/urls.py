@@ -22,6 +22,7 @@ from django.urls import path
 from api.api_docs import SchemaView
 from graphene_file_upload.django import FileUploadGraphQLView
 from django.views.decorators.csrf import csrf_exempt
+from django.views.generic import RedirectView
 
 
 def trigger_error(request):
@@ -30,16 +31,15 @@ def trigger_error(request):
 
 urlpatterns = [
     # Website
-    path("", include("login.urls")),
     path("", include("common.urls")),
     path("external/", include("external.urls")),
-    path("internal/", include("internal.urls")),
     path("users/", include("users.urls")),
     path("admissions/", include("admissions.urls")),
     # Developer
     path("admin/", admin.site.urls),
     path("graphql/", csrf_exempt(FileUploadGraphQLView.as_view(graphiql=True))),
     path("sentry-debug/", trigger_error),
+    path("", RedirectView.as_view(url="admin")),
     path(
         "api/",
         include(
