@@ -127,7 +127,6 @@ def group_shifts_by_location(shifts):
         week_cursor += timezone.timedelta(days=7)
         sunday += timezone.timedelta(days=7)
 
-    print(last_date)
     shift_location_weeks = []
     for shift_week in shifts_week:
         # Get shifts for current day
@@ -144,19 +143,22 @@ def group_shifts_by_location(shifts):
                 continue
 
             # Get locations for current day
-            locations = day_shifts.values_list("location", flat=True).distinct()
+            location_names = list(day_shifts.values_list("location", flat=True))
+            location_names = list(set(location_names))
+
             # Get shifts for each location
-            print(locations)
             location_shifts = []
-            for location in locations:
-                location_shifts.append(
-                    ShiftLocationDayGroup(
-                        shifts=day_shifts.filter(location=location), location=location
-                    )
+            for location in location_names:
+                shift_location_day_group = ShiftLocationDayGroup(
+                    shifts=day_shifts.filter(location=location), location=location
                 )
-            shift_days.append(
-                ShiftLocationDay(locations=location_shifts, date=day_cursor.date())
+                location_shifts.append(shift_location_day_group)
+
+            shift_location_day = ShiftLocationDay(
+                locations=location_shifts, date=day_cursor.date()
             )
+            shift_days.append(shift_location_day)
+
             day_cursor += timezone.timedelta(days=1)
 
         shift_location_weeks.append(
