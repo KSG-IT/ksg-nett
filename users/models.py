@@ -114,7 +114,13 @@ class User(AbstractUser):
 
     @property
     def future_shifts(self):
-        return self.shift_set.filter(slot__group__meet_time__gte=timezone.now())
+        from schedules.models import ShiftSlot
+
+        data = ShiftSlot.objects.filter(
+            user=self,
+            shift__datetime_end__gt=timezone.now(),
+        ).order_by("shift__datetime_start")
+        return data
 
     @property
     def ksg_status(self):
