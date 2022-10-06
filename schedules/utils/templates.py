@@ -2,6 +2,8 @@ import datetime
 import pytz
 from django.conf import settings
 from django.utils import timezone
+from pytz.exceptions import AmbiguousTimeError
+
 from schedules.models import ShiftTemplate, Shift, ShiftSlot, ScheduleTemplate
 
 
@@ -36,7 +38,7 @@ def apply_shift_template(shift_template: ShiftTemplate, monday_of_week: datetime
 
     for slot_template in shift_template.shift_slot_templates.all():
         # For each template slot we have a slot count set for each specific role.
-        # Typically 1 shift leader and 3-5 workers
+        # Typically, 1 shift leader and 3-5 workers
         for slot in range(slot_template.count):
             ShiftSlot.objects.create(
                 shift=shift,
@@ -45,13 +47,32 @@ def apply_shift_template(shift_template: ShiftTemplate, monday_of_week: datetime
 
 
 def apply_schedule_template(
-    template: ScheduleTemplate, apply_from: datetime.date, number_of_weeks=1
+    template: ScheduleTemplate,
+    apply_from: datetime.date,
+    number_of_weeks=1,
+    overwrite=True,
 ):
     """
     Runs through all the shift templates and applies them to the schedule
     """
     first_day_of_week = apply_from - datetime.timedelta(days=apply_from.weekday())
     shifts_created = 0
+
+    if overwrite:
+        # I keep doing this everywhere
+        aware = timezone.datetime(
+            year=apply_from.year,
+            month=apply_from.month,
+            day=apply_from.day,
+            hour=0,
+            minute=0,
+            second=0,
+            tzinfo=pytz.timezone(settings.TIME_ZONE),
+        )
+        Shift.objects.filter(
+            datetime_start__gte=aware, generated_from=template
+        ).delete()
+
     for week in range(number_of_weeks):
         for shift_template in template.shift_templates.all():
             apply_shift_template(shift_template, first_day_of_week)
@@ -85,14 +106,14 @@ def shift_template_timestamps_to_datetime(
     datetime_end = datetime.datetime.combine(shift_date, time_end)
     """
     # Need to revisit this. Not sure if we should just ignore this completely
-
     # https://stackoverflow.com/questions/21465528/resolving-ambiguoustimeerror-from-djangos-make-aware
-    https://docs.djangoproject.com/en/4.1/ref/utils/#django.utils.timezone.make_aware
-
-    ==================================================================================================
+    # https://docs.djangoproject.com/en/4.1/ref/utils/#django.utils.timezone.make_aware
+    # https://code.djangoproject.com/ticket/27921
+    This happens when trying to make a datetime tz aware during a daylight savings transition. Could probably be fixed
+    by using correct timezone timestamps to begin with instead of casting everything using make_aware
     
-    Example of the error:
-    Trigger generate mutation with a schedule template id, a date to start shift generation
+    Context:
+    Trigger the Generate mutation with a schedule template id, a date to start shift generation
     from and number of weeks to generate. We then call on the 'apply_schedule_template' function
     which calls on the 'apply_shift_template' function for each shift template in the schedule template. 
     The 'apply_shift_template' function then again calls on this function in order to get the datetimestamps
@@ -132,16 +153,25 @@ def shift_template_timestamps_to_datetime(
         02:00:00
     '''
     
-    This day is dailight savings where the mutation just returns null with an error returning
+    This day is daylight savings where the mutation just returns null with an error returning
     the timestamp 2022 30th october 2022 02:00:00 
     Daylight savings is night to 30th -> 29th is a saturday meaning the shift in bargjengen goes over midnight
     raise AmbiguousTimeError(dt)
         graphql.error.located_error.GraphQLLocatedError: 2022-10-30 02:00:00
     """
-    datetime_end = timezone.make_aware(
-        datetime_end,
-        timezone=pytz.timezone(settings.TIME_ZONE),  # is_dst=False
-    )
+    try:
+        datetime_end = timezone.make_aware(
+            datetime_end,
+            timezone=pytz.timezone(settings.TIME_ZONE),  # is_dst=False
+        )
+    except AmbiguousTimeError:
+        # Check if we need some custom logic for what the 'is_dst' flag should be
+        #
+        datetime_end = timezone.make_aware(
+            datetime_end,
+            timezone=pytz.timezone(settings.TIME_ZONE),
+            is_dst=False,
+        )
 
     return datetime_start, datetime_end
 
