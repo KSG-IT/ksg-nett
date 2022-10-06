@@ -1,4 +1,5 @@
 import graphene
+from schedules.schemas.schedules import ShiftSlotNode
 from summaries.schema import SummaryNode
 from summaries.models import Summary
 from quotes.schema import QuoteNode
@@ -9,8 +10,11 @@ from economy.models import SociBankAccount, Deposit
 
 class DashboardData(graphene.ObjectType):
     last_quotes = graphene.NonNull(graphene.List(graphene.NonNull(QuoteNode)))
-    last_summaries =graphene.NonNull(graphene.List(graphene.NonNull(SummaryNode)))
+    last_summaries = graphene.NonNull(graphene.List(graphene.NonNull(SummaryNode)))
     wanted_list = graphene.NonNull(graphene.List(graphene.NonNull(UserNode)))
+    my_upcoming_shifts = graphene.NonNull(
+        graphene.List(graphene.NonNull(ShiftSlotNode))
+    )
 
 
 class SidebarData(graphene.ObjectType):
@@ -38,6 +42,10 @@ class DashboardQuery(graphene.ObjectType):
         )[:5]
         summaries = Summary.objects.all().order_by("-date")[:6]
         wanted = SociBankAccount.get_wanted_list()
+        upcoming_shifts = info.context.user.future_shifts
         return DashboardData(
-            last_quotes=quotes, last_summaries=summaries, wanted_list=wanted
+            last_quotes=quotes,
+            last_summaries=summaries,
+            wanted_list=wanted,
+            my_upcoming_shifts=upcoming_shifts,
         )
