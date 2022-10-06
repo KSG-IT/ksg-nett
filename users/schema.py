@@ -21,6 +21,7 @@ from schedules.schemas.schedules import ShiftSlotNode
 from organization.models import InternalGroup, InternalGroupPositionMembership
 from graphene_django_cud.util import disambiguate_id
 from organization.graphql import InternalGroupPositionTypeEnum
+from users.utils import membership_list_helper
 
 
 class UserNode(DjangoObjectType):
@@ -129,14 +130,13 @@ class UserQuery(graphene.ObjectType):
         self, info, active_only, internal_group_id, *args, **kwargs
     ):
         django_id = disambiguate_id(internal_group_id)
-        internal_group = InternalGroup.objects.filter(pk=django_id).first()
-
-        if not internal_group:
-            return []
+        internal_group = InternalGroup.objects.get(pk=django_id)
 
         internal_group_position_memberships = (
             InternalGroupPositionMembership.objects.filter(
-                position__internal_group=internal_group
+                position__internal_group=internal_group,
+                user__is_active=active_only,
+                date_ended__isnull=True,
             )
         ).order_by("user__first_name")
 
@@ -153,27 +153,8 @@ class UserQuery(graphene.ObjectType):
                 internal_group_position_memberships.exclude(id__in=exclude_ids)
             )
 
-        if active_only:
-            # Additional filtering
-            internal_group_position_memberships = (
-                internal_group_position_memberships.filter(
-                    user__is_active=True, date_ended__isnull=True
-                )
-            )
-        membership_list = []
-        for membership in internal_group_position_memberships:
-            membership_list.append(
-                ManageInternalGroupUserObject(
-                    user_id=to_global_id("UserNode", membership.user.id),
-                    full_name=membership.user.get_full_name(),
-                    internal_group_position_membership=membership,
-                    internal_group_position_type=membership.type,
-                    position_name=membership.position.name,
-                    date_joined_semester_shorthand=get_semester_year_shorthand(
-                        membership.date_joined
-                    ),
-                )
-            )
+        membership_list = membership_list_helper(internal_group_position_memberships)
+
         return membership_list
 
     def resolve_me(self, info, *args, **kwargs):
