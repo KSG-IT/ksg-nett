@@ -31,6 +31,7 @@ def apply_shift_template(shift_template: ShiftTemplate, monday_of_week: datetime
         datetime_start=datetime_start,
         datetime_end=datetime_end,
         location=shift_template.location,
+        generated_from=shift_template.schedule_template,
     )
 
     for slot_template in shift_template.shift_slot_templates.all():
@@ -82,8 +83,64 @@ def shift_template_timestamps_to_datetime(
         shift_date = shift_date + datetime.timedelta(days=1)
 
     datetime_end = datetime.datetime.combine(shift_date, time_end)
+    """
+    # Need to revisit this. Not sure if we should just ignore this completely
+
+    # https://stackoverflow.com/questions/21465528/resolving-ambiguoustimeerror-from-djangos-make-aware
+    https://docs.djangoproject.com/en/4.1/ref/utils/#django.utils.timezone.make_aware
+
+    ==================================================================================================
+    
+    Example of the error:
+    Trigger generate mutation with a schedule template id, a date to start shift generation
+    from and number of weeks to generate. We then call on the 'apply_schedule_template' function
+    which calls on the 'apply_shift_template' function for each shift template in the schedule template. 
+    The 'apply_shift_template' function then again calls on this function in order to get the datetimestamps
+    from the shift template because they are given in local time and are not timestamps. They need to be
+    stitched together. 
+    
+    timezone make_aware makes an error in the following scenario
+    
+    input: 
+        - Shift generation from before Oktober 30th 2022 and goes a week after 30th
+        - Only a problem with Bargjengen schedule template
+        
+    '''
+    FRIDAY
+        20:00:00
+        02:00:00
+    FRIDAY
+        20:00:00
+        02:00:00
+    SATURDAY
+        17:00:00
+        22:00:00
+    SATURDAY
+        20:00:00
+        02:00:00
+    SATURDAY
+        20:00:00
+        02:00:00
+    SATURDAY
+        20:00:00
+        02:00:00
+    FRIDAY
+        20:00:00
+        02:00:00
+    FRIDAY
+        20:00:00
+        02:00:00
+    '''
+    
+    This day is dailight savings where the mutation just returns null with an error returning
+    the timestamp 2022 30th october 2022 02:00:00 
+    Daylight savings is night to 30th -> 29th is a saturday meaning the shift in bargjengen goes over midnight
+    raise AmbiguousTimeError(dt)
+        graphql.error.located_error.GraphQLLocatedError: 2022-10-30 02:00:00
+    """
     datetime_end = timezone.make_aware(
-        datetime_end, timezone=pytz.timezone(settings.TIME_ZONE)
+        datetime_end,
+        timezone=pytz.timezone(settings.TIME_ZONE),  # is_dst=False
     )
 
     return datetime_start, datetime_end
