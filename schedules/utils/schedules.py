@@ -1,6 +1,4 @@
-import pytz
 from django.utils import timezone
-from django.conf import settings
 
 
 def group_shifts_by_day(shifts):
@@ -15,17 +13,20 @@ def group_shifts_by_day(shifts):
     first_date = shifts.first().datetime_start
     last_date = shifts.last().datetime_start
 
-    monday = first_date - timezone.timedelta(days=first_date.weekday())
-    sunday = monday + timezone.timedelta(days=6)
+    cursor = first_date - timezone.timedelta(days=first_date.weekday())
+    sunday = cursor + timezone.timedelta(days=6)
 
-    cursor = monday
+    cursor = cursor.replace(hour=0)
+    sunday = sunday.replace(hour=23, minute=59, second=59)
+
     week_groupings = []
     while cursor <= last_date:
         week_shifts = shifts.filter(
-            datetime_start__gte=monday, datetime_start__lte=sunday
+            datetime_start__gte=cursor, datetime_start__lte=sunday
         )
+
         day_grouping = []
-        day_cursor = monday
+        day_cursor = cursor
         while day_cursor <= sunday:
             datetime_day_midnight = day_cursor.replace(
                 hour=23,
@@ -41,8 +42,7 @@ def group_shifts_by_day(shifts):
 
             day_cursor += timezone.timedelta(days=1)
 
-        week_groupings.append(ShiftDayWeek(shift_days=day_grouping, date=monday))
-        monday += timezone.timedelta(days=7)
+        week_groupings.append(ShiftDayWeek(shift_days=day_grouping, date=cursor))
         sunday += timezone.timedelta(days=7)
         cursor += timezone.timedelta(days=7)
 

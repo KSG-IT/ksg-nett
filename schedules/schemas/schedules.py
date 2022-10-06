@@ -173,6 +173,7 @@ class ShiftQuery(graphene.ObjectType):
             0,
             tzinfo=pytz.timezone(settings.TIME_ZONE),
         )
+        print(date_to)
         datetime_to = timezone.datetime(
             date_to.year,
             date_to.month,

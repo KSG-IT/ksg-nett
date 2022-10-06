@@ -1,12 +1,10 @@
 import pytz
-import datetime
 from django.db import models
 from model_utils.models import TimeFramedModel
 from django.utils.translation import ugettext_lazy as _
 from organization.models import InternalGroup, InternalGroupPosition
 from users.models import User
 from django.utils import timezone
-
 from django.conf import settings
 
 
@@ -32,13 +30,20 @@ class Schedule(models.Model):
 
     def shifts_from_range(self, shifts_from, number_of_weeks):
         monday = shifts_from - timezone.timedelta(days=shifts_from.weekday())
-        monday = timezone.datetime.combine(
-            monday, datetime.time(), tzinfo=pytz.timezone(settings.TIME_ZONE)
+        monday = timezone.datetime(
+            year=monday.year,
+            month=monday.month,
+            day=monday.day,
         )
-        sunday = monday + timezone.timedelta(days=6)
-        sunday = sunday + timezone.timedelta(days=7) * number_of_weeks
+        monday = timezone.make_aware(monday, timezone=pytz.timezone(settings.TIME_ZONE))
+        sunday = (
+            monday
+            + timezone.timedelta(days=6, hours=23, minutes=59, seconds=59)
+            * number_of_weeks
+        )
+
         shifts = Shift.objects.filter(
-            schedule=self, datetime_start__gte=monday, datetime_end__lte=sunday
+            schedule=self, datetime_start__gte=monday, datetime_start__lte=sunday
         ).order_by("datetime_start")
 
         return shifts
@@ -79,6 +84,13 @@ class Shift(models.Model):
     )
     datetime_start = models.DateTimeField(null=False, blank=False)
     datetime_end = models.DateTimeField(null=False, blank=False)
+    generated_from = models.ForeignKey(
+        "schedules.ScheduleTemplate",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="shifts_generated",
+    )
 
     def __str__(self):
         return f"{self.datetime_start.strftime('%Y-%-m-%-d')} {self.schedule.name}: {self.name}"
