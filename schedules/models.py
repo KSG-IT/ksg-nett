@@ -121,8 +121,11 @@ class ShiftSlot(models.Model):
         SPRITBARSJEF = ("SPRITBARSJEF", "Spritbarsjef")
 
         UGLE = ("UGLE", "Ugle")
+
+        # Consider mergin these two? Since they usually go on the same quota?
         BRANNVAKT = ("BRANNVAKT", "Brannvakt")
         RYDDEVAKT = ("RYDDEVAKT", "Ryddevakt")
+        BAEREVAKT = ("BAREVAKT", "Bærevakt")
         SOCIVAKT = ("SOCIVAKT", "Socivakt")
 
     shift = models.ForeignKey(Shift, on_delete=models.CASCADE, related_name="slots")
