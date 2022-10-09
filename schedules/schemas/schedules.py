@@ -182,7 +182,6 @@ class ShiftQuery(graphene.ObjectType):
             0,
             tzinfo=pytz.timezone(settings.TIME_ZONE),
         )
-        print(date_to)
         datetime_to = timezone.datetime(
             date_to.year,
             date_to.month,
@@ -263,7 +262,7 @@ class DeleteShiftTradeMutation(DjangoDeleteMutation):
         model = ShiftTrade
 
 
-class GenerateMutation(graphene.Mutation):
+class GenerateShiftsFromTemplateMutation(graphene.Mutation):
     class Arguments:
         schedule_template_id = graphene.ID(required=True)
         start_date = graphene.Date(required=True)
@@ -277,7 +276,40 @@ class GenerateMutation(graphene.Mutation):
         schedule_template_id = disambiguate_id(schedule_template_id)
         schedule_template = ScheduleTemplate.objects.get(pk=schedule_template_id)
         count = apply_schedule_template(schedule_template, start_date, number_of_weeks)
-        return GenerateMutation(shifts_created=count)
+        return GenerateShiftsFromTemplateMutation(shifts_created=count)
+
+
+class RemoveUserFromShiftSlotMutation(graphene.Mutation):
+    class Arguments:
+        shift_slot_id = graphene.ID(required=True)
+
+    shift_slot = graphene.Field(ShiftSlotNode)
+
+    @gql_has_permissions("schedules.change_shiftslot")
+    def mutate(self, info, shift_slot_id, *args, **kwargs):
+        shift_slot_id = disambiguate_id(shift_slot_id)
+        shift_slot = ShiftSlot.objects.get(pk=shift_slot_id)
+        shift_slot.user = None
+        shift_slot.save()
+        return RemoveUserFromShiftSlotMutation(shift_slot=shift_slot)
+
+
+class AddUserToShiftSlotMutation(graphene.Mutation):
+    class Arguments:
+        shift_slot_id = graphene.ID(required=True)
+        user_id = graphene.ID(required=True)
+
+    shift_slot = graphene.Field(ShiftSlotNode)
+
+    @gql_has_permissions("schedules.change_shiftslot")
+    def mutate(self, info, shift_slot_id, user_id):
+        shift_slot_id = disambiguate_id(shift_slot_id)
+        user_id = disambiguate_id(user_id)
+        shift_slot = ShiftSlot.objects.get(pk=shift_slot_id)
+        user = User.objects.get(pk=user_id)
+        shift_slot.user = user
+        shift_slot.save()
+        return AddUserToShiftSlotMutation(shift_slot=shift_slot)
 
 
 class SchedulesMutations(graphene.ObjectType):
@@ -289,4 +321,6 @@ class SchedulesMutations(graphene.ObjectType):
     patch_schedule = PatchScheduleMutation.Field()
     delete_schedule = DeleteScheduleMutation.Field()
 
-    generate = GenerateMutation.Field()
+    generate_shifts_from_template = GenerateShiftsFromTemplateMutation.Field()
+    add_user_to_shift_slot = AddUserToShiftSlotMutation.Field()
+    remove_user_from_shift_slot = RemoveUserFromShiftSlotMutation.Field()
