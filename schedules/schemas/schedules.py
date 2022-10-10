@@ -139,8 +139,7 @@ class ShiftGroupWeeksUnion(graphene.Union):
 class ShiftQuery(graphene.ObjectType):
     all_shifts = graphene.List(
         ShiftNode,
-        date_from=graphene.Date(required=True),
-        date_to=graphene.Date(required=True),
+        date=graphene.Date(required=True),
     )
 
     all_my_shifts = graphene.List(ShiftNode)
@@ -172,20 +171,20 @@ class ShiftQuery(graphene.ObjectType):
         me = info.context.user
         return Shift.objects.filter(slots__user=me).order_by("-datetime_start")
 
-    def resolve_all_shifts(self, info, date_from, date_to, *args, **kwargs):
+    def resolve_all_shifts(self, info, date, *args, **kwargs):
         datetime_from = timezone.datetime(
-            date_from.year,
-            date_from.month,
-            date_from.day,
+            date.year,
+            date.month,
+            date.day,
             0,
             0,
             0,
             tzinfo=pytz.timezone(settings.TIME_ZONE),
         )
         datetime_to = timezone.datetime(
-            date_to.year,
-            date_to.month,
-            date_to.day,
+            date.year,
+            date.month,
+            date.day,
             23,
             59,
             59,
