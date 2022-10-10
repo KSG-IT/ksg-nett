@@ -200,8 +200,6 @@ class ShiftQuery(graphene.ObjectType):
 class CreateShiftMutation(DjangoCreateMutation):
     class Meta:
         model = Shift
-        exclude_fields = ("filled_by", "created_by")
-        auto_context_fields = {"created_by": "user"}
         permissions = ("schedules.add_shift",)
 
 
@@ -312,6 +310,18 @@ class AddUserToShiftSlotMutation(graphene.Mutation):
         return AddUserToShiftSlotMutation(shift_slot=shift_slot)
 
 
+class CreateShiftSlotMutation(DjangoCreateMutation):
+    class Meta:
+        model = ShiftSlot
+        permissions = ("schedules.add_shiftslot",)
+
+
+class DeleteShiftSlotMutation(DjangoDeleteMutation):
+    class Meta:
+        model = ShiftSlot
+        permissions = ("schedules.delete_shiftslot",)
+
+
 class SchedulesMutations(graphene.ObjectType):
     create_shift = CreateShiftMutation.Field()
     delete_shift = DeleteShiftMutation.Field()
@@ -324,3 +334,5 @@ class SchedulesMutations(graphene.ObjectType):
     generate_shifts_from_template = GenerateShiftsFromTemplateMutation.Field()
     add_user_to_shift_slot = AddUserToShiftSlotMutation.Field()
     remove_user_from_shift_slot = RemoveUserFromShiftSlotMutation.Field()
+    create_shift_slot = CreateShiftSlotMutation.Field()
+    delete_shift_slot = DeleteShiftSlotMutation.Field()
