@@ -192,7 +192,7 @@ class ShiftQuery(graphene.ObjectType):
         )
         return Shift.objects.filter(
             datetime_start__gt=datetime_from, datetime_end__lt=datetime_to
-        ).order_by("-datetime_start")
+        ).order_by("datetime_start")
 
 
 # === MUTATIONS ===
