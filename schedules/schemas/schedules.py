@@ -8,6 +8,7 @@ from graphene_django_cud.mutations import (
     DjangoDeleteMutation,
     DjangoCreateMutation,
 )
+from graphene_django_cud.util import disambiguate_id
 
 from common.decorators import gql_has_permissions
 from schedules.models import (
@@ -16,6 +17,7 @@ from schedules.models import (
     ShiftTrade,
     ShiftSlot,
 )
+from schedules.utils.schedules import normalize_shifts
 from schedules.utils.templates import apply_schedule_template
 from users.models import User
 from django.utils import timezone
@@ -77,17 +79,7 @@ class ScheduleNode(DjangoObjectType):
     )
 
     def resolve_shifts_from_range(self: Schedule, info, shifts_from, number_of_weeks):
-        # get monday and sunday at midnight from shifts_from variable
-        monday = shifts_from - timezone.timedelta(days=shifts_from.weekday())
-        monday = timezone.datetime.combine(
-            monday, datetime.time(), tzinfo=pytz.timezone(settings.TIME_ZONE)
-        )
-        sunday = monday + timezone.timedelta(days=6)
-        sunday = sunday + timezone.timedelta(days=7) * number_of_weeks
-        shifts = Shift.objects.filter(
-            schedule=self, datetime_start__gte=monday, datetime_end__lte=sunday
-        ).order_by("datetime_start")
-        return shifts
+        return self.shifts_from_range(shifts_from, number_of_weeks)
 
     @classmethod
     def get_node(cls, info, id):
@@ -112,16 +104,61 @@ class ScheduleQuery(graphene.ObjectType):
         return Schedule.objects.all().order_by("name")
 
 
+# === Single location grouping types ===
+class ShiftDayGroup(graphene.ObjectType):
+    date = graphene.Date()
+    shifts = graphene.List(ShiftNode)
+
+
+class ShiftDayWeek(graphene.ObjectType):
+    shift_days = graphene.List(ShiftDayGroup)
+    date = graphene.Date()
+
+
+# === Location grouping types ===
+class ShiftLocationDayGroup(graphene.ObjectType):
+    location = graphene.String()
+    shifts = graphene.List(ShiftNode)
+
+
+class ShiftLocationDay(graphene.ObjectType):
+    locations = graphene.List(ShiftLocationDayGroup)
+    date = graphene.Date()
+
+
+class ShiftLocationWeek(graphene.ObjectType):
+    date = graphene.Date()
+    shift_days = graphene.List(ShiftLocationDay)
+
+
+class ShiftGroupWeeksUnion(graphene.Union):
+    class Meta:
+        types = (ShiftLocationWeek, ShiftDayWeek)
+
+
 class ShiftQuery(graphene.ObjectType):
     all_shifts = graphene.List(
         ShiftNode,
-        date_from=graphene.Date(required=True),
-        date_to=graphene.Date(required=True),
+        date=graphene.Date(required=True),
     )
 
     all_my_shifts = graphene.List(ShiftNode)
-
     my_upcoming_shifts = graphene.List(ShiftNode)
+
+    normalized_shifts_from_range = graphene.List(
+        ShiftGroupWeeksUnion,
+        schedule_id=graphene.ID(required=True),
+        shifts_from=graphene.Date(),
+        number_of_weeks=graphene.Int(),
+    )
+
+    def resolve_normalized_shifts_from_range(
+        self, info, schedule_id, shifts_from, number_of_weeks
+    ):
+        schedule_id = disambiguate_id(schedule_id)
+        schedule = Schedule.objects.get(pk=schedule_id)
+        shifts = schedule.shifts_from_range(shifts_from, number_of_weeks)
+        return normalize_shifts(shifts, schedule.display_mode)
 
     def resolve_my_upcoming_shifts(self, info, *args, **kwargs):
         me = info.context.user
@@ -134,20 +171,20 @@ class ShiftQuery(graphene.ObjectType):
         me = info.context.user
         return Shift.objects.filter(slots__user=me).order_by("-datetime_start")
 
-    def resolve_all_shifts(self, info, date_from, date_to, *args, **kwargs):
+    def resolve_all_shifts(self, info, date, *args, **kwargs):
         datetime_from = timezone.datetime(
-            date_from.year,
-            date_from.month,
-            date_from.day,
+            date.year,
+            date.month,
+            date.day,
             0,
             0,
             0,
             tzinfo=pytz.timezone(settings.TIME_ZONE),
         )
         datetime_to = timezone.datetime(
-            date_to.year,
-            date_to.month,
-            date_to.day,
+            date.year,
+            date.month,
+            date.day,
             23,
             59,
             59,
@@ -155,15 +192,13 @@ class ShiftQuery(graphene.ObjectType):
         )
         return Shift.objects.filter(
             datetime_start__gt=datetime_from, datetime_end__lt=datetime_to
-        ).order_by("-datetime_start")
+        ).order_by("datetime_start")
 
 
 # === MUTATIONS ===
 class CreateShiftMutation(DjangoCreateMutation):
     class Meta:
         model = Shift
-        exclude_fields = ("filled_by", "created_by")
-        auto_context_fields = {"created_by": "user"}
         permissions = ("schedules.add_shift",)
 
 
@@ -224,6 +259,68 @@ class DeleteShiftTradeMutation(DjangoDeleteMutation):
         model = ShiftTrade
 
 
+class GenerateShiftsFromTemplateMutation(graphene.Mutation):
+    class Arguments:
+        schedule_template_id = graphene.ID(required=True)
+        start_date = graphene.Date(required=True)
+        number_of_weeks = graphene.Int(required=True)
+
+    shifts_created = graphene.Int()
+
+    def mutate(self, info, schedule_template_id, start_date, number_of_weeks):
+        from schedules.schemas.templates import ScheduleTemplate
+
+        schedule_template_id = disambiguate_id(schedule_template_id)
+        schedule_template = ScheduleTemplate.objects.get(pk=schedule_template_id)
+        count = apply_schedule_template(schedule_template, start_date, number_of_weeks)
+        return GenerateShiftsFromTemplateMutation(shifts_created=count)
+
+
+class RemoveUserFromShiftSlotMutation(graphene.Mutation):
+    class Arguments:
+        shift_slot_id = graphene.ID(required=True)
+
+    shift_slot = graphene.Field(ShiftSlotNode)
+
+    @gql_has_permissions("schedules.change_shiftslot")
+    def mutate(self, info, shift_slot_id, *args, **kwargs):
+        shift_slot_id = disambiguate_id(shift_slot_id)
+        shift_slot = ShiftSlot.objects.get(pk=shift_slot_id)
+        shift_slot.user = None
+        shift_slot.save()
+        return RemoveUserFromShiftSlotMutation(shift_slot=shift_slot)
+
+
+class AddUserToShiftSlotMutation(graphene.Mutation):
+    class Arguments:
+        shift_slot_id = graphene.ID(required=True)
+        user_id = graphene.ID(required=True)
+
+    shift_slot = graphene.Field(ShiftSlotNode)
+
+    @gql_has_permissions("schedules.change_shiftslot")
+    def mutate(self, info, shift_slot_id, user_id):
+        shift_slot_id = disambiguate_id(shift_slot_id)
+        user_id = disambiguate_id(user_id)
+        shift_slot = ShiftSlot.objects.get(pk=shift_slot_id)
+        user = User.objects.get(pk=user_id)
+        shift_slot.user = user
+        shift_slot.save()
+        return AddUserToShiftSlotMutation(shift_slot=shift_slot)
+
+
+class CreateShiftSlotMutation(DjangoCreateMutation):
+    class Meta:
+        model = ShiftSlot
+        permissions = ("schedules.add_shiftslot",)
+
+
+class DeleteShiftSlotMutation(DjangoDeleteMutation):
+    class Meta:
+        model = ShiftSlot
+        permissions = ("schedules.delete_shiftslot",)
+
+
 class SchedulesMutations(graphene.ObjectType):
     create_shift = CreateShiftMutation.Field()
     delete_shift = DeleteShiftMutation.Field()
@@ -232,3 +329,9 @@ class SchedulesMutations(graphene.ObjectType):
     create_schedule = CreateScheduleMutation.Field()
     patch_schedule = PatchScheduleMutation.Field()
     delete_schedule = DeleteScheduleMutation.Field()
+
+    generate_shifts_from_template = GenerateShiftsFromTemplateMutation.Field()
+    add_user_to_shift_slot = AddUserToShiftSlotMutation.Field()
+    remove_user_from_shift_slot = RemoveUserFromShiftSlotMutation.Field()
+    create_shift_slot = CreateShiftSlotMutation.Field()
+    delete_shift_slot = DeleteShiftSlotMutation.Field()
