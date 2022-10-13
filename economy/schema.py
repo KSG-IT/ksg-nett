@@ -58,16 +58,21 @@ class SociSessionNode(DjangoObjectType):
     money_spent = graphene.Int()
     product_orders = graphene.List("economy.schema.ProductOrderNode")
     closed = graphene.Boolean()
+    get_name_display = graphene.String()
 
     def resolve_money_spent(self: SociSession, info, *args, **kwargs):
         return self.total_revenue
 
     def resolve_product_orders(self: SociSession, info, *args, **kwargs):
-        print(self)
         return self.product_orders.all()
 
     def resolve_closed(self: SociSession, info, *args, **kwargs):
         return self.closed_at is not None
+
+    def resolve_get_name_display(self: SociSession, info, *args, **kwargs):
+        if self.name:
+            return self.name
+        return f"{self.get_type_display()}: {self.creation_date.strftime('%d.%m.%Y')}"
 
     @classmethod
     @gql_has_permissions("economy.view_socisession")
@@ -334,11 +339,8 @@ class PlaceProductOrderMutation(graphene.Mutation):
         """
         Intentionally allows a user to be overdrawn
         """
-        print(soci_session_id)
         soci_session_id = disambiguate_id(soci_session_id)
-        print(soci_session_id)
         session = SociSession.objects.get(id=soci_session_id)
-        print(session)
         if session.closed:
             raise SuspiciousOperation("Cannot place order on a closed session")
 
