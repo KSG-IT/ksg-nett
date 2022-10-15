@@ -10,17 +10,6 @@ from economy.tests.factories import (
     SociSessionFactory,
     SociProductFactory,
 )
-from economy.forms import DepositForm, DepositCommentForm
-from django.urls import reverse
-from economy.views import (
-    deposit_approve,
-    deposit_invalidate,
-    economy_home,
-    deposits,
-    deposit_detail,
-    deposit_edit,
-)
-from users.tests.factories import UserFactory
 
 
 class SociBankAccountTest(TestCase):

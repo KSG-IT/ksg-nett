@@ -322,8 +322,8 @@ class UndoProductOrderMutation(graphene.Mutation):
     found = graphene.Boolean()
 
     @gql_has_permissions("economy.delete_productorder")
-    def mutate(self, root, info, id):
-
+    def mutate(self, info, id):
+        id = disambiguate_id(id)
         product_order = ProductOrder.objects.get(id=id)
         session = product_order.session
         if session.closed:
