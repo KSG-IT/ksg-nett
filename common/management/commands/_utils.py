@@ -64,6 +64,7 @@ def create_random_economy_activity(user, economic_activity, soci_session=None):
         ProductOrder.objects.create(
             order_size=order_size,
             product=product,
+            cost=product.price * order_size,
             session=soci_session,
             purchased_at=timestamp,
             source=user.bank_account,

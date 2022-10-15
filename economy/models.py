@@ -1,4 +1,5 @@
 import os
+import datetime
 from typing import Union, Dict, List, Optional
 from django.core.validators import MinValueValidator
 from django.conf import settings
@@ -123,7 +124,7 @@ class SociSession(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     # Manual lists have sense of timestamps and can be registered at later dates
-    creation_date = models.DateField()
+    creation_date = models.DateField(default=datetime.date.today())
     updated_at = models.DateTimeField(auto_now=True)
     closed_at = models.DateTimeField(blank=True, null=True)
 
@@ -145,7 +146,7 @@ class SociSession(models.Model):
         """
         active_session = cls.get_active_session()
         if active_session:
-            active_session.end = timezone.now()
+            active_session.closed_at = timezone.now()
             active_session.save()
 
     @property
@@ -154,7 +155,9 @@ class SociSession(models.Model):
 
     @property
     def total_revenue(self) -> int:
-        purchase_sums = [amount.cost for amount in self.product_orders.all()]
+        purchase_sums = [
+            order.cost * order.order_size for order in self.product_orders.all()
+        ]
         return sum(purchase_sums)
 
     def __str__(self):

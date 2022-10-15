@@ -60,7 +60,7 @@ class CustomTokenObtainSlidingView(TokenObtainSlidingView):
             algorithms=settings.AUTH_JWT_METHOD,
             verify=False,
         )["user_id"]
-        SociSession.objects.create(signed_off_by_id=card_user_id)
+        SociSession.objects.create(created_by_id=card_user_id)
 
 
 class CustomTokenRefreshSlidingView(TokenRefreshSlidingView):

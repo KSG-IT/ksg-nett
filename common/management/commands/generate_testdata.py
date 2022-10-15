@@ -289,7 +289,7 @@ class Command(BaseCommand):
 
         self.stdout.write(self.style.SUCCESS("Closing opened soci sessions"))
         for session in soci_session_choices:
-            session.closed = True
+            session.closed_at = timezone.now()
             session.save()
 
         self.stdout.write(self.style.SUCCESS("Economy generation done"))

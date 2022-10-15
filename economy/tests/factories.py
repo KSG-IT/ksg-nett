@@ -43,8 +43,8 @@ class SociSessionFactory(DjangoModelFactory):
         model = SociSession
 
     name = Faker("sentence")
-    start = Faker("past_datetime", tzinfo=pytz.timezone(settings.TIME_ZONE))
-    signed_off_by = SubFactory("users.tests.factories.UserFactory")
+    created_at = Faker("past_datetime", tzinfo=pytz.timezone(settings.TIME_ZONE))
+    created_by = SubFactory("users.tests.factories.UserFactory")
 
 
 class ProductOrderFactory(DjangoModelFactory):
@@ -53,6 +53,7 @@ class ProductOrderFactory(DjangoModelFactory):
 
     product = SubFactory(SociProductFactory)
     order_size = 1
+    cost = Faker("random_number", digits=2, fix_len=True)
     source = SubFactory(SociBankAccountFactory)
     session = SubFactory(SociSessionFactory)
     purchased_at = Faker("date_time", tzinfo=pytz.timezone(settings.TIME_ZONE))
