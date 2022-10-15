@@ -136,17 +136,25 @@ class SociProductQuery(graphene.ObjectType):
     all_active_soci_products = DjangoConnectionField(SociProductNode)
     all_soci_products = graphene.List(SociProductNode)
     all_soci_sessions = DjangoConnectionField(SociSessionNode)
+    default_soci_products = graphene.List(SociProductNode)
 
+    @gql_has_permissions("economy.view_sociproduct")
     def resolve_all_soci_products(self, info, *args, **kwargs):
         return SociProduct.objects.all().order_by()
 
+    @gql_has_permissions("economy.view_sociproduct")
     def resolve_all_active_soci_products(self, info, *args, **kwargs):
         return SociProduct.objects.filter(
             Q(end__isnull=True) | Q(end__gte=timezone.now())
         )
 
+    @gql_has_permissions("economy.view_socisession")
     def resolve_all_soci_sessions(self, info, *args, **kwargs):
         return SociSession.objects.all().order_by("-created_at")
+
+    @gql_has_permissions("economy.view_sociproduct")
+    def resolve_default_soci_products(self, info, *args, **kwargs):
+        return SociProduct.objects.filter(default_stilletime_product=True)
 
 
 class DepositQuery(graphene.ObjectType):
