@@ -155,9 +155,9 @@ class SociSession(models.Model):
 
     @property
     def total_revenue(self) -> int:
-        purchase_sums = [
-            order.cost * order.order_size for order in self.product_orders.all()
-        ]
+
+        purchase_sums = [order.cost for order in self.product_orders.all()]
+        print(purchase_sums)
         return sum(purchase_sums)
 
     def __str__(self):

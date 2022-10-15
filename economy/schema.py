@@ -3,8 +3,6 @@ import datetime
 import graphene
 import calendar
 
-import pytz
-from django.conf import settings
 from django.core.exceptions import SuspiciousOperation
 from graphene import Node
 from django.db.models import Q, F, Sum
@@ -19,7 +17,6 @@ from graphene_django_cud.mutations import (
 from graphene_django import DjangoConnectionField
 from graphene_django_cud.util import disambiguate_id
 
-from api.exceptions import InsufficientFundsException
 from common.decorators import gql_has_permissions
 from economy.models import (
     SociProduct,

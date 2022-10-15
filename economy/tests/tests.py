@@ -48,13 +48,13 @@ class SociSessionTest(TestCase):
         self.product = SociProductFactory(price=30)
         ProductOrderFactory(
             order_size=100,
-            cost=self.product.price,
+            cost=self.product.price * 100,
             session=self.session,
             product=self.product,
         )
         ProductOrderFactory(
             order_size=200,
-            cost=self.product.price,
+            cost=self.product.price * 200,
             session=self.session,
             product=self.product,
         )
