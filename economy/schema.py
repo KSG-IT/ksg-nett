@@ -2,6 +2,8 @@ import datetime
 
 import graphene
 import calendar
+
+from django.core.exceptions import SuspiciousOperation
 from graphene import Node
 from django.db.models import Q, F, Sum
 from django.db.models.functions import Coalesce
@@ -13,6 +15,9 @@ from graphene_django_cud.mutations import (
     DjangoCreateMutation,
 )
 from graphene_django import DjangoConnectionField
+from graphene_django_cud.util import disambiguate_id
+
+from common.decorators import gql_has_permissions
 from economy.models import (
     SociProduct,
     Deposit,
@@ -21,6 +26,7 @@ from economy.models import (
     SociBankAccount,
     ProductOrder,
 )
+from users.models import User
 
 
 class BankAccountActivity(graphene.ObjectType):
@@ -46,7 +52,27 @@ class SociSessionNode(DjangoObjectType):
         model = SociSession
         interfaces = (Node,)
 
+    money_spent = graphene.Int()
+    product_orders = graphene.List("economy.schema.ProductOrderNode")
+    closed = graphene.Boolean()
+    get_name_display = graphene.String()
+
+    def resolve_money_spent(self: SociSession, info, *args, **kwargs):
+        return self.total_revenue
+
+    def resolve_product_orders(self: SociSession, info, *args, **kwargs):
+        return self.product_orders.all()
+
+    def resolve_closed(self: SociSession, info, *args, **kwargs):
+        return self.closed_at is not None
+
+    def resolve_get_name_display(self: SociSession, info, *args, **kwargs):
+        if self.name:
+            return self.name
+        return f"{self.get_type_display()}: {self.creation_date.strftime('%d.%m.%Y')}"
+
     @classmethod
+    @gql_has_permissions("economy.view_socisession")
     def get_node(cls, info, id):
         return SociSession.objects.get(pk=id)
 
@@ -105,15 +131,27 @@ class TransferNode(DjangoObjectType):
 class SociProductQuery(graphene.ObjectType):
     soci_product = Node.Field(SociProductNode)
     all_active_soci_products = DjangoConnectionField(SociProductNode)
-    all_soci_products = DjangoConnectionField(SociProductNode)
+    all_soci_products = graphene.List(SociProductNode)
+    all_soci_sessions = DjangoConnectionField(SociSessionNode)
+    default_soci_products = graphene.List(SociProductNode)
 
+    @gql_has_permissions("economy.view_sociproduct")
     def resolve_all_soci_products(self, info, *args, **kwargs):
         return SociProduct.objects.all().order_by()
 
+    @gql_has_permissions("economy.view_sociproduct")
     def resolve_all_active_soci_products(self, info, *args, **kwargs):
         return SociProduct.objects.filter(
             Q(end__isnull=True) | Q(end__gte=timezone.now())
         )
+
+    @gql_has_permissions("economy.view_socisession")
+    def resolve_all_soci_sessions(self, info, *args, **kwargs):
+        return SociSession.objects.all().order_by("-created_at")
+
+    @gql_has_permissions("economy.view_sociproduct")
+    def resolve_default_soci_products(self, info, *args, **kwargs):
+        return SociProduct.objects.filter(default_stilletime_product=True)
 
 
 class DepositQuery(graphene.ObjectType):
@@ -161,6 +199,7 @@ class SociSessionQuery(graphene.ObjectType):
     all_soci_sessions = DjangoConnectionField(SociSessionNode)
 
     def resolve_all_soci_sessions(self, info, *args, **kwargs):
+        SociSession.objects.all().delete()
         return SociSession.objects.all().order_by("created_at")
 
 
@@ -273,14 +312,92 @@ class DeleteProductOrderMutation(DjangoDeleteMutation):
         model = ProductOrder
 
 
-class CreateSociSessionMutation(DjangoDeleteMutation):
+class UndoProductOrderMutation(graphene.Mutation):
+    class Arguments:
+        id = graphene.ID(required=True)
+
+    found = graphene.Boolean()
+
+    @gql_has_permissions("economy.delete_productorder")
+    def mutate(self, info, id):
+        id = disambiguate_id(id)
+        product_order = ProductOrder.objects.get(id=id)
+        session = product_order.session
+        if session.closed:
+            raise SuspiciousOperation("Cannot undo a product order in a closed session")
+        account = product_order.source
+        account.balance += product_order.cost
+        account.save()
+        product_order.delete()
+        return UndoProductOrderMutation(found=True)
+
+
+class PlaceProductOrderMutation(graphene.Mutation):
+    class Arguments:
+        soci_session_id = graphene.ID(required=True)
+        user_id = graphene.ID(required=True)
+        product_id = graphene.ID(required=True)
+        order_size = graphene.Int(required=True)
+
+    product_order = graphene.Field(ProductOrderNode)
+
+    @gql_has_permissions("economy.add_productorder")
+    def mutate(
+        self, info, soci_session_id, user_id, product_id, order_size, *args, **kwargs
+    ):
+        """
+        Intentionally allows a user to be overdrawn
+        """
+        soci_session_id = disambiguate_id(soci_session_id)
+        session = SociSession.objects.get(id=soci_session_id)
+        if session.closed:
+            raise SuspiciousOperation("Cannot place order on a closed session")
+
+        user_id = disambiguate_id(user_id)
+        user = User.objects.get(id=user_id)
+
+        product_id = disambiguate_id(product_id)
+        product = SociProduct.objects.get(id=product_id)
+        account = user.bank_account
+        cost = product.price * order_size
+
+        account.balance -= cost
+        account.save()
+        product_order = ProductOrder.objects.create(
+            source=account,
+            product=product,
+            order_size=order_size,
+            cost=cost,
+            session=session,
+        )
+        return PlaceProductOrderMutation(product_order=product_order)
+
+
+class CreateSociSessionMutation(DjangoCreateMutation):
     class Meta:
         model = SociSession
+        permissions = ("economy.add_socisession",)
+        auto_context_fields = {"created_by": "user"}
 
 
 class PatchSociSessionMutation(DjangoPatchMutation):
     class Meta:
         model = SociSession
+
+
+class CloseSociSessionMutation(graphene.Mutation):
+    class Arguments:
+        id = graphene.ID(required=True)
+
+    soci_session = graphene.Field(SociSessionNode)
+
+    @gql_has_permissions("economy.change_socisession")
+    def mutate(self, info, id, *args, **kwargs):
+        id = disambiguate_id(id)
+        soci_session = SociSession.objects.get(id=id)
+        soci_session.closed_at = timezone.now()
+        soci_session.save()
+        return CloseSociSessionMutation(soci_session=soci_session)
 
 
 class DeleteSociSessionMutation(DjangoDeleteMutation):
@@ -333,13 +450,13 @@ class EconomyMutations(graphene.ObjectType):
     patch_soci_product = PatchSociProductMutation.Field()
     delete_soci_product = DeleteSociProductMutation.Field()
 
-    create_product_order = CreateProductOrderMutation.Field()
-    patch_product_order = PatchProductOrderMutation.Field()
-    delete_product_order = DeleteProductOrderMutation.Field()
+    place_product_order = PlaceProductOrderMutation.Field()
+    undo_product_order = UndoProductOrderMutation.Field()
 
     create_soci_session = CreateSociSessionMutation.Field()
     patch_soci_session = PatchSociSessionMutation.Field()
     delete_soci_session = DeleteSociSessionMutation.Field()
+    close_soci_session = CloseSociSessionMutation.Field()
 
     create_soci_bank_account = CreateSociBankAccountMutation.Field()
     patch_soci_bank_account = PatchSociBankAccountMutation.Field()

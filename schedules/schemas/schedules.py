@@ -141,16 +141,15 @@ class ShiftQuery(graphene.ObjectType):
         ShiftNode,
         date=graphene.Date(required=True),
     )
-
     all_my_shifts = graphene.List(ShiftNode)
     my_upcoming_shifts = graphene.List(ShiftNode)
-
     normalized_shifts_from_range = graphene.List(
         ShiftGroupWeeksUnion,
         schedule_id=graphene.ID(required=True),
         shifts_from=graphene.Date(),
         number_of_weeks=graphene.Int(),
     )
+    all_users_working_today = graphene.List("users.schema.UserNode")
 
     def resolve_normalized_shifts_from_range(
         self, info, schedule_id, shifts_from, number_of_weeks
@@ -193,6 +192,31 @@ class ShiftQuery(graphene.ObjectType):
         return Shift.objects.filter(
             datetime_start__gt=datetime_from, datetime_end__lt=datetime_to
         ).order_by("datetime_start")
+
+    def resolve_all_users_working_today(self, info, *args, **kwargs):
+        date = datetime.date.today()
+        datetime_from = timezone.datetime(
+            date.year,
+            date.month,
+            date.day,
+            0,
+            0,
+            0,
+            tzinfo=pytz.timezone(settings.TIME_ZONE),
+        )
+        datetime_to = timezone.datetime(
+            date.year,
+            date.month,
+            date.day,
+            23,
+            59,
+            59,
+            tzinfo=pytz.timezone(settings.TIME_ZONE),
+        )
+        return User.objects.filter(
+            filled_shifts__shift__datetime_start__gt=datetime_from,
+            filled_shifts__shift__datetime_start__lt=datetime_to,
+        ).order_by("first_name", "last_name")
 
 
 # === MUTATIONS ===
@@ -267,6 +291,7 @@ class GenerateShiftsFromTemplateMutation(graphene.Mutation):
 
     shifts_created = graphene.Int()
 
+    @gql_has_permissions("schedules.add_shift")
     def mutate(self, info, schedule_template_id, start_date, number_of_weeks):
         from schedules.schemas.templates import ScheduleTemplate
 

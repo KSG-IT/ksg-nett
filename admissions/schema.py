@@ -515,8 +515,10 @@ class ApplicantQuery(graphene.ObjectType):
     @gql_has_permissions("admissions.view_admission")
     def resolve_close_admission_data(self, info, *args, **kwargs):
         # Can we do an annotation here? Kind of like unwanted = all_priorities = DO_NOT_WANT
+        active_admissions = Admission.get_active_admission()
         valid_applicants = (
             Applicant.objects.filter(
+                admission=active_admissions,
                 priorities__internal_group_priority__in=[
                     InternalGroupStatus.WANT,
                     InternalGroupStatus.RESERVE,
@@ -527,7 +529,6 @@ class ApplicantQuery(graphene.ObjectType):
             .distinct()
         )
 
-        active_admissions = Admission.get_active_admission()
         applicant_interests = (
             ApplicantInterest.objects.filter(applicant__admission=active_admissions)
             .exclude(applicant__pk__in=valid_applicants)

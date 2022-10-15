@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Krysseliste</title>
+  <style>
+
+      * {
+          box-sizing: border-box;
+          font-size: 14px;
+          margin: 0;
+          padding: 0;
+          width: 100vw;
+          height: 100vh;
+      }
+
+      @page {
+          margin: 12px;
+      }
+
+      table {
+          text-align: left;
+          border: 1px solid black;
+          border-collapse: collapse;
+          margin: 0 5px;
+      }
+
+      tr {
+          border: 1px solid black;
+      }
+
+      th {
+          border: 1px solid black;
+          word-break: break-word;
+      }
+
+      td {
+          padding: 5px 2px;
+          border: 1px solid black;
+          width: 110px;
+      }
+
+      td:first-child {
+          width: 100px;
+          font-size: 12px;
+          word-break: break-word;
+
+      }
+
+      .meta-data-wrapper {
+          display: flex;
+          flex-direction: column;
+          margin-bottom: 10px;
+      }
+
+      .no-margin {
+          margin: 0;
+      }
+
+      .poor-motherfucker {
+          background-color: gray;
+          color: white;
+      }
+
+
+  </style>
+</head>
+<body>
+<section>
+  <div class="meta-data-wrapper">
+    <h1 class="no-margin">Krysseliste</h1>
+    <p class="no-margin">Skrevet ut av: {{ printed_by.get_full_name }}</p>
+    <p class="no-margin">Skrevet ut: {{ timestamp |date:'Y-m-d H:i' }}</p>
+  </div>
+</section>
+<section>
+  Grå farge betyr at brukeren har negativ saldo
+</section>
+<table>
+  <thead>
+  <tr>
+    <th>Navn</th>
+    {% for proudct in products %}
+      <th>{{ proudct.name }}</th>
+    {% endfor %}
+  </tr>
+  </thead>
+  <tbody>
+  {% for user in users %}
+    <tr {% if  user.balance < 0 %} class="poor-motherfucker" {% endif %}>
+      <td>{{ user.get_full_name }}</td>
+      {% for proudct in products %}
+        <td></td>
+      {% endfor %}
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+
+</body>
+</html>

@@ -1,26 +1,17 @@
 import os
+import datetime
 from typing import Union, Dict, List, Optional
 from django.core.validators import MinValueValidator
 from django.conf import settings
 from django.db import models
 from django.db.models import QuerySet
 from django.utils import timezone
-from model_utils.fields import MonitorField
 from model_utils.managers import QueryManager
 from model_utils.models import TimeStampedModel, TimeFramedModel
-from model_utils import Choices
-from common.models import TimestampedModel
+import common.models as common_models
 
 from api.exceptions import NoSociSessionError
 from users.models import User
-
-
-# Type of soci session
-SOCI_SESSION_TYPE_CHOICES = Choices(
-    ("societeten", "Societeten"),
-    ("stilletime", "Stilletime"),
-    ("krysseliste", "Krysseliste"),
-)
 
 
 class SociBankAccount(models.Model):
@@ -89,6 +80,7 @@ class SociProduct(TimeFramedModel):
     price = models.IntegerField()
     description = models.TextField(blank=True, null=True, default=None, max_length=200)
     icon = models.CharField(max_length=2, blank=True, null=True)
+    default_stilletime_product = models.BooleanField(default=False)
 
     def __str__(self):
         return f"SociProduct {self.name} costing {self.price} kr"
@@ -109,29 +101,43 @@ class SociProduct(TimeFramedModel):
         )
 
 
-class SociSession(TimeFramedModel):
+class SociSession(models.Model):
     """
     A collection of Purchases made within a specified time period.
     Every session has a user that signed off, i.e. who authenticated the session.
     """
 
+    class Type(models.TextChoices):
+        SOCIETETEN = ("SOCIETETEN", "Societeten")
+        STILLETIME = ("STILLETIME", "Stilletime")
+        KRYSELLISTE = ("KRYSSELISTE", "Krysseliste")
+
     name = models.CharField(max_length=50, blank=True, null=True)
-    signed_off_by = models.ForeignKey(
+    created_by = models.ForeignKey(
         to="users.User", null=True, on_delete=models.DO_NOTHING
     )
     type = models.CharField(
-        choices=SOCI_SESSION_TYPE_CHOICES,
-        default=SOCI_SESSION_TYPE_CHOICES.societeten,
+        choices=Type.choices,
+        default=Type.SOCIETETEN,
         max_length=20,
     )
-    closed = models.BooleanField(default=False, blank=False, null=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    # Manual lists have sense of timestamps and can be registered at later dates
+    creation_date = models.DateField(default=datetime.date.today())
+    updated_at = models.DateTimeField(auto_now=True)
+    closed_at = models.DateTimeField(blank=True, null=True)
+
+    @property
+    def closed(self):
+        return self.closed_at is not None
 
     @classmethod
     def get_active_session(cls) -> Optional["SociSession"]:
         """
         Get the active session that should be used for all purchases, or None if no such session exists.
         """
-        return cls.objects.filter(end__isnull=True).order_by("-start").last()
+        return cls.objects.filter(closed_at__isnull=True).order_by("-created_at").last()
 
     @classmethod
     def terminate_active_session(cls):
@@ -140,7 +146,7 @@ class SociSession(TimeFramedModel):
         """
         active_session = cls.get_active_session()
         if active_session:
-            active_session.end = timezone.now()
+            active_session.closed_at = timezone.now()
             active_session.save()
 
     @property
@@ -149,23 +155,25 @@ class SociSession(TimeFramedModel):
 
     @property
     def total_revenue(self) -> int:
-        purchase_sums = [amount.cost for amount in self.product_orders.all()]
+
+        purchase_sums = [order.cost for order in self.product_orders.all()]
+        print(purchase_sums)
         return sum(purchase_sums)
 
     def __str__(self):
         return (
             f"SociSession {self.name} containing {self.product_orders.count()} product_orders "
-            f"between {self.start} and {self.end}"
+            f"between {self.created_at} and {self.closed_at}"
         )
 
     def __repr__(self):
-        return f"SociSession(name={self.name},start={self.start},end={self.end})"
+        return f"SociSession(name={self.name},start={self.created_at},end={self.closed_at})"
 
     def save(
         self, force_insert=False, force_update=False, using=None, update_fields=None
     ):
         if self._state.adding:
-            self.start = timezone.now()
+            self.created_at = timezone.now()
         super().save(
             force_insert=force_insert,
             force_update=force_update,
@@ -199,15 +207,8 @@ class ProductOrder(models.Model):
         default=SociSession.get_active_session,
     )
 
-    purchased_at = models.DateTimeField(default=timezone.datetime.now)
-
-    @property
-    def cost(self) -> int:
-        return self.order_size * self.product.price
-
-    @property
-    def is_charged(self):
-        return self.session.closed
+    purchased_at = models.DateTimeField(auto_now_add=True)
+    cost = models.IntegerField(validators=[MinValueValidator(limit_value=1)])
 
     def __str__(self):
         return f"Order of {self.order_size} {self.product.name}(s)"
@@ -246,7 +247,7 @@ class Transfer(TimeStampedModel):
         return f"Transfer(from={self.source.user},to={self.destination.user},amount={self.amount})"
 
 
-class Deposit(TimestampedModel):
+class Deposit(common_models.TimestampedModel):
     """
     A deposit of money into a Soci bank account.
     Deposits need a valid receipt in order to be approved.
