@@ -323,7 +323,11 @@ class UndoProductOrderMutation(graphene.Mutation):
 
     @gql_has_permissions("economy.delete_productorder")
     def mutate(self, root, info, id):
+
         product_order = ProductOrder.objects.get(id=id)
+        session = product_order.session
+        if session.closed:
+            raise SuspiciousOperation("Cannot undo a product order in a closed session")
         account = product_order.source
         account.balance += product_order.cost
         account.save()
