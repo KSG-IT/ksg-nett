@@ -20,7 +20,7 @@ class Quote(TimestampedModel):
 
     tagged = models.ManyToManyField(User, blank=True, related_name="quotes")
 
-    # None indicates not validated
+    # None indicates not validated. Change the name of this
     verified_by = models.ForeignKey(
         User,
         null=True,
