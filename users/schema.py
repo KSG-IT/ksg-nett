@@ -45,6 +45,7 @@ class UserNode(DjangoObjectType):
     internal_group_position_membership_history = graphene.List(
         "organization.schema.InternalGroupPositionMembershipNode"
     )
+    money_spent = graphene.Int()
 
     def resolve_internal_group_position_membership_history(
         self: User, info, *args, **kwargs
@@ -95,6 +96,9 @@ class UserNode(DjangoObjectType):
 
     def resolve_last_transactions(self: User, info, **kwargs):
         return parse_transaction_history(self.bank_account, 10)
+
+    def resolve_money_spent(self: User, info, **kwargs):
+        return self.bank_account.money_spent
 
     @classmethod
     def get_node(cls, info, id):

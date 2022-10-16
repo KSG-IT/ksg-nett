@@ -65,6 +65,11 @@ class SociBankAccount(models.Model):
         self.balance -= amount
         self.save()
 
+    @property
+    def money_spent(self) -> int:
+        purchases = self.product_orders.all().aggregate(models.Sum("cost"))
+        return purchases["cost__sum"] or 0
+
 
 class SociProduct(TimeFramedModel):
     """

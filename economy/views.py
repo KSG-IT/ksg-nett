@@ -2,37 +2,16 @@ import json
 
 from django.conf import settings
 from graphene_django_cud.util import disambiguate_id, disambiguate_ids
-
-from economy.forms import DepositForm, DepositCommentForm, ProductOrderForm
 from economy.models import (
-    Deposit,
-    DepositComment,
-    SociBankAccount,
-    SociSession,
     SociProduct,
-    ProductOrder,
 )
 from weasyprint import CSS, HTML
-import csv
-from io import BytesIO
-from typing import Iterable, Tuple, List, Any
-from zoneinfo import ZoneInfo
 
-import dateutil
-import dateutil.parser as parser
-from datetime import datetime
-
-from django.http import HttpResponse
 from django.template.loader import render_to_string
 from users.models import User
-from django.shortcuts import render, get_object_or_404, redirect
-from django.urls import reverse
-from django.core.paginator import Paginator
-import datetime
 from django.utils import timezone
 from rest_framework import status
 from django.http import HttpResponse
-from django.core.exceptions import SuspiciousOperation
 
 
 def generate_pdf_response_from_template(context, file_name, template_name):
