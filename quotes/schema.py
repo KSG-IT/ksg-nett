@@ -8,6 +8,9 @@ from graphene_django_cud.mutations import (
     DjangoCreateMutation,
 )
 from graphene_django import DjangoConnectionField
+from graphene_django_cud.util import disambiguate_id
+
+from common.decorators import gql_has_permissions
 from quotes.models import Quote, QuoteVote
 from quotes.filters import QuoteFilter
 from graphql_relay import from_global_id
@@ -135,10 +138,43 @@ class DeleteUserQuoteVote(graphene.Mutation):
             return None
 
 
+class ApproveQuoteMutation(graphene.Mutation):
+    class Arguments:
+        quote_id = graphene.ID(required=True)
+
+    quote = graphene.Field(QuoteNode)
+
+    @gql_has_permissions("quotes.change_quote")
+    def mutate(self, info, quote_id):
+        quote_id = disambiguate_id(quote_id)
+        quote = Quote.objects.get(pk=quote_id)
+        quote.verified_by = info.context.user
+        quote.save()
+        return ApproveQuoteMutation(quote=quote)
+
+
+class InvalidateQuoteMutation(graphene.Mutation):
+    class Arguments:
+        quote_id = graphene.ID(required=True)
+
+    quote = graphene.Field(QuoteNode)
+
+    @gql_has_permissions("quotes.change_quote")
+    def mutate(self, info, quote_id):
+        quote_id = disambiguate_id(quote_id)
+        quote = Quote.objects.get(pk=quote_id)
+        quote.verified_by = None
+        quote.save()
+        return InvalidateQuoteMutation(quote=quote)
+
+
 class QuotesMutations(graphene.ObjectType):
     create_quote = CreateQuoteMutation.Field()
     patch_quote = PatchQuoteMutation.Field()
     delete_quote = DeleteQuoteMutation.Field()
+
+    approve_quote = ApproveQuoteMutation.Field()
+    invalidate_quote = InvalidateQuoteMutation.Field()
 
     create_quote_vote = CreateQuoteVoteMutation.Field()
     patch_quote_vote = PatchQuoteMutation.Field()
