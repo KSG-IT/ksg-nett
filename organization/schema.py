@@ -1,5 +1,6 @@
 import datetime
 import graphene
+from django.contrib.auth.models import Group
 from graphene import Node
 from graphene_django import DjangoObjectType
 from graphene_django_cud.mutations import (
@@ -9,7 +10,9 @@ from graphene_django_cud.mutations import (
 )
 from graphene_django import DjangoConnectionField
 
+from common.decorators import gql_has_permissions
 from ksg_nett import settings
+from organization.consts import InternalGroupPositionMembershipType
 from organization.models import (
     InternalGroup,
     InternalGroupPosition,
@@ -22,7 +25,6 @@ from graphene_django_cud.util import disambiguate_id
 from organization.graphql import InternalGroupPositionTypeEnum
 from users.schema import UserNode
 from users.models import User
-from django.utils import timezone
 
 
 class InternalGroupPositionMembershipData(graphene.ObjectType):
@@ -249,6 +251,7 @@ class AssignNewInternalGroupPositionMembership(graphene.Mutation):
         InternalGroupPositionMembershipNode
     )
 
+    @gql_has_permissions("organization.add_internalgrouppositionmembership")
     def mutate(
         self,
         info,
@@ -286,6 +289,21 @@ class AssignNewInternalGroupPositionMembership(graphene.Mutation):
             )
         )
 
+        if active_membership.type == InternalGroupPositionMembershipType.FUNCTIONARY:
+            interview_group = Group.objects.filter(name="Intervjuer").first()
+            if interview_group:
+                # Can make this a bit more robust in the future
+                user.groups.remove(interview_group)
+
+        if (
+            new_internal_group_position_membership.type
+            == InternalGroupPositionMembershipType.FUNCTIONARY
+        ):
+            interview_group = Group.objects.filter(name="Intervjuer").first()
+            # Same as above
+            if interview_group:
+                user.groups.add(interview_group)
+
         return AssignNewInternalGroupPositionMembership(
             internal_group_position_membership=new_internal_group_position_membership
         )
@@ -294,61 +312,37 @@ class AssignNewInternalGroupPositionMembership(graphene.Mutation):
 class CreateInternalGroupPositionMembershipMutation(DjangoCreateMutation):
     class Meta:
         model = InternalGroupPositionMembership
+        permissions = ("organization.add_internalgrouppositionmembership",)
 
 
 class PatchInternalGroupPositionMembershipMutation(DjangoPatchMutation):
     class Meta:
         model = InternalGroupPositionMembership
+        permissions = ("organization.change_internalgrouppositionmembership",)
 
 
 class DeleteInternalGroupPositionMembership(DjangoDeleteMutation):
     class Meta:
         model = InternalGroupPositionMembership
+        permissions = ("organization.delete_internalgrouppositionmembership",)
 
 
-class CreateCommissionMembershipMutation(DjangoCreateMutation):
-    class Meta:
-        model = CommissionMembership
+class QuitKSGMutation(graphene.Mutation):
+    class Arguments:
+        membership_id = graphene.ID()
 
+    internal_group_position_membership = graphene.Field(
+        InternalGroupPositionMembershipNode
+    )
 
-class PatchCommissionMembershipMutation(DjangoPatchMutation):
-    class Meta:
-        model = CommissionMembership
-
-
-class DeleteCommissionMembership(DjangoDeleteMutation):
-    class Meta:
-        model = CommissionMembership
-
-
-class CreateCommissionMutation(DjangoCreateMutation):
-    class Meta:
-        model = Commission
-
-
-class PatchCommissionMutation(DjangoPatchMutation):
-    class Meta:
-        model = Commission
-
-
-class DeleteCommissionMutation(DjangoDeleteMutation):
-    class Meta:
-        model = Commission
-
-
-class CreateCommitteeMutation(DjangoCreateMutation):
-    class Meta:
-        model = Committee
-
-
-class PatchCommitteeMutation(DjangoPatchMutation):
-    class Meta:
-        model = Committee
-
-
-class DeleteCommitteeMutation(DjangoDeleteMutation):
-    class Meta:
-        model = Committee
+    @gql_has_permissions("organization.change_internalgrouppositionmembership")
+    def mutate(self, info, membership_id, *args, **kwargs):
+        # consider terminating all active memberships?
+        membership_id = disambiguate_id(membership_id)
+        membership = InternalGroupPositionMembership.objects.get(pk=membership_id)
+        membership.date_ended = datetime.date.today()
+        membership.save()
+        return QuitKSGMutation(internal_group_position_membership=membership)
 
 
 class OrganizationMutations(graphene.ObjectType):
@@ -373,14 +367,5 @@ class OrganizationMutations(graphene.ObjectType):
     assign_new_internal_group_position_membership = (
         AssignNewInternalGroupPositionMembership.Field()
     )
-    create_commission_membership = CreateCommissionMembershipMutation.Field()
-    patch_commission_membership = PatchCommissionMembershipMutation.Field()
-    delete_commission_membership = DeleteCommissionMembership.Field()
 
-    create_commission = CreateCommissionMutation.Field()
-    patch_commission = PatchCommissionMutation.Field()
-    delete_commission = DeleteCommissionMutation.Field()
-
-    create_committee = CreateCommitteeMutation.Field()
-    patch_committee = PatchCommitteeMutation.Field()
-    delete_committee = DeleteCommitteeMutation.Field()
+    quit_KSG = QuitKSGMutation.Field()

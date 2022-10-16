@@ -7,6 +7,8 @@ from graphene_django_cud.mutations import (
     DjangoDeleteMutation,
     DjangoCreateMutation,
 )
+
+from common.decorators import gql_has_permissions
 from quotes.schema import QuoteNode
 from users.models import (
     User,
@@ -116,6 +118,12 @@ class ManageInternalGroupUserObject(graphene.ObjectType):
     internal_group_position_type = InternalGroupPositionTypeEnum()
     # Signifies the semester this person started having this specific membership
     date_joined_semester_shorthand = graphene.String()
+    date_ended_semester_shorthand = graphene.String()
+
+
+class ManageInternalGroupUsersData(graphene.ObjectType):
+    active_memberships = graphene.List(ManageInternalGroupUserObject)
+    all_memberships = graphene.List(ManageInternalGroupUserObject)
 
 
 class UserQuery(graphene.ObjectType):
@@ -123,62 +131,76 @@ class UserQuery(graphene.ObjectType):
     me = graphene.Field(UserNode)
     all_users = DjangoFilterConnectionField(UserNode, filterset_class=UserFilter)
     all_active_users = DjangoFilterConnectionField(UserNode, filterset_class=UserFilter)
-    manage_users_data = graphene.List(
-        ManageInternalGroupUserObject,
-        active_only=graphene.Boolean(required=True),
+    manage_users_data = graphene.Field(
+        ManageInternalGroupUsersData,
         internal_group_id=graphene.ID(),
     )
 
-    def resolve_manage_users_data(
-        self, info, active_only, internal_group_id, *args, **kwargs
-    ):
-        django_id = disambiguate_id(internal_group_id)
-        internal_group = InternalGroup.objects.filter(pk=django_id).first()
+    @gql_has_permissions("users.change_user")
+    def resolve_manage_users_data(self, info, internal_group_id, *args, **kwargs):
+        internal_group_id = disambiguate_id(internal_group_id)
+        internal_group = InternalGroup.objects.get(pk=internal_group_id)
 
-        if not internal_group:
-            return []
-
-        internal_group_position_memberships = (
+        active_memberships = (
             InternalGroupPositionMembership.objects.filter(
                 position__internal_group=internal_group
             )
         ).order_by("user__first_name")
 
         # We need to get rid of multiple entries of the same user
-        for membership in internal_group_position_memberships.all():
-            user_memberships = internal_group_position_memberships.filter(
-                user=membership.user
-            ).order_by("date_joined")
-            freshest_membership = user_memberships.last()
-            user_memberships = user_memberships.exclude(id=freshest_membership.id)
-            exclude_ids = [membership.id for membership in user_memberships]
+        for membership in active_memberships.filter(
+            user__is_active=True, date_ended__isnull=True
+        ):
+            user_memberships = active_memberships.filter(user=membership.user).order_by(
+                "date_joined"
+            )
+            # freshest_membership = user_memberships.last()
+            # user_memberships = user_memberships.exclude(id=freshest_membership.id)
+            # exclude_ids = [membership.id for membership in user_memberships]
             # Nested exclusion. We prune away the other memberships besides the freshest one
-            internal_group_position_memberships = (
-                internal_group_position_memberships.exclude(id__in=exclude_ids)
-            )
+            # active_memberships = active_memberships.exclude(id__in=exclude_ids)
 
-        if active_only:
-            # Additional filtering
-            internal_group_position_memberships = (
-                internal_group_position_memberships.filter(
-                    user__is_active=True, date_ended__isnull=True
-                )
-            )
-        membership_list = []
-        for membership in internal_group_position_memberships:
-            membership_list.append(
+        active_membership_list = []
+        for membership in InternalGroupPositionMembership.objects.filter(
+            position__internal_group=internal_group,
+            user__is_active=True,
+            date_ended__isnull=True,
+        ).order_by("user__first_name"):
+            date_joined = get_semester_year_shorthand(membership.date_joined)
+            active_membership_list.append(
                 ManageInternalGroupUserObject(
                     user_id=to_global_id("UserNode", membership.user.id),
                     full_name=membership.user.get_full_name(),
                     internal_group_position_membership=membership,
                     internal_group_position_type=membership.type,
                     position_name=membership.position.name,
-                    date_joined_semester_shorthand=get_semester_year_shorthand(
-                        membership.date_joined
-                    ),
+                    date_joined_semester_shorthand=date_joined,
+                    date_ended_semester_shorthand=None,
                 )
             )
-        return membership_list
+
+        all_memberships = []
+        for membership in InternalGroupPositionMembership.objects.filter(
+            position__internal_group=internal_group, date_ended__isnull=False
+        ).order_by("user__first_name"):
+            date_started = get_semester_year_shorthand(membership.date_ended)
+            date_ended = get_semester_year_shorthand(membership.date_ended)
+            all_memberships.append(
+                ManageInternalGroupUserObject(
+                    user_id=to_global_id("UserNode", membership.user.id),
+                    full_name=membership.user.get_full_name(),
+                    internal_group_position_membership=membership,
+                    internal_group_position_type=membership.type,
+                    position_name=membership.position.name,
+                    date_joined_semester_shorthand=date_started,
+                    date_ended_semester_shorthand=date_ended,
+                )
+            )
+        membership_data = ManageInternalGroupUsersData(
+            active_memberships=active_membership_list,
+            all_memberships=all_memberships,
+        )
+        return membership_data
 
     def resolve_me(self, info, *args, **kwargs):
         if not hasattr(info.context, "user") or not info.context.user.is_authenticated:
