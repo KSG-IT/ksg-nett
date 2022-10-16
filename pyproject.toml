@@ -6,8 +6,8 @@ authors = ["Tormod Haugland <tormod.haugland@gmail.com>"]
 
 [tool.poetry.dependencies]
 python = "^3.9"
-djangorestframework = "^3.13.1"
-django = "^3.2.14"
+djangorestframework = "^3.13.1,!=3.14.0"
+django = "^3.2.15"
 pillow = "^9.0.0"
 channels = "^2.4.0"
 redis = "^3.5.3"
