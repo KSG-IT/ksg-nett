@@ -82,6 +82,7 @@ class InternalGroupPositionNode(DjangoObjectType):
         interfaces = (Node,)
 
     @classmethod
+    @gql_has_permissions("organization.view_internalgroupposition")
     def get_node(cls, info, id):
         return InternalGroupPosition.objects.get(pk=id)
 
@@ -93,8 +94,10 @@ class InternalGroupPositionMembershipNode(DjangoObjectType):
 
     membership_start = graphene.String()
     membership_end = graphene.String()
+    get_type_display = graphene.String()
 
     @classmethod
+    @gql_has_permissions("organization.view_internalgrouppositionmembership")
     def get_node(cls, info, id):
         return InternalGroupPositionMembership.objects.get(pk=id)
 
@@ -103,6 +106,9 @@ class InternalGroupPositionMembershipNode(DjangoObjectType):
 
     def resolve_membership_end(self: InternalGroupPositionMembership, info, **kwargs):
         return self.get_semester_of_membership(start=False)
+
+    def resolve_get_type_display(self: InternalGroupPositionMembership, info, **kwargs):
+        return self.get_type_display()
 
 
 class CommissionMembershipNode(DjangoObjectType):
