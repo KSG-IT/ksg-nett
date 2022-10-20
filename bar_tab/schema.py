@@ -316,7 +316,7 @@ class SendBarTabInvoiceEmailMutation(graphene.Mutation):
 
 class FinalizeBarTabMutation(graphene.Mutation):
 
-    bar_Tab = graphene.Field(BarTabNode)
+    bar_tab = graphene.Field(BarTabNode)
 
     @gql_has_permissions("bar_tab.change_bartabinvoice")
     def mutate(self, info):
@@ -326,7 +326,7 @@ class FinalizeBarTabMutation(graphene.Mutation):
         if unsent_invoices.exists():
             raise Exception("Cannot finalize bar tab with unsent invoices")
 
-        active_bar_tab.stats = BarTab.Status.REVIEWED
+        active_bar_tab.status = BarTab.Status.REVIEWED
         active_bar_tab.save()
         return FinalizeBarTabMutation(bar_tab=active_bar_tab)
 
