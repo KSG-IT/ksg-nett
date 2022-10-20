@@ -16,9 +16,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name="sociproduct",
             name="hide_from_api",
-            field=models.BooleanField(
-                default=datetime.datetime(2022, 10, 20, 13, 54, 12, 466589, tzinfo=utc)
-            ),
+            field=models.BooleanField(default=False),
             preserve_default=False,
         ),
         migrations.AlterField(
