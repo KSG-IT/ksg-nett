@@ -86,7 +86,7 @@ class SociProduct(TimeFramedModel):
     description = models.TextField(blank=True, null=True, default=None, max_length=200)
     icon = models.CharField(max_length=2, blank=True, null=True)
     default_stilletime_product = models.BooleanField(default=False)
-    hide_from_api = models.BooleanField()
+    hide_from_api = models.BooleanField(default=False)
 
     def __str__(self):
         return f"SociProduct {self.name} costing {self.price} kr"
