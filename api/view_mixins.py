@@ -10,7 +10,7 @@ class CustomCreateAPIView(CreateAPIView):
         validating and deserializing input
         """
         deserializer_class = self.get_deserializer_class()
-        kwargs['context'] = {**kwargs['context'], **self.get_serializer_context()}
+        kwargs["context"] = {**kwargs["context"], **self.get_serializer_context()}
         return deserializer_class(*args, **kwargs)
 
     def get_deserializer_class(self):

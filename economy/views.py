@@ -32,21 +32,15 @@ def download_soci_session_list_pdf(request):
         return HttpResponse(status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
     # get user_ids and product_ids from request
-    print(request.POST)
     user_ids = json.loads(request.POST.getlist("user_ids")[0])
     product_ids = json.loads(request.POST.getlist("product_ids")[0])
     printed_by = request.POST.get("printed_by")
-    print(product_ids)
     user_ids = disambiguate_ids(user_ids)
     product_ids = disambiguate_ids(product_ids)
 
-    print(user_ids)
-    print(product_ids)
     users = User.objects.filter(id__in=user_ids).order_by("first_name")
     products = SociProduct.objects.filter(id__in=product_ids)
     printed_by = User.objects.get(id=disambiguate_id(printed_by))
-    print(users)
-    print(products)
     ctx = {
         "users": users,
         "products": products,

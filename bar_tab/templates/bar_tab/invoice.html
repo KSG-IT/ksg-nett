@@ -1,0 +1,368 @@
+{% load static %}
+{% load ksg_helpers %}
+
+<head>
+  <meta charset="UTF-8">
+  <title>Faktura lol</title>
+  <link href="https://fonts.googleapis.com/css?family=Work+Sans:300,400,600,700&display=swap" rel="stylesheet">
+  <style type="text/css">
+
+      @page {
+          size: A4;
+          margin: 1.25cm 1.5cm 1.5cm;
+      }
+
+      body {
+          font-family: 'Comic Sans MS', cursive, sans-serif;
+          font-size:  16px;
+      }
+
+      .title {
+          margin-bottom: 1.85em;
+          padding-bottom: 0.25em;
+          border-bottom: 1px solid #aaa;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+      }
+
+      #logo {
+          text-align: right;
+          width: 75px;
+      }
+
+      #header {
+          font-size: 15px;
+          display: flex;
+          justify-content: space-between;
+      }
+
+      #header p {
+          padding-top: 4px;
+          padding-bottom: 4px;
+      }
+
+      #header--first-col {
+      }
+
+      #header--last-col {
+          text-align: right;
+      }
+
+      #ksg-info {
+          margin-left: 2cm;
+          right: 0;
+      }
+
+      #invoice-title {
+          font-size: 1.5em;
+          font-weight: 600;
+          margin-bottom: 0.5em;
+      }
+
+      #customer-info .header {
+          font-weight: normal;
+          font-size: 20px;
+      }
+
+
+      .offertext > table {
+          margin-top: 0.25cm;
+      }
+
+      #invoice-info {
+          margin-top: 2em;
+      }
+
+      #invoice-info .header {
+          font-weight: normal;
+          font-size: 20px;
+      }
+
+      #invoice-info .info {
+          margin-top: 0.5em;
+          font-size: 14px;
+          padding-bottom: 0.5em;
+          border-bottom: 1px solid #888;
+          display: flex;
+          justify-content: space-between;
+      }
+
+      #invoice-info .basicinfo td:first-child {
+          width: 3cm;
+      }
+
+      .orders-header {
+          margin-top: 2em;
+          font-size: 17px;
+          letter-spacing: 3px;
+          margin-bottom: 0.75em;
+      }
+
+      h4 {
+          margin-bottom: 0.1em;
+          margin-top: 0em;
+          padding: 0;
+      }
+
+      h3 {
+          margin-top: 0em;
+          margin-bottom: 0.2em;
+      }
+
+      p {
+          margin: 0;
+      }
+
+      #tables {
+          margin-top: 0.5cm;
+      }
+
+      .order {
+          margin-bottom: 2em;
+          font-size: 12px;
+      }
+
+      .order-table {
+          width: 100%;
+          border-collapse: collapse;
+      }
+
+      .order-table th {
+          border-bottom: 1px solid #888;
+          font-size: 16px;
+
+      }
+
+      .order-table td {
+          padding-top: 0.6em;
+          padding-bottom: 0.6em;
+      }
+
+
+      .order-table tr {
+          height: 5px;
+      }
+
+      .order-table td {
+          font-size: 12px;
+      }
+
+      .order-table tr:last-child {
+          border-top: 1px solid #888;
+          font-weight: 500;
+          font-size: 14px;
+
+      }
+
+      .namecol {
+          width: 20%;
+      }
+
+
+      .smallcol {
+          width: 20%;
+      }
+
+      .sumcol {
+          width: 30%;
+          padding-left: 2cm;
+      }
+
+
+      .summary-table {
+          margin-top: 1em;
+          border-collapse: collapse;
+          width: 100%;
+      }
+
+      .summary-table th {
+          border-bottom: 1px solid #888;
+          text-align: left;
+          font-size: 14px;
+      }
+
+      .summary-table td {
+          padding-top: 0.3em;
+          font-size: 14px;
+      }
+
+
+      th {
+          padding-bottom: 0.25em;
+      }
+
+
+      td.bordered {
+          border-top: 1px solid #888;
+          border-bottom: 1px solid #888;
+      }
+
+      .tar {
+          text-align: right;
+      }
+
+
+      .tal {
+          text-align: left;
+      }
+  </style>
+</head>
+
+<body>
+
+<div id="content">
+  <div class="title">
+    <div>
+      <img id="logo" src="https://sg.samfundet.no/ekstern/ksg_logo.jpg" alt="Logo">
+    </div>
+    <div id="invoice-title">Faktura BSF {{ invoice.customer.name }}</div>
+  </div>
+  <div id="header">
+    <div id="header--first-col">
+      <div id="customer-info">
+        <h3 class="header">Kundeinformasjon</h3>
+        <p>{{ invoice.customer.name }}</p>
+      </div>
+    </div>
+    <div id="header--last-col">
+      <div id="ksg-info">
+        <h3>Kafé- og Serveringsgjengen</h3>
+        <p>Elgeseter gate 1</p>
+        <p>7030 Trondheim</p>
+      </div>
+    </div>
+  </div>
+  <div id="invoice-info">
+    <h3 class="header">Generell informasjon</h3>
+    <div class="info">
+      <div class="basicinfo">
+        <table>
+          <tbody>
+          <tr>
+            <td>Faktura nr.:</td>
+            <td class="tal">{{ invoice.id }}</td>
+          </tr>
+          <tr>
+            <td>Dato:</td>
+            <td>{{ invoice.datetime_created|date:'d.m.Y' }}</td>
+          </tr>
+          </tbody>
+        </table>
+      </div>
+      {% if invoice.created_by %}
+        <div class="reference">
+          <table>
+            <tbody>
+            <tr>
+              <td>Vår referanse:</td>
+              <td class="tar"><b>{{ invoice.created_by.get_full_name }}</b></td>
+            </tr>
+            <tr>
+              <td>Telefon:</td>
+              <td class="tar">{{ invoice.created_by.phone }}</td>
+            </tr>
+            <tr>
+              <td>E-post:</td>
+              <td class="tar">{{ invoice.created_by.email }}</td>
+            </tr>
+            </tbody>
+          </table>
+        </div>
+      {% endif %}
+    </div>
+
+  </div>
+  <div id="tables">
+    <h4 class="orders-header">Kryss hos oss</h4>
+    <div class="orders">
+      <table class="order-table">
+        <thead>
+        <tr>
+          <th class="tal smallcol">Hvem</th>
+          <th class="tar smallcol">Produkt</th>
+          <th class="tar smallcol">Kvantitet</th>
+          <th class="tar smallcol">Pris</th>
+          <th class="tar smallcol">Sum</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for order in home_orders %}
+          <tr>
+            <td class="tal smallcol order">{{ order.get_name_display }}</td>
+            <td class="tar smallcol order">{{ order.product.name }}</td>
+            <td class="tar smallcol order">{{ order.quantity }}</td>
+            <td class="tar smallcol order">{{ order.product.price | floatformat:"2" | format_to_comma }} kr</td>
+            <td class="tar smallcol order">{{ order.cost | floatformat:"2" | format_to_comma }} kr</td>
+          </tr>
+        {% endfor %}
+        <tr>
+          <td class="tal smallcol">Total</td>
+          <td class="tal smallcol"></td>
+          <td class="tal smallcol"></td>
+          <td class="tal smallcol"></td>
+          <td class="tar smallcol">{{ home_sum | floatformat:"2" | format_to_comma }} kr</td>
+        </tr>
+        </tbody>
+      </table>
+      <h4 class="orders-header">Kryss hos dere</h4>
+      <table class="order-table">
+        <thead>
+        <tr>
+          <th class="tal smallcol">Hvem</th>
+          <th class="tar smallcol">Produkt</th>
+          <th class="tar smallcol">Kvantitet</th>
+          <th class="tar smallcol">Pris</th>
+          <th class="tar smallcol">Sum</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for order in away_orders %}
+          <tr>
+            <td class="tal smallcol">{{ order.get_name_display }}</td>
+            <td class="tar smallcol">{{ order.product.name }}</td>
+            <td class="tar smallcol">{{ order.quantity }}</td>
+            <td class="tar smallcol">{{ order.product.price | floatformat:"2" | format_to_comma }} kr</td>
+            <td class="tar smallcol">{{ order.cost | floatformat:"2" | format_to_comma }} kr</td>
+          </tr>
+        {% endfor %}
+        <tr>
+          <td class="tal smallcol">Total</td>
+          <td class="tal smallcol"></td>
+          <td class="tal smallcol"></td>
+          <td class="tal smallcol"></td>
+          <td class="tar smallcol">{{ away_sum | floatformat:"2" | format_to_comma }} kr</td>
+        </tr>
+        </tbody>
+      </table>
+
+      <table class="summary-table">
+        <tbody>
+        <tr>
+          <td class="namecol"></td>
+          <td class="smallcol"></td>
+          <td class="smallcol">Krysset hos oss:</td>
+          <td class="sumcol tar"><b>{{ invoice.they_owe| floatformat:"2" | format_to_comma }} kr</b></td>
+        </tr>
+        <tr>
+          <td class="namecol"></td>
+          <td class="articlecol"></td>
+          <td class="smallcol">Krysset hos dere:</td>
+          <td class="sumcol tar">{{ invoice.we_owe | floatformat:"2" | format_to_comma }} kr</td>
+          </td>
+        </tr>
+        <tr class="finalcost">
+          <td class="namecol"></td>
+          <td class="articlecol"></td>
+          <td class="bordered smallcol"><b>Oppgjør</b></td>
+          <td class="bordered sumcol tar">
+            <b>{{ invoice.amount | floatformat:"2" | format_to_comma }} kr</b>
+          </td>
+        </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+</body>

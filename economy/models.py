@@ -86,6 +86,7 @@ class SociProduct(TimeFramedModel):
     description = models.TextField(blank=True, null=True, default=None, max_length=200)
     icon = models.CharField(max_length=2, blank=True, null=True)
     default_stilletime_product = models.BooleanField(default=False)
+    hide_from_api = models.BooleanField()
 
     def __str__(self):
         return f"SociProduct {self.name} costing {self.price} kr"
@@ -129,7 +130,7 @@ class SociSession(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     # Manual lists have sense of timestamps and can be registered at later dates
-    creation_date = models.DateField(default=datetime.date.today())
+    creation_date = models.DateField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)
     closed_at = models.DateTimeField(blank=True, null=True)
 
@@ -142,7 +143,11 @@ class SociSession(models.Model):
         """
         Get the active session that should be used for all purchases, or None if no such session exists.
         """
-        return cls.objects.filter(closed_at__isnull=True).order_by("-created_at").last()
+        return (
+            cls.objects.filter(closed_at__isnull=True, type=cls.Type.SOCIETETEN)
+            .order_by("-created_at")
+            .last()
+        )
 
     @classmethod
     def terminate_active_session(cls):

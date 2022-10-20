@@ -1,3 +1,5 @@
+import json
+
 import jwt
 from django.db import DatabaseError
 from django.utils import timezone
@@ -13,6 +15,7 @@ from rest_framework.generics import (
 )
 from rest_framework.request import Request
 from rest_framework.response import Response
+from rest_framework.views import APIView
 from rest_framework_simplejwt.views import (
     TokenObtainSlidingView,
     TokenRefreshSlidingView,
@@ -23,8 +26,6 @@ from api.permissions import SensorTokenPermission
 from api.serializers import (
     CheckBalanceSerializer,
     SociProductSerializer,
-    ChargeSociBankAccountDeserializer,
-    PurchaseSerializer,
     SensorMeasurementSerializer,
     CustomTokenObtainSlidingSerializer,
 )
@@ -32,7 +33,7 @@ from api.serializers import (
 from sensors.consts import MEASUREMENT_TYPE_TEMPERATURE, MEASUREMENT_TYPE_CHOICES
 from sensors.models import SensorMeasurement
 from api.view_mixins import CustomCreateAPIView
-from economy.models import SociBankAccount, SociProduct, SociSession
+from economy.models import SociBankAccount, SociProduct, SociSession, ProductOrder
 from ksg_nett.custom_authentication import CardNumberAuthentication
 from django.conf import settings
 
@@ -100,6 +101,7 @@ class SociProductListView(ListAPIView):
         now = timezone.now()
         soci_products = (
             self.get_queryset()
+            .exclude(hide_from_api=True)
             .exclude(end__lt=now)
             .exclude(start__gt=now)
             .order_by("sku_number")
@@ -221,3 +223,49 @@ class SensorMeasurementView(CustomCreateAPIView, generics.ListAPIView):
         SensorMeasurement.objects.filter(
             created_at__lte=timezone.now() - timezone.timedelta(days=1)
         ).delete()
+
+
+class ChargeBankAccountView(APIView):
+    def post(self, request, *args, **kwargs):
+        order = request.data
+        api_key = order["api_key"]
+        bank_account_id = order["bank_account_id"]
+
+        session = SociSession.get_active_session()
+        if session is None:
+            return Response(
+                {"message": "No active SociSession"}, status=status.HTTP_400_BAD_REQUEST
+            )
+
+        account = SociBankAccount.objects.get(id=bank_account_id)
+        orders = []
+        for product_order in order["products"]:
+            sku_number = product_order["sku"]
+            product = SociProduct.objects.filter(sku_number=sku_number).first()
+            if product is None:
+                return Response(
+                    {"message": f"Invalid product sku '{sku_number}' in order"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            order_size = product_order["order_size"]
+            orders.append(
+                ProductOrder(
+                    product=product,
+                    order_size=product_order["order_size"],
+                    cost=order_size * product.price,
+                    source=account,
+                    session=session,
+                )
+            )
+
+        total_cost = sum([order.cost for order in orders])
+        if account.balance < total_cost:
+            return Response(
+                {"message": "Insufficient funds"}, status=status.HTTP_400_BAD_REQUEST
+            )
+
+        account.remove_funds(total_cost)
+
+        for order in orders:
+            order.save()
+        return Response(status=status.HTTP_200_OK)

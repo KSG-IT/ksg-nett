@@ -261,11 +261,8 @@ def send_email(
         email.attach_alternative(html_message, "text/html")
 
     if attachments:
-        if "__iter__" in attachments:
-            for attachment in attachments:
-                email.attach_file(attachment)
-        else:
-            email.attach_file(attachments)
+        for attachment in attachments:
+            email.attach(attachment.name, attachment.read(), "application/pdf")
 
     return email.send(fail_silently=fail_silently)
 
