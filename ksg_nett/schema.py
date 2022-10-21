@@ -17,6 +17,10 @@ from economy.schema import (
     EconomyMutations,
     SociSessionQuery,
 )
+from bar_tab.schema import (
+    BarTabQuery,
+    BarTabMutations,
+)
 from organization.schema import (
     CommissionQuery,
     CommissionMembershipQuery,
@@ -43,6 +47,7 @@ class Query(
     AdmissionQuery,
     ApplicantQuery,
     AuthenticationQuery,
+    BarTabQuery,
     DashboardQuery,
     DepositQuery,
     ProductOrderQuery,
@@ -73,6 +78,7 @@ class Query(
 
 class Mutation(
     AdmissionsMutations,
+    BarTabMutations,
     EconomyMutations,
     LoginMutations,
     OrganizationMutations,

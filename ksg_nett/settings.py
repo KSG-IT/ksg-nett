@@ -53,6 +53,7 @@ INSTALLED_APPS = [
     "django_filters",
     # Project apps
     "api",
+    "bar_tab",
     "common",
     "economy",
     "external",

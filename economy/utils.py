@@ -58,7 +58,7 @@ def parse_transaction_history(bank_account, slice=None):
     ]
 
     activities = [*parsed_transfers, *parsed_product_orders, *parsed_deposits]
-    activities.sort(key=lambda x: x.timestamp)
+    activities.sort(key=lambda x: x.timestamp, reverse=True)
     if slice:
         activities = activities[:slice]
 

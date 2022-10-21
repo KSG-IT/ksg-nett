@@ -38,6 +38,8 @@ def gql_has_permissions(
     def decorator(func):
         @wraps(func)
         def wrapper(cls, info, *args, **kwargs):
+            print(permissions)
+            print(info.context.user.user_permissions.all())
             if not hasattr(info, "context") or not hasattr(info.context, "user"):
                 return _handle_not_permitted(fail_to_none, fail_message, fail_to_lambda)
 
