@@ -125,7 +125,7 @@ class BarTabQuery(graphene.ObjectType):
     bar_tab_invoice = graphene.Node.Field(BarTabInvoiceNode)
     active_bar_tab = graphene.Field(BarTabNode)
 
-    all_bar_tabs = DjangoConnectionField(BarTabNode)
+    previous_bar_tabs = DjangoConnectionField(BarTabNode)
     all_bar_tab_products = graphene.List(BarTabProductNode)
     all_bar_tab_customers = graphene.List(BarTabCustomerNode)
     bar_tab_customer_data = graphene.List(BarTabCustomerData)
@@ -133,8 +133,14 @@ class BarTabQuery(graphene.ObjectType):
     all_bar_tab_invoices = DjangoConnectionField(BarTabInvoiceNode)
 
     @gql_has_permissions("bar_tab.view_bartab")
-    def resolve_all_bar_tabs(self, info, **kwargs):
-        return BarTab.objects.all()
+    def resolve_previous_bar_tabs(self, info, **kwargs):
+        bar_tabs = BarTab.objects.all().order_by("-datetime_opened")
+        active = BarTab.get_active_bar_tab()
+
+        if active:
+            bar_tabs = bar_tabs.exclude(id=active.id)
+
+        return bar_tabs
 
     @gql_has_permissions("bar_tab.view_bartabproduct")
     def resolve_all_bar_tab_products(self, info, **kwargs):
@@ -315,7 +321,6 @@ class SendBarTabInvoiceEmailMutation(graphene.Mutation):
 
 
 class FinalizeBarTabMutation(graphene.Mutation):
-
     bar_tab = graphene.Field(BarTabNode)
 
     @gql_has_permissions("bar_tab.change_bartabinvoice")
@@ -327,6 +332,8 @@ class FinalizeBarTabMutation(graphene.Mutation):
             raise Exception("Cannot finalize bar tab with unsent invoices")
 
         active_bar_tab.status = BarTab.Status.REVIEWED
+        active_bar_tab.reviewed_by = info.context.user
+        active_bar_tab.datetime_reviewed = timezone.now()
         active_bar_tab.save()
         return FinalizeBarTabMutation(bar_tab=active_bar_tab)
 
