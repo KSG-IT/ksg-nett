@@ -58,7 +58,6 @@ class User(AbstractUser):
         "self", through="UsersHaveMadeOut", symmetrical=False
     )
     anonymize_in_made_out_map = models.BooleanField(default=True, null=False)
-    needs_new_password = models.BooleanField(default=True)
 
     def __str__(self):
         return f"User {self.get_full_name()}"
