@@ -3,66 +3,172 @@
 <head>
   <meta charset="UTF-8">
   <title>Krysseliste</title>
-  <style>
-
-      * {
-          box-sizing: border-box;
-          font-size: 14px;
-          margin: 0;
-          padding: 0;
-          width: 100vw;
-          height: 100vh;
-      }
+  <style type="text/css">
 
       @page {
-          margin: 12px;
+          size: A4;
+          margin: 1.25cm 1.5cm 1.5cm;
       }
 
-      table {
-          text-align: left;
-          border: 1px solid black;
+      body {
+          font-family: 'Comic Sans MS', cursive, sans-serif;
+          font-size: 16px;
+      }
+
+      .title {
+          margin-bottom: 1.85em;
+          padding-bottom: 0.25em;
+          border: 1px solid #aaa;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+      }
+
+      #logo {
+          text-align: right;
+          width: 75px;
+      }
+
+      #header {
+          font-size: 15px;
+          display: flex;
+          justify-content: space-between;
+      }
+
+      #header p {
+          padding-top: 4px;
+          padding-bottom: 4px;
+      }
+
+      #header--first-col {
+      }
+
+      #header--last-col {
+          text-align: right;
+      }
+
+      #ksg-info {
+          margin-left: 2cm;
+          right: 0;
+      }
+
+      #invoice-title {
+          font-size: 1.5em;
+          font-weight: 600;
+          margin-bottom: 0.5em;
+      }
+
+      #customer-info .header {
+          font-weight: normal;
+          font-size: 20px;
+      }
+
+
+      .offertext > table {
+          margin-top: 0.25cm;
+      }
+
+      #invoice-info {
+          margin-top: 2em;
+      }
+
+      #invoice-info .header {
+          font-weight: normal;
+          font-size: 20px;
+      }
+
+      #invoice-info .info {
+          margin-top: 0.5em;
+          font-size: 14px;
+          padding-bottom: 0.5em;
+          border-bottom: 1px solid #888;
+          display: flex;
+          justify-content: space-between;
+      }
+
+      #invoice-info .basicinfo td:first-child {
+          width: 3cm;
+      }
+
+      .orders-header {
+          margin-top: 2em;
+          font-size: 17px;
+          letter-spacing: 3px;
+          margin-bottom: 0.75em;
+      }
+
+      h4 {
+          margin-bottom: 0.1em;
+          margin-top: 0em;
+          padding: 0;
+      }
+
+      h3 {
+          margin-top: 0em;
+          margin-bottom: 0.2em;
+      }
+
+      p {
+          margin: 0;
+      }
+
+      #table {
+          margin-top: 0.5cm;
+      }
+
+      .order {
+          margin-bottom: 2em;
+          font-size: 12px;
+      }
+
+      .order-table {
+          width: 100%;
           border-collapse: collapse;
-          margin: 0 5px;
-      }
-
-      tr {
           border: 1px solid black;
       }
+
+
+      .order-table tr {
+          height: 10px;
+      }
+
+      .order-table th {
+          border: 1px solid black;
+          text-align: left;
+      }
+
+      .order-table td {
+          font-size: 12px;
+          border: 1px solid black;
+      }
+
+      .order-table tr:last-child {
+          border-top: 1px solid #888;
+          font-weight: 500;
+          font-size: 14px;
+
+      }
+
+      .namecol {
+          width: 25%;
+      }
+
+
+      .order-table th {
+          border-bottom: 1px solid #888;
+          text-align: left;
+          font-size: 12px;
+      }
+
 
       th {
-          border: 1px solid black;
-          word-break: break-word;
-      }
-
-      td {
-          padding: 5px 2px;
-          border: 1px solid black;
-          width: 110px;
-      }
-
-      td:first-child {
-          width: 100px;
-          font-size: 12px;
-          word-break: break-word;
-
-      }
-
-      .meta-data-wrapper {
-          display: flex;
-          flex-direction: column;
-          margin-bottom: 10px;
-      }
-
-      .no-margin {
-          margin: 0;
+          padding-bottom: 0.25em;
       }
 
       .poor-motherfucker {
           background-color: gray;
           color: white;
       }
-
-
   </style>
 </head>
 <body>
@@ -76,7 +182,9 @@
 <section>
   Grå farge betyr at brukeren har negativ saldo
 </section>
-<table>
+
+
+<table class="order-table" id="table">
   <thead>
   <tr>
     <th>Navn</th>
@@ -86,11 +194,12 @@
   </tr>
   </thead>
   <tbody>
+
   {% for user in users %}
-    <tr {% if  user.balance < 0 %} class="poor-motherfucker" {% endif %}>
-      <td>{{ user.get_full_name }}</td>
+    <tr class="namecol" {% if  user.balance < 0 %} class="poor-motherfucker namecol" {% endif %}>
+      <td class="namecol">{{ user.get_full_name }}</td>
       {% for proudct in products %}
-        <td></td>
+        <td class="namecol"></td>
       {% endfor %}
     </tr>
   {% endfor %}
