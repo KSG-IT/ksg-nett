@@ -1,7 +1,5 @@
 from django.db import models
 from django.db.models import Sum, Index
-from model_utils.managers import QueryManager
-from quotes.managers import QuoteDefaultQuerySet
 from common.models import TimestampedModel
 from users.models import User
 from django.db.models.functions import Coalesce
@@ -153,3 +151,11 @@ class QuoteVote(models.Model):
 
     def __repr__(self):
         return f"QuoteVote(quote={self.quote_id},value={self.value},caster={self.caster.first_name})"
+
+
+class LegacyQuote(models.Model):
+    datetime_created = models.DateTimeField()
+    text = models.TextField()
+
+    def __str__(self):
+        return self.text

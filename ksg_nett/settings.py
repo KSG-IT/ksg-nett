@@ -58,6 +58,7 @@ INSTALLED_APPS = [
     "economy",
     "external",
     "internal",
+    "legacy",
     "login",
     "organization",
     "quotes",
