@@ -55,11 +55,12 @@ class Command(BaseCommand):
                     self.stdout.write(f"Cleaned name: {first_name} {last_name}")
 
                 new_user = User.objects.create(
+                    migrated_from_sg=True,
+                    sg_id=user.id,
                     email=user.email,
                     username=user.email,
                     first_name=first_name,
                     last_name=last_name,
-                    migrated_from_sg=True,
                     date_of_birth=user.fodselsdato,
                     study_address=user.adresse,
                     home_town=user.hjemstedsadresse,
