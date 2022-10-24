@@ -16,6 +16,11 @@ from organization.models import InternalGroup
 
 
 class Allergy(models.Model):
+    class Meta:
+        default_related_name = "users"
+        verbose_name_plural = "Users"
+        ordering = ("pk",)
+
     """
     Model containing food preferences and allergies
     """
@@ -45,7 +50,7 @@ class User(AbstractUser):
 
     phone = models.CharField(default="", blank=True, max_length=50)
     study_address = models.CharField(default="", blank=True, max_length=100)
-    home_address = models.CharField(default="", blank=True, max_length=100)
+    home_town = models.CharField(default="", blank=True, max_length=100)
 
     start_ksg = models.DateField(auto_now_add=True)
 
@@ -53,6 +58,7 @@ class User(AbstractUser):
     in_relationship = models.BooleanField(null=True, default=False)
 
     allergies = models.ManyToManyField(Allergy, blank=True, related_name="users")
+    migrated_from_sg = models.BooleanField(default=False)
 
     have_made_out_with = models.ManyToManyField(
         "self", through="UsersHaveMadeOut", symmetrical=False
@@ -149,10 +155,6 @@ class User(AbstractUser):
             position__internal_group__type=InternalGroup.Type.INTERNAL_GROUP,
             date_ended__isnull=True,
         ).first()
-
-    class Meta:
-        default_related_name = "users"
-        verbose_name_plural = "Users"
 
 
 class UsersHaveMadeOut(TimeStampedModel):
