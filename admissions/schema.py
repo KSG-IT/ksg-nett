@@ -822,9 +822,11 @@ class InterviewQuery(graphene.ObjectType):
     interviews_available_for_booking = graphene.List(
         AvailableInterviewsDayGrouping, day_offset=graphene.Int(required=True)
     )
+    all_future_available_interviews = graphene.List(InterviewNode)
     my_interviews = graphene.List(InterviewNode)
     my_upcoming_interviews = graphene.List(InterviewNode)
 
+    @gql_has_permissions("admissions.view_interviewtemplate")
     def resolve_interview_template(self, info, *args, **kwargs):
         all_boolean_evaluation_statements = (
             InterviewBooleanEvaluation.objects.all().order_by("order")
@@ -837,6 +839,7 @@ class InterviewQuery(graphene.ObjectType):
             interview_additional_evaluation_statements=all_additional_evaluation_statements,
         )
 
+    @gql_has_permissions("admissions.view_interview")
     def resolve_my_interviews(self, info, *args, **kwargs):
         me = info.context.user
         admission = Admission.get_active_admission()
@@ -844,6 +847,7 @@ class InterviewQuery(graphene.ObjectType):
             applicant__admission=admission, applicant__isnull=False
         ).order_by("interview_start")
 
+    @gql_has_permissions("admissions.view_interview")
     def resolve_my_upcoming_interviews(self, info, *args, **kwargs):
         me = info.context.user
         admission = Admission.get_active_admission()
@@ -906,6 +910,15 @@ class InterviewQuery(graphene.ObjectType):
                 )
             )
         return available_interviews_timeslot_grouping
+
+    @gql_has_permissions("admissions.view_interview")
+    def resolve_all_future_available_interviews(self, info, *args, **kwargs):
+        now = timezone.datetime.now()
+        interviews = Interview.objects.filter(
+            applicant__isnull=True, interview_start__gt=now
+        )
+
+        return interviews.order_by("-interview_start", "location__name")
 
 
 class InterviewLocationQuery(graphene.ObjectType):
