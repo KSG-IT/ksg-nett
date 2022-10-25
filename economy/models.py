@@ -50,7 +50,7 @@ class SociBankAccount(models.Model):
             User.objects.filter(
                 bank_account__balance__lte=settings.WANTED_LIST_THRESHOLD
             )
-            .exclude(user__deactivated=True)
+            .exclude(is_active=False)
             .order_by("-bank_account__balance")
         )
 
