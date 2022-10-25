@@ -43,8 +43,10 @@ class Command(BaseCommand):
                 split_name = user.navn.split(" ")
                 first_name = split_name[0].strip()
                 last_name = " ".join(split_name[1:]).strip()
+                activate = True
 
                 if first_name.lower() == "z":
+                    activate = False
                     self.stdout.write(f"Found user with first name 'z', cleaning up")
                     self.stdout.write(
                         f"First name: {first_name} Last name: {last_name}"
@@ -65,6 +67,7 @@ class Command(BaseCommand):
                     study_address=user.adresse,
                     home_town=user.hjemstedsadresse,
                     phone=user.telefon,
+                    is_active=activate,
                 )
                 card_uuid = user.kortnummer
 

@@ -180,17 +180,22 @@ class DepositQuery(graphene.ObjectType):
                 account__user__first_name__contains=q,
                 signed_off_by__isnull=unverified_only,
             )
+            .exclude(migrated_from_sg=True)
             .order_by("-created_at")
         )
 
     def resolve_all_pending_deposits(self, info, *args, **kwargs):
-        return Deposit.objects.filter(signed_off_by__isnull=True).order_by(
-            "-created_at"
+        return (
+            Deposit.objects.filter(signed_off_by__isnull=True)
+            .order_by("-created_at")
+            .exclude(migrated_from_sg=True)
         )
 
     def resolve_all_approved_deposits(self, info, *args, **kwargs):
-        return Deposit.objects.filter(signed_off_by__isnull=False).order_by(
-            "-created_at"
+        return (
+            Deposit.objects.filter(signed_off_by__isnull=False)
+            .exclude(migrated_from_sg=True)
+            .order_by("-created_at")
         )
 
 

@@ -10,11 +10,12 @@ class Quote(TimestampedModel):
     text = models.TextField()
     reported_by = models.ForeignKey(
         User,
-        null=False,
-        blank=False,
+        null=True,
+        blank=True,
         related_name="reported_quotes",
         on_delete=models.DO_NOTHING,
     )
+    migrated_from_sg = models.BooleanField(default=False)
 
     tagged = models.ManyToManyField(User, blank=True, related_name="quotes")
 
@@ -30,11 +31,19 @@ class Quote(TimestampedModel):
 
     @classmethod
     def get_pending_quotes(cls):
-        return cls.objects.filter(verified_by__isnull=True).order_by("-created_at")
+        return (
+            cls.objects.filter(verified_by__isnull=True)
+            .exclude(migrated_from_sg=True)
+            .order_by("-created_at")
+        )
 
     @classmethod
     def get_approved_quotes(cls):
-        return cls.objects.filter(verified_by__isnull=False).order_by("-created_at")
+        return (
+            cls.objects.filter(verified_by__isnull=False)
+            .exclude(migrated_from_sg=True)
+            .order_by("-created_at")
+        )
 
     @classmethod
     def get_popular_quotes_in_current_semester(cls):

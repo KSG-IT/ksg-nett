@@ -6,6 +6,10 @@ from users.models import User
 
 
 class Summary(models.Model):
+    class Meta:
+        verbose_name_plural = "Summaries"
+        default_related_name = "summaries"
+
     type = models.CharField(max_length=32, choices=SummaryType.choices)
     contents = models.TextField(null=False, blank=True)
     participants = models.ManyToManyField(User, blank=True, related_name="summaries")
@@ -28,12 +32,12 @@ class Summary(models.Model):
     def __repr__(self):
         return f"Summary({self.type=}, {self.date=})"
 
-    class Meta:
-        verbose_name_plural = "Summaries"
-        default_related_name = "summaries"
-
 
 class LegacySummary(models.Model):
+    class Meta:
+        default_related_name = "legacy_summaries"
+        verbose_name_plural = "Legacy Summaries"
+
     date = models.DateField()
     title = models.TextField()
     participants = models.TextField()

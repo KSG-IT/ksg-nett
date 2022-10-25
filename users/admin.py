@@ -59,7 +59,7 @@ class MyUserAdmin(UserAdmin):
                 "fields": (
                     "phone",
                     "study_address",
-                    "home_address",
+                    "home_town",
                 )
             },
         ),
