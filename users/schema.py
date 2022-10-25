@@ -218,6 +218,14 @@ class UserQuery(graphene.ObjectType):
             .order_by("full_name")
         )
 
+    all_active_users_list = graphene.List(UserNode, q=graphene.String())
+    def resolve_all_active_users_list(self, info, q, *args, **kwargs):
+        return (
+            User.objects.filter(is_active=True)
+            .annotate(full_name=Concat("first_name", "last_name")).filter(full_name__icontains=q)
+            .order_by("full_name")
+        )
+
 
 class CreateUserMutation(DjangoCreateMutation):
     class Meta:
