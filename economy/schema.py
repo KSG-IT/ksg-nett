@@ -431,6 +431,7 @@ class PatchSociBankAccountMutation(DjangoPatchMutation):
 class CreateDepositMutation(DjangoCreateMutation):
     class Meta:
         model = Deposit
+        exclude_fields = ("migrated_from_sg",)
 
     @classmethod
     def before_save(cls, root, info, input, obj):

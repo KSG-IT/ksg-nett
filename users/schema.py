@@ -7,7 +7,6 @@ from graphene_django_cud.mutations import (
     DjangoDeleteMutation,
     DjangoCreateMutation,
 )
-
 from common.decorators import gql_has_permissions
 from quotes.schema import QuoteNode
 from users.models import (
@@ -48,6 +47,7 @@ class UserNode(DjangoObjectType):
         "organization.schema.InternalGroupPositionMembershipNode"
     )
     money_spent = graphene.Int()
+    legacy_work_history = graphene.List("organization.schema.LegacyUserWorkHistoryNode")
 
     def resolve_internal_group_position_membership_history(
         self: User, info, *args, **kwargs
@@ -101,6 +101,9 @@ class UserNode(DjangoObjectType):
 
     def resolve_money_spent(self: User, info, **kwargs):
         return self.bank_account.money_spent
+
+    def resolve_legacy_work_history(self: User, info, **kwargs):
+        return self.legacy_work_history.all().order_by("date_from")
 
     @classmethod
     def get_node(cls, info, id):
@@ -219,10 +222,12 @@ class UserQuery(graphene.ObjectType):
         )
 
     all_active_users_list = graphene.List(UserNode, q=graphene.String())
+
     def resolve_all_active_users_list(self, info, q, *args, **kwargs):
         return (
             User.objects.filter(is_active=True)
-            .annotate(full_name=Concat("first_name", "last_name")).filter(full_name__icontains=q)
+            .annotate(full_name=Concat("first_name", "last_name"))
+            .filter(full_name__icontains=q)
             .order_by("full_name")
         )
 

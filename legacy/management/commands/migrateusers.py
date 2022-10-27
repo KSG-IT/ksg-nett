@@ -1,6 +1,8 @@
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 
+from common.util import strip_chars_from_string
+
 """
  email = models.TextField(unique=True, blank=True, null=True)
     passord = models.CharField(max_length=32)
@@ -40,7 +42,12 @@ class Command(BaseCommand):
         with transaction.atomic():
             for (_, user) in enumerate(legacy_users):
                 self.stdout.write(self.style.SUCCESS(f"Migrerer bruker: {user.navn}"))
-                split_name = user.navn.split(" ")
+
+                stripped_name = strip_chars_from_string(
+                    user.navn, ["(", ")", '"' "«", '"', "«", "«", "»", "»"]
+                )
+                print(f"{user.navn} -> {stripped_name}")
+                split_name = stripped_name.split(" ")
                 first_name = split_name[0].strip()
                 last_name = " ".join(split_name[1:]).strip()
                 activate = True
@@ -56,6 +63,7 @@ class Command(BaseCommand):
                     last_name = " ".join(split_name[1:]).strip()
                     self.stdout.write(f"Cleaned name: {first_name} {last_name}")
 
+                print(f"{first_name=}, {last_name=}")
                 new_user = User.objects.create(
                     migrated_from_sg=True,
                     sg_id=user.id,
@@ -68,6 +76,7 @@ class Command(BaseCommand):
                     home_town=user.hjemstedsadresse,
                     phone=user.telefon,
                     is_active=activate,
+                    requires_migration_wizard=True,
                 )
                 card_uuid = user.kortnummer
 
@@ -93,7 +102,7 @@ class Command(BaseCommand):
                     )
                     card_uuid = None
 
-                bank_account = SociBankAccount.objects.create(
+                SociBankAccount.objects.create(
                     user=new_user,
                     balance=user.saldo,
                     card_uuid=card_uuid,

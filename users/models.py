@@ -43,6 +43,7 @@ class User(AbstractUser):
     A KSG user
     """
 
+    nickname = models.CharField(max_length=64, blank=True, null=True, default=None)
     email = models.EmailField(unique=True)
     date_of_birth = models.DateField(blank=True, null=True)
     study = models.CharField(default="", blank=True, max_length=100)
@@ -65,6 +66,7 @@ class User(AbstractUser):
     )
     anonymize_in_made_out_map = models.BooleanField(default=True, null=False)
     sg_id = models.IntegerField(null=True, blank=True)
+    requires_migration_wizard = models.BooleanField(default=False)
 
     def __str__(self):
         return f"User {self.get_full_name()}"
@@ -100,6 +102,16 @@ class User(AbstractUser):
         :return: The "semeter-year" display of the `start_ksg` attribute.
         """
         return get_semester_year_shorthand(self.start_ksg)
+
+    def get_clean_full_name(self):
+        """Useful for when you want to display users in a sensible way"""
+        return self.get_full_name()
+
+    def get_full_with_nick_name(self):
+        """Funny to use in non-serious settings"""
+        if self.nickname:
+            return f"{self.first_name} {self.nickname} {self.last_name}"
+        return self.get_full_name()
 
     @property
     def initials(self):

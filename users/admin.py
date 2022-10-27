@@ -72,6 +72,8 @@ class MyUserAdmin(UserAdmin):
                     "in_relationship",
                     "allergies",
                     "anonymize_in_made_out_map",
+                    "requires_migration_wizard",
+                    "sg_id",
                 )
             },
         ),
