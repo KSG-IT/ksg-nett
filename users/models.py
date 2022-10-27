@@ -110,7 +110,7 @@ class User(AbstractUser):
     def get_full_with_nick_name(self):
         """Funny to use in non-serious settings"""
         if self.nickname:
-            return f"{self.first_name} {self.nickname} {self.last_name}"
+            return f'{self.first_name} "{self.nickname}" {self.last_name}'
         return self.get_full_name()
 
     @property

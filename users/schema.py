@@ -32,6 +32,9 @@ class UserNode(DjangoObjectType):
 
     full_name = graphene.NonNull(graphene.String)
     initials = graphene.NonNull(graphene.String)
+    get_clean_full_name = graphene.NonNull(graphene.String)
+    get_full_with_nick_name = graphene.NonNull(graphene.String)
+
     profile_image = graphene.String()
     balance = graphene.NonNull(graphene.Int)
     ksg_status = graphene.String()
@@ -104,6 +107,12 @@ class UserNode(DjangoObjectType):
 
     def resolve_legacy_work_history(self: User, info, **kwargs):
         return self.legacy_work_history.all().order_by("date_from")
+
+    def resolve_get_clean_full_name(self: User, info, **kwargs):
+        return self.get_clean_full_name()
+
+    def resolve_get_full_with_nick_name(self: User, info, **kwargs):
+        return self.get_full_with_nick_name()
 
     @classmethod
     def get_node(cls, info, id):
@@ -257,7 +266,47 @@ class PatchUserMutation(DjangoPatchMutation):
         return last_name.strip("")
 
 
+class UpdateMyInfoMutation(graphene.Mutation):
+    """
+    Custom mutation based on the equest sender. If they are no authenticated
+    this will not trigger.
+    """
+
+    class Arguments:
+        first_name = graphene.String()
+        nickname = graphene.String()
+        last_name = graphene.String()
+        email = graphene.String()
+        phone = graphene.String()
+        study = graphene.String()
+        date_of_birth = graphene.Date()
+        study_address = graphene.String()
+        home_town = graphene.String()
+        card_uuid = graphene.String()
+
+    user = graphene.Field(UserNode)
+
+    def mutate(self, info, **kwargs):
+        user = info.context.user
+        card_uuid = kwargs.pop("card_uuid", None)
+
+        for key, value in kwargs.items():
+            if isinstance(value, str):
+                value = value.strip()
+            setattr(user, key, value)
+
+        user.requires_migration_wizard = False
+        user.save()
+        if card_uuid:
+            card_uuid = card_uuid.strip()
+            bank_account = user.bank_account
+            bank_account.card_uuid = card_uuid
+            bank_account.save()
+        return UpdateMyInfoMutation(user=user)
+
+
 class UserMutations(graphene.ObjectType):
     create_user = CreateUserMutation.Field()
     patch_user = PatchUserMutation.Field()
     delete_user = DeleteUserMutation.Field()
+    update_my_info = UpdateMyInfoMutation.Field()
