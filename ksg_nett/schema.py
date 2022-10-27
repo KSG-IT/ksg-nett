@@ -22,9 +22,6 @@ from bar_tab.schema import (
     BarTabMutations,
 )
 from organization.schema import (
-    CommissionQuery,
-    CommissionMembershipQuery,
-    CommitteeQuery,
     InternalGroupQuery,
     InternalGroupPositionQuery,
     InternalGroupPositionMembershipQuery,
@@ -56,9 +53,6 @@ class Query(
     SociProductQuery,
     SociSessionQuery,
     UserQuery,
-    CommissionQuery,
-    CommissionMembershipQuery,
-    CommitteeQuery,
     InternalGroupQuery,
     InternalGroupPositionQuery,
     InternalGroupPositionMembershipQuery,
