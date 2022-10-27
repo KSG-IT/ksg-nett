@@ -310,3 +310,7 @@ def chose_random_element(iterable):
 
     random_number = random.randint(0, iterable_length - 1)
     return iterable[random_number]
+
+
+def strip_chars_from_string(string: str, chars: List[str]):
+    return "".join([char for char in string if char not in chars])
