@@ -228,7 +228,6 @@ class SensorMeasurementView(CustomCreateAPIView, generics.ListAPIView):
 class ChargeBankAccountView(APIView):
     def post(self, request, *args, **kwargs):
         order = request.data
-        api_key = order["api_key"]
         bank_account_id = order["bank_account_id"]
 
         session = SociSession.get_active_session()
@@ -259,7 +258,7 @@ class ChargeBankAccountView(APIView):
             )
 
         total_cost = sum([order.cost for order in orders])
-        if account.balance < total_cost:
+        if account.balance < total_cost and not account.is_gold:
             return Response(
                 {"message": "Insufficient funds"}, status=status.HTTP_400_BAD_REQUEST
             )

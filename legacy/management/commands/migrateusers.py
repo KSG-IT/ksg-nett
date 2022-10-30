@@ -1,26 +1,6 @@
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
-
 from common.util import strip_chars_from_string
-
-"""
- email = models.TextField(unique=True, blank=True, null=True)
-    passord = models.CharField(max_length=32)
-    kortnummer = models.CharField(max_length=10, blank=True, null=True)
-    status = models.ForeignKey('Status', models.DO_NOTHING, db_column='status')
-    navn = models.TextField(blank=True, null=True)
-    adresse = models.TextField(blank=True, null=True)
-    hjemstedsadresse = models.TextField(blank=True, null=True)
-    studie = models.TextField(blank=True, null=True)
-    fodselsdato = models.DateField(blank=True, null=True)
-    telefon = models.TextField(blank=True, null=True)
-    begynte = models.CharField(max_length=6, blank=True, null=True)
-    saldo = models.FloatField()
-    sistonline = models.DateTimeField(blank=True, null=True)
-    login = models.TextField(blank=True, null=True)
-    by = models.TextField(blank=True, null=True)
-    stilling = models.ForeignKey(Grupper, models.DO_NOTHING, db_column='stilling', blank=True, null=True)
-"""
 from legacy.models import Personer
 from users.models import User
 from economy.models import SociBankAccount
@@ -50,10 +30,8 @@ class Command(BaseCommand):
                 split_name = stripped_name.split(" ")
                 first_name = split_name[0].strip()
                 last_name = " ".join(split_name[1:]).strip()
-                activate = True
 
                 if first_name.lower() == "z":
-                    activate = False
                     self.stdout.write(f"Found user with first name 'z', cleaning up")
                     self.stdout.write(
                         f"First name: {first_name} Last name: {last_name}"
@@ -73,9 +51,11 @@ class Command(BaseCommand):
                     last_name=last_name,
                     date_of_birth=user.fodselsdato,
                     study_address=user.adresse,
+                    study=user.studie,
                     home_town=user.hjemstedsadresse,
                     phone=user.telefon,
-                    is_active=activate,
+                    # Default to is_active=False and set true in migration wizard
+                    is_active=False,
                     requires_migration_wizard=True,
                 )
                 card_uuid = user.kortnummer

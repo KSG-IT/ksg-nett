@@ -41,9 +41,8 @@ class Quote(TimestampedModel):
     def get_approved_quotes(cls):
         return (
             cls.objects.filter(verified_by__isnull=False)
-            .exclude(migrated_from_sg=True)
-            .order_by("-created_at")
-        )
+            | cls.objects.filter(migrated_from_sg=True)
+        ).order_by("-created_at")
 
     @classmethod
     def get_popular_quotes_in_current_semester(cls):

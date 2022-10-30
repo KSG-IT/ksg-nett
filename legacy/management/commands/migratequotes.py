@@ -36,5 +36,6 @@ class Command(BaseCommand):
                     reported_by=None,
                     verified_by=None,
                     context=None,
+                    migrated_from_sg=True,
                 )
             self.stdout.write(self.style.SUCCESS("Done migrating quotes"))

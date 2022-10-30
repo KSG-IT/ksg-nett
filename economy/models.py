@@ -39,7 +39,7 @@ class SociBankAccount(models.Model):
         self,
     ) -> Dict[str, Union[QuerySet, "ProductOrder", "Transfer", "Deposit"]]:
         return {
-            "product_orders": self.product_orders.all(),
+            "product_orders": ProductOrder.objects.none(),  # self.product_orders.all(),
             "transfers": self.source_transfers.all() | self.destination_transfers.all(),
             "deposits": self.deposits.all(),
         }
@@ -51,8 +51,13 @@ class SociBankAccount(models.Model):
                 bank_account__balance__lte=settings.WANTED_LIST_THRESHOLD
             )
             .exclude(is_active=False)
-            .order_by("-bank_account__balance")
+            .exclude(username__in=settings.SOCI_GOLD)
+            .order_by("bank_account__balance")
         )
+
+    @property
+    def is_gold(self):
+        return self.user.username in settings.SOCI_GOLD
 
     def __str__(self):
         return f"Soci Bank Account for {self.user} containing {self.balance} kr"
@@ -284,6 +289,7 @@ class Deposit(common_models.TimestampedModel):
     )
     migrated_from_sg = models.BooleanField(default=False)
 
+    # Migrate to approved + by/at fields. By can be null for old legacy deposits
     signed_off_by = models.ForeignKey(
         User,
         null=True,
@@ -299,7 +305,7 @@ class Deposit(common_models.TimestampedModel):
 
     @property
     def approved(self):
-        return self.signed_off_by is not None
+        return self.signed_off_by is not None or self.migrated_from_sg
 
     def __str__(self):
         return f"Deposit for {self.account.user} of {self.amount} kr"
