@@ -17,14 +17,18 @@ from organization.models import (
     InternalGroup,
     InternalGroupPosition,
     InternalGroupPositionMembership,
-    CommissionMembership,
-    Commission,
-    Committee,
+    LegacyUserWorkHistory,
 )
 from graphene_django_cud.util import disambiguate_id
 from organization.graphql import InternalGroupPositionTypeEnum
 from users.schema import UserNode
 from users.models import User
+
+
+class LegacyUserWorkHistoryNode(DjangoObjectType):
+    class Meta:
+        model = LegacyUserWorkHistory
+        interfaces = (Node,)
 
 
 class InternalGroupPositionMembershipData(graphene.ObjectType):
@@ -111,36 +115,6 @@ class InternalGroupPositionMembershipNode(DjangoObjectType):
         return self.get_type_display()
 
 
-class CommissionMembershipNode(DjangoObjectType):
-    class Meta:
-        model = CommissionMembership
-        interfaces = (Node,)
-
-    @classmethod
-    def get_node(cls, info, id):
-        return CommissionMembership.objects.get(pk=id)
-
-
-class CommissionNode(DjangoObjectType):
-    class Meta:
-        model = Commission
-        interfaces = (Node,)
-
-    @classmethod
-    def get_node(cls, info, id):
-        return Commission.objects.get(pk=id)
-
-
-class CommitteeNode(DjangoObjectType):
-    class Meta:
-        model = Committee
-        interfaces = (Node,)
-
-    @classmethod
-    def get_node(cls, info, id):
-        return Committee.objects.get(pk=id)
-
-
 class InternalGroupTypeEnum(graphene.Enum):
     INTERNAL_GROUP = InternalGroup.Type.INTERNAL_GROUP
     INTEREST_GROUP = InternalGroup.Type.INTEREST_GROUP
@@ -190,30 +164,6 @@ class InternalGroupPositionMembershipQuery(graphene.ObjectType):
         return InternalGroupPositionMembership.objects.filter(
             date_ended__isnull=True
         ).order_by("date_joined")
-
-
-class CommissionQuery(graphene.ObjectType):
-    commission = Node.Field(CommissionNode)
-    all_commissions = DjangoConnectionField(CommissionNode)
-
-    def resolve_all_commissions(self, info, *args, **kwargs):
-        return Commission.objects.all()
-
-
-class CommissionMembershipQuery(graphene.ObjectType):
-    commission_membership = Node.Field(CommissionMembershipNode)
-    all_commission_memberships = DjangoConnectionField(CommissionMembershipNode)
-
-    def resolve_all_commission_memberships(self, info, *args, **kwargs):
-        return CommissionMembership.objects.all()
-
-
-class CommitteeQuery(graphene.ObjectType):
-    committee = Node.Field(CommitteeNode)
-    all_committees = DjangoConnectionField(CommitteeNode)
-
-    def resolve_all_committees(self, info, *args, **kwargs):
-        return Committee.objects.all()
 
 
 # MUTATIONS

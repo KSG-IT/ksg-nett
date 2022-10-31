@@ -46,9 +46,18 @@ class SociBankAccount(models.Model):
 
     @classmethod
     def get_wanted_list(cls):
-        return User.objects.filter(
-            bank_account__balance__lte=settings.WANTED_LIST_THRESHOLD
-        ).order_by("-bank_account__balance")
+        return (
+            User.objects.filter(
+                bank_account__balance__lte=settings.WANTED_LIST_THRESHOLD
+            )
+            .exclude(is_active=False)
+            .exclude(username__in=settings.SOCI_GOLD)
+            .order_by("bank_account__balance")
+        )
+
+    @property
+    def is_gold(self):
+        return self.user.username in settings.SOCI_GOLD
 
     def __str__(self):
         return f"Soci Bank Account for {self.user} containing {self.balance} kr"
@@ -87,6 +96,7 @@ class SociProduct(TimeFramedModel):
     icon = models.CharField(max_length=2, blank=True, null=True)
     default_stilletime_product = models.BooleanField(default=False)
     hide_from_api = models.BooleanField(default=False)
+    sg_id = models.IntegerField(blank=True, null=True, default=None, unique=True)
 
     def __str__(self):
         return f"SociProduct {self.name} costing {self.price} kr"
@@ -120,7 +130,7 @@ class SociSession(models.Model):
 
     name = models.CharField(max_length=50, blank=True, null=True)
     created_by = models.ForeignKey(
-        to="users.User", null=True, on_delete=models.DO_NOTHING
+        to="users.User", null=True, on_delete=models.SET_NULL
     )
     type = models.CharField(
         choices=Type.choices,
@@ -206,7 +216,7 @@ class ProductOrder(models.Model):
         related_name="product_orders",
         blank=False,
         null=False,
-        on_delete=models.DO_NOTHING,
+        on_delete=models.CASCADE,
     )
 
     session = models.ForeignKey(
@@ -277,7 +287,9 @@ class Deposit(common_models.TimestampedModel):
     receipt = models.ImageField(
         upload_to=_receipt_upload_location, blank=True, null=True, default=None
     )
+    migrated_from_sg = models.BooleanField(default=False)
 
+    # Migrate to approved + by/at fields. By can be null for old legacy deposits
     signed_off_by = models.ForeignKey(
         User,
         null=True,
@@ -293,7 +305,7 @@ class Deposit(common_models.TimestampedModel):
 
     @property
     def approved(self):
-        return self.signed_off_by is not None
+        return self.signed_off_by is not None or self.migrated_from_sg
 
     def __str__(self):
         return f"Deposit for {self.account.user} of {self.amount} kr"

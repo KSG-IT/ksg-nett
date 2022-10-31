@@ -1,4 +1,8 @@
 import graphene
+from django.contrib.auth.models import Permission
+from django.core.exceptions import PermissionDenied
+from django.db import transaction
+from django.utils import timezone
 from graphene import Node
 from graphene_django import DjangoObjectType
 from graphene_django.filter import DjangoFilterConnectionField
@@ -7,12 +11,9 @@ from graphene_django_cud.mutations import (
     DjangoDeleteMutation,
     DjangoCreateMutation,
 )
-
-from common.decorators import gql_has_permissions
+from common.decorators import gql_has_permissions, gql_login_required
 from quotes.schema import QuoteNode
-from users.models import (
-    User,
-)
+from users.models import User, UserType, UserTypeLogEntry
 from common.util import get_semester_year_shorthand
 from django.db.models.functions import Concat
 from economy.utils import parse_transaction_history
@@ -25,6 +26,38 @@ from graphene_django_cud.util import disambiguate_id
 from organization.graphql import InternalGroupPositionTypeEnum
 
 
+class UserTypeLogEntryNode(DjangoObjectType):
+    class Meta:
+        model = UserTypeLogEntry
+        interfaces = (Node,)
+
+    @classmethod
+    @gql_has_permissions("users.view_usertypelogentry")
+    def get_node(cls, info, id):
+        return UserTypeLogEntry.objects.get(pk=id)
+
+
+class UserTypeNode(DjangoObjectType):
+    class Meta:
+        model = UserType
+        interfaces = (Node,)
+
+    changelog = graphene.List(UserTypeLogEntryNode)
+
+    def resolve_changelog(self: UserType, info, *args, **kwargs):
+        return self.changelog.order_by("-timestamp")
+
+    users = graphene.List(lambda: UserNode)
+
+    def resolve_users(self: UserType, info, *args, **kwargs):
+        return self.users.all().order_by("first_name", "last_name")
+
+    @classmethod
+    @gql_has_permissions("users.view_usertype")
+    def get_node(cls, info, id):
+        return UserType.objects.get(pk=id)
+
+
 class UserNode(DjangoObjectType):
     class Meta:
         model = User
@@ -33,6 +66,9 @@ class UserNode(DjangoObjectType):
 
     full_name = graphene.NonNull(graphene.String)
     initials = graphene.NonNull(graphene.String)
+    get_clean_full_name = graphene.NonNull(graphene.String)
+    get_full_with_nick_name = graphene.NonNull(graphene.String)
+
     profile_image = graphene.String()
     balance = graphene.NonNull(graphene.Int)
     ksg_status = graphene.String()
@@ -48,6 +84,7 @@ class UserNode(DjangoObjectType):
         "organization.schema.InternalGroupPositionMembershipNode"
     )
     money_spent = graphene.Int()
+    legacy_work_history = graphene.List("organization.schema.LegacyUserWorkHistoryNode")
 
     def resolve_internal_group_position_membership_history(
         self: User, info, *args, **kwargs
@@ -91,7 +128,17 @@ class UserNode(DjangoObjectType):
         return self.balance
 
     def resolve_all_permissions(self: User, info, **kwargs):
-        return self.get_all_permissions()
+        if self.is_superuser:
+            all_permissions = [
+                "{}.{}".format(app_label, codename)
+                for app_label, codename in Permission.objects.values_list(
+                    "content_type__app_label", "codename"
+                )
+            ]
+        else:
+            all_permissions = self.get_all_permissions()
+
+        return all_permissions
 
     def resolve_bank_account_activity(self: User, info, **kwargs):
         return parse_transaction_history(self.bank_account)
@@ -102,7 +149,17 @@ class UserNode(DjangoObjectType):
     def resolve_money_spent(self: User, info, **kwargs):
         return self.bank_account.money_spent
 
+    def resolve_legacy_work_history(self: User, info, **kwargs):
+        return self.legacy_work_history.all().order_by("date_from")
+
+    def resolve_get_clean_full_name(self: User, info, **kwargs):
+        return self.get_clean_full_name()
+
+    def resolve_get_full_with_nick_name(self: User, info, **kwargs):
+        return self.get_full_with_nick_name()
+
     @classmethod
+    @gql_login_required()
     def get_node(cls, info, id):
         return User.objects.get(pk=id)
 
@@ -135,6 +192,8 @@ class UserQuery(graphene.ObjectType):
         ManageInternalGroupUsersData,
         internal_group_id=graphene.ID(),
     )
+    user_type = Node.Field(UserTypeNode)
+    all_user_types = graphene.List(UserTypeNode)
 
     @gql_has_permissions("users.change_user")
     def resolve_manage_users_data(self, info, internal_group_id, *args, **kwargs):
@@ -218,6 +277,20 @@ class UserQuery(graphene.ObjectType):
             .order_by("full_name")
         )
 
+    all_active_users_list = graphene.List(UserNode, q=graphene.String())
+
+    def resolve_all_active_users_list(self, info, q, *args, **kwargs):
+        return (
+            User.objects.filter(is_active=True)
+            .annotate(full_name=Concat("first_name", "nickname", "last_name"))
+            .filter(full_name__icontains=q)
+            .order_by("full_name")
+        )
+
+    @gql_has_permissions("users.view_usertype")
+    def resolve_all_user_types(self, info, *args, **kwargs):
+        return UserType.objects.all().order_by("name")
+
 
 class CreateUserMutation(DjangoCreateMutation):
     class Meta:
@@ -244,7 +317,133 @@ class PatchUserMutation(DjangoPatchMutation):
         return last_name.strip("")
 
 
+class UpdateMyInfoMutation(graphene.Mutation):
+    """
+    Custom mutation based on the equest sender. If they are no authenticated
+    this will not trigger.
+    """
+
+    class Arguments:
+        first_name = graphene.String()
+        nickname = graphene.String()
+        last_name = graphene.String()
+        email = graphene.String()
+        phone = graphene.String()
+        study = graphene.String()
+        date_of_birth = graphene.Date()
+        study_address = graphene.String()
+        home_town = graphene.String()
+        card_uuid = graphene.String()
+
+    user = graphene.Field(UserNode)
+
+    def mutate(self, info, **kwargs):
+        user = info.context.user
+        card_uuid = kwargs.pop("card_uuid", None)
+
+        for key, value in kwargs.items():
+            if isinstance(value, str):
+                value = value.strip()
+            setattr(user, key, value)
+
+        user.requires_migration_wizard = False
+        user.is_active = True
+        user.save()
+        if card_uuid:
+            card_uuid = card_uuid.strip()
+            bank_account = user.bank_account
+            bank_account.card_uuid = card_uuid
+            bank_account.save()
+        return UpdateMyInfoMutation(user=user)
+
+
+class AddUserToUserTypeMutation(graphene.Mutation):
+    class Arguments:
+        user_id = graphene.ID()
+        user_type_id = graphene.ID()
+
+    user = graphene.Field(UserNode)
+
+    @staticmethod
+    @gql_has_permissions("users.change_usertype")
+    def mutate(root, info, user_id, user_type_id):
+        user_id = disambiguate_id(user_id)
+        user_type_id = disambiguate_id(user_type_id)
+        user = User.objects.get(id=user_id)
+        user_type = UserType.objects.get(id=user_type_id)
+
+        request_user = info.context.user
+
+        if user_type.requires_superuser and not request_user.is_superuser:
+            raise PermissionDenied("You do not have permission to add this user type")
+
+        if user_type.requires_self and not request_user.is_superuser:
+            self_check = user_type.users.filter(id=request_user.id).exists()
+            if not self_check:
+                raise PermissionDenied(
+                    "You do not have permission to add this user type"
+                )
+
+        with transaction.atomic():
+            user_type.users.add(user)
+            UserTypeLogEntry.objects.create(
+                user_type=user_type,
+                user=user,
+                done_by=request_user,
+                timestamp=timezone.now(),
+                action=UserTypeLogEntry.Action.ADD,
+            )
+
+        return AddUserToUserTypeMutation(user=user)
+
+
+class RemoveUserFromUserTypeMutation(graphene.Mutation):
+    class Arguments:
+        user_id = graphene.ID()
+        user_type_id = graphene.ID()
+
+    user = graphene.Field(UserNode)
+
+    @staticmethod
+    @gql_has_permissions("users.change_usertype")
+    def mutate(root, info, user_id, user_type_id):
+        user_id = disambiguate_id(user_id)
+        user_type_id = disambiguate_id(user_type_id)
+        user = User.objects.get(id=user_id)
+        user_type = UserType.objects.get(id=user_type_id)
+
+        request_user = info.context.user
+
+        if user_type.requires_superuser and not request_user.is_superuser:
+            raise PermissionDenied(
+                "You do not have permission to remove this user type"
+            )
+
+        if user_type.requires_self and not request_user.is_superuser:
+            self_check = user_type.users.filter(id=request_user.id).exists()
+            if not self_check:
+                raise PermissionDenied(
+                    "You do not have permission to remove this user type"
+                )
+
+        with transaction.atomic():
+            user_type.users.remove(user)
+            UserTypeLogEntry.objects.create(
+                user_type=user_type,
+                user=user,
+                done_by=request_user,
+                timestamp=timezone.now(),
+                action=UserTypeLogEntry.Action.REMOVE,
+            )
+
+        return RemoveUserFromUserTypeMutation(user=user)
+
+
 class UserMutations(graphene.ObjectType):
     create_user = CreateUserMutation.Field()
     patch_user = PatchUserMutation.Field()
     delete_user = DeleteUserMutation.Field()
+    update_my_info = UpdateMyInfoMutation.Field()
+
+    add_user_to_user_type = AddUserToUserTypeMutation.Field()
+    remove_user_from_user_type = RemoveUserFromUserTypeMutation.Field()

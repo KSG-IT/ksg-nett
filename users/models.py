@@ -4,7 +4,7 @@ from __future__ import unicode_literals
 import re
 from typing import Optional
 from django.utils import timezone
-from django.contrib.auth.models import AbstractUser
+from django.contrib.auth.models import AbstractUser, Permission
 from django.db import models
 from django.db.models import QuerySet
 from model_utils.models import TimeStampedModel
@@ -16,6 +16,11 @@ from organization.models import InternalGroup
 
 
 class Allergy(models.Model):
+    class Meta:
+        default_related_name = "users"
+        verbose_name_plural = "Users"
+        ordering = ("pk",)
+
     """
     Model containing food preferences and allergies
     """
@@ -38,6 +43,7 @@ class User(AbstractUser):
     A KSG user
     """
 
+    nickname = models.CharField(max_length=64, blank=True, null=True, default=None)
     email = models.EmailField(unique=True)
     date_of_birth = models.DateField(blank=True, null=True)
     study = models.CharField(default="", blank=True, max_length=100)
@@ -45,7 +51,7 @@ class User(AbstractUser):
 
     phone = models.CharField(default="", blank=True, max_length=50)
     study_address = models.CharField(default="", blank=True, max_length=100)
-    home_address = models.CharField(default="", blank=True, max_length=100)
+    home_town = models.CharField(default="", blank=True, max_length=100)
 
     start_ksg = models.DateField(auto_now_add=True)
 
@@ -53,11 +59,14 @@ class User(AbstractUser):
     in_relationship = models.BooleanField(null=True, default=False)
 
     allergies = models.ManyToManyField(Allergy, blank=True, related_name="users")
+    migrated_from_sg = models.BooleanField(default=False)
 
     have_made_out_with = models.ManyToManyField(
         "self", through="UsersHaveMadeOut", symmetrical=False
     )
     anonymize_in_made_out_map = models.BooleanField(default=True, null=False)
+    sg_id = models.IntegerField(null=True, blank=True)
+    requires_migration_wizard = models.BooleanField(default=False)
 
     def __str__(self):
         return f"User {self.get_full_name()}"
@@ -65,23 +74,15 @@ class User(AbstractUser):
     def __repr__(self):
         return f"User(name={self.get_full_name()})"
 
-    @property
-    def current_commission(self):
-        return (
-            f"{self.commission_history.filter(date_ended__isnull=False).first().name}"
-            if self.commission_history.filter(date_ended__isnull=False).first()
-            else None
-        )
+    def get_all_permissions(self):
+        all_permissions = []
+        for user_type in self.user_types.all():
+            for app_label, codename in user_type.permissions.values_list(
+                "content_type__app_label", "codename"
+            ):
+                all_permissions.append(*["{}.{}".format(app_label, codename)])
 
-    @property
-    def active(self):
-        return self.ksg_status in [
-            InternalGroupPositionMembershipType.ACTIVE_FUNCTIONARY_PANG.value,
-            InternalGroupPositionMembershipType.ACTIVE_GANG_MEMBER_PANG.value,
-            InternalGroupPositionMembershipType.FUNCTIONARY.value,
-            InternalGroupPositionMembershipType.GANG_MEMBER.value,
-            InternalGroupPositionMembershipType.HANGAROUND.value,
-        ]
+        return all_permissions
 
     def get_start_ksg_display(self) -> str:
         """
@@ -93,6 +94,16 @@ class User(AbstractUser):
         :return: The "semeter-year" display of the `start_ksg` attribute.
         """
         return get_semester_year_shorthand(self.start_ksg)
+
+    def get_clean_full_name(self):
+        """Useful for when you want to display users in a sensible way"""
+        return self.get_full_name()
+
+    def get_full_with_nick_name(self):
+        """Funny to use in non-serious settings"""
+        if self.nickname:
+            return f'{self.first_name} "{self.nickname}" {self.last_name}'
+        return self.get_full_name()
 
     @property
     def initials(self):
@@ -150,10 +161,6 @@ class User(AbstractUser):
             date_ended__isnull=True,
         ).first()
 
-    class Meta:
-        default_related_name = "users"
-        verbose_name_plural = "Users"
-
 
 class UsersHaveMadeOut(TimeStampedModel):
     """
@@ -181,3 +188,68 @@ class UsersHaveMadeOut(TimeStampedModel):
 
     def __repr__(self):
         return f"UsersHaveMadeOut(user_one={self.user_one.id}, user_two={self.user_two.id})"
+
+
+class UserTypeLogEntry(models.Model):
+    class Meta:
+        ordering = ["-timestamp"]
+        verbose_name_plural = "User type log entries"
+
+    class Action(models.TextChoices):
+        ADD = ("ADD", "Add")
+        REMOVE = ("REMOVE", "Remove")
+
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="user_type_log"
+    )
+    user_type = models.ForeignKey(
+        "users.UserType", on_delete=models.CASCADE, related_name="changelog"
+    )
+    timestamp = models.DateTimeField(auto_now_add=True)
+    done_by = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="user_type_log_entries"
+    )
+    action = models.CharField(max_length=10, choices=Action.choices)
+
+    def __str__(self):
+        return f"{self.user_type} for {self.user}"
+
+    def __repr__(self):
+        return f"UserTypeLogEntry(user_type={self.user_type}, user={self.user})"
+
+
+class UserType(models.Model):
+    """
+    UserType is a model representing a type of user. This is used to differentiate between different
+    types of users, e.g. "active" and "former".
+    """
+
+    class Meta:
+        ordering = ["name"]
+        verbose_name_plural = "User types"
+
+    name = models.CharField(max_length=100)
+    description = models.TextField(blank=True, default="")
+    permissions = models.ManyToManyField(
+        Permission, blank=True, help_text="The permissions this user type grants."
+    )
+    users = models.ManyToManyField(
+        User,
+        related_name="user_types",
+        help_text="The users having this user type.",
+    )
+    requires_superuser = models.BooleanField(
+        default=False,
+        help_text="Whether this user type requires a superuser to be granted to another user.",
+    )
+    requires_self = models.BooleanField(
+        default=False,
+        help_text="Whether this user type requires to have the permissions of the user type to grant them to another "
+        "user.",
+    )
+
+    def __str__(self):
+        return f"UserType {self.name}"
+
+    def __repr__(self):
+        return f"UserType(name={self.name})"

@@ -8,6 +8,7 @@ from common.util import (
     get_semester_year_shorthands_by_count,
     get_semester_date_boundaries_from_shorthand,
     is_valid_semester_year_shorthand,
+    strip_chars_from_string,
 )
 
 from unittest.mock import patch
@@ -282,3 +283,39 @@ class TestIsValidSemesterYearShorthand(TestCase):
         self.assertFalse(is_valid_semester_year_shorthand("VV199"))
         self.assertFalse(is_valid_semester_year_shorthand("Kebab"))
         self.assertFalse(is_valid_semester_year_shorthand("A18"))
+
+
+class TestStripCharsFromString(TestCase):
+    def setUp(self) -> None:
+        self.test_string = "This is a test string"
+
+        self.test_quote_string = 'This is a "test" string'
+        self.test_single_quote_string = "This is a 'test' string"
+        self.test_parenthesis_string = "This is a (test) string"
+        self.test_emoji_string = "This is a 😎test😎 string"
+        self.test_name = "Ella «Sprella» «Virginslayer» Johanne Devold"
+
+    def test__strip_different_content__returns_original_string(self):
+        self.assertEqual(
+            strip_chars_from_string(self.test_string, ["(", '"']), self.test_string
+        )
+        self.assertEqual(
+            strip_chars_from_string(self.test_quote_string, ["(", '"']),
+            self.test_string,
+        )
+        self.assertEqual(
+            strip_chars_from_string(self.test_single_quote_string, ["(", "'"]),
+            self.test_string,
+        )
+        self.assertEqual(
+            strip_chars_from_string(self.test_parenthesis_string, ["(", '"', ")"]),
+            self.test_string,
+        )
+        self.assertEqual(
+            strip_chars_from_string(self.test_emoji_string, ["(", "😎"]),
+            self.test_string,
+        )
+        self.assertEqual(
+            strip_chars_from_string(self.test_name, ["(", '"', "«", "»"]),
+            "Ella Sprella Virginslayer Johanne Devold",
+        )

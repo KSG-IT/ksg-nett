@@ -159,51 +159,16 @@ class InternalGroupPosition(models.Model):
         return self.active_memberships.count()
 
     def __str__(self):
-
         return f"{self.internal_group.name}: {self.name}"
 
 
-class Commission(models.Model):
-    """
-    A commissions (verv) in KSG. A commissions can be shared by many users (e.g. Personal),
-    or created specifically for this internal group (e.g. Hybelbarsjef).
-    """
-
-    name = models.CharField(max_length=32, unique=True)
-    holders = models.ManyToManyField(
-        "users.User",
-        related_name="comissions",
-        through="organization.CommissionMembership",
+class LegacyUserWorkHistory(models.Model):
+    date_from = models.DateField(null=False, blank=False)
+    date_to = models.DateField(null=True, blank=True)
+    user = models.ForeignKey(
+        "users.User", on_delete=models.CASCADE, related_name="legacy_work_history"
     )
-
-    @property
-    def active_holders_count(self):
-        return self.memberships.filter(date_ended__isnull=True).count()
+    identifying_name = models.CharField(max_length=128, null=False, blank=False)
 
     def __str__(self):
-        return "Commission %s" % (self.name,)
-
-    def __repr__(self):
-        return "Commission(name=%s)" % (self.name,)
-
-
-class CommissionMembership(models.Model):
-    user = models.ForeignKey(
-        "users.User",
-        null=False,
-        on_delete=models.CASCADE,
-        related_name="commission_history",
-    )
-    commission = models.ForeignKey(
-        "organization.Commission",
-        on_delete=models.DO_NOTHING,
-        related_name="memberships",
-    )
-    date_started = models.DateField(auto_now_add=True)
-    date_ended = models.DateField(default=None, null=True, blank=True)
-
-
-class Committee(models.Model):
-    # not sure if this model makes sense whatsoever. Deal with this later
-
-    members = models.ManyToManyField(Commission, related_name="committees")
+        return f"{self.user}: {self.identifying_name} from {self.date_from} to {self.date_to}"

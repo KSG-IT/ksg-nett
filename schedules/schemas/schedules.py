@@ -190,7 +190,7 @@ class ShiftQuery(graphene.ObjectType):
             tzinfo=pytz.timezone(settings.TIME_ZONE),
         )
         return Shift.objects.filter(
-            datetime_start__gt=datetime_from, datetime_end__lt=datetime_to
+            datetime_start__gt=datetime_from, datetime_start__lt=datetime_to
         ).order_by("datetime_start")
 
     def resolve_all_users_working_today(self, info, *args, **kwargs):

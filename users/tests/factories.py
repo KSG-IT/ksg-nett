@@ -21,7 +21,7 @@ class UserFactory(DjangoModelFactory):
     profile_image = FileField()
     phone = Faker("phone_number")
     study_address = Faker("address")
-    home_address = Faker("address")
+    home_town = Faker("address")
     start_ksg = Faker("past_date")
     biography = Faker("sentence")
     in_relationship = False

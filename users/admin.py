@@ -8,7 +8,7 @@ from django.contrib.auth.forms import UserChangeForm, UserCreationForm
 from django.utils.translation import ugettext_lazy as _
 
 from economy.models import SociBankAccount
-from users.models import User, Allergy, UsersHaveMadeOut
+from users.models import User, Allergy, UsersHaveMadeOut, UserType, UserTypeLogEntry
 
 
 class MyUserChangeForm(UserChangeForm):
@@ -31,6 +31,14 @@ class AllergyAdmin(admin.ModelAdmin):
     list_display = ["pk", "name"]
 
 
+class UserTypeInline(admin.TabularInline):
+    fk_name = "user"
+    model = UserType.users.through
+    extra = 0
+    verbose_name = "User type"
+    verbose_name_plural = "User types"
+
+
 class SociBankAccountInline(admin.StackedInline):
     model = SociBankAccount
     fields = ["card_uuid"]
@@ -40,7 +48,7 @@ class SociBankAccountInline(admin.StackedInline):
 
 
 class MyUserAdmin(UserAdmin):
-    list_display = ["pk", "full_name", "active"]
+    list_display = ["pk", "full_name", "is_active"]
     form = MyUserChangeForm
     add_form = MyUserCreationForm
     fieldsets = UserAdmin.fieldsets + (
@@ -59,7 +67,7 @@ class MyUserAdmin(UserAdmin):
                 "fields": (
                     "phone",
                     "study_address",
-                    "home_address",
+                    "home_town",
                 )
             },
         ),
@@ -72,11 +80,13 @@ class MyUserAdmin(UserAdmin):
                     "in_relationship",
                     "allergies",
                     "anonymize_in_made_out_map",
+                    "requires_migration_wizard",
+                    "sg_id",
                 )
             },
         ),
     )
-    inlines = [SociBankAccountInline]
+    inlines = [SociBankAccountInline, UserTypeInline]
     add_fieldsets = (
         (
             None,
@@ -101,6 +111,21 @@ class UsersHaveMadeOutAdmin(admin.ModelAdmin):
     )
 
 
+class UserTypeAdmin(admin.ModelAdmin):
+    filter_horizontal = ("users", "permissions")
+    list_display = (
+        "name",
+        "requires_self",
+        "requires_superuser",
+    )
+
+
+class UserTypeLogEntryAdmin(admin.ModelAdmin):
+    list_display = ("user", "user_type", "action", "done_by")
+
+
 admin.site.register(User, MyUserAdmin)
 admin.site.register(Allergy, AllergyAdmin)
 admin.site.register(UsersHaveMadeOut, UsersHaveMadeOutAdmin)
+admin.site.register(UserType, UserTypeAdmin)
+admin.site.register(UserTypeLogEntry, UserTypeLogEntryAdmin)

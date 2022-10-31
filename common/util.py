@@ -4,6 +4,8 @@ import sys
 from io import BytesIO
 from datetime import datetime, date
 from typing import Union, List, Tuple
+
+import pytz
 from PIL import Image
 from pydash import strip_tags
 from django.core.mail import EmailMultiAlternatives
@@ -268,15 +270,14 @@ def send_email(
 
 
 def date_time_combiner(date: datetime.date, time: datetime.time):
-    return timezone.make_aware(
-        timezone.datetime(
-            year=date.year,
-            month=date.month,
-            day=date.day,
-            hour=time.hour,
-            minute=time.minute,
-            second=time.second,
-        )
+    return timezone.datetime(
+        year=date.year,
+        month=date.month,
+        day=date.day,
+        hour=time.hour,
+        minute=time.minute,
+        second=time.second,
+        tzinfo=pytz.timezone(settings.TIME_ZONE),
     )
 
 
@@ -310,3 +311,7 @@ def chose_random_element(iterable):
 
     random_number = random.randint(0, iterable_length - 1)
     return iterable[random_number]
+
+
+def strip_chars_from_string(string: str, chars: List[str]):
+    return "".join([char for char in string if char not in chars])

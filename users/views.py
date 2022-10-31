@@ -8,7 +8,6 @@ from django.shortcuts import render, get_object_or_404, HttpResponse, redirect
 from django.utils.translation import gettext as _
 from rest_framework import status
 from users.models import User, UsersHaveMadeOut
-from users.forms.user_form import UserForm
 from django.urls import reverse
 
 
@@ -24,27 +23,6 @@ def user_detail(request, user_id):
         ).first(),
     }
     return render(request, template_name="users/profile_page.html", context=ctx)
-
-
-@login_required(login_url="/login/")
-def update_user(request, user_id):
-    user = get_object_or_404(User, pk=user_id)
-    form = UserForm(request.POST or None, instance=user)
-    ctx = {"user_form": form, "profile_user": user}
-    if request.method == "GET":
-        return render(
-            request, template_name="users/update_profile_page.html", context=ctx
-        )
-    elif request.method == "POST":
-        if form.is_valid():
-            form.save()
-            return redirect(reverse("user_detail", kwargs={"user_id": user_id}))
-        else:
-            return render(
-                request, template_name="users/update_profile_page.html", context=ctx
-            )
-    else:
-        return HttpResponse(status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
 
 @login_required
