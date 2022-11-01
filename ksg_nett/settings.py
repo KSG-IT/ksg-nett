@@ -31,7 +31,14 @@ DEBUG = True
 CORS_ORIGIN_ALLOW_HEADERS = list(default_headers)
 CORS_ORIGIN_ALLOW_ALL = True
 
-ALLOWED_HOSTS = ["localhost", "127.0.0.1", "0.0.0.0", "ksg-nett.no"]
+ALLOWED_HOSTS = [
+    "localhost",
+    "127.0.0.1",
+    "0.0.0.0",
+    "ksg-nett.no",
+    "ksg-nett.samfundet.no",
+    "*.samfundet.no",
+]
 
 # Application definition
 
