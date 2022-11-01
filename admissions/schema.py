@@ -5,7 +5,7 @@ import graphene
 from graphene import Node
 from graphql_relay import to_global_id
 from graphene_django import DjangoObjectType
-from django.db import IntegrityError
+from django.db import IntegrityError, transaction
 from graphene_django_cud.mutations import (
     DjangoPatchMutation,
     DjangoDeleteMutation,
@@ -501,6 +501,7 @@ class ApplicantQuery(graphene.ObjectType):
     internal_group_discussion_data = graphene.Field(
         InternalGroupDiscussionData, internal_group_id=graphene.ID(required=True)
     )
+    all_applicants_available_for_rebooking = graphene.List(ApplicantNode)
     applicant_notices = graphene.List(ApplicantNode)
 
     close_admission_data = graphene.Field(CloseAdmissionData)
@@ -632,6 +633,20 @@ class ApplicantQuery(graphene.ObjectType):
                 ApplicantStatus.HAS_REGISTERED_PROFILE,
             ],
         ).order_by("last_activity")
+
+    @gql_has_permissions("admissions.view_applicant")
+    def resolve_all_applicants_available_for_rebooking(self, info, *args, **kwargs):
+        admission = Admission.get_active_admission()
+        return Applicant.objects.filter(
+            admission=admission,
+            status__in=[
+                ApplicantStatus.HAS_REGISTERED_PROFILE,
+                ApplicantStatus.HAS_SET_PRIORITIES,
+                ApplicantStatus.DID_NOT_SHOW_UP_FOR_INTERVIEW,
+                ApplicantStatus.RETRACTED_APPLICATION,
+                ApplicantStatus.SCHEDULED_INTERVIEW,
+            ],
+        ).order_by("first_name", "last_name")
 
 
 class ResendApplicantTokenMutation(graphene.Mutation):
@@ -819,9 +834,12 @@ class AvailableInterviewsDayGrouping(graphene.ObjectType):
 class InterviewQuery(graphene.ObjectType):
     interview = Node.Field(InterviewNode)
     interview_template = graphene.Field(InterviewTemplate)
+    # Intended to be used by an applicant
     interviews_available_for_booking = graphene.List(
         AvailableInterviewsDayGrouping, day_offset=graphene.Int(required=True)
     )
+    # Intended to be used by an interviewer giving someone a new interview
+    all_available_interviews = graphene.List(InterviewNode)
     all_future_available_interviews = graphene.List(InterviewNode)
     my_interviews = graphene.List(InterviewNode)
     my_upcoming_interviews = graphene.List(InterviewNode)
@@ -919,6 +937,13 @@ class InterviewQuery(graphene.ObjectType):
         )
 
         return interviews.order_by("-interview_start", "location__name")
+
+    @gql_has_permissions("admissions.view_interview")
+    def resolve_all_available_interviews(self, info, *args, **kwargs):
+        interviews = Interview.objects.filter(
+            applicant__isnull=True, interview_start__gt=timezone.now()
+        )
+        return interviews.order_by("interview_start", "location__name")
 
 
 class InterviewLocationQuery(graphene.ObjectType):
@@ -1488,6 +1513,41 @@ class BookInterviewMutation(graphene.Mutation):
         return BookInterviewMutation(ok=False)
 
 
+class AssignApplicantNewInterviewMutation(graphene.Mutation):
+    class Arguments:
+        applicant_id = graphene.ID(required=True)
+        interview_id = graphene.ID(required=True)
+
+    success = graphene.Boolean()
+
+    @gql_has_permissions("admissions.change_interview")
+    def mutate(self, info, applicant_id, interview_id, *args, **kwargs):
+        applicant_id = disambiguate_id(applicant_id)
+        interview_id = disambiguate_id(interview_id)
+        applicant = Applicant.objects.get(pk=applicant_id)
+        interview = Interview.objects.get(pk=interview_id)
+
+        if hasattr(interview, "applicant"):
+            raise Exception(
+                f"Interview already has an applicant assigned: {interview.applicant}"
+            )
+
+        with transaction.atomic():
+            existing_interview = applicant.interview
+            if existing_interview:
+                existing_interview.applicant = None
+                existing_interview.save()
+
+            interview.applicant = applicant
+            interview.save()
+            applicant.status = ApplicantStatus.SCHEDULED_INTERVIEW
+            applicant.save()
+
+            # TODO: Send email to applicant
+
+            return AssignApplicantNewInterviewMutation(success=True)
+
+
 # === InterviewLocation ===
 class CreateInterviewLocationMutation(DjangoCreateMutation):
     class Meta:
@@ -1674,6 +1734,7 @@ class AdmissionsMutations(graphene.ObjectType):
     re_send_application_token = ResendApplicantTokenMutation.Field()
     generate_interviews = GenerateInterviewsMutation.Field()
     book_interview = BookInterviewMutation.Field()
+    assign_applicant_new_interview = AssignApplicantNewInterviewMutation.Field()
     delete_all_interviews = DeleteAllInterviewsMutation.Field()
     set_self_as_interviewer = SetSelfAsInterviewerMutation.Field()
     remove_self_as_interviewer = RemoveSelfAsInterviewerMutation.Field()
