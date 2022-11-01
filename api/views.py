@@ -1,5 +1,3 @@
-import json
-
 import jwt
 from django.db import DatabaseError
 from django.utils import timezone
