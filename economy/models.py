@@ -166,8 +166,12 @@ class SociSession(models.Model):
         """
         active_session = cls.get_active_session()
         if active_session:
-            active_session.closed_at = timezone.now()
-            active_session.save()
+            if active_session.product_orders.all().exists():
+                active_session.closed_at = timezone.now()
+                active_session.save()
+            else:
+                # Nothing sold in session, we delete it
+                active_session.delete()
 
     @property
     def total_product_orders(self) -> int:

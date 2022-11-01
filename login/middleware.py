@@ -2,6 +2,7 @@ import logging
 import jwt
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
+from django.utils import timezone
 
 from users.models import User
 
@@ -35,6 +36,8 @@ class JwtProviderMiddleware(object):
                 token, settings.AUTH_JWT_SECRET, algorithms=settings.AUTH_JWT_METHOD
             )
             user = User.objects.get(pk=decoded.get("id"))
+            user.last_login = timezone.now()
+            user.save()
             request.user = user
             request.token = token
             request.decoded_token = decoded

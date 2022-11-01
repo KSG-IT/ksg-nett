@@ -219,11 +219,6 @@ class UserTypeLogEntry(models.Model):
 
 
 class UserType(models.Model):
-    """
-    UserType is a model representing a type of user. This is used to differentiate between different
-    types of users, e.g. "active" and "former".
-    """
-
     class Meta:
         ordering = ["name"]
         verbose_name_plural = "User types"

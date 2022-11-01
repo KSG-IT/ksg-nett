@@ -408,6 +408,10 @@ class CloseSociSessionMutation(graphene.Mutation):
     def mutate(self, info, id, *args, **kwargs):
         id = disambiguate_id(id)
         soci_session = SociSession.objects.get(id=id)
+        if soci_session.type == SociSession.Type.SOCIETETEN:
+            raise SuspiciousOperation(
+                f"Cannot close a session of type {SociSession.Type.SOCIETETEN}"
+            )
         soci_session.closed_at = timezone.now()
         soci_session.save()
         return CloseSociSessionMutation(soci_session=soci_session)

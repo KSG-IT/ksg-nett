@@ -5,19 +5,6 @@ from legacy.models import Varer, Kryss, Innkryssinger
 from economy.models import SociProduct, SociSession, ProductOrder, SociBankAccount
 from users.models import User
 
-"""
-
-    sku_number = models.CharField(
-        unique=True, max_length=50, verbose_name="Product SKU number"
-    )
-    name = models.CharField(max_length=50)
-    price = models.IntegerField()
-    description = models.TextField(blank=True, null=True, default=None, max_length=200)
-    icon = models.CharField(max_length=2, blank=True, null=True)
-    default_stilletime_product = models.BooleanField(default=False)
-    hide_from_api = models.BooleanField(default=False)
-"""
-
 
 def create_session_and_orders_from_legacy_session(
     legacy_session: Innkryssinger, type: SociSession.Type
@@ -75,9 +62,9 @@ class Command(BaseCommand):
     def migratesessions(self):
         self.stdout.write(self.style.SUCCESS("Migrating legacy products to new table"))
         legacy_products = Varer.objects.using("legacy").all()
-        with transaction.atomic():
-            try:
-                for product in legacy_products:
+        for product in legacy_products:
+            with transaction.atomic():
+                try:
                     self.stdout.write(
                         self.style.SUCCESS(f"Migrating product: {product.navn}")
                     )
@@ -90,8 +77,8 @@ class Command(BaseCommand):
                         hide_from_api=True,
                         sg_id=product.id,
                     )
-            except Exception as e:
-                self.stdout.write(self.style.ERROR(f"{e}"))
+                except Exception as e:
+                    self.stdout.write(self.style.ERROR(f"{e}"))
         legacy_purchases = Kryss.objects.using("legacy").all()
         legacy_soci_sessions = Innkryssinger.objects.using("legacy").all()
 
@@ -142,4 +129,3 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS(f"rest: {rest.count()}"))
 
         self.stdout.write(self.style.SUCCESS(f"Deleting sessions with 0 revenue"))
-        # Get all sessions with 0 ProductOrders
