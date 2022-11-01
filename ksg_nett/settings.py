@@ -16,6 +16,16 @@ import warnings
 
 from corsheaders.defaults import default_headers
 
+
+import sentry_sdk
+from sentry_sdk.integrations.django import DjangoIntegration
+
+sentry_sdk.init(
+    dsn="https://b803a49419fa48029eb23004cb67b99d@o487192.ingest.sentry.io/5545712",
+    integrations=[DjangoIntegration()],
+    traces_sample_rate=1.0,
+    send_default_pii=True,
+    )
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -292,5 +302,12 @@ except ImportError:
 if "STAGING" in os.environ:
     try:
         from .settings_staging import *
+    except ImportError:
+        pass
+
+
+if "PROD" in os.environ:
+    try:
+        from .settings_prod import *
     except ImportError:
         pass
