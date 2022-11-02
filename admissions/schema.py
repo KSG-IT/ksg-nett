@@ -643,7 +643,6 @@ class ApplicantQuery(graphene.ObjectType):
         return Applicant.objects.filter(
             admission=admission,
             status__in=[
-                ApplicantStatus.HAS_REGISTERED_PROFILE,
                 ApplicantStatus.HAS_SET_PRIORITIES,
                 ApplicantStatus.DID_NOT_SHOW_UP_FOR_INTERVIEW,
                 ApplicantStatus.RETRACTED_APPLICATION,
