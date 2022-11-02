@@ -245,11 +245,12 @@ class Applicant(models.Model):
         max_length=128, null=True, blank=True
     )
     open_for_other_positions = models.BooleanField(default=False)
+    gdpr_consent = models.BooleanField(default=False)
 
     discussion_start = models.DateTimeField(null=True, blank=True)
     discussion_end = models.DateTimeField(null=True, blank=True)
 
-    # Used to track if the applicant has been been given notice that they
+    # Used to track if the applicant has been given notice that they
     # have called in to an interview or not
     last_activity = models.DateTimeField(null=True, blank=True)
     last_notice = models.DateTimeField(null=True, blank=True)

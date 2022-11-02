@@ -1544,7 +1544,7 @@ class AssignApplicantNewInterviewMutation(graphene.Mutation):
 
     success = graphene.Boolean()
 
-    @gql_has_permissions("admissions.change_interview")
+    @gql_has_permissions("admissions.change_applicant")
     def mutate(self, info, applicant_id, interview_id, *args, **kwargs):
         applicant_id = disambiguate_id(applicant_id)
         interview_id = disambiguate_id(interview_id)
