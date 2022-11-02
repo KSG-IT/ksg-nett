@@ -863,8 +863,8 @@ class InterviewQuery(graphene.ObjectType):
     def resolve_my_interviews(self, info, *args, **kwargs):
         me = info.context.user
         admission = Admission.get_active_admission()
-        # If applicant retracts application those interviews wont show up.
-        # Could consider auto unsubscribing from an interview if the applicant retracts their application
+        # We already remove users from retracted applicant interviews
+        # but this gives a more resilient UI
         return me.interviews_attended.filter(
             interview_start__gte=date_time_combiner(
                 admission.date,
