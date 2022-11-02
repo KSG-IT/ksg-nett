@@ -29,6 +29,9 @@ from admissions.utils import (
     get_applicant_offered_position,
     read_admission_csv,
     send_applicant_notice_email,
+    send_new_interview_mail,
+    send_interview_cancelled_email,
+    notify_interviewers_cancelled_interview_email,
 )
 from django.core.exceptions import SuspiciousOperation, ValidationError
 from django.utils import timezone
@@ -861,8 +864,13 @@ class InterviewQuery(graphene.ObjectType):
     def resolve_my_interviews(self, info, *args, **kwargs):
         me = info.context.user
         admission = Admission.get_active_admission()
+        # If applicant retracts application those interviews wont show up.
+        # Could consider auto unsubscribing from an interview if the applicant retracts their application
         return me.interviews_attended.filter(
-            applicant__admission=admission, applicant__isnull=False
+            interview_start__gte=date_time_combiner(
+                admission.date,
+                datetime.time(hour=0, minute=0, second=0),
+            )
         ).order_by("interview_start")
 
     @gql_has_permissions("admissions.view_interview")
@@ -1039,6 +1047,22 @@ class PatchApplicantMutation(DjangoPatchMutation):
     def handle_image(image, name, info):
         file_type = image.name.split(".")[-1]
         return compress_image(image, image.name, file_type)
+
+    @classmethod
+    def after_mutate(cls, root, info, id, input, obj, return_data):
+        # If applicant retracted application interviewers need to be notified
+        if obj.status == ApplicantStatus.RETRACTED_APPLICATION:
+            send_interview_cancelled_email(obj)
+            if not hasattr(obj, "interview"):
+                return obj
+
+            interview = obj.interview
+            obj.interview = None
+            obj.save()
+            # Remove interviewers from interview
+            notify_interviewers_cancelled_interview_email(obj, interview)
+            interview.interviewers.clear()
+            return obj
 
 
 class DeleteApplicantMutation(DjangoDeleteMutation):
@@ -1426,7 +1450,7 @@ class SetSelfAsInterviewerMutation(graphene.Mutation):
             raise Exception(f"Cannot assign {user} to interview that is over")
 
         if user.interviews_attended.filter(
-            interview_start=interview.interview_start
+            interview_start=interview.interview_start, applicant__isnull=False
         ).exists():
             raise Exception(f"{user} is already attending an interview at this time")
 
@@ -1543,7 +1567,7 @@ class AssignApplicantNewInterviewMutation(graphene.Mutation):
             applicant.status = ApplicantStatus.SCHEDULED_INTERVIEW
             applicant.save()
 
-            # TODO: Send email to applicant
+            send_new_interview_mail(applicant)
 
             return AssignApplicantNewInterviewMutation(success=True)
 

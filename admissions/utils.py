@@ -1,4 +1,6 @@
 import math
+
+import pytz
 from django.utils import timezone
 from django.db import transaction
 from common.util import send_email
@@ -291,6 +293,132 @@ def resend_auth_token_email(applicant):
         message=content,
         html_message=html_content,
         recipients=[applicant.email],
+    )
+
+
+def send_new_interview_mail(applicant):
+    content = (
+        _(
+            """
+            Hei!
+            
+            Du har fått en ny intervjutid hos KSG. 
+            
+            Lenke: %(link)s
+            """
+        )
+        % {"link": f"{settings.APP_URL}/applicant-portal/{applicant.token}"}
+    )
+
+    html_content = (
+        _(
+            """
+            Hei!
+            <br />
+            Du har fått en ny intervjutid hos KSG. 
+            <br />
+            <a href="%(link)s">Se intervjuinformasjon</a><br />
+            <br />
+            """
+        )
+        % {"link": f"{settings.APP_URL}/applicant-portal/{applicant.token}"}
+    )
+
+    return send_email(
+        _("Oppdatert intervju KSG"),
+        message=content,
+        html_message=html_content,
+        recipients=[applicant.email],
+    )
+
+
+def send_interview_cancelled_email(applicant):
+    content = _(
+        """
+            Hei!
+            
+            Ditt intervju hos KSG har blitt kansellert. 
+            
+            """
+    )
+
+    html_content = _(
+        """
+            Hei!
+            <br />
+            Ditt intervju hos KSG har blitt kansellert. 
+            <br />
+            """
+    )
+
+    return send_email(
+        _("Kansellert intervju KSG"),
+        message=content,
+        html_message=html_content,
+        recipients=[applicant.email],
+    )
+
+
+def notify_interviewers_cancelled_interview_email(applicant, interview):
+    local_time = timezone.localtime(
+        interview.interview_start, pytz.timezone(settings.TIME_ZONE)
+    )
+    name = applicant.get_full_name
+    interview_location = interview.location.name
+    formatted_local_time = local_time.strftime("%d.%m.%Y kl. %H:%M")
+    content = (
+        _(
+            """
+            Hei!
+            
+            %(name)s har kansellert sitt intervju hos KSG. 
+            
+            Du har blitt fjernet fra intervjuet.
+
+            Intervjuinformasjon:
+            %(interview_location)s
+            %(interview_time)s
+            
+            """
+        )
+        % {
+            "name": name,
+            "interview_location": interview_location,
+            "interview_time": formatted_local_time,
+        }
+    )
+
+    html_content = (
+        _(
+            """
+            Hei!
+            <br />
+            %(name)s har kansellert sitt intervju hos KSG. 
+            <br />
+            Du har blitt fjernet fra intervjuet.
+            <br />
+            Intervjuinformasjon:
+            <br />
+            %(interview_location)s
+            <br />
+            %(interview_time)s
+            <br />
+            
+            """
+        )
+        % {
+            "name": name,
+            "interview_location": interview_location,
+            "interview_time": formatted_local_time,
+        }
+    )
+
+    return send_email(
+        _("Kansellert intervju KSG"),
+        message=content,
+        html_message=html_content,
+        recipients=[],
+        bcc=interview.interviewers.values_list("email", flat=True),
     )
 
 
