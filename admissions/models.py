@@ -172,7 +172,7 @@ class Interview(models.Model):
     notes = models.TextField(blank=True, default="")
     discussion = models.TextField(blank=True, default="")
     interviewers = models.ManyToManyField(
-        "users.User", related_name="interviews_attended"
+        "users.User", related_name="interviews_attended", blank=True
     )
     total_evaluation = models.CharField(
         max_length=32,
