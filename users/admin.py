@@ -82,6 +82,7 @@ class MyUserAdmin(UserAdmin):
                     "anonymize_in_made_out_map",
                     "requires_migration_wizard",
                     "sg_id",
+                    "ical_token",
                 )
             },
         ),

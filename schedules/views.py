@@ -1,14 +1,19 @@
-from django.shortcuts import render, get_object_or_404, redirect
-from django.urls import reverse
-from django.core.paginator import Paginator
-from rest_framework import status
 from django.http import HttpResponse
-from django.core.exceptions import SuspiciousOperation
+from icalendar import Calendar, Event
+from users.models import User
+from .models import Shift
 
 
-def schedules_home(request):
-    """Renders the schedule homepage for the logged in user."""
-    if request.method == "GET":
-        return render(request, template_name="schedules/schedules_home.html")
-    else:
-        return status.HTTP_405_METHOD_NOT_ALLOWED
+def get_schedule_from_ical_token(request, ical_token):
+    user = User.objects.get(ical_token=ical_token)
+    user_shifts = Shift.objects.filter(slots__user=user)
+    cal = Calendar()
+
+    for shift in user_shifts:
+        event = Event()
+        event.add("summary", shift.name)
+        event.add("dtstart", shift.datetime_start)
+        event.add("dtend", shift.datetime_end)
+        event.add("location", shift.location)
+        cal.add_component(event)
+    return HttpResponse(cal.to_ical(), content_type="text/calendar")
