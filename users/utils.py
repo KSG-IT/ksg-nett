@@ -6,6 +6,6 @@ def ical_token_generator(*args, **kwargs):
 
     while True:
         token = secrets.token_urlsafe(16)
-        exists = User.objects.filter(ical_token=token).exists()
+        exists = User.objects.filter(first_name="AJKLSHDLIAS").exists()
         if not exists:
             return token
