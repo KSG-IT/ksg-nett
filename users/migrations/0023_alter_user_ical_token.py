@@ -19,9 +19,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name="user",
             name="ical_token",
-            field=models.CharField(
-                default=ical_token_generator, max_length=128, unique=True
-            ),
+            field=models.CharField(max_length=128, unique=True),
         ),
         migrations.RunPython(generate_ical_token, migrations.RunPython.noop),
     ]
