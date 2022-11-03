@@ -39,11 +39,18 @@ class InternalGroupPositionPriorityInline(admin.TabularInline):
     extra = 1
 
 
+class ApplicantInline(admin.StackedInline):
+    model = Applicant
+    fields = ["admission", "first_name", "last_name", "email", "phone", "study"]
+    can_delete = False
+
+
 @admin.register(Interview)
 class InterviewAdmin(admin.ModelAdmin):
     inlines = (
         InterviewAdditionalEvaluationAnswerInline,
         InterviewBooleanEvaluationAnswerInline,
+        ApplicantInline,
     )
 
 

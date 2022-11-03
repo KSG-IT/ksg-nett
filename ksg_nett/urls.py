@@ -35,6 +35,7 @@ urlpatterns = [
     path("external/", include("external.urls")),
     path("users/", include("users.urls")),
     path("economy/", include("economy.urls")),
+    path("schedules/", include("schedules.urls")),
     path("admissions/", include("admissions.urls")),
     # Developer
     path("admin/", admin.site.urls),

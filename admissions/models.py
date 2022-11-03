@@ -172,7 +172,7 @@ class Interview(models.Model):
     notes = models.TextField(blank=True, default="")
     discussion = models.TextField(blank=True, default="")
     interviewers = models.ManyToManyField(
-        "users.User", related_name="interviews_attended"
+        "users.User", related_name="interviews_attended", blank=True
     )
     total_evaluation = models.CharField(
         max_length=32,
@@ -245,11 +245,9 @@ class Applicant(models.Model):
         max_length=128, null=True, blank=True
     )
     open_for_other_positions = models.BooleanField(default=False)
+    gdpr_consent = models.BooleanField(default=False)
 
-    discussion_start = models.DateTimeField(null=True, blank=True)
-    discussion_end = models.DateTimeField(null=True, blank=True)
-
-    # Used to track if the applicant has been been given notice that they
+    # Used to track if the applicant has been given notice that they
     # have called in to an interview or not
     last_activity = models.DateTimeField(null=True, blank=True)
     last_notice = models.DateTimeField(null=True, blank=True)
@@ -370,6 +368,7 @@ class ApplicantInterest(models.Model):
         verbose_name_plural = "Applicant interests"
 
     class Type(models.TextChoices):
+        # Currently not in use
         WANT = ("want", "Want")
         NEED = ("need", "Need")
 
@@ -386,9 +385,6 @@ class ApplicantInterest(models.Model):
         on_delete=models.CASCADE,
         related_name="applicant_interest_offers",
     )
-
-    # Do we want this distinction?
-    # type = models.CharField(max_length=32, choices=Type.choices)
 
     def __str__(self):
         return f"{self.internal_group.name} interest in {self.applicant}"

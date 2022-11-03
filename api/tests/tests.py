@@ -12,6 +12,7 @@ from economy.tests.factories import (
     SociProductFactory,
     SociBankAccountFactory,
     SociSessionFactory,
+    ProductOrderFactory,
 )
 from users.tests.factories import UserFactory
 
@@ -56,6 +57,8 @@ class CustomTokenObtainSlidingViewTest(APITestCase):
 
     def test_obtain_token__start_soci_session_and_terminate_previous(self):
         unterminated_session = SociSessionFactory()
+        # sessions without any sales are deleted on termination
+        ProductOrderFactory.create_batch(3, session=unterminated_session)
         data = {"card_uuid": self.user.bank_account.card_uuid}
 
         response = self.client.post(self.url, data)
@@ -140,13 +143,16 @@ class TerminateSociSessionViewTest(APITestCase):
     def setUp(self):
         self.client.force_authenticate(UserFactory(is_staff=True))
         now = timezone.now()
-        SociSessionFactory(
+        session_one = SociSessionFactory(
             created_at=now - timedelta(days=3), closed_at=now - timedelta(days=2)
         )
-        SociSessionFactory(
+        ProductOrderFactory.create_batch(3, session=session_one)
+        session_two = SociSessionFactory(
             created_at=now - timedelta(days=2), closed_at=now - timedelta(days=1)
         )
+        ProductOrderFactory.create_batch(3, session=session_two)
         self.active_session = SociSessionFactory(created_at=now - timedelta(days=1))
+        ProductOrderFactory.create_batch(3, session=self.active_session)
 
     def test_delete__active_session__ok_and_update_session_with_end_date(self):
         response = self.client.delete(self.url)

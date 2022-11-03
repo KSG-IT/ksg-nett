@@ -692,6 +692,18 @@ python-versions = ">=2.6, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
 idna = ">=2.5"
 
 [[package]]
+name = "icalendar"
+version = "5.0.1"
+description = "iCalendar parser/generator"
+category = "main"
+optional = false
+python-versions = ">=3.7"
+
+[package.dependencies]
+python-dateutil = "*"
+pytz = "*"
+
+[[package]]
 name = "identify"
 version = "2.5.6"
 description = "File identification library for Python"
@@ -1451,7 +1463,7 @@ test = ["pytest"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.9"
-content-hash = "ff89715bb21368e3fc4402a39176062459905d186b59c34d483758a555e15614"
+content-hash = "0ee1fe7234088d70f59076fcd6c3c7426892c2848422208f90e66f8bacdbcb0b"
 
 [metadata.files]
 aioredis = [
@@ -1912,6 +1924,10 @@ html5lib = [
 hyperlink = [
     {file = "hyperlink-21.0.0-py2.py3-none-any.whl", hash = "sha256:e6b14c37ecb73e89c77d78cdb4c2cc8f3fb59a885c5b3f819ff4ed80f25af1b4"},
     {file = "hyperlink-21.0.0.tar.gz", hash = "sha256:427af957daa58bc909471c6c40f74c5450fa123dd093fc53efd2e91d2705a56b"},
+]
+icalendar = [
+    {file = "icalendar-5.0.1-py3-none-any.whl", hash = "sha256:41f2f450707a503365a81c22954be4053779994c8ff01fc11bf4ce33a724092e"},
+    {file = "icalendar-5.0.1.tar.gz", hash = "sha256:35faeae20e58d0fe26e33c04bbfd08b424192d61ae3e1da1d7611ba06ab33570"},
 ]
 identify = [
     {file = "identify-2.5.6-py2.py3-none-any.whl", hash = "sha256:b276db7ec52d7e89f5bc4653380e33054ddc803d25875952ad90b0f012cbcdaa"},

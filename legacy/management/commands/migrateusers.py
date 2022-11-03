@@ -2,6 +2,7 @@ from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 from common.util import strip_chars_from_string
 from legacy.models import Personer
+from schedules.utils.schedules import create_i_cal_token_for_user
 from users.models import User
 from economy.models import SociBankAccount
 

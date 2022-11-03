@@ -5,7 +5,7 @@ import graphene
 from graphene import Node
 from graphql_relay import to_global_id
 from graphene_django import DjangoObjectType
-from django.db import IntegrityError
+from django.db import IntegrityError, transaction
 from graphene_django_cud.mutations import (
     DjangoPatchMutation,
     DjangoDeleteMutation,
@@ -29,6 +29,9 @@ from admissions.utils import (
     get_applicant_offered_position,
     read_admission_csv,
     send_applicant_notice_email,
+    send_new_interview_mail,
+    send_interview_cancelled_email,
+    notify_interviewers_cancelled_interview_email,
 )
 from django.core.exceptions import SuspiciousOperation, ValidationError
 from django.utils import timezone
@@ -501,6 +504,7 @@ class ApplicantQuery(graphene.ObjectType):
     internal_group_discussion_data = graphene.Field(
         InternalGroupDiscussionData, internal_group_id=graphene.ID(required=True)
     )
+    all_applicants_available_for_rebooking = graphene.List(ApplicantNode)
     applicant_notices = graphene.List(ApplicantNode)
 
     close_admission_data = graphene.Field(CloseAdmissionData)
@@ -632,6 +636,19 @@ class ApplicantQuery(graphene.ObjectType):
                 ApplicantStatus.HAS_REGISTERED_PROFILE,
             ],
         ).order_by("last_activity")
+
+    @gql_has_permissions("admissions.view_applicant")
+    def resolve_all_applicants_available_for_rebooking(self, info, *args, **kwargs):
+        admission = Admission.get_active_admission()
+        return Applicant.objects.filter(
+            admission=admission,
+            status__in=[
+                ApplicantStatus.HAS_SET_PRIORITIES,
+                ApplicantStatus.DID_NOT_SHOW_UP_FOR_INTERVIEW,
+                ApplicantStatus.RETRACTED_APPLICATION,
+                ApplicantStatus.SCHEDULED_INTERVIEW,
+            ],
+        ).order_by("first_name", "last_name")
 
 
 class ResendApplicantTokenMutation(graphene.Mutation):
@@ -819,9 +836,12 @@ class AvailableInterviewsDayGrouping(graphene.ObjectType):
 class InterviewQuery(graphene.ObjectType):
     interview = Node.Field(InterviewNode)
     interview_template = graphene.Field(InterviewTemplate)
+    # Intended to be used by an applicant
     interviews_available_for_booking = graphene.List(
         AvailableInterviewsDayGrouping, day_offset=graphene.Int(required=True)
     )
+    # Intended to be used by an interviewer giving someone a new interview
+    all_available_interviews = graphene.List(InterviewNode)
     all_future_available_interviews = graphene.List(InterviewNode)
     my_interviews = graphene.List(InterviewNode)
     my_upcoming_interviews = graphene.List(InterviewNode)
@@ -843,8 +863,13 @@ class InterviewQuery(graphene.ObjectType):
     def resolve_my_interviews(self, info, *args, **kwargs):
         me = info.context.user
         admission = Admission.get_active_admission()
+        # We already remove users from retracted applicant interviews
+        # but this gives a more resilient UI
         return me.interviews_attended.filter(
-            applicant__admission=admission, applicant__isnull=False
+            interview_start__gte=date_time_combiner(
+                admission.date,
+                datetime.time(hour=0, minute=0, second=0),
+            )
         ).order_by("interview_start")
 
     @gql_has_permissions("admissions.view_interview")
@@ -919,6 +944,13 @@ class InterviewQuery(graphene.ObjectType):
         )
 
         return interviews.order_by("-interview_start", "location__name")
+
+    @gql_has_permissions("admissions.view_interview")
+    def resolve_all_available_interviews(self, info, *args, **kwargs):
+        interviews = Interview.objects.filter(
+            applicant__isnull=True, interview_start__gt=timezone.now()
+        )
+        return interviews.order_by("interview_start", "location__name")
 
 
 class InterviewLocationQuery(graphene.ObjectType):
@@ -1014,6 +1046,22 @@ class PatchApplicantMutation(DjangoPatchMutation):
     def handle_image(image, name, info):
         file_type = image.name.split(".")[-1]
         return compress_image(image, image.name, file_type)
+
+    @classmethod
+    def after_mutate(cls, root, info, id, input, obj, return_data):
+        # If applicant retracted application interviewers need to be notified
+        if obj.status == ApplicantStatus.RETRACTED_APPLICATION:
+            send_interview_cancelled_email(obj)
+            if not hasattr(obj, "interview"):
+                return obj
+
+            interview = obj.interview
+            obj.interview = None
+            obj.save()
+            # Remove interviewers from interview
+            notify_interviewers_cancelled_interview_email(obj, interview)
+            interview.interviewers.clear()
+            return obj
 
 
 class DeleteApplicantMutation(DjangoDeleteMutation):
@@ -1401,7 +1449,7 @@ class SetSelfAsInterviewerMutation(graphene.Mutation):
             raise Exception(f"Cannot assign {user} to interview that is over")
 
         if user.interviews_attended.filter(
-            interview_start=interview.interview_start
+            interview_start=interview.interview_start, applicant__isnull=False
         ).exists():
             raise Exception(f"{user} is already attending an interview at this time")
 
@@ -1486,6 +1534,41 @@ class BookInterviewMutation(graphene.Mutation):
                 return BookInterviewMutation(ok=False)
 
         return BookInterviewMutation(ok=False)
+
+
+class AssignApplicantNewInterviewMutation(graphene.Mutation):
+    class Arguments:
+        applicant_id = graphene.ID(required=True)
+        interview_id = graphene.ID(required=True)
+
+    success = graphene.Boolean()
+
+    @gql_has_permissions("admissions.change_applicant")
+    def mutate(self, info, applicant_id, interview_id, *args, **kwargs):
+        applicant_id = disambiguate_id(applicant_id)
+        interview_id = disambiguate_id(interview_id)
+        applicant = Applicant.objects.get(pk=applicant_id)
+        interview = Interview.objects.get(pk=interview_id)
+
+        if hasattr(interview, "applicant"):
+            raise Exception(
+                f"Interview already has an applicant assigned: {interview.applicant}"
+            )
+
+        with transaction.atomic():
+            existing_interview = applicant.interview
+            if existing_interview:
+                existing_interview.applicant = None
+                existing_interview.save()
+
+            interview.applicant = applicant
+            interview.save()
+            applicant.status = ApplicantStatus.SCHEDULED_INTERVIEW
+            applicant.save()
+
+            send_new_interview_mail(applicant)
+
+            return AssignApplicantNewInterviewMutation(success=True)
 
 
 # === InterviewLocation ===
@@ -1674,6 +1757,7 @@ class AdmissionsMutations(graphene.ObjectType):
     re_send_application_token = ResendApplicantTokenMutation.Field()
     generate_interviews = GenerateInterviewsMutation.Field()
     book_interview = BookInterviewMutation.Field()
+    assign_applicant_new_interview = AssignApplicantNewInterviewMutation.Field()
     delete_all_interviews = DeleteAllInterviewsMutation.Field()
     set_self_as_interviewer = SetSelfAsInterviewerMutation.Field()
     remove_self_as_interviewer = RemoveSelfAsInterviewerMutation.Field()

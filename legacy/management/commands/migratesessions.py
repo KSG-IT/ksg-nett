@@ -23,28 +23,32 @@ def create_session_and_orders_from_legacy_session(
         type=type,
         name=name,
         created_by=created_by,
-        created_at=legacy_session.registrert,
         creation_date=legacy_session.kryssetid,
-        updated_at=legacy_session.registrert,
-        closed_at=legacy_session.kryssetid,
     )
     purchases = Kryss.objects.using("legacy").filter(innkryssing=legacy_session)
     purchase_list = []
     for purchase in purchases:
-        product_order = ProductOrder(
-            session=new_session,
-            product=SociProduct.objects.get(sg_id=purchase.vare.id),
-            order_size=purchase.antall,
-            cost=purchase.vare.pris * purchase.antall,
-            purchased_at=legacy_session.registrert,
-            source=SociBankAccount.objects.get(user__sg_id=purchase.person.id),
-        )
+        product_order = {
+            "session": new_session,
+            "product": SociProduct.objects.get(sg_id=purchase.vare.id),
+            "order_size": purchase.antall,
+            "cost": purchase.vare.pris * purchase.antall,
+            "source": SociBankAccount.objects.get(user__sg_id=purchase.person.id),
+        }
         purchase_list.append(product_order)
 
     if purchase_list:
         new_session.save()
         new_session.refresh_from_db()
+        # Override auto_fields
+        new_session.created_at = legacy_session.kryssetid
+        new_session.updated_at = legacy_session.registrert
+        new_session.closed_at = legacy_session.registrert
+        new_session.save()
+
         for purchase in purchase_list:
+            purchase = ProductOrder.objects.create(**purchase)
+            purchase.purchased_at = legacy_session.registrert
             purchase.save()
 
     print(f"Created session of {len(purchase_list)} orders")
@@ -96,7 +100,6 @@ class Command(BaseCommand):
 
         stille = legacy_soci_sessions.filter(kommentar__icontains="Stille")
         digi = legacy_soci_sessions.filter(kommentar__icontains="digi")
-
         rest = legacy_soci_sessions.exclude(kommentar__icontains="stille").exclude(
             kommentar__icontains="digi"
         )
@@ -127,5 +130,3 @@ class Command(BaseCommand):
 
         self.stdout.write(self.style.SUCCESS(f"stille: {stille.count()}"))
         self.stdout.write(self.style.SUCCESS(f"rest: {rest.count()}"))
-
-        self.stdout.write(self.style.SUCCESS(f"Deleting sessions with 0 revenue"))

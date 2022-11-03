@@ -30,6 +30,7 @@ django-storages = "^1.11.1"
 pyjwt = "^2.3.0"
 pydash = "^5.1.0"
 openpyxl = "^3.0.10"
+icalendar = "^5.0.1"
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.3"
