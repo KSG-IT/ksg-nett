@@ -16,4 +16,14 @@ def get_schedule_from_ical_token(request, ical_token):
         event.add("dtend", shift.datetime_end)
         event.add("location", shift.location)
         cal.add_component(event)
+
+    interviews = user.interviews_attended.all()
+    for interview in interviews:
+        event = Event()
+        event.add("summary", "Intervju")
+        event.add("dtstart", interview.interview_start)
+        event.add("dtend", interview.interview_end)
+        event.add("location", interview.location.name)
+        cal.add_component(event)
+
     return HttpResponse(cal.to_ical(), content_type="text/calendar")
