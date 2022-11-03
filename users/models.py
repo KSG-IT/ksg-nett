@@ -69,7 +69,7 @@ class User(AbstractUser):
     sg_id = models.IntegerField(null=True, blank=True)
     requires_migration_wizard = models.BooleanField(default=False)
     ical_token = models.CharField(
-        max_length=128, unique=True, default=ical_token_generator
+        max_length=128, unique=True, null=True, blank=True, default=None
     )
 
     def __str__(self):
