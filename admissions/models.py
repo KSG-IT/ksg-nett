@@ -247,9 +247,6 @@ class Applicant(models.Model):
     open_for_other_positions = models.BooleanField(default=False)
     gdpr_consent = models.BooleanField(default=False)
 
-    discussion_start = models.DateTimeField(null=True, blank=True)
-    discussion_end = models.DateTimeField(null=True, blank=True)
-
     # Used to track if the applicant has been given notice that they
     # have called in to an interview or not
     last_activity = models.DateTimeField(null=True, blank=True)

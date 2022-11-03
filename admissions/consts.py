@@ -25,9 +25,6 @@ class ApplicantStatus(models.TextChoices):
         "did-not-show-up-for-interview",
         "Did not show up for interview",
     )
-    TO_BE_CALLED = ("to-be-called", "To be called")
-    ACCEPTED = ("accepted", "Accepted")
-    REJECTED = ("rejected", "Rejected")
     RETRACTED_APPLICATION = ("retracted-application", "Retracted application")
 
 
