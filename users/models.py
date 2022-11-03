@@ -68,7 +68,9 @@ class User(AbstractUser):
     anonymize_in_made_out_map = models.BooleanField(default=True, null=False)
     sg_id = models.IntegerField(null=True, blank=True)
     requires_migration_wizard = models.BooleanField(default=False)
-    ical_token = models.CharField(max_length=128, default=ical_token_generator)
+    ical_token = models.CharField(
+        max_length=128, unique=True, default=ical_token_generator
+    )
 
     def __str__(self):
         return f"User {self.get_full_name()}"
