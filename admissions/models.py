@@ -368,6 +368,7 @@ class ApplicantInterest(models.Model):
         verbose_name_plural = "Applicant interests"
 
     class Type(models.TextChoices):
+        # Currently not in use
         WANT = ("want", "Want")
         NEED = ("need", "Need")
 
@@ -384,9 +385,6 @@ class ApplicantInterest(models.Model):
         on_delete=models.CASCADE,
         related_name="applicant_interest_offers",
     )
-
-    # Do we want this distinction?
-    # type = models.CharField(max_length=32, choices=Type.choices)
 
     def __str__(self):
         return f"{self.internal_group.name} interest in {self.applicant}"

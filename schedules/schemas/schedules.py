@@ -1,5 +1,3 @@
-import secrets
-
 import graphene
 import pytz
 from graphene import Node
@@ -348,18 +346,6 @@ class DeleteShiftSlotMutation(DjangoDeleteMutation):
         permissions = ("schedules.delete_shiftslot",)
 
 
-class GenerateICalTokenMutation(graphene.Mutation):
-    user = graphene.Field("users.schema.UserNode")
-
-    def mutate(self, info, *args, **kwargs):
-        user = info.context.user
-        # generate url safe token
-        token = secrets.token_urlsafe(32)
-        user.ical_token = token
-        user.save()
-        return GenerateICalTokenMutation(user=user)
-
-
 class SchedulesMutations(graphene.ObjectType):
     create_shift = CreateShiftMutation.Field()
     delete_shift = DeleteShiftMutation.Field()
@@ -374,5 +360,3 @@ class SchedulesMutations(graphene.ObjectType):
     remove_user_from_shift_slot = RemoveUserFromShiftSlotMutation.Field()
     create_shift_slot = CreateShiftSlotMutation.Field()
     delete_shift_slot = DeleteShiftSlotMutation.Field()
-
-    generate_i_cal_token = GenerateICalTokenMutation.Field()

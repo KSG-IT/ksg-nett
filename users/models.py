@@ -13,6 +13,7 @@ from common.util import get_semester_year_shorthand
 from users.managers import UsersHaveMadeOutManager
 from organization.consts import InternalGroupPositionMembershipType
 from organization.models import InternalGroup
+from users.utils import ical_token_generator
 
 
 class Allergy(models.Model):
@@ -67,7 +68,7 @@ class User(AbstractUser):
     anonymize_in_made_out_map = models.BooleanField(default=True, null=False)
     sg_id = models.IntegerField(null=True, blank=True)
     requires_migration_wizard = models.BooleanField(default=False)
-    ical_token = models.CharField(max_length=128, blank=True, null=True, default=None)
+    ical_token = models.CharField(max_length=128, default=ical_token_generator)
 
     def __str__(self):
         return f"User {self.get_full_name()}"
