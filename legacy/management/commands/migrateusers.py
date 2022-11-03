@@ -42,7 +42,14 @@ class Command(BaseCommand):
                     last_name = " ".join(split_name[1:]).strip()
                     self.stdout.write(f"Cleaned name: {first_name} {last_name}")
 
-                print(f"{first_name=}, {last_name=}")
+                # truncate max length fields
+                first_name = first_name[:30]
+                last_name = last_name[:30]
+                user.studie = user.studie[:50]
+                user.hjemstedsadresse = user.hjemstedsadresse[:50]
+                user.adresse = user.adresse[:50]
+                user.telefon = user.telefon[:50]
+
                 new_user = User.objects.create(
                     migrated_from_sg=True,
                     sg_id=user.id,
@@ -51,10 +58,10 @@ class Command(BaseCommand):
                     first_name=first_name,
                     last_name=last_name,
                     date_of_birth=user.fodselsdato,
-                    study_address=user.adresse,
-                    study=user.studie,
-                    home_town=user.hjemstedsadresse,
-                    phone=user.telefon,
+                    study_address=user.adresse.strip(),
+                    study=user.studie.strip(),
+                    home_town=user.hjemstedsadresse.strip(),
+                    phone=user.telefon.strip(),
                     # Default to is_active=False and set true in migration wizard
                     is_active=False,
                     requires_migration_wizard=True,
