@@ -16,7 +16,6 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RunPython(generate_ical_token, migrations.RunPython.noop),
         migrations.AlterField(
             model_name="user",
             name="ical_token",
@@ -24,4 +23,5 @@ class Migration(migrations.Migration):
                 default=ical_token_generator, max_length=128, unique=True
             ),
         ),
+        migrations.RunPython(generate_ical_token, migrations.RunPython.noop),
     ]
