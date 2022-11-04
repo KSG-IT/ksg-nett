@@ -25,7 +25,7 @@ sentry_sdk.init(
     integrations=[DjangoIntegration()],
     traces_sample_rate=1.0,
     send_default_pii=True,
-    )
+)
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -120,6 +120,11 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = "ksg_nett.wsgi.application"
+
+
+EMAIL_HOST = "smtp.samfundet.no"
+EMAIL_USE_TLS = True
+EMAIL_PORT = 587
 
 # Database
 # https://docs.djangoproject.com/en/1.10/ref/settings/#databases
