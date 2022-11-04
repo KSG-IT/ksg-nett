@@ -24,6 +24,7 @@ from schedules.schemas.schedules import ShiftSlotNode
 from organization.models import InternalGroup, InternalGroupPositionMembership
 from graphene_django_cud.util import disambiguate_id
 from organization.graphql import InternalGroupPositionTypeEnum
+from users.utils import ical_token_generator
 
 
 class UserTypeLogEntryNode(DjangoObjectType):
@@ -94,6 +95,7 @@ class UserNode(DjangoObjectType):
     tagged_and_verified_quotes = graphene.List(QuoteNode)
 
     future_shifts = graphene.List(ShiftSlotNode)
+    ical_token = graphene.String()
 
     def resolve_future_shifts(self: User, info, *args, **kwargs):
         return self.future_shifts
@@ -157,6 +159,18 @@ class UserNode(DjangoObjectType):
 
     def resolve_get_full_with_nick_name(self: User, info, **kwargs):
         return self.get_full_with_nick_name()
+
+    def resolve_ical_token(self: User, info, **kwargs):
+        """
+        Doing this in a custom migration proved to be harder than expected, so we do it here instead.
+        """
+        if not self.ical_token:
+            token = ical_token_generator()
+            self.ical_token = token
+            self.save()
+            return token
+
+        return self.ical_token
 
     @classmethod
     @gql_login_required()
@@ -343,6 +357,9 @@ class UpdateMyInfoMutation(graphene.Mutation):
 
         for key, value in kwargs.items():
             if isinstance(value, str):
+                if len(value) > 80:
+                    # We can thank script kiddies for this
+                    raise ValueError(f"{key} is too long")
                 value = value.strip()
             setattr(user, key, value)
 
