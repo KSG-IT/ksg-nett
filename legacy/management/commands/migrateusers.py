@@ -2,9 +2,9 @@ from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 from common.util import strip_chars_from_string
 from legacy.models import Personer
-from schedules.utils.schedules import create_i_cal_token_for_user
 from users.models import User
 from economy.models import SociBankAccount
+from django.utils.html import strip_tags
 
 
 class Command(BaseCommand):
@@ -22,10 +22,10 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS(f"Migrating {len(legacy_users)} users"))
         with transaction.atomic():
             for (_, user) in enumerate(legacy_users):
-                self.stdout.write(self.style.SUCCESS(f"Migrerer bruker: {user.navn}"))
+                self.stdout.write(self.style.SUCCESS(f"Migrating user: {user.navn}"))
 
                 stripped_name = strip_chars_from_string(
-                    user.navn, ["(", ")", '"' "«", '"', "«", "«", "»", "»"]
+                    strip_tags(user.navn), ["(", ")", '"' "«", '"', "«", "«", "»", "»"]
                 )
                 print(f"{user.navn} -> {stripped_name}")
                 split_name = stripped_name.split(" ")
@@ -42,26 +42,35 @@ class Command(BaseCommand):
                     last_name = " ".join(split_name[1:]).strip()
                     self.stdout.write(f"Cleaned name: {first_name} {last_name}")
 
+                first_name = strip_tags(first_name).strip()
+                last_name = strip_tags(last_name).strip()
+                email = strip_tags(user.email).strip()
+                phone = strip_tags(user.telefon).strip()
+                study = strip_tags(user.studie).strip()
+                study_address = strip_tags(user.adresse).strip()
+                home_town = strip_tags(user.hjemstedsadresse).strip()
+                date_of_birth = user.fodselsdato
+
                 # truncate max length fields
                 first_name = first_name[:30]
                 last_name = last_name[:30]
-                user.studie = user.studie[:50]
-                user.hjemstedsadresse = user.hjemstedsadresse[:50]
-                user.adresse = user.adresse[:50]
-                user.telefon = user.telefon[:50]
+                study = study[:50]
+                home_town = home_town[:50]
+                study_address = study_address[:50]
+                phone = phone[:50]
 
                 new_user = User.objects.create(
                     migrated_from_sg=True,
                     sg_id=user.id,
-                    email=user.email,
-                    username=user.email,
+                    email=email,
+                    username=email,
                     first_name=first_name,
                     last_name=last_name,
-                    date_of_birth=user.fodselsdato,
-                    study_address=user.adresse.strip(),
-                    study=user.studie.strip(),
-                    home_town=user.hjemstedsadresse.strip(),
-                    phone=user.telefon.strip(),
+                    date_of_birth=date_of_birth,
+                    study_address=study_address,
+                    study=study,
+                    home_town=home_town,
+                    phone=phone,
                     # Default to is_active=False and set true in migration wizard
                     is_active=False,
                     requires_migration_wizard=True,
@@ -76,7 +85,7 @@ class Command(BaseCommand):
                     card_uuid = None
                 self.stdout.write(
                     self.style.SUCCESS(
-                        f"Oppretter bankkonto: (kornummer: {card_uuid}, saldo: {user.saldo})"
+                        f"Creating bank account: ({card_uuid=}, balance={user.saldo})"
                     )
                 )
                 exist_check = SociBankAccount.objects.filter(
@@ -85,7 +94,7 @@ class Command(BaseCommand):
                 if exist_check:
                     self.stdout.write(
                         self.style.WARNING(
-                            f"Bankkonto med kortnummer {card_uuid} eksisterer allerede"
+                            f"Card uuid {card_uuid} already exists, setting to null"
                         )
                     )
                     card_uuid = None
