@@ -207,8 +207,7 @@ class GenerateInvoicePDFsMutation(graphene.Mutation):
     @gql_has_permissions("bar_tab.change_bartabinvoice")
     def mutate(self, info):
         active_bar_tab = BarTab.get_active_bar_tab()
-        invoices = BarTabInvoice.objects.filter(bar_tab=active_bar_tab)
-        invoices.update(pdf=None)
+        invoices = active_bar_tab.invoices.filter(datetime_sent__isnull=True)
         create_pdfs_from_invoices(invoices)
         return GenerateInvoicePDFsMutation(ok=True)
 
@@ -223,7 +222,8 @@ class DeleteActiveBarTabPDFsMutation(graphene.Mutation):
         invoices = BarTabInvoice.objects.filter(
             bar_tab=active_bar_tab, datetime_sent__isnull=True
         )
-        invoices.update(pdf=None)
+        for invoice in invoices.filter(pdf__isnull=False):
+            invoice.pdf.delete()
         return DeleteActiveBarTabPDFsMutation(ok=True)
 
 
