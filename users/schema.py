@@ -25,6 +25,7 @@ from organization.models import InternalGroup, InternalGroupPositionMembership
 from graphene_django_cud.util import disambiguate_id
 from organization.graphql import InternalGroupPositionTypeEnum
 from users.utils import ical_token_generator
+from django.utils.html import strip_tags
 
 
 class UserTypeLogEntryNode(DjangoObjectType):
@@ -357,6 +358,7 @@ class UpdateMyInfoMutation(graphene.Mutation):
 
         for key, value in kwargs.items():
             if isinstance(value, str):
+                value = strip_tags(value)
                 if len(value) > 80:
                     # We can thank script kiddies for this
                     raise ValueError(f"{key} is too long")
