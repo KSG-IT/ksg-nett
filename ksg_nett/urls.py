@@ -61,6 +61,8 @@ urlpatterns = [
     ),
 ]
 
+# Should only be done in dev
+# https://stackoverflow.com/questions/23740169/apache-django-and-static-and-media-file-serving
 urlpatterns += static("/media", document_root=settings.MEDIA_ROOT)
 
 # TODO: When we are ready to move to production, we should consider moving media serving

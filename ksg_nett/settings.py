@@ -304,9 +304,9 @@ try:
 except ImportError:
     pass
 
-if "STAGING" in os.environ:
+if "DEVELOPMENT" in os.environ:
     try:
-        from .settings_staging import *
+        from .settings_development import *
     except ImportError:
         pass
 
