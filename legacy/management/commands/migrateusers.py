@@ -59,6 +59,11 @@ class Command(BaseCommand):
                 study_address = study_address[:50]
                 phone = phone[:50]
 
+                email_check = User.objects.filter(email=email).exists()
+                if email_check:
+                    email_split = email.split("@")
+                    email = f"{email_split[0]}+duplicate@{email_split[1]}"
+
                 new_user = User.objects.create(
                     migrated_from_sg=True,
                     sg_id=user.id,
