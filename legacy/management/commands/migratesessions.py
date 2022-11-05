@@ -12,7 +12,7 @@ def create_session_and_orders_from_legacy_session(
     created_by = legacy_session.innkrysser
     name = ""
     if type == SociSession.Type.KRYSELLISTE:
-        name = legacy_session.kommentar
+        name = legacy_session.kommentar[:50]
 
     if created_by:
         created_by = User.objects.get(sg_id=created_by.id)
