@@ -102,7 +102,7 @@ class SociProductListView(ListAPIView):
             .exclude(hide_from_api=True)
             .exclude(end__lt=now)
             .exclude(start__gt=now)
-            .order_by("sku_number")
+            .order_by("price")
         )
         serializer = self.get_serializer(soci_products, many=True)
         data = serializer.data
