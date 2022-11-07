@@ -1,3 +1,5 @@
+from django.conf import settings
+
 from economy.schema import BankAccountActivity
 
 
@@ -26,11 +28,15 @@ def parse_transfer(transfer, user):
 
 
 def parse_product_order(product_order):
+    quantity = product_order.order_size
+    if product_order.product.sku_number == settings.DIRECT_CHARGE_SKU:
+        quantity = 1
+
     return BankAccountActivity(
         name=product_order.product.name,
         amount=product_order.cost,
         timestamp=product_order.purchased_at,
-        quantity=product_order.order_size,
+        quantity=quantity,
     )
 
 
