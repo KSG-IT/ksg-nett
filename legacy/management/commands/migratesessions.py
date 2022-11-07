@@ -34,6 +34,7 @@ def create_session_and_orders_from_legacy_session(
             "order_size": purchase.antall,
             "cost": purchase.vare.pris * purchase.antall,
             "source": SociBankAccount.objects.get(user__sg_id=purchase.person.id),
+            "purchased_at": purchase.kryssetid,
         }
         purchase_list.append(product_order)
 
@@ -48,7 +49,7 @@ def create_session_and_orders_from_legacy_session(
 
         for purchase in purchase_list:
             purchase = ProductOrder.objects.create(**purchase)
-            purchase.purchased_at = legacy_session.registrert
+            purchase.purchased_at = purchase["purchased_at"]
             purchase.save()
 
     print(f"Created session of {len(purchase_list)} orders")
@@ -57,13 +58,13 @@ def create_session_and_orders_from_legacy_session(
 class Command(BaseCommand):
     def handle(self, *args, **options):
         try:
-            self.migratesessions()
+            self.migrate_sessions()
 
         except Exception as e:
             self.stdout.write(self.style.ERROR(f"{e}"))
             raise CommandError(e)
 
-    def migratesessions(self):
+    def migrate_sessions(self):
         self.stdout.write(self.style.SUCCESS("Migrating legacy products to new table"))
         legacy_products = Varer.objects.using("legacy").all()
         for product in legacy_products:
