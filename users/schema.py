@@ -47,7 +47,7 @@ class UserTypeNode(DjangoObjectType):
     changelog = graphene.List(UserTypeLogEntryNode)
 
     def resolve_changelog(self: UserType, info, *args, **kwargs):
-        return self.changelog.order_by("-timestamp")
+        return self.changelog.select_related("user").order_by("-timestamp")
 
     users = graphene.List(lambda: UserNode)
 
