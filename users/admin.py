@@ -77,6 +77,7 @@ class MyUserAdmin(UserAdmin):
             {
                 "fields": (
                     "biography",
+                    "nickname",
                     "in_relationship",
                     "allergies",
                     "anonymize_in_made_out_map",

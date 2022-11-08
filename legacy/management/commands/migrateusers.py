@@ -25,7 +25,8 @@ class Command(BaseCommand):
                 self.stdout.write(self.style.SUCCESS(f"Migrating user: {user.navn}"))
 
                 stripped_name = strip_chars_from_string(
-                    strip_tags(user.navn), ["(", ")", '"' "«", '"', "«", "«", "»", "»"]
+                    strip_tags(user.navn),
+                    ["(", ")", '"' "«", '"', "«", "«", "»", "»", "”"],
                 )
                 print(f"{user.navn} -> {stripped_name}")
                 split_name = stripped_name.split(" ")

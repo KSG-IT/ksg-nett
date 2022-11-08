@@ -69,11 +69,39 @@ def generate_interviews_from_schedule(schedule):
     default_interview_day_end = schedule.default_interview_day_end
     interview_period_start_date = schedule.interview_period_start_date
 
-    datetime_cursor = date_time_combiner(
-        interview_period_start_date, default_interview_day_start
+    """
+     timezone.datetime(
+        year=shift_date.year,
+        month=shift_date.month,
+        day=shift_date.day,
+        hour=0,
+        minute=0,
+        second=0,
+        tzinfo=pytz.timezone(settings.TIME_ZONE),
     )
-    datetime_interview_period_end = date_time_combiner(
-        schedule.interview_period_end_date, default_interview_day_end
+    """
+
+    datetime_cursor = timezone.make_aware(
+        timezone.datetime(
+            year=interview_period_start_date.year,
+            month=interview_period_start_date.month,
+            day=interview_period_start_date.day,
+            hour=default_interview_day_start.hour,
+            minute=default_interview_day_start.minute,
+            second=0,
+        ),
+        timezone=pytz.timezone(settings.TIME_ZONE),
+    )
+    datetime_interview_period_end = timezone.make_aware(
+        timezone.datetime(
+            year=schedule.interview_period_end_date.year,
+            month=schedule.interview_period_end_date.month,
+            day=schedule.interview_period_end_date.day,
+            hour=default_interview_day_end.hour,
+            minute=default_interview_day_end.minute,
+            second=0,
+        ),
+        timezone=pytz.timezone(settings.TIME_ZONE),
     )
 
     # Lazy load models due to circular import errors

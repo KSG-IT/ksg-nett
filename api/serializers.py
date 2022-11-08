@@ -72,6 +72,9 @@ class CheckBalanceSerializer(serializers.Serializer):
         label="Balance in NOK",
         help_text="Should not be displayed publicly",
     )
+    soci_gold = serializers.BooleanField(
+        source="is_gold", read_only=True, label="Soci gold status", default=False
+    )
 
 
 class ChargeSociBankAccountDeserializer(serializers.Serializer):

@@ -61,7 +61,11 @@ class SociSessionNode(DjangoObjectType):
         return self.total_revenue
 
     def resolve_product_orders(self: SociSession, info, *args, **kwargs):
-        return self.product_orders.all()
+        return (
+            self.product_orders.all()
+            .prefetch_related("source__user", "product")
+            .order_by("-purchased_at")
+        )
 
     def resolve_closed(self: SociSession, info, *args, **kwargs):
         return self.closed_at is not None
