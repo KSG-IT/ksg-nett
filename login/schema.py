@@ -58,7 +58,9 @@ class ResetMyPasswordMutation(graphene.Mutation):
     ok = graphene.Boolean()
 
     def mutate(self, info, username):
-        user = User.objects.filter(Q(username=username) | Q(email=username)).first()
+        user = User.objects.filter(
+            Q(username__iexact=username) | Q(email__iexact=username)
+        ).first()
 
         if user:
             jwt_reset_token = jwt.encode(
