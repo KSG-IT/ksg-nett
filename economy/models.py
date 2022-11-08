@@ -39,7 +39,7 @@ class SociBankAccount(models.Model):
         self,
     ) -> Dict[str, Union[QuerySet, "ProductOrder", "Transfer", "Deposit"]]:
         return {
-            "product_orders": self.product_orders.all(),
+            "product_orders": self.product_orders.all(),  # .prefetch_related("product"),
             "transfers": self.source_transfers.all() | self.destination_transfers.all(),
             "deposits": self.deposits.all(),
         }
