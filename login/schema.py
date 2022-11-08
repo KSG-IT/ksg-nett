@@ -108,6 +108,7 @@ class ResetPasswordByTokenMutation(graphene.Mutation):
             user = User.objects.get(pk=user_id)
             user.set_password(new_password)
             user.needs_new_password = False
+            user.is_active = True
             user.save()
 
             return ResetPasswordByTokenMutation(
