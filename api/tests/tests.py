@@ -206,15 +206,6 @@ class SociProductListViewTest(APITestCase):
         self.assertEqual(len(response.data), 3)
         self.assertEqual((len(response.data[0])), 5)
 
-    def test_get__product_without_description__description_blank(self):
-        SociProductFactory(sku_number="z", name="Nordlands Pils", description=None)
-
-        response = self.client.get(self.url)
-
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data), 4)
-        self.assertFalse(response.data[-1]["description"])
-
     def test_get__expired_product__do_not_include_in_response(self):
         expired_product = SociProductFactory(end=timezone.now() - timedelta(hours=1))
 
@@ -239,17 +230,6 @@ class SociProductListViewTest(APITestCase):
             [product["sku_number"] for product in response.data],
         )
 
-    def test_get__sorted_by_sku_number(self):
-        first_product = SociProductFactory(sku_number="a")
-
-        response = self.client.get(self.url)
-
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(first_product.sku_number, response.data[0]["sku_number"])
-        self.assertEqual("dahls", response.data[1]["sku_number"])
-        self.assertEqual("ice", response.data[2]["sku_number"])
-        self.assertEqual("pizzabolle", response.data[3]["sku_number"])
-
 
 class SociBankAccountBalanceDetailViewTest(APITestCase):
     @classmethod
@@ -268,7 +248,7 @@ class SociBankAccountBalanceDetailViewTest(APITestCase):
         response = self.client.get(self.url, {"card_uuid": self.user_account.card_uuid})
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data), 3)
+        self.assertEqual(len(response.data), 4)
         self.assertEqual(1337, response.data["balance"])
 
     def test_get_balance__negative_amount__ok(self):
@@ -277,7 +257,7 @@ class SociBankAccountBalanceDetailViewTest(APITestCase):
         response = self.client.get(self.url, {"card_uuid": self.user_account.card_uuid})
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data), 3)
+        self.assertEqual(len(response.data), 4)
         self.assertEqual(-2000, response.data["balance"])
 
     def test_get_balance__invalid_card__not_found(self):
