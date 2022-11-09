@@ -57,7 +57,9 @@ class CustomTokenObtainSlidingView(TokenObtainSlidingView):
             token,
             settings.AUTH_JWT_SECRET,
             algorithms=settings.AUTH_JWT_METHOD,
-            verify=False,
+            options={
+                "verify_signature": False,
+            },
         )["user_id"]
         SociSession.objects.create(created_by_id=card_user_id)
 

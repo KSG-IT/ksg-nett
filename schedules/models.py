@@ -282,3 +282,13 @@ class ShiftSlotTemplate(models.Model):
             self.role,
             self.shift_template.name,
         )
+
+
+"""
+class ScheduleRoster(models.Model):
+    class Meta:
+        verbose_name_plural = "Schedule rosters"
+
+    schedule = models.OneToOneField(Schedule, on_delete=models.CASCADE)
+    user_pool = models.ManyToManyField(User, related_name="schedule_rosters")
+"""

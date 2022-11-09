@@ -3,6 +3,8 @@ import datetime
 import graphene
 import calendar
 
+import pytz
+from django.conf import settings
 from django.core.exceptions import SuspiciousOperation
 from graphene import Node
 from django.db.models import Q, F, Sum
@@ -281,7 +283,8 @@ class SociBankAccountQuery(graphene.ObjectType):
                     hour=0,
                     minute=0,
                     second=0,
-                )
+                ),
+                timezone=pytz.timezone(settings.TIME_ZONE),
             )
             day_max = day_min + timezone.timedelta(hours=23, minutes=59, seconds=59)
             # https://blog.zdsmith.com/posts/comparing-dates-and-datetimes-in-the-django-orm.html
@@ -289,9 +292,9 @@ class SociBankAccountQuery(graphene.ObjectType):
             purchases = my_bank_account.product_orders.filter(
                 purchased_at__range=(day_min, day_max)
             )
-            purchase_sum = purchases.aggregate(
-                purchase_sum=Coalesce(Sum(F("order_size") * F("product__price")), 0)
-            )["purchase_sum"]
+            purchase_sum = purchases.aggregate(purchase_sum=Coalesce(Sum("cost"), 0))[
+                "purchase_sum"
+            ]
             expenditure_day = ExpenditureDay(day=day, sum=purchase_sum)
             total += purchase_sum
             data.append(expenditure_day)
@@ -440,16 +443,28 @@ class CreateDepositMutation(DjangoCreateMutation):
     class Meta:
         model = Deposit
         exclude_fields = ("migrated_from_sg",)
+        login_required = True
 
     @classmethod
     def before_save(cls, root, info, input, obj):
         obj.account = info.context.user.bank_account
         return obj
 
+    @classmethod
+    def validate_amount(cls, root, info, value, input, **kwargs):
+        if value < 1:
+            raise ValueError("Deposit amount cannot be less than 1")
+
+        if value > 30000:
+            raise ValueError("Deposit amount cannot exceed 30000")
+
+        return value
+
 
 class PatchDepositMutation(DjangoPatchMutation):
     class Meta:
         model = Deposit
+        permissions = ("economy.change_deposit",)
 
     @classmethod
     def before_save(cls, root, info, input, id, obj: Deposit):
@@ -465,6 +480,7 @@ class PatchDepositMutation(DjangoPatchMutation):
 class DeleteDepositMutation(DjangoDeleteMutation):
     class Meta:
         model = Deposit
+        permissions = ("economy.delete_deposit",)
 
 
 class ApproveDepositMutation(graphene.Mutation):
@@ -473,7 +489,8 @@ class ApproveDepositMutation(graphene.Mutation):
 
     deposit = graphene.Field(DepositNode)
 
-    @gql_has_permissions("economy.change_deposit")
+    # Create custom permission for this
+    @gql_has_permissions("economy.approve_deposit")
     def mutate(self, info, deposit_id):
         deposit_id = disambiguate_id(deposit_id)
         deposit = Deposit.objects.get(id=deposit_id)

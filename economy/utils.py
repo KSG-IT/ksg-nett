@@ -54,7 +54,9 @@ def parse_transaction_history(bank_account, slice=None):
     ]
     parsed_product_orders = [
         parse_product_order(product_order)
-        for product_order in transaction_history["product_orders"]
+        for product_order in transaction_history["product_orders"].prefetch_related(
+            "product"
+        )
     ]
     parsed_deposits = [
         parse_deposit(deposit)

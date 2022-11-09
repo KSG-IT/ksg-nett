@@ -10,8 +10,12 @@ class Summary(models.Model):
         verbose_name_plural = "Summaries"
         default_related_name = "summaries"
 
-    # Change to FK to internal group and be nullable. Add blank name for Otjer
+    # Change to FK to internal group and be nullable. Add blank name for other
     type = models.CharField(max_length=32, choices=SummaryType.choices)
+    # title = models.CharField(max_length=128, null=True, blank=True)
+    # internal_group = models.ForeignKey(
+    #    "organization.InternalGroup", null=True, blank=True
+    # )
     contents = models.TextField(null=False, blank=True)
     participants = models.ManyToManyField(User, blank=True, related_name="summaries")
     reporter = models.ForeignKey(
