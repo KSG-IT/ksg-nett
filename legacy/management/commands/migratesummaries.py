@@ -14,29 +14,6 @@ from users.models import User
 import operator
 from django.db.models import Q
 
-"""
-
-class Summary(models.Model):
-    class Meta:
-        verbose_name_plural = "Summaries"
-        default_related_name = "summaries"
-
-    # Change to FK to internal group and be nullable. Add blank name for Otjer
-    type = models.CharField(max_length=32, choices=SummaryType.choices)
-    contents = models.TextField(null=False, blank=True)
-    participants = models.ManyToManyField(User, blank=True, related_name="summaries")
-    reporter = models.ForeignKey(
-        User,
-        null=True,
-        blank=True,
-        on_delete=models.SET_NULL,
-        related_name="reported_summaries",
-    )
-    date = models.DateTimeField(null=False, blank=False)
-    updated_at = models.DateTimeField(auto_now=True)
-
-"""
-
 
 def create_summary(summaries, internal_group=None):
     for legacy_summary in summaries:
@@ -99,7 +76,13 @@ class Command(BaseCommand):
             "sc",
             "kjøkken",
         ]
-        hovmester_keywords = ["hovmester", "hovmestermøte", "hovmestermøtet", "hm"]
+        hovmester_keywords = [
+            "hovmester",
+            "hovmestermøte",
+            "hovmestermøtet",
+            "hm",
+            "HM-møte",
+        ]
         kafeansvarlig_keywords = [
             "kafeansvarlig",
             "kafeansvarligmøte",
@@ -141,7 +124,7 @@ class Command(BaseCommand):
             "sprit",
             "sbs",
         ]
-        oko_keywords = ["øko", "økomøte"]
+        oko_keywords = ["øko", "økomøte", "Økomøte"]
 
         styret = legacy_summaries.filter(
             reduce(operator.or_, (Q(tittel__icontains=x) for x in styret_keywords))
