@@ -3,7 +3,7 @@ from django.db import transaction
 from django.utils import timezone
 
 from legacy.models import Sitater
-from quotes.models import LegacyQuote, Quote
+from quotes.models import Quote
 
 
 class Command(BaseCommand):

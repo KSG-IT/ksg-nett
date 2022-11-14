@@ -145,11 +145,3 @@ class QuoteVote(models.Model):
 
     def __repr__(self):
         return f"QuoteVote(quote={self.quote_id},value={self.value},caster={self.caster.first_name})"
-
-
-class LegacyQuote(models.Model):
-    datetime_created = models.DateTimeField()
-    text = models.TextField()
-
-    def __str__(self):
-        return self.text

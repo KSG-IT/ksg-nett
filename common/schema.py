@@ -37,9 +37,7 @@ class DashboardQuery(graphene.ObjectType):
     dashboard_data = graphene.Field(graphene.NonNull(DashboardData))
 
     def resolve_dashboard_data(self, info, *args, **kwargs):
-        quotes = Quote.objects.filter(verified_by__isnull=False).order_by(
-            "-created_at"
-        )[:5]
+        quotes = Quote.objects.filter(approved=True).order_by("-created_at")[:5]
         summaries = Summary.objects.all().order_by("-date")[:6]
         wanted = SociBankAccount.get_wanted_list()
         upcoming_shifts = info.context.user.future_shifts
