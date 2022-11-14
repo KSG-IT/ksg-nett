@@ -1,7 +1,4 @@
 from django.db import models
-from model_utils.fields import StatusField
-
-from summaries.consts import SummaryType
 from users.models import User
 
 

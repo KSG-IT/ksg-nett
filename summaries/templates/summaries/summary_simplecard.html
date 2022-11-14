@@ -1,5 +1,0 @@
-{# The template expects one input variable: `summary` #}
-<a href="{% url 'summaries_detail' summary.id %}" class="summarysimplecard resetlink">
-  <span class="summarysimplecard__date">{{ summary.date | date:"d.m.Y" }}</span>
-  <span class="summarysimplecard__type">{{ summary.summary_type | capfirst }}</span>
-</a>
