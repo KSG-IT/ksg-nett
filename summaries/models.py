@@ -35,3 +35,8 @@ class Summary(models.Model):
         if self.internal_group:
             return f"{self.internal_group.name} - {self.date}"
         return f"{self.title} - {self.date}"
+
+    def get_display_name(self):
+        if self.internal_group:
+            return self.internal_group.name
+        return self.title

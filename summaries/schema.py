@@ -19,10 +19,7 @@ class SummaryNode(DjangoObjectType):
         interfaces = (Node,)
 
     participants = graphene.List(UserNode)
-    type = graphene.String()
-
-    def resolve_summary_type(self: Summary, info, *args, **kwargs):
-        return self.get_type_display()
+    display_name = graphene.String(source="get_display_name")
 
     @classmethod
     def get_node(cls, info, id):
