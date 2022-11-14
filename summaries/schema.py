@@ -45,16 +45,19 @@ class SummaryQuery(graphene.ObjectType):
 class CreateSummaryMutation(DjangoCreateMutation):
     class Meta:
         model = Summary
+        permissions = ("summaries.add_summary",)
 
 
 class PatchSummaryMutation(DjangoPatchMutation):
     class Meta:
         model = Summary
+        permissions = ("summaries.change_summary",)
 
 
 class DeleteSummaryMutation(DjangoDeleteMutation):
     class Meta:
         model = Summary
+        permissions = ("summaries.delete_summary",)
 
 
 class SummariesMutations(graphene.ObjectType):
