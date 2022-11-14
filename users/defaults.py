@@ -54,6 +54,10 @@ default_user_types = [
             "schedules.change_shifttrade",
             "schedules.delete_shifttrade",
             "schedules.add_shifttrade",
+            "organization.add_internalgrouppositionmembership",
+            "organization.change_internalgrouppositionmembership",
+            "organization.delete_internalgrouppositionmembership",
+            "organization.view_internalgrouppositionmembership",
         ],
     },
     {
@@ -107,6 +111,10 @@ default_user_types = [
             "schedules.change_shifttrade",
             "schedules.delete_shifttrade",
             "schedules.add_shifttrade",
+            "organization.add_internalgrouppositionmembership",
+            "organization.change_internalgrouppositionmembership",
+            "organization.delete_internalgrouppositionmembership",
+            "organization.view_internalgrouppositionmembership",
         ],
     },
     {
