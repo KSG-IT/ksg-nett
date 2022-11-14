@@ -34,8 +34,8 @@ class Command(BaseCommand):
                     text=quote.tekst,
                     created_at=datetime_created,
                     reported_by=None,
-                    verified_by=None,
+                    approved_by=None,
+                    approved=True,
                     context=None,
-                    migrated_from_sg=True,
                 )
             self.stdout.write(self.style.SUCCESS("Done migrating quotes"))

@@ -1,4 +1,5 @@
 import graphene
+from django.db import transaction
 from graphene import Node
 from graphene_django import DjangoObjectType
 from graphene_django.filter import DjangoFilterConnectionField
@@ -85,7 +86,7 @@ class CreateQuoteMutation(DjangoCreateMutation):
 class PatchQuoteMutation(DjangoPatchMutation):
     class Meta:
         model = Quote
-        auto_context_fields = {"verified_by": "user"}
+        auto_context_fields = {"approved_by": "user"}
 
 
 class DeleteQuoteMutation(DjangoDeleteMutation):
@@ -112,7 +113,7 @@ class DeleteQuoteVote(DjangoDeleteMutation):
 class DeleteUserQuoteVote(graphene.Mutation):
     """
     Since a QuoteVote has a unique constraint for 'caster' and 'quote' there can only exist
-    one quote vote object with the same caster and quote. Given this, a delete mutation with
+    one quote vote object with the same caster and quote. Given this, a delete-mutation with
     quote_id + the user sending the request should give us a single quote vote object. The main
     motivation behind this approach is that we do not need to query every unique quote vote object
     for every quote in order to delete a vote from a user.
@@ -148,8 +149,10 @@ class ApproveQuoteMutation(graphene.Mutation):
     def mutate(self, info, quote_id):
         quote_id = disambiguate_id(quote_id)
         quote = Quote.objects.get(pk=quote_id)
-        quote.verified_by = info.context.user
-        quote.save()
+        with transaction.atomic():
+            quote.approved_by = info.context.user
+            quote.approved = True
+            quote.save()
         return ApproveQuoteMutation(quote=quote)
 
 
@@ -163,8 +166,10 @@ class InvalidateQuoteMutation(graphene.Mutation):
     def mutate(self, info, quote_id):
         quote_id = disambiguate_id(quote_id)
         quote = Quote.objects.get(pk=quote_id)
-        quote.verified_by = None
-        quote.save()
+        with transaction.atomic():
+            quote.approved_by = None
+            quote.approved = False
+            quote.save()
         return InvalidateQuoteMutation(quote=quote)
 
 

@@ -20,29 +20,23 @@ class Quote(TimestampedModel):
     tagged = models.ManyToManyField(User, blank=True, related_name="quotes")
 
     # None indicates not validated. Change the name of this
-    verified_by = models.ForeignKey(
+    approved_by = models.ForeignKey(
         User,
         null=True,
         blank=True,
-        related_name="verified_quotes",
+        related_name="approved_quotes",
         on_delete=models.SET_NULL,
     )
+    approved = models.BooleanField(default=False)
     context = models.CharField(max_length=200, null=True, blank=True)
 
     @classmethod
     def get_pending_quotes(cls):
-        return (
-            cls.objects.filter(verified_by__isnull=True)
-            .exclude(migrated_from_sg=True)
-            .order_by("-created_at")
-        )
+        return cls.objects.filter(approved=False).order_by("-created_at")
 
     @classmethod
     def get_approved_quotes(cls):
-        return (
-            cls.objects.filter(verified_by__isnull=False)
-            | cls.objects.filter(migrated_from_sg=True)
-        ).order_by("-created_at")
+        return (cls.objects.filter(approved=True)).order_by("-created_at")
 
     @classmethod
     def get_popular_quotes_in_current_semester(cls):
@@ -56,9 +50,7 @@ class Quote(TimestampedModel):
 
         semester_start = timezone.make_aware(semester_start)
         popular_quotes = (
-            cls.objects.filter(
-                verified_by__isnull=False, created_at__gte=semester_start
-            )
+            cls.objects.filter(approved=True, created_at__gte=semester_start)
             .annotate(total_votes=Coalesce(Sum("votes__value"), 0))
             .order_by("-total_votes")[:10]
         )
@@ -74,7 +66,7 @@ class Quote(TimestampedModel):
     def get_popular_quotes_all_time(cls):
         # TODO TESTS
         popular_quotes = (
-            cls.objects.filter(verified_by__isnull=False)
+            cls.objects.filter(approved=True)
             .annotate(total_votes=Coalesce(Sum("votes__value"), 0))
             .order_by("-total_votes")[:10]
         )
@@ -115,12 +107,6 @@ class Quote(TimestampedModel):
 
     class Meta:
         verbose_name_plural = "quotes"
-
-        indexes = [
-            # This field is used to check for pending and non-pending quotes, and
-            # should thus be indexed.
-            Index(fields=["verified_by"])
-        ]
         ordering = ["created_at"]
 
 
