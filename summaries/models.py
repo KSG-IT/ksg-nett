@@ -10,14 +10,15 @@ class Summary(models.Model):
         verbose_name_plural = "Summaries"
         default_related_name = "summaries"
 
-    # Change to FK to internal group and be nullable. Add blank name for other
-    type = models.CharField(max_length=32, choices=SummaryType.choices)
-    # title = models.CharField(max_length=128, null=True, blank=True)
-    # internal_group = models.ForeignKey(
-    #    "organization.InternalGroup", null=True, blank=True
-    # )
+    internal_group = models.ForeignKey(
+        "organization.InternalGroup", null=True, blank=True, on_delete=models.SET_NULL
+    )
+    # If internal group is null we use the title
+    title = models.CharField(max_length=128, null=True, blank=True)
     contents = models.TextField(null=False, blank=True)
-    participants = models.ManyToManyField(User, blank=True, related_name="summaries")
+    participants = models.ManyToManyField(
+        User, blank=True, related_name="meetings_attended_summaries"
+    )
     reporter = models.ForeignKey(
         User,
         null=True,
@@ -25,27 +26,12 @@ class Summary(models.Model):
         on_delete=models.SET_NULL,
         related_name="reported_summaries",
     )
-    date = models.DateTimeField(null=False, blank=False)
+    date = models.DateField(null=False, blank=False)
+
+    created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
-    def get_short_summary_type_name(self):
-        return self.get_type_display()
-
     def __str__(self):
-        return f"{self.get_type_display()} at {self.date.strftime('%Y-%m-%d')}"
-
-    def __repr__(self):
-        return f"Summary({self.type=}, {self.date=})"
-
-
-class LegacySummary(models.Model):
-    class Meta:
-        default_related_name = "legacy_summaries"
-        verbose_name_plural = "Legacy Summaries"
-
-    date = models.DateField()
-    title = models.TextField()
-    participants = models.TextField()
-    contents = models.TextField()
-    reporter = models.ForeignKey("users.User", on_delete=models.SET_NULL, null=True)
-    registered = models.DateTimeField()
+        if self.internal_group:
+            return f"{self.internal_group.name} - {self.date}"
+        return f"{self.title} - {self.date}"
