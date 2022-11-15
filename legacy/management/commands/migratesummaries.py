@@ -13,6 +13,7 @@ from users.models import User
 
 import operator
 from django.db.models import Q
+from django.contrib.postgres.search import SearchQuery
 
 
 def create_summary(summaries, internal_group=None):
@@ -59,118 +60,43 @@ class Command(BaseCommand):
         self.stdout.write(
             self.style.SUCCESS(f"Migrating {len(legacy_summaries)} summaries")
         )
-        styret_keywords = [
-            "styret",
-            "styret møte",
-            "styretmøte",
-            "styremøte",
-            "styre",
-            "syre",
-        ]
-        drift_keywords = ["drift", "driftsmøte", "driftsmøtet"]
-        souschef_keywords = [
-            "souschef",
-            "souschefmøte",
-            "souschefmøtet",
-            "Souchefmøte",
-            "sc",
-            "kjøkken",
-        ]
-        hovmester_keywords = [
-            "hovmester",
-            "hovmestermøte",
-            "hovmestermøtet",
-            "hm",
-            "HM-møte",
-        ]
-        kafeansvarlig_keywords = [
-            "kafeansvarlig",
-            "kafeansvarligmøte",
-            "kafeansvarligmøtet",
-            "ka",
-            "kake",
-            "edgar",
-            "Kakemøte",
-        ]
-        daglighallen_bar_keywords = [
-            "daglighallen bar",
-            "daglighallenbarmøte",
-            "daglighallenbarmøtet",
-            "dh",
-            "bar",
-        ]
-        brygg_keywords = ["brygg", "bryggmøte", "bryggmøtet", "bryggemøte"]
-        arrangement_keywords = [
-            "arrangement",
-            "arrangementmøte",
-            "arrangementmøtet",
-            "arr",
-            "arrangements",
-        ]
-        barsjef_keywords = [
-            "barsjef",
-            "barsjefmøte",
-            "barsjefmøtet",
-            "Ba r Sj eF mØT e",
-            "Baar sjef møte",
-            "baarsjefene",
-            "Ba r sje f mø te",
-            "B arsj efm øte",
-            "BASJEFMØTE",
-        ]
-        spritbarsjef_keywords = [
-            "spritbarsjef",
-            "spritbarsjefmøte",
-            "spritbarsjefmøtet",
-            "sprit",
-            "sbs",
-        ]
-        oko_keywords = ["øko", "økomøte", "Økomøte"]
+        styret_keywords = "styret styretmøte styretmøte styremøte styre syre Styremøte"
+        drift_keywords = "drift driftsmøte driftsmøtet"
+        souschef_keywords = "souschef souschefmøte souschefmøtet Souchefmøte sc kjøkken"
+        hovmester_keywords = "hovmester hovmestermøte hovmestermøtet hm HM HM-møte"
+        kafeansvarlig_keywords = "kafeansvarlig kafeansvarligmøte kafeansvarligmøtet ka KA kake Kake edgar Kakemøte"
+        daglighallen_bar_keywords = "daglighballen dh daglighallenbarmøte"
 
-        styret = legacy_summaries.filter(
-            reduce(operator.or_, (Q(tittel__search=x) for x in styret_keywords))
+        brygg_keywords = "brygg bryggmøte bryggmøtet bryggemøte"
+        arrangement_keywords = (
+            "arrangement arrangementmøte arrangementmøtet arr arrmøte"
         )
+        barsjef_keywords = ("barsjef barsjefmøte barsjefmøtet barsjefene",)
+
+        spritbarsjef_keywords = (
+            "spritbarsjef spritbarsjefmøte spritbarsjefmøtet sprit sbs"
+        )
+
+        oko_keywords = "øko økomøte Økomøte"
+
+        styret = legacy_summaries.filter(SearchQuery(styret_keywords))
         styret = styret.exclude(tittel__search="drift")
-        drift = legacy_summaries.filter(
-            reduce(operator.or_, (Q(tittel__search=x) for x in drift_keywords))
-        ).exclude(id__in=[x.id for x in styret])
+        drift = legacy_summaries.filter(SearchQuery(drift_keywords)).exclude(
+            id__in=[x.id for x in styret]
+        )
 
-        souschef = legacy_summaries.filter(
-            reduce(operator.or_, (Q(tittel__search=x) for x in souschef_keywords))
-        )
-        hovmester = legacy_summaries.filter(
-            reduce(operator.or_, (Q(tittel__search=x) for x in hovmester_keywords))
-        )
-        kafeansvarlig = legacy_summaries.filter(
-            reduce(operator.or_, (Q(tittel__search=x) for x in kafeansvarlig_keywords))
-        )
+        souschef = legacy_summaries.filter(SearchQuery(souschef_keywords))
+        hovmester = legacy_summaries.filter(SearchQuery(hovmester_keywords))
+        kafeansvarlig = legacy_summaries.filter(SearchQuery(kafeansvarlig_keywords))
         daglighallen_bar = legacy_summaries.filter(
-            reduce(
-                operator.or_,
-                (Q(tittel__search=x) for x in daglighallen_bar_keywords),
-            )
+            SearchQuery(daglighallen_bar_keywords)
         )
-        brygg = legacy_summaries.filter(
-            reduce(operator.or_, (Q(tittel__search=x) for x in brygg_keywords))
-        )
-        arrangement = legacy_summaries.filter(
-            reduce(operator.or_, (Q(tittel__search=x) for x in arrangement_keywords))
-        )
-        barsjef = legacy_summaries.filter(
-            reduce(operator.or_, (Q(tittel__search=x) for x in barsjef_keywords))
-        )
-        spritbarsjef = legacy_summaries.filter(
-            reduce(operator.or_, (Q(tittel__search=x) for x in spritbarsjef_keywords))
-        )
-        oko = legacy_summaries.filter(
-            reduce(operator.or_, (Q(tittel__search=x) for x in oko_keywords))
-        )
-        ksg_it = legacy_summaries.filter(
-            reduce(
-                operator.or_,
-                (Q(tittel__search=x) for x in ["ksg-it", "kit", "KSG-IT"]),
-            )
-        )
+        brygg = legacy_summaries.filter(SearchQuery(brygg_keywords))
+        arrangement = legacy_summaries.filter(SearchQuery(arrangement_keywords))
+        barsjef = legacy_summaries.filter(SearchQuery(barsjef_keywords))
+        spritbarsjef = legacy_summaries.filter(SearchQuery(spritbarsjef_keywords))
+        oko = legacy_summaries.filter(SearchQuery(oko_keywords))
+        ksg_it = legacy_summaries.filter(SearchQuery("ksg-it KIT KSG-IT kit"))
 
         rest = (
             legacy_summaries.exclude(id__in=[x.id for x in styret])
