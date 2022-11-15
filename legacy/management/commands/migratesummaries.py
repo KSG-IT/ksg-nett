@@ -90,6 +90,7 @@ class Command(BaseCommand):
             "ka",
             "kake",
             "edgar",
+            "Kakemøte",
         ]
         daglighallen_bar_keywords = [
             "daglighallen bar",
@@ -127,51 +128,47 @@ class Command(BaseCommand):
         oko_keywords = ["øko", "økomøte", "Økomøte"]
 
         styret = legacy_summaries.filter(
-            reduce(operator.or_, (Q(tittel__icontains=x) for x in styret_keywords))
+            reduce(operator.or_, (Q(tittel__search=x) for x in styret_keywords))
         )
-        styret = styret.exclude(tittel__icontains="drift")
+        styret = styret.exclude(tittel__search="drift")
         drift = legacy_summaries.filter(
-            reduce(operator.or_, (Q(tittel__icontains=x) for x in drift_keywords))
+            reduce(operator.or_, (Q(tittel__search=x) for x in drift_keywords))
         ).exclude(id__in=[x.id for x in styret])
 
         souschef = legacy_summaries.filter(
-            reduce(operator.or_, (Q(tittel__icontains=x) for x in souschef_keywords))
+            reduce(operator.or_, (Q(tittel__search=x) for x in souschef_keywords))
         )
         hovmester = legacy_summaries.filter(
-            reduce(operator.or_, (Q(tittel__icontains=x) for x in hovmester_keywords))
+            reduce(operator.or_, (Q(tittel__search=x) for x in hovmester_keywords))
         )
         kafeansvarlig = legacy_summaries.filter(
-            reduce(
-                operator.or_, (Q(tittel__icontains=x) for x in kafeansvarlig_keywords)
-            )
+            reduce(operator.or_, (Q(tittel__search=x) for x in kafeansvarlig_keywords))
         )
         daglighallen_bar = legacy_summaries.filter(
             reduce(
                 operator.or_,
-                (Q(tittel__icontains=x) for x in daglighallen_bar_keywords),
+                (Q(tittel__search=x) for x in daglighallen_bar_keywords),
             )
         )
         brygg = legacy_summaries.filter(
-            reduce(operator.or_, (Q(tittel__icontains=x) for x in brygg_keywords))
+            reduce(operator.or_, (Q(tittel__search=x) for x in brygg_keywords))
         )
         arrangement = legacy_summaries.filter(
-            reduce(operator.or_, (Q(tittel__icontains=x) for x in arrangement_keywords))
+            reduce(operator.or_, (Q(tittel__search=x) for x in arrangement_keywords))
         )
         barsjef = legacy_summaries.filter(
-            reduce(operator.or_, (Q(tittel__icontains=x) for x in barsjef_keywords))
+            reduce(operator.or_, (Q(tittel__search=x) for x in barsjef_keywords))
         )
         spritbarsjef = legacy_summaries.filter(
-            reduce(
-                operator.or_, (Q(tittel__icontains=x) for x in spritbarsjef_keywords)
-            )
+            reduce(operator.or_, (Q(tittel__search=x) for x in spritbarsjef_keywords))
         )
         oko = legacy_summaries.filter(
-            reduce(operator.or_, (Q(tittel__icontains=x) for x in oko_keywords))
+            reduce(operator.or_, (Q(tittel__search=x) for x in oko_keywords))
         )
         ksg_it = legacy_summaries.filter(
             reduce(
                 operator.or_,
-                (Q(tittel__icontains=x) for x in ["ksg-it", "kit", "KSG-IT"]),
+                (Q(tittel__search=x) for x in ["ksg-it", "kit", "KSG-IT"]),
             )
         )
 
@@ -189,6 +186,7 @@ class Command(BaseCommand):
             .exclude(id__in=[x.id for x in oko])
             .exclude(id__in=[x.id for x in ksg_it])
         )
+        print(rest.count())
 
         with transaction.atomic():
             internal_group_styret = InternalGroup.objects.get(name="Styret")
