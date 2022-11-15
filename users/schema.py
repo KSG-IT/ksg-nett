@@ -105,7 +105,7 @@ class UserNode(DjangoObjectType):
         return self.ksg_status
 
     def resolve_tagged_and_verified_quotes(self: User, info, *args, **kwargs):
-        return self.quotes.filter(verified_by__isnull=False).order_by("-created_at")
+        return self.quotes.filter(approved=True).order_by("-created_at")
 
     def resolve_upvoted_quote_ids(self: User, info, **kwargs):
         return [
