@@ -26,7 +26,6 @@ def send_password_reset_email(user, token):
     :param token: The token to send in the email.
     :return:
     """
-    from django.utils.html import strip_tags
     from common.util import send_email
 
     content = f"""
@@ -45,7 +44,7 @@ def send_password_reset_email(user, token):
                 Vi har mottatt en forespørsel om å nullstille passordet ditt.
                 <br>
                 <br>
-                <a href="{settings.APP_URL}/reset-password?token={token}">Klikk her for å nullstille passordet ditt</a>
+                <span>{settings.APP_URL}/reset-password?token={token}</span>
             """
     subject = "KSG-nett - Nullstill passord"
     send_email(
