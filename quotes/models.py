@@ -7,6 +7,14 @@ from django.utils import timezone
 
 
 class Quote(TimestampedModel):
+    class Meta:
+        verbose_name_plural = "quotes"
+        ordering = ["created_at"]
+        permissions = (
+            ("approve_quote", "Can approve quotes"),
+            ("invalidate_quote", "Can invalidate quotes"),
+        )
+
     text = models.TextField()
     reported_by = models.ForeignKey(
         User,
@@ -104,10 +112,6 @@ class Quote(TimestampedModel):
             self.text,
             self.tagged.all(),
         )
-
-    class Meta:
-        verbose_name_plural = "quotes"
-        ordering = ["created_at"]
 
 
 class QuoteVote(models.Model):

@@ -14,6 +14,8 @@ default_user_types = [
             "quotes.delete_quote",
             "quotes.view_quote",
             "quotes.add_quote",
+            "quotes.approve_quote",
+            "quotes.invalidate_quote",
             "economy.view_deposit",
             "economy.approve_deposit",
             "economy.change_deposit",
@@ -84,7 +86,8 @@ default_user_types = [
         "permissions": [
             "users.change_user",
             "users.view_user",
-            "quotes.change_quote",
+            "quotes.approve_quote",
+            "quotes.invalidate_quote",
             "users.change_usertype",
             "users.view_usertype",
             "schedules.view_schedule",
@@ -155,7 +158,8 @@ default_user_types = [
         "requires_self": False,
         "description": "En velferdsansvarlig har tilgang til velferdsmodulen og kan administrere brukere",
         "permissions": [
-            "quotes.change_quote",
+            "quotes.approve_quote",
+            "quotes.invalidate_quote",
         ],
     },
     {
