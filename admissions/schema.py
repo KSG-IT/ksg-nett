@@ -1345,9 +1345,10 @@ class CloseAdmissionMutation(graphene.Mutation):
         admission = Admission.get_active_admission()
         admitted_applicants = get_admission_final_applicant_qs(admission)
         failed_user_generation = []
-
-        for applicant in admitted_applicants:
-            try:
+        with transaction.atomic():
+            # Would rather trigger an error and not finish the transaction
+            # if something went wrong
+            for applicant in admitted_applicants:
                 # Step 2)
                 email_check = User.objects.filter(email=applicant.email)
 
@@ -1359,6 +1360,8 @@ class CloseAdmissionMutation(graphene.Mutation):
                     print(f"Someone with the email {applicant.phone} already exists")
 
                 applicant_user_profile = User.objects.create(
+                    # Most probable where error will happen on
+                    # too long values or unique constraint
                     username=applicant.email,
                     first_name=applicant.first_name,
                     last_name=applicant.last_name,
@@ -1371,11 +1374,7 @@ class CloseAdmissionMutation(graphene.Mutation):
                     study=applicant.study,
                     date_of_birth=applicant.date_of_birth,
                 )
-                """
-                Unique constraints can be fucked up here
-                    1. How should we handle emails? Do this at applicant stage?
-                    2. Phone number 
-                """
+
                 # Step 3)
                 # We give the applicant the internal group position they have been accepted into
                 internal_group_position = get_applicant_offered_position(applicant)
@@ -1398,11 +1397,6 @@ class CloseAdmissionMutation(graphene.Mutation):
                 SociBankAccount.objects.create(
                     user=applicant_user_profile, balance=0, card_uuid=None
                 )
-
-            except Exception as e:
-                print(e)
-                # Should we write this out to some model or a log?
-                failed_user_generation.append(applicant)
 
         # Step 4)
         # User generation is done. Now we want to remove all identifying information
