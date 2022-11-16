@@ -277,7 +277,7 @@ class Deposit(common_models.TimestampedModel):
     """
 
     def _receipt_upload_location(self, filename):
-        return os.path.join("receipts", str(self.id), filename)
+        return os.path.join("receipts", filename)
 
     account = models.ForeignKey(
         "SociBankAccount",
@@ -291,25 +291,20 @@ class Deposit(common_models.TimestampedModel):
     receipt = models.ImageField(
         upload_to=_receipt_upload_location, blank=True, null=True, default=None
     )
-    migrated_from_sg = models.BooleanField(default=False)
 
-    # Migrate to approved + by/at fields. By can be null for old legacy deposits
-    signed_off_by = models.ForeignKey(
+    approved = models.BooleanField(default=False)
+    approved_by = models.ForeignKey(
         User,
         null=True,
         blank=True,
         related_name="verified_deposits",
         on_delete=models.DO_NOTHING,
     )
-    signed_off_time = models.DateTimeField(default=None, null=True, blank=True)
+    approved_at = models.DateTimeField(default=None, null=True, blank=True)
 
     @classmethod
     def get_pending_deposits(cls):
-        return cls.objects.filter(signed_off_by__isnull=True)
-
-    @property
-    def approved(self):
-        return self.signed_off_by is not None or self.migrated_from_sg
+        return cls.objects.filter(approved=False)
 
     def __str__(self):
         return f"Deposit for {self.account.user} of {self.amount} kr"

@@ -7,7 +7,7 @@ def parse_deposit(deposit):
     return BankAccountActivity(
         name="Innskudd",
         amount=deposit.amount,
-        timestamp=deposit.signed_off_time,
+        timestamp=deposit.approved_at,
         quantity=None,
     )
 
@@ -60,9 +60,7 @@ def parse_transaction_history(bank_account, slice=None):
     ]
     parsed_deposits = [
         parse_deposit(deposit)
-        for deposit in transaction_history["deposits"].filter(
-            signed_off_by__isnull=False
-        )
+        for deposit in transaction_history["deposits"].filter(approved=True)
     ]
 
     activities = [*parsed_transfers, *parsed_product_orders, *parsed_deposits]

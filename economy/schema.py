@@ -6,6 +6,7 @@ import calendar
 import pytz
 from django.conf import settings
 from django.core.exceptions import SuspiciousOperation
+from django.db import transaction
 from graphene import Node
 from django.db.models import Q, F, Sum
 from django.db.models.functions import Coalesce
@@ -88,7 +89,6 @@ class DepositNode(DjangoObjectType):
         model = Deposit
         interfaces = (Node,)
 
-    approved = graphene.Boolean(source="approved")
     receipt = graphene.String()
 
     def resolve_receipt(self: Deposit, info, *args, **kwargs):
@@ -180,29 +180,16 @@ class DepositQuery(graphene.ObjectType):
     @gql_has_permissions("economy.change_deposit")
     def resolve_all_deposits(self, info, q, unverified_only, *args, **kwargs):
         # ToDo implement user fullname search filtering
-        return (
-            Deposit.objects.all()
-            .filter(
-                account__user__first_name__contains=q,
-                signed_off_by__isnull=unverified_only,
-            )
-            .exclude(migrated_from_sg=True)
-            .order_by("-created_at")
-        )
+        return Deposit.objects.filter(
+            account__user__first_name__contains=q,
+            approved=not unverified_only,
+        ).order_by("-created_at")
 
     def resolve_all_pending_deposits(self, info, *args, **kwargs):
-        return (
-            Deposit.objects.filter(signed_off_by__isnull=True)
-            .order_by("-created_at")
-            .exclude(migrated_from_sg=True)
-        )
+        return Deposit.objects.filter(approved=False).order_by("-created_at")
 
     def resolve_all_approved_deposits(self, info, *args, **kwargs):
-        return (
-            Deposit.objects.filter(signed_off_by__isnull=False)
-            .exclude(migrated_from_sg=True)
-            .order_by("-created_at")
-        )
+        return Deposit.objects.filter(approved=True).order_by("-created_at")
 
 
 class ProductOrderQuery(graphene.ObjectType):
@@ -461,22 +448,6 @@ class CreateDepositMutation(DjangoCreateMutation):
         return value
 
 
-class PatchDepositMutation(DjangoPatchMutation):
-    class Meta:
-        model = Deposit
-        permissions = ("economy.change_deposit",)
-
-    @classmethod
-    def before_save(cls, root, info, input, id, obj: Deposit):
-        if not obj.signed_off_by:
-            obj.account.remove_funds(obj.amount)
-            obj.signed_off_time = None
-        else:
-            obj.account.add_funds(obj.amount)
-            obj.signed_off_time = timezone.now()
-        return obj
-
-
 class DeleteDepositMutation(DjangoDeleteMutation):
     class Meta:
         model = Deposit
@@ -494,11 +465,13 @@ class ApproveDepositMutation(graphene.Mutation):
     def mutate(self, info, deposit_id):
         deposit_id = disambiguate_id(deposit_id)
         deposit = Deposit.objects.get(id=deposit_id)
-        deposit.signed_off_time = timezone.now()
-        deposit.signed_off_by = info.context.user
-        deposit.save()
-        deposit.account.add_funds(deposit.amount)
-        return ApproveDepositMutation(deposit=deposit)
+        with transaction.atomic():
+            deposit.approved_at = timezone.now()
+            deposit.approved_by = info.context.user
+            deposit.approved = True
+            deposit.save()
+            deposit.account.add_funds(deposit.amount)
+            return ApproveDepositMutation(deposit=deposit)
 
 
 class InvalidateDepositMutation(graphene.Mutation):
@@ -511,11 +484,13 @@ class InvalidateDepositMutation(graphene.Mutation):
     def mutate(self, info, deposit_id):
         deposit_id = disambiguate_id(deposit_id)
         deposit = Deposit.objects.get(id=deposit_id)
-        deposit.signed_off_time = None
-        deposit.signed_off_by = None
-        deposit.save()
-        deposit.account.remove_funds(deposit.amount)
-        return InvalidateDepositMutation(deposit=deposit)
+        with transaction.atomic():
+            deposit.approved_at = None
+            deposit.approved_by = None
+            deposit.approved = False
+            deposit.save()
+            deposit.account.remove_funds(deposit.amount)
+            return InvalidateDepositMutation(deposit=deposit)
 
 
 class EconomyMutations(graphene.ObjectType):
@@ -535,7 +510,6 @@ class EconomyMutations(graphene.ObjectType):
     patch_soci_bank_account = PatchSociBankAccountMutation.Field()
 
     create_deposit = CreateDepositMutation.Field()
-    patch_deposit = PatchDepositMutation.Field()
     delete_deposit = DeleteDepositMutation.Field()
     approve_deposit = ApproveDepositMutation.Field()
     invalidate_deposit = InvalidateDepositMutation.Field()
