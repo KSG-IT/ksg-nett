@@ -1,6 +1,8 @@
 import datetime
 import graphene
 from django.contrib.auth.models import Group
+from django.db import transaction
+from django.utils import timezone
 from graphene import Node
 from graphene_django import DjangoObjectType
 from graphene_django_cud.mutations import (
@@ -22,7 +24,7 @@ from organization.models import (
 from graphene_django_cud.util import disambiguate_id
 from organization.graphql import InternalGroupPositionTypeEnum
 from users.schema import UserNode
-from users.models import User
+from users.models import User, UserType, UserTypeLogEntry
 
 
 class LegacyUserWorkHistoryNode(DjangoObjectType):
@@ -245,20 +247,38 @@ class AssignNewInternalGroupPositionMembership(graphene.Mutation):
             )
         )
 
+        has_usertype_perm = info.context.user.has_perm("users.change_usertype")
+
         if active_membership.type == InternalGroupPositionMembershipType.FUNCTIONARY:
-            interview_group = Group.objects.filter(name="Intervjuer").first()
-            if interview_group:
+            functionary_user_type = UserType.objects.filter(name="Funksjonær").first()
+            if functionary_user_type and has_usertype_perm:
                 # Can make this a bit more robust in the future
-                user.groups.remove(interview_group)
+                with transaction.atomic():
+                    functionary_user_type.users.remove(user)
+                    UserTypeLogEntry.objects.create(
+                        user_type=functionary_user_type,
+                        user=user,
+                        done_by=info.context.user,
+                        timestamp=timezone.now(),
+                        action=UserTypeLogEntry.Action.REMOVE,
+                    )
 
         if (
             new_internal_group_position_membership.type
             == InternalGroupPositionMembershipType.FUNCTIONARY
         ):
-            interview_group = Group.objects.filter(name="Intervjuer").first()
+            functionary_user_type = UserType.objects.filter(name="Funksjonær").first()
             # Same as above
-            if interview_group:
-                user.groups.add(interview_group)
+            if functionary_user_type and has_usertype_perm:
+                with transaction.atomic():
+                    functionary_user_type.users.add(user)
+                    UserTypeLogEntry.objects.create(
+                        user_type=functionary_user_type,
+                        user=user,
+                        done_by=info.context.user,
+                        timestamp=timezone.now(),
+                        action=UserTypeLogEntry.Action.ADD,
+                    )
 
         return AssignNewInternalGroupPositionMembership(
             internal_group_position_membership=new_internal_group_position_membership
