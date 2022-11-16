@@ -400,6 +400,8 @@ class CloseSociSessionMutation(graphene.Mutation):
 
     @gql_has_permissions("economy.change_socisession")
     def mutate(self, info, id, *args, **kwargs):
+        from economy.utils import stilletime_closed_email_notification
+
         id = disambiguate_id(id)
         soci_session = SociSession.objects.get(id=id)
         if soci_session.type == SociSession.Type.SOCIETETEN:
@@ -408,6 +410,8 @@ class CloseSociSessionMutation(graphene.Mutation):
             )
         soci_session.closed_at = timezone.now()
         soci_session.save()
+        if soci_session.type == SociSession.Type.STILLETIME:
+            stilletime_closed_email_notification(soci_session)
         return CloseSociSessionMutation(soci_session=soci_session)
 
 

@@ -69,3 +69,7 @@ def parse_transaction_history(bank_account, slice=None):
         activities = activities[:slice]
 
     return activities
+
+
+def stilletime_closed_email_notification(soci_session):
+    pass
