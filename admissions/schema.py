@@ -410,6 +410,7 @@ class InternalGroupDiscussionData(graphene.ObjectType):
 class CloseAdmissionData(graphene.ObjectType):
     valid_applicants = graphene.List(ApplicantNode)
     applicant_interests = graphene.List(ApplicantInterestNode)
+    active_admission = graphene.Field(AdmissionNode)
 
 
 class ApplicantCSVData(graphene.ObjectType):
@@ -519,10 +520,10 @@ class ApplicantQuery(graphene.ObjectType):
     @gql_has_permissions("admissions.view_admission")
     def resolve_close_admission_data(self, info, *args, **kwargs):
         # Can we do an annotation here? Kind of like unwanted = all_priorities = DO_NOT_WANT
-        active_admissions = Admission.get_active_admission()
+        active_admission = Admission.get_active_admission()
         valid_applicants = (
             Applicant.objects.filter(
-                admission=active_admissions,
+                admission=active_admission,
                 priorities__internal_group_priority__in=[
                     InternalGroupStatus.WANT,
                     InternalGroupStatus.RESERVE,
@@ -534,13 +535,15 @@ class ApplicantQuery(graphene.ObjectType):
         )
 
         applicant_interests = (
-            ApplicantInterest.objects.filter(applicant__admission=active_admissions)
+            ApplicantInterest.objects.filter(applicant__admission=active_admission)
             .exclude(applicant__pk__in=valid_applicants)
             .order_by("applicant__first_name")
         )
 
         return CloseAdmissionData(
-            valid_applicants=valid_applicants, applicant_interests=applicant_interests
+            valid_applicants=valid_applicants,
+            applicant_interests=applicant_interests,
+            active_admission=active_admission,
         )
 
     def resolve_get_applicant_from_token(self, info, token, *args, **kwargs):
