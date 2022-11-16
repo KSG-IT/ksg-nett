@@ -37,11 +37,15 @@ class Command(BaseCommand):
                 self.stdout.write(
                     self.style.SUCCESS(f"Migrating deposit: {deposit.kommentar}")
                 )
-                Deposit.objects.get_or_create(
+                deposit = Deposit.objects.get_or_create(
                     amount=deposit.penger,
                     created_at=aware_datetime,
                     account=SociBankAccount.objects.get(user__sg_id=deposit.person.id),
-                    signed_off_time=aware_datetime,
+                    approved_at=aware_datetime,
                     description=deposit.kommentar,
-                    migrated_from_sg=True,
+                    approved=deposit.godkjent,
                 )
+                deposit.created_at = aware_datetime
+                if deposit.approved:
+                    deposit.approved_at = aware_datetime
+                deposit.save()
