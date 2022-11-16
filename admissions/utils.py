@@ -516,8 +516,9 @@ def obfuscate_admission(admission):
         fake_data = ApplicantFactory.build(admission=admission)
         applicant.first_name = fake_data.first_name
         applicant.last_name = fake_data.last_name
-        applicant.address = fake_data.address
-        applicant.phone = fake_data.phone
+        applicant.address = fake_data.address[:20]
+        applicant.hometown = fake_data.hometown[:20]
+        applicant.phone = fake_data.phone[:10]
         applicant.save()
 
 
