@@ -63,6 +63,16 @@ default_user_types = [
         ],
     },
     {
+        "name": "Funkesjef",
+        "description": "Funkesjef kan gi tilganger til andre brukere, og endre interngjengene",
+        "requires_superuser": False,
+        "requires_self": True,
+        "permissions": [
+            "users.change_usertype",
+            "organization.change_internalgroup",
+        ],
+    },
+    {
         "name": "Funksjonær",
         "description": "En funksjonær har tilgang intervjusystemet og oprretting/redigering av referater",
         "requires_superuser": False,
@@ -127,7 +137,8 @@ default_user_types = [
         "requires_self": True,
         "permissions": [
             "economy.view_deposit",
-            "economy.change_deposit",
+            "economy.approve_deposit",
+            "economy.invalidate_deposit",
             "bar_tab.view_bartab",
             "bar_tab.change_bartab",
             "bar_tab.add_bartab",

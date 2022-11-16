@@ -276,6 +276,12 @@ class Deposit(common_models.TimestampedModel):
     Deposits need a valid receipt in order to be approved.
     """
 
+    class Meta:
+        permissions = (
+            ("approve_deposit", "Can approve deposits"),
+            ("invalidate_deposit", "Can invalidate deposits"),
+        )
+
     def _receipt_upload_location(self, filename):
         return os.path.join("receipts", filename)
 
