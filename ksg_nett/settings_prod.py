@@ -1,9 +1,9 @@
 import os
 from ksg_nett.settings import *
+import sentry_sdk
+from sentry_sdk.integrations.django import DjangoIntegration
 
-# SECURITY WARNING: don't run with debug turned on in production
 DEBUG = False
-
 EMAIL_HOST = "smtp.samfundet.no"
 EMAIL_USE_TLS = True
 EMAIL_PORT = 587
@@ -14,6 +14,7 @@ sentry_sdk.init(
     integrations=[DjangoIntegration()],
     traces_sample_rate=1.0,
     send_default_pii=True,
+    environment="production",
 )
 
 HOST_URL = "https://ksg-nett.samfundet.no"

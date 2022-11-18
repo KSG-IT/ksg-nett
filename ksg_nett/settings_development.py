@@ -11,6 +11,7 @@ sentry_sdk.init(
     integrations=[DjangoIntegration()],
     traces_sample_rate=1.0,
     send_default_pii=True,
+    environment="development",
 )
 
 EMAIL_HOST = "smtp.samfundet.no"
