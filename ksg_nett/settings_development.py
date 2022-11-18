@@ -1,20 +1,27 @@
 from ksg_nett.settings import *
-import psycopg2
 import os
 import sentry_sdk
 from sentry_sdk.integrations.django import DjangoIntegration
 
-# Build paths inside the project like this: os.path.join(BASE_DIR, ...)
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "rc4yscfoc9loe+937$q-57agxy0iq+!o0zowl0#vylilol2-)e"
-
-# SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
-ALLOWED_HOSTS = ["ksg-nett.alexanderorvik.com", "amazonaws.com"]
-AUTH_JWT_SECRET = os.environ.get("AUTH_JWT_SECRET")
+sentry_sdk.init(
+    dsn="https://b803a49419fa48029eb23004cb67b99d@o487192.ingest.sentry.io/5545712",
+    integrations=[DjangoIntegration()],
+    traces_sample_rate=1.0,
+    send_default_pii=True,
+)
+
+EMAIL_HOST = "smtp.samfundet.no"
+EMAIL_USE_TLS = True
+EMAIL_PORT = 587
+
+HOST_URL = "https://ksg-nett.samfundet.no"
+MEDIA_ROOT = "media/"
+MEDIA_URL = "https://ksg-nett.samfundet.no/media/"
+APP_URL = "app.ksg-nett.no"
+BASE_URL = "https://ksg-nett.samfundet.no"
 
 # Application definition
 DATABASES = {
@@ -25,23 +32,20 @@ DATABASES = {
         "PASSWORD": os.environ.get("DB_PASSWORD"),
         "HOST": os.environ.get("DB_HOST"),
         "PORT": os.environ.get("DB_PORT"),
-    }
+    },
+    "legacy": {
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": os.environ.get("DB_NAME_LEGACY"),
+        "USER": os.environ.get("DB_USER_LEGACY"),
+        "PASSWORD": os.environ.get("DB_PASSWORD_LEGACY"),
+        "HOST": os.environ.get("DB_HOST_LEGACY"),
+        "PORT": os.environ.get("DB_PORT_LEGACY"),
+    },
 }
 
 sentry_sdk.init(
     dsn=os.environ.get("SENTRY_DSN", ""),
     integrations=[DjangoIntegration()],
     traces_sample_rate=1.0,
-    # If you wish to associate users to errors (assuming you are using
-    # django.contrib.auth) you may enable sending PII data.
     send_default_pii=True,
 )
-
-
-# S3 media files
-# AWS_S3_REGION_NAME = "eu-west-3"
-# ¤AWS_S3_BUCKET_AUTH = False
-# AWS_S3_BUCKET_NAME = "ksg-nett-bucket"
-# AWS_STORAGE_BUCKET_NAME = "ksg-nett-bucket"
-# DEFAULT_FILE_STORAGE = "storages.backends.s3boto3.S3Boto3Storage"
-# MEDIA_URL = f"https://{AWS_S3_BUCKET_NAME}.s3.amazonaws.com/media/"

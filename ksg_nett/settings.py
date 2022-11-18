@@ -9,31 +9,19 @@ https://docs.djangoproject.com/en/1.10/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/1.10/ref/settings/
 """
-
+import json
 import os
 from datetime import timedelta
 import warnings
-
 from corsheaders.defaults import default_headers
-
-
 import sentry_sdk
 from sentry_sdk.integrations.django import DjangoIntegration
 
-sentry_sdk.init(
-    dsn="https://b803a49419fa48029eb23004cb67b99d@o487192.ingest.sentry.io/5545712",
-    integrations=[DjangoIntegration()],
-    traces_sample_rate=1.0,
-    send_default_pii=True,
-)
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/1.10/howto/deployment/checklist/
-
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "rc4yscfoc9loe+937$q-57agxy0iq+!o0zowl0#vylilol2-)e"
+SECRET_KEY = os.environ.get("SECRET_KEY", "ALEXISTHEGREATEST")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -47,10 +35,9 @@ ALLOWED_HOSTS = [
     "0.0.0.0",
     "ksg-nett.no",
     "ksg-nett.samfundet.no",
+    "ksg-nett-dev.samfundet.no",
     "*.samfundet.no",
 ]
-
-# Application definition
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -121,18 +108,17 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "ksg_nett.wsgi.application"
 
-
-EMAIL_HOST = "smtp.samfundet.no"
-EMAIL_USE_TLS = True
-EMAIL_PORT = 587
-
 # Database
 # https://docs.djangoproject.com/en/1.10/ref/settings/#databases
 
 DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": os.path.join(BASE_DIR, "db.sqlite3"),
+        "ENGINE": os.environ.get("DB_ENGINE", "django.db.backends.sqlite3"),
+        "NAME": os.environ.get("DB_NAME", os.path.join(BASE_DIR, "db.sqlite3")),
+        "USER": os.environ.get("DB_USER", ""),
+        "PASSWORD": os.environ.get("DB_PASSWORD", ""),
+        "HOST": os.environ.get("DB_HOST", ""),
+        "PORT": os.environ.get("DB_PORT", ""),
     }
 }
 
@@ -177,16 +163,13 @@ AUTHENTICATION_BACKENDS = [
 LOGIN_URL = "/"
 
 # Internationalization
-# https://docs.djangoproject.com/en/1.10/topics/i18n/
+# https://docs.djangoproject.com/en/1.10/topics/i18
 
 LANGUAGE_CODE = "en-us"
 
 TIME_ZONE = "Europe/Belgrade"
-
 USE_I18N = True
-
 USE_L10N = True
-
 USE_TZ = True
 
 warnings.filterwarnings(
@@ -265,7 +248,7 @@ SIMPLE_JWT = {
 }
 # Sensor token. This is used to authenticate incoming sensor API requests.
 # This should be changed before production.
-SENSOR_API_TOKEN = "3@Zhg$nH^Dlhw23R"
+SENSOR_API_TOKEN = os.environ.get("SENSOR_API_TOKEN", "3@Zhg$nH^Dlhw23R")
 
 # API DOCS
 # ------------------------------
@@ -280,7 +263,12 @@ REDOC_SETTINGS = {"PATH_IN_MIDDLE": True, "REQUIRED_PROPS_FIRST": True}
 SOCI_MASTER_ACCOUNT_CARD_ID = 0xBADCAFEBABE  # Real card ids are 10 digits, while this is 14, meaning no collisions
 DIRECT_CHARGE_SKU = "X-BELOP"
 WANTED_LIST_THRESHOLD = -2000
-SOCI_GOLD = []
+SOCI_GOLD = os.environ.get("SOCI_GOLD", [])
+if not isinstance(SOCI_GOLD, list):
+    SOCI_GOLD = json.loads(SOCI_GOLD)
+
+print(os.environ.get("SOCI_GOLD"))
+print(SOCI_GOLD)
 
 # Channels
 ASGI_APPLICATION = "ksg_nett.routing.application"
