@@ -15,6 +15,7 @@ class DashboardData(graphene.ObjectType):
     my_upcoming_shifts = graphene.NonNull(
         graphene.List(graphene.NonNull(ShiftSlotNode))
     )
+    soci_order_session = graphene.Field("economy.schema.SociOrderSessionNode")
 
 
 class SidebarData(graphene.ObjectType):
@@ -37,13 +38,16 @@ class DashboardQuery(graphene.ObjectType):
     dashboard_data = graphene.Field(graphene.NonNull(DashboardData))
 
     def resolve_dashboard_data(self, info, *args, **kwargs):
+        me = info.context.user
         quotes = Quote.objects.filter(approved=True).order_by("-created_at")[:5]
         summaries = Summary.objects.all().order_by("-date")[:6]
         wanted = SociBankAccount.get_wanted_list()
-        upcoming_shifts = info.context.user.future_shifts
+        upcoming_shifts = me.future_shifts
+        soci_order_session = me.get_invited_soci_order_session
         return DashboardData(
             last_quotes=quotes,
             last_summaries=summaries,
             wanted_list=wanted,
             my_upcoming_shifts=upcoming_shifts,
+            soci_order_session=soci_order_session,
         )

@@ -1,5 +1,6 @@
 from django.conf import settings
 
+from common.util import send_email
 from economy.schema import BankAccountActivity
 
 
@@ -73,3 +74,27 @@ def parse_transaction_history(bank_account, slice=None):
 
 def stilletime_closed_email_notification(soci_session):
     pass
+
+
+def send_soci_order_session_invitation_email(soci_session, invited_users):
+    email_list = invited_users.values_list("email", flat=True)
+
+    content = f"""
+        Hei!
+
+        Du er herved invitert på stilletime. Logg inn på KSG-nett for å legge inn matbestilling.
+        """
+
+    html_content = f"""
+                Hei! 
+                <br>
+                <br>
+                Du er herved invitert på stilletime. Logg inn på KSG-nett for å legge inn matbestilling.
+            """
+
+    send_email(
+        recipients=email_list,
+        subject="Invitasjon til Sosialt Selskap",
+        message=content,
+        html_message=html_content,
+    )

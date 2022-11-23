@@ -14,6 +14,7 @@ from economy.schema import (
     SociBankAccountQuery,
     DepositQuery,
     ProductOrderQuery,
+    SociOrderSessionQuery,
     EconomyMutations,
     SociSessionQuery,
 )
@@ -52,6 +53,7 @@ class Query(
     SociBankAccountQuery,
     SociProductQuery,
     SociSessionQuery,
+    SociOrderSessionQuery,
     UserQuery,
     InternalGroupQuery,
     InternalGroupPositionQuery,

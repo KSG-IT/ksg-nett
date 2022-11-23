@@ -87,6 +87,15 @@ class SociProduct(TimeFramedModel):
     to differentiate between different products in the Soci stock keeping system.
     """
 
+    class Type(models.TextChoices):
+        FOOD = "FOOD", "Food"
+        DRINK = "DRINK", "Drink"
+
+    type = models.CharField(
+        max_length=10,
+        choices=Type.choices,
+        null=True,
+    )
     sku_number = models.CharField(
         unique=True, max_length=50, verbose_name="Product SKU number"
     )
@@ -127,6 +136,7 @@ class SociSession(models.Model):
         SOCIETETEN = ("SOCIETETEN", "Societeten")
         STILLETIME = ("STILLETIME", "Stilletime")
         KRYSELLISTE = ("KRYSSELISTE", "Krysseliste")
+        BURGERLISTE = ("BURGERLISTE", "Burgerliste")
 
     name = models.CharField(max_length=50, blank=True, null=True)
     created_by = models.ForeignKey(
@@ -325,6 +335,9 @@ class DepositComment(TimeStampedModel):
     This is useful in cases where a deposit is incomplete by missing a receipt or similar.
     """
 
+    class Meta:
+        pass
+
     deposit = models.ForeignKey(
         Deposit,
         null=False,
@@ -352,5 +365,88 @@ class DepositComment(TimeStampedModel):
     def __repr__(self):
         return f"DepositComment(id={self.id},deposit={self.deposit.id},user={self.user.id},comment={self.comment})"
 
+
+class SociOrderSession(models.Model):
     class Meta:
-        pass
+        verbose_name = "Soci Order Session"
+        verbose_name_plural = "Soci Order Sessions"
+
+    class Status(models.TextChoices):
+        CREATED = "CREATED", "Created"
+        FOOD_ORDERING = "FOOD_ORDERING", "Food Ordering"
+        DRINK_ORDERING = "DRINK_ORDERING", "Drink Ordering"
+        CLOSED = "CLOSED", "Closed"
+
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.CREATED,
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    closed_at = models.DateTimeField(null=True, blank=True)
+    created_by = models.ForeignKey(
+        User,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="soci_order_sessions_created",
+    )
+    closed_by = models.ForeignKey(
+        User,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="soci_order_sessions_closed",
+    )
+    invited_users = models.ManyToManyField(
+        User,
+        related_name="soci_order_sessions_invited_to",
+        blank=True,
+    )
+    order_pdf = models.FileField(
+        upload_to="soci_order_sessions",
+        null=True,
+        blank=True,
+    )
+
+    @classmethod
+    def get_active_session(cls):
+        # Get any session that is not closed
+        return cls.objects.filter(
+            status__in=[
+                cls.Status.CREATED,
+                cls.Status.FOOD_ORDERING,
+                cls.Status.DRINK_ORDERING,
+            ]
+        ).first()
+
+
+class SociOrderSessionOrder(models.Model):
+    # Nuke the intermediary table and point directly kinda like product orders
+    class Meta:
+        verbose_name = "Soci Order Session Order"
+        verbose_name_plural = "Soci Order Session Orders"
+
+    session = models.ForeignKey(
+        SociOrderSession,
+        null=False,
+        blank=False,
+        on_delete=models.CASCADE,
+        related_name="orders",
+    )
+    user = models.ForeignKey(
+        User,
+        null=False,
+        blank=False,
+        on_delete=models.CASCADE,
+        related_name="soci_order_session_orders",
+    )
+    product = models.ForeignKey(
+        SociProduct,
+        null=False,
+        blank=False,
+        on_delete=models.CASCADE,
+        related_name="user_session_orders",
+    )
+    amount = models.IntegerField(null=False, blank=False)
+    ordered_at = models.DateTimeField(auto_now_add=True)

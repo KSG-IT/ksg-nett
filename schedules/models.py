@@ -54,6 +54,19 @@ class Schedule(models.Model):
     def __repr__(self):
         return f"Schedule(name={self.name})"
 
+    @classmethod
+    def get_all_current_shifts(cls):
+        now = timezone.now()
+        return Shift.objects.filter(datetime_start__lte=now, datetime_end__gte=now)
+
+    @classmethod
+    def get_all_users_working_now(cls):
+        users = User.objects.filter(
+            filled_shifts__shift__datetime_start__lte=timezone.now(),
+            filled_shifts__shift__datetime_end__gte=timezone.now(),
+        ).distinct()
+        return users
+
 
 class Shift(models.Model):
     class Meta:
