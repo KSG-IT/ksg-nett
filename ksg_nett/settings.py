@@ -72,7 +72,6 @@ INSTALLED_APPS = [
     "sensors",
     "chat",
     "admissions",
-    "events",
 ]
 
 MIDDLEWARE = [
