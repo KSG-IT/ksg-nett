@@ -14,7 +14,7 @@ class TestParseTransactionHistory(TestCase):
         self.bank_account = SociBankAccountFactory.create()
         ProductOrderFactory.create_batch(5, source=self.bank_account)
         TransferFactory.create_batch(5, source=self.bank_account)
-        DepositFactory.create_batch(3, account=self.bank_account)
+        DepositFactory.create_batch(3, account=self.bank_account, approved=True)
 
     def test__parse_transaction_history__correctly_parses_activity(self):
         """

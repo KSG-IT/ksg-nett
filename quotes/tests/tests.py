@@ -1,24 +1,7 @@
-from urllib.parse import urlencode
-
 from django.test import TestCase
-from django.urls import reverse
 from factory import Iterator
-from rest_framework import status
-
-from django.utils import timezone
 from quotes.models import Quote
 from quotes.tests.factories import QuoteFactory, QuoteVoteFactory
-from quotes.views import (
-    quotes_list,
-    vote_up,
-    vote_down,
-    quotes_add,
-    quotes_edit,
-    quotes_delete,
-    quotes_approve,
-    quotes_pending,
-)
-from users.models import User
 from users.tests.factories import UserFactory
 
 
@@ -66,8 +49,8 @@ class QuoteVoteModelTest(TestCase):
 
 class QuoteManagersTest(TestCase):
     def setUp(self):
-        self.verified_quotes = QuoteFactory.create_batch(2)
-        self.unverified_quotes = QuoteFactory.create_batch(4, verified_by=None)
+        self.verified_quotes = QuoteFactory.create_batch(2, approved=True)
+        self.unverified_quotes = QuoteFactory.create_batch(4, approved=False)
 
     def test_quote_pending_objects__returns_correct_count(self):
         self.assertEqual(Quote.get_pending_quotes().count(), 4)

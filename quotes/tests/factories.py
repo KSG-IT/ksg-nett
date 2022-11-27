@@ -15,7 +15,7 @@ class QuoteFactory(DjangoModelFactory):
         model = Quote
 
     text = Faker("text")
-    verified_by = SubFactory(UserFactory)
+    approved_by = SubFactory(UserFactory)
     reported_by = SubFactory(UserFactory)
 
     @post_generation

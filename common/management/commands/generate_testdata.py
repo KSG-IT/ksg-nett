@@ -51,7 +51,6 @@ class Command(BaseCommand):
             self.generate_users()
 
             self.generate_old_admission_data()
-            self.generate_summaries()
             self.generate_quotes()
             self.generate_economy()
         except Exception as e:
@@ -170,7 +169,7 @@ class Command(BaseCommand):
                 random_quote = chose_random_element(QUOTE_CHOICES)
                 quote = Quote.objects.create(
                     reported_by=reported_by,
-                    verified_by=verified_by,
+                    approved_by=verified_by,
                     created_at=cursor,
                     text=random_quote["text"],
                     context=random_quote["context"],
