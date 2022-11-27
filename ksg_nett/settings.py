@@ -263,12 +263,8 @@ REDOC_SETTINGS = {"PATH_IN_MIDDLE": True, "REQUIRED_PROPS_FIRST": True}
 SOCI_MASTER_ACCOUNT_CARD_ID = 0xBADCAFEBABE  # Real card ids are 10 digits, while this is 14, meaning no collisions
 DIRECT_CHARGE_SKU = "X-BELOP"
 WANTED_LIST_THRESHOLD = -2000
-SOCI_GOLD = os.environ.get("SOCI_GOLD", [])
-if not isinstance(SOCI_GOLD, list):
-    SOCI_GOLD = json.loads(SOCI_GOLD)
+SOCI_GOLD = []
 
-print(os.environ.get("SOCI_GOLD"))
-print(SOCI_GOLD)
 
 # Channels
 ASGI_APPLICATION = "ksg_nett.routing.application"
