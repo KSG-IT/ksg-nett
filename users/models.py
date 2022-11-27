@@ -167,6 +167,8 @@ class User(AbstractUser):
         from economy.models import SociOrderSession
 
         active_session = SociOrderSession.get_active_session()
+        if not active_session:
+            return
         if active_session.invited_users.filter(pk=self.pk).exists():
             return active_session
 
