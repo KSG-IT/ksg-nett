@@ -1,6 +1,11 @@
 from django.conf import settings
+from django.core.files.temp import NamedTemporaryFile
+from django.template.loader import render_to_string
+from weasyprint import CSS, HTML
+from weasyprint.text.fonts import FontConfiguration
 
 from common.util import send_email
+from economy.models import SociProduct
 from economy.schema import BankAccountActivity
 
 
@@ -98,3 +103,40 @@ def send_soci_order_session_invitation_email(soci_session, invited_users):
         message=content,
         html_message=html_content,
     )
+
+
+def create_food_order_pdf_file(order_session):
+    orders = order_session.orders.filter(product__type=SociProduct.Type.FOOD)
+
+    summary = []
+    for product in orders.values("product").distinct():
+        product_obj = SociProduct.objects.get(pk=product["product"])
+        order_count = orders.filter(product=product_obj).count()
+        summary.append(
+            {
+                "name": product_obj.name,
+                "count": order_count,
+            }
+        )
+
+    context = {
+        "orders": orders,
+        "summary": summary,
+    }
+    html_content = render_to_string(
+        template_name="economy/food_orders.html", context=context
+    )
+
+    font_config = FontConfiguration()
+    css = CSS(
+        string="""
+        @import url('https://fonts.googleapis.com/css?family=Work+Sans:300,400,600,700&display=swap');
+    """,
+        font_config=font_config,
+    )
+
+    file = NamedTemporaryFile(delete=True)
+    HTML(string=html_content, base_url=settings.BASE_URL).write_pdf(
+        file, stylesheets=[css], font_config=font_config
+    )
+    return file

@@ -32,7 +32,6 @@ from economy.models import (
     SociOrderSession,
     SociOrderSessionOrder,
 )
-
 from schedules.models import Schedule
 from users.models import User
 
@@ -196,6 +195,11 @@ class SociOrderSessionNode(DjangoObjectType):
         return self.orders.filter(product__type=SociProduct.Type.DRINK).order_by(
             "ordered_at"
         )
+
+    order_pdf = graphene.String()
+
+    def resolve_order_pdf(self: SociOrderSession, info, *args, **kwargs):
+        return self.order_pdf.url if self.order_pdf else None
 
     @classmethod
     @gql_has_permissions("economy.view_sociordersession")
@@ -658,6 +662,7 @@ class SociOrderSessionNextStatusMutation(graphene.Mutation):
 
     @gql_has_permissions("economy.change_sociordersession")
     def mutate(self, info, *args, **kwargs):
+
         soci_order_session = SociOrderSession.get_active_session()
 
         if not soci_order_session:
@@ -671,6 +676,8 @@ class SociOrderSessionNextStatusMutation(graphene.Mutation):
             )
 
         if soci_order_session.status == SociOrderSession.Status.FOOD_ORDERING:
+            from economy.utils import create_food_order_pdf_file
+
             with transaction.atomic():
                 orders = soci_order_session.orders.all()
                 session = SociSession.objects.create(
@@ -697,7 +704,14 @@ class SociOrderSessionNextStatusMutation(graphene.Mutation):
                 session.save()
 
                 soci_order_session.status = SociOrderSession.Status.DRINK_ORDERING
+                file = create_food_order_pdf_file(soci_order_session)
                 soci_order_session.save()
+                soci_order_session.refresh_from_db()
+
+                # object has to be commited in order to attach the file
+                soci_order_session.order_pdf.save("burgerliste.pdf", file)
+                soci_order_session.save()
+
                 return SociOrderSessionNextStatusMutation(
                     soci_order_session=soci_order_session
                 )
