@@ -422,7 +422,6 @@ class SociOrderSession(models.Model):
 
 
 class SociOrderSessionOrder(models.Model):
-    # Nuke the intermediary table and point directly kinda like product orders
     class Meta:
         verbose_name = "Soci Order Session Order"
         verbose_name_plural = "Soci Order Session Orders"

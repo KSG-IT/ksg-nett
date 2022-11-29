@@ -8,7 +8,7 @@ from django.conf import settings
 from django.core.exceptions import SuspiciousOperation
 from django.db import transaction
 from graphene import Node
-from django.db.models import Q, F, Sum
+from django.db.models import Q, Sum
 from django.db.models.functions import Coalesce
 from graphene_django import DjangoObjectType
 from django.utils import timezone
@@ -217,13 +217,13 @@ class SociProductQuery(graphene.ObjectType):
     default_soci_order_session_food_products = graphene.List(SociProductNode)
     default_soci_order_session_drink_products = graphene.List(SociProductNode)
 
-    @gql_has_permissions("economy.view_sociproduct")
+    @gql_login_required()
     def resolve_default_soci_order_session_food_products(self, info, *args, **kwargs):
         return SociProduct.objects.filter(
             default_stilletime_product=True, type=SociProduct.Type.FOOD
         )
 
-    @gql_has_permissions("economy.view_sociproduct")
+    @gql_login_required()
     def resolve_default_soci_order_session_drink_products(self, info, *args, **kwargs):
         return SociProduct.objects.filter(
             default_stilletime_product=True, type=SociProduct.Type.DRINK
@@ -376,10 +376,11 @@ class SociOrderSessionQuery(graphene.ObjectType):
     all_soci_order_session_drink_orders = graphene.List(SociOrderSessionOrderNode)
 
     def resolve_active_soci_order_session(self, info, *args, **kwargs):
-        user = info.context.user
         session = SociOrderSession.get_active_session()
         if not session:
             return None
+
+        user = info.context.user
 
         # Don't think we actually need this check? Makes it more robust at least
         # If you are invited automatically when you created it shouldn't be an issue
@@ -410,12 +411,14 @@ class SociOrderSessionQuery(graphene.ObjectType):
 
     def resolve_all_soci_order_session_drink_orders(self, info, *args, **kwargs):
         me = info.context.user
-        session = SociOrderSession.get_active_session()
+        session = me.get_invited_soci_order_session
 
-        if session.invited_users.filter(pk=me.pk).exists():
-            return session.orders.filter(product__type=SociProduct.Type.DRINK).order_by(
-                "ordered_at"
-            )
+        if not session:
+            return None
+
+        return session.orders.filter(product__type=SociProduct.Type.DRINK).order_by(
+            "ordered_at"
+        )
 
 
 class CreateSociProductMutation(DjangoCreateMutation):
@@ -462,8 +465,7 @@ class UndoProductOrderMutation(graphene.Mutation):
         if session.closed:
             raise SuspiciousOperation("Cannot undo a product order in a closed session")
         account = product_order.source
-        account.balance += product_order.cost
-        account.save()
+        account.add_funds(product_order.cost)
         product_order.delete()
         return UndoProductOrderMutation(found=True)
 
@@ -497,8 +499,7 @@ class PlaceProductOrderMutation(graphene.Mutation):
         account = user.bank_account
         cost = product.price * order_size
 
-        account.balance -= cost
-        account.save()
+        account.remove_funds(cost)
         product_order = ProductOrder.objects.create(
             source=account,
             product=product,
@@ -562,7 +563,6 @@ class PatchSociBankAccountMutation(DjangoPatchMutation):
 class CreateDepositMutation(DjangoCreateMutation):
     class Meta:
         model = Deposit
-        exclude_fields = ("migrated_from_sg",)
         login_required = True
 
     @classmethod
@@ -613,7 +613,7 @@ class InvalidateDepositMutation(graphene.Mutation):
 
     deposit = graphene.Field(DepositNode)
 
-    @gql_has_permissions("economy.change_deposit")
+    @gql_has_permissions("economy.invalidate_deposit")
     def mutate(self, info, deposit_id):
         deposit_id = disambiguate_id(deposit_id)
         deposit = Deposit.objects.get(id=deposit_id)
@@ -650,8 +650,9 @@ class CreateSociOrderSessionMutation(graphene.Mutation):
             )
             invited_users = Schedule.get_all_users_working_now()
             invited_users_list = list(invited_users)
+            invited_users_list.append(info.context.user)
             soci_session.invited_users.add(*invited_users_list)
-            soci_session.invited_users.add(info.context.user)
+            # Don't really need to send invited users. They are already part of the session?
             send_soci_order_session_invitation_email(soci_session, invited_users)
 
             return CreateSociOrderSessionMutation(soci_order_session=soci_session)
@@ -705,10 +706,6 @@ class SociOrderSessionNextStatusMutation(graphene.Mutation):
 
                 soci_order_session.status = SociOrderSession.Status.DRINK_ORDERING
                 file = create_food_order_pdf_file(soci_order_session)
-                soci_order_session.save()
-                soci_order_session.refresh_from_db()
-
-                # object has to be commited in order to attach the file
                 soci_order_session.order_pdf.save("burgerliste.pdf", file)
                 soci_order_session.save()
 
@@ -720,7 +717,7 @@ class SociOrderSessionNextStatusMutation(graphene.Mutation):
             with transaction.atomic():
                 soci_order_session.status = SociOrderSession.Status.CLOSED
                 soci_order_session.closed_at = timezone.now()
-                soci_order_session.created_by = info.context.user
+                soci_order_session.closed_by = info.context.user
                 orders = soci_order_session.orders.filter(
                     product__type=SociProduct.Type.DRINK
                 )
@@ -728,8 +725,10 @@ class SociOrderSessionNextStatusMutation(graphene.Mutation):
                     type=SociSession.Type.STILLETIME,
                     created_by=info.context.user,
                 )
+                session.created_at = soci_order_session
 
                 for order in orders:
+                    # Drink orders are paid when registered. So no need to charge here
                     price = order.product.price
                     amount = order.amount
                     total = price * amount
