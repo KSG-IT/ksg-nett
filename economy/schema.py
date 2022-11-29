@@ -680,7 +680,9 @@ class SociOrderSessionNextStatusMutation(graphene.Mutation):
             from economy.utils import create_food_order_pdf_file
 
             with transaction.atomic():
-                orders = soci_order_session.orders.all()
+                orders = soci_order_session.orders.all(
+                    product__type=SociProduct.Type.FOOD
+                )
                 session = SociSession.objects.create(
                     type=SociSession.Type.BURGERLISTE,
                     created_by=info.context.user,
@@ -779,14 +781,20 @@ class PlaceSociOrderSessionOrderMutation(graphene.Mutation):
         balance = me.bank_account.balance
         cost = product.price * amount
 
-        previous_orders = active_session.orders.filter(user=me)
+        previous_orders = active_session.orders.filter(
+            user=me, product__type=SociProduct.Type.FOOD
+        )
         total_cost = sum(
             [order.amount * order.product.price for order in previous_orders]
         )
         total_cost += cost
 
-        # Will be kinda buggy for food orders but thats fine for now
-        if cost > balance:
+        if active_session.status == SociOrderSession.Status.FOOD_ORDERING:
+            cost_check = total_cost
+        else:
+            cost_check = cost
+
+        if cost_check > balance:
             raise IllegalOperation("You do not have enough funds to place this order")
 
         with transaction.atomic():
