@@ -260,7 +260,7 @@ class Applicant(models.Model):
     )
 
     def image_dir(self, filename):
-        # We want to save all objects in under the admission
+        # ToDo delete this with migration squash
         return osjoin("applicants", str(self.admission.semester), filename)
 
     # Use this for auth so they can access their application
