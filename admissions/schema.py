@@ -1,6 +1,7 @@
 import datetime
 from secrets import token_urlsafe
 
+import bleach
 import graphene
 from graphene import Node
 from graphql_relay import to_global_id
@@ -12,6 +13,8 @@ from graphene_django_cud.mutations import (
     DjangoCreateMutation,
 )
 from graphene_file_upload.scalars import Upload
+
+from common.consts import BLEACH_ALLOWED_TAGS
 from common.decorators import gql_has_permissions
 from common.util import date_time_combiner, compress_image
 from django.db.models import Q, Case, When, Value
@@ -378,6 +381,16 @@ class InterviewNode(DjangoObjectType):
 
     def resolve_interviewers(self: Interview, info, *args, **kwargs):
         return self.interviewers.all()
+
+    notes = graphene.String()
+
+    def resolve_notes(self: Interview, info, *args, **kwargs):
+        return bleach.clean(self.notes, tags=BLEACH_ALLOWED_TAGS)
+
+    discussion = graphene.String()
+
+    def resolve_discussion(self: Interview, info, *args, **kwargs):
+        return bleach.clean(self.discussion, tags=BLEACH_ALLOWED_TAGS)
 
     @classmethod
     def get_node(cls, info, id):
@@ -1061,9 +1074,11 @@ class PatchApplicantMutation(DjangoPatchMutation):
             interview = obj.interview
             obj.interview = None
             obj.save()
-            # Remove interviewers from interview
-            notify_interviewers_cancelled_interview_email(obj, interview)
-            interview.interviewers.clear()
+
+            if interview.interview_start > timezone.now():
+                # Remove interviewers from interview
+                notify_interviewers_cancelled_interview_email(obj, interview)
+                interview.interviewers.clear()
             return obj
 
 
@@ -1350,15 +1365,6 @@ class CloseAdmissionMutation(graphene.Mutation):
             # if something went wrong
             for applicant in admitted_applicants:
                 # Step 2)
-                email_check = User.objects.filter(email=applicant.email)
-
-                if email_check:
-                    print(f"Someone with the email {applicant.email} already exists")
-
-                phone_check = User.objects.filter(phone=applicant.phone)
-                if phone_check:
-                    print(f"Someone with the email {applicant.phone} already exists")
-
                 applicant_user_profile = User.objects.create(
                     # Most probable where error will happen on
                     # too long values or unique constraint
@@ -1463,6 +1469,7 @@ class SetSelfAsInterviewerMutation(graphene.Mutation):
 class PatchInterviewMutation(DjangoPatchMutation):
     class Meta:
         model = Interview
+        permissions = ("admissions.change_interview",)
         one_to_one_extras = {
             "applicant": {"type": "InterviewPatchApplicantInput", "operation": "patch"}
         }
@@ -1490,6 +1497,7 @@ class RemoveSelfAsInterviewerMutation(graphene.Mutation):
 class DeleteAllInterviewsMutation(graphene.Mutation):
     count = graphene.Int()
 
+    @gql_has_permissions("admissions.delete_interview")
     def mutate(self, info, *args, **kwargs):
         admission = Admission.get_active_admission()
         if admission.status == AdmissionStatus.OPEN.value:
@@ -1527,8 +1535,6 @@ class BookInterviewMutation(graphene.Mutation):
                 pass
             except Interview.DoesNotExist:
                 pass
-            except Applicant.DoesNotExist:
-                return BookInterviewMutation(ok=False)
 
         return BookInterviewMutation(ok=False)
 

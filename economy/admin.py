@@ -7,6 +7,8 @@ from economy.models import (
     SociSession,
     ProductOrder,
     Transfer,
+    SociOrderSession,
+    SociOrderSessionOrder,
 )
 
 
@@ -57,3 +59,13 @@ class ProductOrderAdmin(admin.ModelAdmin):
     @staticmethod
     def cost(product_order: ProductOrder):
         return product_order.cost
+
+
+@admin.register(SociOrderSession)
+class SociOrderSessionAdmin(admin.ModelAdmin):
+    pass
+
+
+@admin.register(SociOrderSessionOrder)
+class UserSociOrderSessionCollectionAdmin(admin.ModelAdmin):
+    pass

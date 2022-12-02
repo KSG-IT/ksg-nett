@@ -164,33 +164,29 @@ def generate_interviews_from_schedule(schedule):
 
 
 def send_applicant_notice_email(applicant):
-    content = (
-        _(
-            """
+    content = _(
+        f"""
                 Hei!
                 
                 Vi ser at du har søkt KSG og det har gått litt tid siden vi sist
                 har hørt fra deg. 
     
-                Lenke: %(link)s
+                Lenke: {settings.APP_URL}/applicant-portal/{applicant.token}
                 """
-        )
-        % {"link": f"{settings.APP_URL}/applicant-portal/{applicant.token}"}
     )
 
-    html_content = (
-        _(
-            """
-                                Hei og takk for at du søker KSG!
-                                <br />
-                                <br />
-                                Trykk på denne linken for å få tilsendt innloggingsinformasjon.
-                                <br />
-                                <a href="%(link)s">Registrer søknad</a><br />
-                                <br />
-                                """
-        )
-        % {"link": f"{settings.APP_URL}/applicant-portal/{applicant.token}"}
+    html_content = _(
+        f"""
+            Hei!
+            <br />
+            <br />                
+            Vi ser at du har søkt KSG og det har gått litt tid siden vi sist har hørt fra deg.
+            <br /> 
+            Trykk på denne linken for å få tilsendt innloggingsinformasjon.
+            <br />
+            <span>{settings.APP_URL}/applicant-portal/{applicant.token}</span>
+            <br />
+        """
     )
 
     return send_email(
@@ -208,32 +204,26 @@ def mass_send_welcome_to_interview_email(emails):
     timeouts and slow performance. The applicant can then instead request to be sent their
     custom auth token from the portal itself.
     """
-    content = (
-        _(
-            """
+    content = _(
+        f"""
                             Hei og takk for at du søker KSG!
             
                             Trykk på denne linken for å få tilsendt innloggingsinformasjon.
             
-                            Lenke: %(link)s
+                            Lenke: {settings.APP_URL}/applicant-portal
                             """
-        )
-        % {"link": f"{settings.APP_URL}/applicant-portal"}
     )
 
-    html_content = (
-        _(
-            """
-                            Hei og takk for at du søker KSG!
-                            <br />
-                            <br />
-                            Trykk på denne linken for å få tilsendt innloggingsinformasjon.
-                            <br />
-                            <a href="%(link)s">Registrer søknad</a><br />
-                            <br />
-                            """
-        )
-        % {"link": f"{settings.APP_URL}/applicant-portal"}
+    html_content = _(
+        f"""
+            Hei og takk for at du søker KSG!
+            <br />
+            <br />
+            Trykk på denne linken for å få tilsendt innloggingsinformasjon.
+            <br />
+            {settings.APP_URL}/applicant-portal
+            <br />
+        """
     )
 
     return send_email(
@@ -246,9 +236,8 @@ def mass_send_welcome_to_interview_email(emails):
 
 
 def send_welcome_to_interview_email(email: str, auth_token: str):
-    content = (
-        _(
-            """
+    content = _(
+        f"""
             Hei og velkommen til intervju hos KSG!
             
             Du får nå silsendt en lenke som lar deg registrere personlige opplysninger,
@@ -257,15 +246,12 @@ def send_welcome_to_interview_email(email: str, auth_token: str):
         
             Trykk på denne linken for å registrere søknaden videre
         
-            Lenke: %(link)s
+            Lenke: {settings.APP_URL}/applicant-portal/{auth_token}
             """
-        )
-        % {"link": f"{settings.APP_URL}/applicant-portal/{auth_token}"}
     )
 
-    html_content = (
-        _(
-            """
+    html_content = _(
+        f"""
             Hei og velkommen til intervju hos KSG! 
             <br />
             <br />
@@ -273,11 +259,9 @@ def send_welcome_to_interview_email(email: str, auth_token: str):
             hvilket verv du er interessert i hos oss og velge et intervjutidspunkt som passer
             deg.
             <br />
-            <a href="%(link)s">Registrer søknad</a><br />
+            {settings.APP_URL}/applicant-portal/{auth_token}
             <br />
             """
-        )
-        % {"link": f"{settings.APP_URL}/applicant-portal/{auth_token}"}
     )
 
     return send_email(
@@ -289,31 +273,25 @@ def send_welcome_to_interview_email(email: str, auth_token: str):
 
 
 def resend_auth_token_email(applicant):
-    content = (
-        _(
-            """
+    content = _(
+        f"""
             Hei og velkommen til KSG sin søkerportal! 
     
             Trykk på denne linken for å registrere søknaden videre, eller se intervjutiden din.
     
-            Lenke: %(link)s
+            Lenke: {settings.APP_URL}/applicant-portal/{applicant.token}
             """
-        )
-        % {"link": f"{settings.APP_URL}/applicant-portal/{applicant.token}"}
     )
 
-    html_content = (
-        _(
+    html_content = _(
+        f"""
+                Hei og velkommen til KSG sin søkerportal! 
+                <br />
+                Trykk på denne linken for å registrere søknaden videre, eller se intervjutiden din.
+                <br />
+                {settings.APP_URL}/applicant-portal/{applicant.token}
+                <br />
             """
-            Hei og velkommen til KSG sin søkerportal! 
-            <br />
-            Trykk på denne linken for å registrere søknaden videre, eller se intervjutiden din.
-            <br />
-            <a href="%(link)s">Registrer søknad</a><br />
-            <br />
-            """
-        )
-        % {"link": f"{settings.APP_URL}/applicant-portal/{applicant.token}"}
     )
 
     return send_email(
@@ -325,31 +303,25 @@ def resend_auth_token_email(applicant):
 
 
 def send_new_interview_mail(applicant):
-    content = (
-        _(
+    content = _(
+        f"""
+                Hei!
+                
+                Du har fått en ny intervjutid hos KSG. 
+                
+                Lenke: {settings.APP_URL}/applicant-portal/{applicant.token}
             """
-            Hei!
-            
-            Du har fått en ny intervjutid hos KSG. 
-            
-            Lenke: %(link)s
-            """
-        )
-        % {"link": f"{settings.APP_URL}/applicant-portal/{applicant.token}"}
     )
 
-    html_content = (
-        _(
+    html_content = _(
+        f"""
+                Hei!
+                <br />
+                Du har fått en ny intervjutid hos KSG. 
+                <br />
+                {settings.APP_URL}/applicant-portal/{applicant.token}
+                <br />
             """
-            Hei!
-            <br />
-            Du har fått en ny intervjutid hos KSG. 
-            <br />
-            <a href="%(link)s">Se intervjuinformasjon</a><br />
-            <br />
-            """
-        )
-        % {"link": f"{settings.APP_URL}/applicant-portal/{applicant.token}"}
     )
 
     return send_email(
@@ -455,10 +427,13 @@ def read_admission_csv(file):
     This handler could be subjects to change depending on how MG-web changes the portal. Currently the column headers
     are Navn, Telefon, E-postadresse, Campus, Stilling, Intervjutid, Intervjusted, Prioritet, Status, Kommentar.
     An applicant has an entry for each position they apply for. This means that we can have duplication of
-    name, email and phone number. If we want to automate this spreadsheet we should handle this in some manner.
+    name, email and phone number.
         > Save a row number cursor and then the csv can just be re-uploaded?
         > Has to be very robust aginst user input
     """
+    from admissions.models import Applicant
+    from users.models import User
+
     applicants = []
     email_tracker = []
     decoded_file = file.read().decode("utf-8")
@@ -488,6 +463,15 @@ def read_admission_csv(file):
         phone_number = cells[1]
 
         if email in email_tracker:
+            # We use this as a unique identifier for the applicant.
+            # An applicant has a row for each position they apply for.
+            continue
+
+        if (
+            Applicant.objects.filter(email=email).exists()
+            or User.objects.filter(email=email).exists()
+        ):
+            # Not sure if we should keep it implicit like this?
             continue
 
         applicant_data = {
@@ -823,8 +807,6 @@ def get_admission_final_applicant_qs(admission):
 def get_applicant_offered_position(applicant):
     """
     Accepts an Applicant model instance and returns the position they will be offered.
-
-    This might be a duplicate method
     """
 
     applicant_priorities = applicant.get_priorities

@@ -2,7 +2,6 @@
 from __future__ import unicode_literals
 
 import re
-from typing import Optional
 from django.utils import timezone
 from django.contrib.auth.models import AbstractUser, Permission
 from django.db import models
@@ -11,9 +10,7 @@ from model_utils.models import TimeStampedModel
 
 from common.util import get_semester_year_shorthand
 from users.managers import UsersHaveMadeOutManager
-from organization.consts import InternalGroupPositionMembershipType
 from organization.models import InternalGroup
-from users.utils import ical_token_generator
 
 
 class Allergy(models.Model):
@@ -164,6 +161,16 @@ class User(AbstractUser):
             position__internal_group__type=InternalGroup.Type.INTERNAL_GROUP,
             date_ended__isnull=True,
         ).first()
+
+    @property
+    def get_invited_soci_order_session(self):
+        from economy.models import SociOrderSession
+
+        active_session = SociOrderSession.get_active_session()
+        if not active_session:
+            return
+        if active_session.invited_users.filter(pk=self.pk).exists():
+            return active_session
 
 
 class UsersHaveMadeOut(TimeStampedModel):

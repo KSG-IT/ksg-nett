@@ -14,6 +14,7 @@ from economy.schema import (
     SociBankAccountQuery,
     DepositQuery,
     ProductOrderQuery,
+    SociOrderSessionQuery,
     EconomyMutations,
     SociSessionQuery,
 )
@@ -37,7 +38,6 @@ from schedules.schemas.templates import ScheduleTemplateQuery, ScheduleTemplateM
 
 from sensors.schema import SensorMeasurementQuery, SensorsMutations
 from summaries.schema import SummaryQuery, SummariesMutations
-from events.schema import EventQuery, EventMutations
 
 
 class Query(
@@ -52,6 +52,7 @@ class Query(
     SociBankAccountQuery,
     SociProductQuery,
     SociSessionQuery,
+    SociOrderSessionQuery,
     UserQuery,
     InternalGroupQuery,
     InternalGroupPositionQuery,
@@ -64,7 +65,6 @@ class Query(
     SensorMeasurementQuery,
     SummaryQuery,
     QuoteQuery,
-    EventQuery,
     graphene.ObjectType,
 ):
     pass
@@ -82,7 +82,6 @@ class Mutation(
     ScheduleTemplateMutations,
     SensorsMutations,
     SummariesMutations,
-    EventMutations,
     graphene.ObjectType,
 ):
     pass

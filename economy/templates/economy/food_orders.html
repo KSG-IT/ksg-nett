@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Krysseliste</title>
+  <style type="text/css">
+
+      @page {
+          size: A4;
+          margin: 1.25cm 1.5cm 1.5cm;
+      }
+
+      body {
+          font-family: 'Comic Sans MS', cursive, sans-serif;
+          font-size: 16px;
+      }
+
+
+      #header p {
+          padding-top: 4px;
+          padding-bottom: 4px;
+      }
+
+
+
+      #table {
+          margin-top: 0.5cm;
+      }
+
+      .order-table {
+          width: 100%;
+          border-collapse: collapse;
+          border: 1px solid black;
+      }
+
+
+      .order-table tr {
+          height: 10px;
+      }
+
+      .order-table th {
+          border: 1px solid black;
+          text-align: left;
+      }
+
+      .order-table td {
+          font-size: 12px;
+          border: 1px solid black;
+      }
+
+      .order-table tr:last-child {
+          border-top: 1px solid #888;
+          font-weight: 500;
+          font-size: 14px;
+
+      }
+
+      .namecol {
+          width: 25%;
+      }
+
+
+      .order-table th {
+          border-bottom: 1px solid #888;
+          text-align: left;
+          font-size: 12px;
+      }
+
+
+      th {
+          padding-bottom: 0.25em;
+      }
+
+  </style>
+</head>
+<body>
+<section>
+  <div class="meta-data-wrapper">
+    <h1 class="no-margin">Burgerliste</h1>
+  </div>
+</section>
+
+<table class="order-table" id="table">
+  <thead>
+  <tr>
+    <th>Navn</th>
+    <th>Bestilling</th>
+  </tr>
+  </thead>
+  <tbody>
+
+  {% for order in orders %}
+    <tr class="namecol">
+      <td class="namecol">{{ order.user.get_full_name }}</td>
+      <td class="namecol">{{ order.product.name }}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+
+<table class="summary-table" id="table">
+  <thead>
+  <tr>
+    <th>Vare</th>
+    <th>Antall</th>
+  </tr>
+  </thead>
+  <tbody>
+
+  {% for product in summary %}
+    <tr class="namecol">
+      <td class="namecol">{{ product.name }}</td>
+      <td class="namecol">{{ product.count }}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+
+</body>
+</html>

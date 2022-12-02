@@ -8,7 +8,7 @@ from django.conf import settings
 from django.core.exceptions import SuspiciousOperation
 from django.db import transaction
 from graphene import Node
-from django.db.models import Q, F, Sum
+from django.db.models import Q, Sum
 from django.db.models.functions import Coalesce
 from graphene_django import DjangoObjectType
 from django.utils import timezone
@@ -19,8 +19,9 @@ from graphene_django_cud.mutations import (
 )
 from graphene_django import DjangoConnectionField
 from graphene_django_cud.util import disambiguate_id
+from twisted.mail._except import IllegalOperation
 
-from common.decorators import gql_has_permissions
+from common.decorators import gql_has_permissions, gql_login_required
 from economy.models import (
     SociProduct,
     Deposit,
@@ -28,7 +29,10 @@ from economy.models import (
     SociSession,
     SociBankAccount,
     ProductOrder,
+    SociOrderSession,
+    SociOrderSessionOrder,
 )
+from schedules.models import Schedule
 from users.models import User
 
 
@@ -141,12 +145,89 @@ class TransferNode(DjangoObjectType):
         return Transfer.objects.get(pk=id)
 
 
+class SociOrderSessionOrderNode(DjangoObjectType):
+    class Meta:
+        model = SociOrderSessionOrder
+        interfaces = (Node,)
+
+    @classmethod
+    @gql_login_required()
+    def get_node(cls, info, id):
+        return SociOrderSession.objects.get(pk=id)
+
+
+class SociOrderSessionNode(DjangoObjectType):
+    class Meta:
+        model = SociOrderSession
+        interfaces = (Node,)
+
+    class StatusEnum(graphene.Enum):
+        CREATED = SociOrderSession.Status.CREATED
+        FOOD_ORDERING = SociOrderSession.Status.FOOD_ORDERING
+        DRINK_ORDERING = SociOrderSession.Status.DRINK_ORDERING
+        CLOSED = SociOrderSession.Status.CLOSED
+
+    status = graphene.Field(StatusEnum)
+
+    def resolve_status(self: SociOrderSession, info, *args, **kwargs):
+        return self.status
+
+    invited_users = graphene.List("users.schema.UserNode")
+
+    def resolve_invited_users(self: SociOrderSession, info, *args, **kwargs):
+        return self.invited_users.all().order_by("first_name", "last_name")
+
+    orders = graphene.List(SociOrderSessionOrderNode)
+
+    def resolve_orders(self: SociOrderSession, info, *args, **kwargs):
+        return self.orders.all().order_by("ordered_at")
+
+    food_orders = graphene.List(SociOrderSessionOrderNode)
+
+    def resolve_food_orders(self: SociOrderSession, info, *args, **kwargs):
+        return self.orders.filter(product__type=SociProduct.Type.FOOD).order_by(
+            "ordered_at"
+        )
+
+    drink_orders = graphene.List(SociOrderSessionOrderNode)
+
+    def resolve_drink_orders(self: SociOrderSession, info, *args, **kwargs):
+        return self.orders.filter(product__type=SociProduct.Type.DRINK).order_by(
+            "ordered_at"
+        )
+
+    order_pdf = graphene.String()
+
+    def resolve_order_pdf(self: SociOrderSession, info, *args, **kwargs):
+        return self.order_pdf.url if self.order_pdf else None
+
+    @classmethod
+    @gql_has_permissions("economy.view_sociordersession")
+    def get_node(cls, info, id):
+        return SociOrderSession.objects.get(pk=id)
+
+
 class SociProductQuery(graphene.ObjectType):
     soci_product = Node.Field(SociProductNode)
     all_active_soci_products = DjangoConnectionField(SociProductNode)
     all_soci_products = graphene.List(SociProductNode)
     all_soci_sessions = DjangoConnectionField(SociSessionNode)
     default_soci_products = graphene.List(SociProductNode)
+
+    default_soci_order_session_food_products = graphene.List(SociProductNode)
+    default_soci_order_session_drink_products = graphene.List(SociProductNode)
+
+    @gql_login_required()
+    def resolve_default_soci_order_session_food_products(self, info, *args, **kwargs):
+        return SociProduct.objects.filter(
+            default_stilletime_product=True, type=SociProduct.Type.FOOD
+        )
+
+    @gql_login_required()
+    def resolve_default_soci_order_session_drink_products(self, info, *args, **kwargs):
+        return SociProduct.objects.filter(
+            default_stilletime_product=True, type=SociProduct.Type.DRINK
+        )
 
     @gql_has_permissions("economy.view_sociproduct")
     def resolve_all_soci_products(self, info, *args, **kwargs):
@@ -289,6 +370,57 @@ class SociBankAccountQuery(graphene.ObjectType):
         return TotalExpenditure(data=data, total=total)
 
 
+class SociOrderSessionQuery(graphene.ObjectType):
+    active_soci_order_session = graphene.Field(SociOrderSessionNode)
+    my_session_product_orders = graphene.List(SociOrderSessionOrderNode)
+    all_soci_order_session_drink_orders = graphene.List(SociOrderSessionOrderNode)
+
+    def resolve_active_soci_order_session(self, info, *args, **kwargs):
+        session = SociOrderSession.get_active_session()
+        if not session:
+            return None
+
+        user = info.context.user
+
+        # Don't think we actually need this check? Makes it more robust at least
+        # If you are invited automatically when you created it shouldn't be an issue
+        if session.status == SociOrderSession.Status.CREATED and not user.has_perm(
+            "economy.change_sociordersession"
+        ):
+            return None
+
+        if not session.invited_users.filter(pk=user.pk).exists():
+            return None
+
+        return session
+
+    def resolve_my_session_product_orders(self, info, *args, **kwargs):
+        status = SociOrderSession.get_active_session().status
+
+        if status == SociOrderSession.Status.FOOD_ORDERING:
+
+            return SociOrderSession.get_active_session().orders.filter(
+                user=info.context.user, product__type=SociProduct.Type.FOOD
+            )
+        elif status == SociOrderSession.Status.DRINK_ORDERING:
+            return SociOrderSession.get_active_session().orders.filter(
+                user=info.context.user, product__type=SociProduct.Type.DRINK
+            )
+
+        return []
+
+    def resolve_all_soci_order_session_drink_orders(self, info, *args, **kwargs):
+        me = info.context.user
+        session = me.get_invited_soci_order_session
+
+        if not session:
+            return None
+
+        return session.orders.filter(product__type=SociProduct.Type.DRINK).order_by(
+            "ordered_at"
+        )
+
+
 class CreateSociProductMutation(DjangoCreateMutation):
     class Meta:
         model = SociProduct
@@ -333,8 +465,7 @@ class UndoProductOrderMutation(graphene.Mutation):
         if session.closed:
             raise SuspiciousOperation("Cannot undo a product order in a closed session")
         account = product_order.source
-        account.balance += product_order.cost
-        account.save()
+        account.add_funds(product_order.cost)
         product_order.delete()
         return UndoProductOrderMutation(found=True)
 
@@ -368,8 +499,7 @@ class PlaceProductOrderMutation(graphene.Mutation):
         account = user.bank_account
         cost = product.price * order_size
 
-        account.balance -= cost
-        account.save()
+        account.remove_funds(cost)
         product_order = ProductOrder.objects.create(
             source=account,
             product=product,
@@ -433,7 +563,6 @@ class PatchSociBankAccountMutation(DjangoPatchMutation):
 class CreateDepositMutation(DjangoCreateMutation):
     class Meta:
         model = Deposit
-        exclude_fields = ("migrated_from_sg",)
         login_required = True
 
     @classmethod
@@ -484,7 +613,7 @@ class InvalidateDepositMutation(graphene.Mutation):
 
     deposit = graphene.Field(DepositNode)
 
-    @gql_has_permissions("economy.change_deposit")
+    @gql_has_permissions("economy.invalidate_deposit")
     def mutate(self, info, deposit_id):
         deposit_id = disambiguate_id(deposit_id)
         deposit = Deposit.objects.get(id=deposit_id)
@@ -495,6 +624,240 @@ class InvalidateDepositMutation(graphene.Mutation):
             deposit.save()
             deposit.account.remove_funds(deposit.amount)
             return InvalidateDepositMutation(deposit=deposit)
+
+
+class CreateSociOrderSessionMutation(graphene.Mutation):
+    class Meta:
+        model = SociOrderSession
+        permissions = ("economy.add_sociordersession",)
+        auto_context_fields = {"created_by": "user"}
+
+    soci_order_session = graphene.Field(SociOrderSessionNode)
+
+    @gql_has_permissions("economy.add_sociordersession")
+    def mutate(self, info, *args, **kwargs):
+        from economy.utils import send_soci_order_session_invitation_email
+
+        active_session = SociOrderSession.get_active_session()
+        if active_session:
+            raise SuspiciousOperation(
+                "Cannot create a new session while another is active"
+            )
+        with transaction.atomic():
+            soci_session = SociOrderSession.objects.create(
+                status=SociOrderSession.Status.FOOD_ORDERING,
+                created_by=info.context.user,
+            )
+            invited_users = Schedule.get_all_users_working_now()
+            invited_users_list = list(invited_users)
+            invited_users_list.append(info.context.user)
+            soci_session.invited_users.add(*invited_users_list)
+            # Don't really need to send invited users. They are already part of the session?
+            send_soci_order_session_invitation_email(soci_session, invited_users)
+
+            return CreateSociOrderSessionMutation(soci_order_session=soci_session)
+
+
+class SociOrderSessionNextStatusMutation(graphene.Mutation):
+    soci_order_session = graphene.Field(SociOrderSessionNode)
+
+    @gql_has_permissions("economy.change_sociordersession")
+    def mutate(self, info, *args, **kwargs):
+
+        soci_order_session = SociOrderSession.get_active_session()
+
+        if not soci_order_session:
+            raise SuspiciousOperation("There is no active session")
+
+        if soci_order_session.status == SociOrderSession.Status.CREATED:
+            soci_order_session.status = SociOrderSession.Status.FOOD_ORDERING
+            soci_order_session.save()
+            return SociOrderSessionNextStatusMutation(
+                soci_order_session=soci_order_session
+            )
+
+        if soci_order_session.status == SociOrderSession.Status.FOOD_ORDERING:
+            from economy.utils import create_food_order_pdf_file
+
+            with transaction.atomic():
+                orders = soci_order_session.orders.all(
+                    product__type=SociProduct.Type.FOOD
+                )
+                session = SociSession.objects.create(
+                    type=SociSession.Type.BURGERLISTE,
+                    created_by=info.context.user,
+                )
+                for order in orders:
+                    price = order.product.price
+                    amount = order.amount
+                    total = price * amount
+
+                    purchase = ProductOrder.objects.create(
+                        session=session,
+                        product=order.product,
+                        order_size=order.amount,
+                        cost=total,
+                        source=order.user.bank_account,
+                    )
+                    purchase.purchased_at = order.ordered_at
+                    purchase.save()
+                    order.user.bank_account.remove_funds(total)
+
+                session.closed_at = timezone.now()
+                session.save()
+
+                soci_order_session.status = SociOrderSession.Status.DRINK_ORDERING
+                file = create_food_order_pdf_file(soci_order_session)
+                soci_order_session.order_pdf.save("burgerliste.pdf", file)
+                soci_order_session.save()
+
+                return SociOrderSessionNextStatusMutation(
+                    soci_order_session=soci_order_session
+                )
+
+        if soci_order_session.status == SociOrderSession.Status.DRINK_ORDERING:
+            with transaction.atomic():
+                soci_order_session.status = SociOrderSession.Status.CLOSED
+                soci_order_session.closed_at = timezone.now()
+                soci_order_session.closed_by = info.context.user
+                orders = soci_order_session.orders.filter(
+                    product__type=SociProduct.Type.DRINK
+                )
+                session = SociSession.objects.create(
+                    type=SociSession.Type.STILLETIME,
+                    created_by=info.context.user,
+                )
+                session.created_at = soci_order_session
+
+                for order in orders:
+                    # Drink orders are paid when registered. So no need to charge here
+                    price = order.product.price
+                    amount = order.amount
+                    total = price * amount
+
+                    product_order = ProductOrder.objects.create(
+                        session=session,
+                        product=order.product,
+                        order_size=order.amount,
+                        cost=total,
+                        source=order.user.bank_account,
+                    )
+                    product_order.purchased_at = order.ordered_at
+                    product_order.save()
+
+                soci_order_session.save()
+                session.closed_at = timezone.now()
+                session.save()
+                return SociOrderSessionNextStatusMutation(
+                    soci_order_session=soci_order_session
+                )
+
+
+class PlaceSociOrderSessionOrderMutation(graphene.Mutation):
+    class Arguments:
+        product_id = graphene.ID(required=True)
+        amount = graphene.Int(required=True)
+
+    soci_order_session_order = graphene.Field(SociOrderSessionOrderNode)
+
+    @gql_login_required()
+    def mutate(self, info, product_id, amount, *args, **kwargs):
+        active_session = SociOrderSession.get_active_session()
+        product = SociProduct.objects.get(id=disambiguate_id(product_id))
+
+        if (
+            active_session.status != SociOrderSession.Status.FOOD_ORDERING
+            and product.type == SociProduct.Type.FOOD
+        ):
+            raise IllegalOperation("The session is not open for food ordering")
+
+        if (
+            active_session.status != SociOrderSession.Status.DRINK_ORDERING
+            and product.type == SociProduct.Type.DRINK
+        ):
+            raise IllegalOperation("The session is not open for drink ordering")
+
+        me = info.context.user
+        balance = me.bank_account.balance
+        cost = product.price * amount
+
+        previous_orders = active_session.orders.filter(
+            user=me, product__type=SociProduct.Type.FOOD
+        )
+        total_cost = sum(
+            [order.amount * order.product.price for order in previous_orders]
+        )
+        total_cost += cost
+
+        if active_session.status == SociOrderSession.Status.FOOD_ORDERING:
+            cost_check = total_cost
+        else:
+            cost_check = cost
+
+        if cost_check > balance:
+            raise IllegalOperation("You do not have enough funds to place this order")
+
+        with transaction.atomic():
+            order = SociOrderSessionOrder.objects.create(
+                session=active_session,
+                product=product,
+                amount=amount,
+                user=me,
+            )
+            if active_session.status == SociOrderSession.Status.DRINK_ORDERING:
+                # Stilletime we charge instantly the user
+                me.bank_account.remove_funds(cost)
+
+            return PlaceSociOrderSessionOrderMutation(soci_order_session_order=order)
+
+
+class DeleteSociOrderSessionFoodOrderMutation(graphene.Mutation):
+    """
+    Only intended to use with food ordering. Should probably be renamed??¿
+    """
+
+    class Arguments:
+        order_id = graphene.ID(required=True)
+
+    found = graphene.Boolean()
+
+    @gql_login_required()
+    def mutate(self, info, order_id, *args, **kwargs):
+        active_session = SociOrderSession.get_active_session()
+        if active_session.status != SociOrderSession.Status.FOOD_ORDERING:
+            raise IllegalOperation("Food ordering is not open, cannot delete entry")
+
+        me = info.context.user
+        order = SociOrderSessionOrder.objects.get(id=disambiguate_id(order_id))
+        if order.user != info.context.user and not me.has_perm(
+            "economy.delete_sociordersessionorder"
+        ):
+            raise PermissionError(
+                "You do not have permission to delete other users orders"
+            )
+
+        with transaction.atomic():
+            order.delete()
+            return DeleteSociOrderSessionFoodOrderMutation(found=True)
+
+
+class InviteUsersToSociOrderSessionMutation(graphene.Mutation):
+    class Arguments:
+        users = graphene.List(graphene.String, required=True)
+
+    soci_order_session = graphene.Field(SociOrderSessionNode)
+
+    @gql_login_required()
+    def mutate(self, info, users, *args, **kwargs):
+        from economy.utils import send_soci_order_session_invitation_email
+
+        active_session = SociOrderSession.get_active_session()
+        disambiguated_ids = [disambiguate_id(user) for user in users]
+
+        user_qs = User.objects.filter(id__in=disambiguated_ids)
+        active_session.invited_users.add(*list(user_qs))
+        send_soci_order_session_invitation_email(active_session, user_qs)
+        return InviteUsersToSociOrderSessionMutation(soci_order_session=active_session)
 
 
 class EconomyMutations(graphene.ObjectType):
@@ -517,3 +880,10 @@ class EconomyMutations(graphene.ObjectType):
     delete_deposit = DeleteDepositMutation.Field()
     approve_deposit = ApproveDepositMutation.Field()
     invalidate_deposit = InvalidateDepositMutation.Field()
+
+    create_soci_order_session = CreateSociOrderSessionMutation.Field()
+    place_soci_order_session_order = PlaceSociOrderSessionOrderMutation.Field()
+    delete_soci_order_session_food_order = (
+        DeleteSociOrderSessionFoodOrderMutation.Field()
+    )
+    soci_order_session_next_status = SociOrderSessionNextStatusMutation.Field()

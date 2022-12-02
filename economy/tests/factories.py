@@ -79,13 +79,13 @@ class DepositFactory(DjangoModelFactory):
     receipt = ImageField()
     created_at = Faker("date_time", tzinfo=pytz.timezone(settings.TIME_ZONE))
 
-    signed_off_by = SubFactory("users.tests.factories.UserFactory")
-    signed_off_time = None
+    approved_by = SubFactory("users.tests.factories.UserFactory")
+    approved_at = None
 
     @post_generation
     def signed_off_time(self, _create, _extracted, **_kwargs):
-        if self.signed_off_by:
-            self.signed_off_time = timezone.now()
+        if self.approved_by:
+            self.approved_at = timezone.now()
 
 
 class DepositCommentFactory(DjangoModelFactory):

@@ -11,10 +11,7 @@ from admissions.tests.factories import ApplicantFactory, AdmissionFactory
 from admissions.consts import AdmissionStatus
 from common.util import chose_random_element
 from admissions.models import AdmissionAvailableInternalGroupPositionData
-from summaries.consts import SummaryType
-from summaries.models import Summary
 from common.management.commands._consts import (
-    SUMMARY_CONTENT,
     QUOTE_CHOICES,
     INTERNAL_GROUP_DATA,
     BANK_ACCOUNT_BALANCE_CHOICES,
@@ -54,7 +51,6 @@ class Command(BaseCommand):
             self.generate_users()
 
             self.generate_old_admission_data()
-            self.generate_summaries()
             self.generate_quotes()
             self.generate_economy()
         except Exception as e:
@@ -159,33 +155,6 @@ class Command(BaseCommand):
                 )
         self.stdout.write(self.style.SUCCESS("Done generating available positions"))
 
-    def generate_summaries(self, summary_count=40):
-        self.stdout.write(self.style.SUCCESS("Generating summaries"))
-        cursor = timezone.make_aware(timezone.datetime.now()) - timezone.timedelta(
-            days=365
-        )
-        day_fraction = 365 / summary_count
-        offset = timezone.timedelta(days=day_fraction)
-
-        for _ in range(summary_count):
-            for summary_type in SummaryType.choices:
-                reporter = get_random_model_objects(User)
-                summary = Summary.objects.create(
-                    type=summary_type[1],
-                    date=cursor,
-                    reporter=reporter,
-                    contents=SUMMARY_CONTENT,
-                )
-                participants = get_random_model_objects(User, 13)
-                summary.participants.set(participants)
-                summary.save()
-            cursor += offset
-
-        number_of_summaries = summary_count * len(SummaryType.choices)
-        self.stdout.write(
-            self.style.SUCCESS(f"{number_of_summaries} summaries generated")
-        )
-
     def generate_quotes(self):
         self.stdout.write(self.style.SUCCESS("Generating Quotes"))
         semesters = create_semester_dates()
@@ -200,7 +169,7 @@ class Command(BaseCommand):
                 random_quote = chose_random_element(QUOTE_CHOICES)
                 quote = Quote.objects.create(
                     reported_by=reported_by,
-                    verified_by=verified_by,
+                    approved_by=verified_by,
                     created_at=cursor,
                     text=random_quote["text"],
                     context=random_quote["context"],
