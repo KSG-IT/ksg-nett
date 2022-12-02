@@ -807,8 +807,6 @@ def get_admission_final_applicant_qs(admission):
 def get_applicant_offered_position(applicant):
     """
     Accepts an Applicant model instance and returns the position they will be offered.
-
-    This might be a duplicate method
     """
 
     applicant_priorities = applicant.get_priorities
