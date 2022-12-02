@@ -265,7 +265,7 @@ class Applicant(models.Model):
 
     # Use this for auth so they can access their application
     token = models.CharField(max_length=64, null=True)
-    image = models.ImageField(upload_to=image_dir, null=True, blank=True)
+    image = models.ImageField(upload_to="applicants", null=True, blank=True)
 
     status = models.CharField(
         choices=ApplicantStatus.choices,
