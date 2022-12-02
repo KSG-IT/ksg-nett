@@ -382,6 +382,16 @@ class InterviewNode(DjangoObjectType):
     def resolve_interviewers(self: Interview, info, *args, **kwargs):
         return self.interviewers.all()
 
+    notes = graphene.String()
+
+    def resolve_notes(self: Interview, info, *args, **kwargs):
+        return bleach.clean(self.notes, tags=BLEACH_ALLOWED_TAGS)
+
+    discussion = graphene.String()
+
+    def resolve_discussion(self: Interview, info, *args, **kwargs):
+        return bleach.clean(self.discussion, tags=BLEACH_ALLOWED_TAGS)
+
     @classmethod
     def get_node(cls, info, id):
         return Interview.objects.get(pk=id)
@@ -1463,14 +1473,6 @@ class PatchInterviewMutation(DjangoPatchMutation):
         one_to_one_extras = {
             "applicant": {"type": "InterviewPatchApplicantInput", "operation": "patch"}
         }
-
-    @staticmethod
-    def handle_notes(notes, name, info):
-        return bleach.clean(notes, tags=BLEACH_ALLOWED_TAGS)
-
-    @staticmethod
-    def handle_discussion(discussion, name, info):
-        return bleach.clean(discussion, tags=BLEACH_ALLOWED_TAGS)
 
 
 class RemoveSelfAsInterviewerMutation(graphene.Mutation):
