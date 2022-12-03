@@ -286,14 +286,16 @@ try:
 except ImportError:
     pass
 
-if "DEVELOPMENT" in os.environ:
+DEVELOPMENT = os.getenv("DEVELOPMENT", "False") == "True"
+if DEVELOPMENT:
     try:
         from .settings_development import *
     except ImportError:
         pass
 
 
-if "PROD" in os.environ:
+PRODUCTION = os.getenv("PRODUCTION", "False") == "True"
+if PRODUCTION:
     try:
         from .settings_prod import *
     except ImportError:
