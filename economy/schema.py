@@ -680,7 +680,7 @@ class SociOrderSessionNextStatusMutation(graphene.Mutation):
             from economy.utils import create_food_order_pdf_file
 
             with transaction.atomic():
-                orders = soci_order_session.orders.all(
+                orders = soci_order_session.orders.filter(
                     product__type=SociProduct.Type.FOOD
                 )
                 session = SociSession.objects.create(
@@ -727,7 +727,7 @@ class SociOrderSessionNextStatusMutation(graphene.Mutation):
                     type=SociSession.Type.STILLETIME,
                     created_by=info.context.user,
                 )
-                session.created_at = soci_order_session
+                session.created_at = soci_order_session.created_at
 
                 for order in orders:
                     # Drink orders are paid when registered. So no need to charge here
