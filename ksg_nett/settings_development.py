@@ -18,11 +18,11 @@ EMAIL_HOST = "smtp.samfundet.no"
 EMAIL_USE_TLS = True
 EMAIL_PORT = 587
 
-HOST_URL = "https://ksg-nett.samfundet.no"
+HOST_URL = "https://ksg-nett-dev.samfundet.no"
 MEDIA_ROOT = "media/"
-MEDIA_URL = "https://ksg-nett.samfundet.no/media/"
+MEDIA_URL = "https://ksg-nett-dev.samfundet.no/media/"
 APP_URL = "app.ksg-nett.no"
-BASE_URL = "https://ksg-nett.samfundet.no"
+BASE_URL = "https://ksg-nett-dev.samfundet.no"
 
 # Application definition
 DATABASES = {
