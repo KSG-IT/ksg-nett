@@ -21,7 +21,7 @@ EMAIL_PORT = 587
 HOST_URL = "https://ksg-nett-dev.samfundet.no"
 MEDIA_ROOT = "media/"
 MEDIA_URL = "https://ksg-nett-dev.samfundet.no/media/"
-APP_URL = "app.ksg-nett.no"
+APP_URL = "app-dev.ksg-nett.no"
 BASE_URL = "https://ksg-nett-dev.samfundet.no"
 
 # Application definition
