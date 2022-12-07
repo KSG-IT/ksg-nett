@@ -28,7 +28,7 @@ def parse_transfer(transfer, user):
     return BankAccountActivity(
         name="Overføring",
         amount=transfer.amount * sign,
-        timestamp=transfer.created,
+        timestamp=transfer.created_at,
         quantity=None,
     )
 

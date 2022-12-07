@@ -25,7 +25,7 @@ class SociProductAdmin(admin.ModelAdmin):
 
 @admin.register(Transfer)
 class TransferAdmin(admin.ModelAdmin):
-    list_display = ["source", "destination", "amount", "created"]
+    list_display = ["source", "destination", "amount", "created_at"]
 
 
 @admin.register(Deposit)

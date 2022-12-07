@@ -84,13 +84,19 @@ class UsersHaveMadeOutManagerTest(TestCase):
         self.made_out_in_spring_last_year = UsersHaveMadeOutFactory(
             user_one=self.user,
             user_two=self.user_two,
-            created=now.replace(year=now.year - 1, month=3, day=1),
         )
+        self.made_out_in_spring_last_year.created = now.replace(
+            year=now.year - 1, month=3, day=1
+        )
+        self.made_out_in_spring_last_year.save()
         self.made_out_in_autumn_last_year = UsersHaveMadeOutFactory(
             user_one=self.user,
             user_two=self.user_two,
-            created=now.replace(year=now.year - 1, month=9, day=1),
         )
+        self.made_out_in_autumn_last_year.created = now.replace(
+            year=now.year - 1, month=9, day=1
+        )
+        self.made_out_in_autumn_last_year.save()
 
     def test_this_semester__returns_made_outs_from_this_semester(self):
         this_semester_made_outs = UsersHaveMadeOut.objects.this_semester()

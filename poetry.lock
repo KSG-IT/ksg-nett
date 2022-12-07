@@ -390,17 +390,6 @@ python-versions = ">=3.5"
 Django = ">=2.2"
 
 [[package]]
-name = "django-model-utils"
-version = "4.2.0"
-description = "Django model mixins and utilities"
-category = "main"
-optional = false
-python-versions = "*"
-
-[package.dependencies]
-Django = ">=2.0.1"
-
-[[package]]
 name = "django-storages"
 version = "1.13.1"
 description = "Support for many storage backends in Django"
@@ -1484,7 +1473,7 @@ test = ["pytest"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.9"
-content-hash = "c090238201eb54ed1a8a8405c7b82d98bf8711390a0609e514933230c8d5e65f"
+content-hash = "84305a2648644d9edafbcbd3a312426b28ce03284dfe25df5c1f0cecb8d4a50a"
 
 [metadata.files]
 aioredis = [
@@ -1850,10 +1839,6 @@ django-cors-headers = [
 django-filter = [
     {file = "django-filter-2.4.0.tar.gz", hash = "sha256:84e9d5bb93f237e451db814ed422a3a625751cbc9968b484ecc74964a8696b06"},
     {file = "django_filter-2.4.0-py3-none-any.whl", hash = "sha256:e00d32cebdb3d54273c48f4f878f898dced8d5dfaad009438fe61ebdf535ace1"},
-]
-django-model-utils = [
-    {file = "django-model-utils-4.2.0.tar.gz", hash = "sha256:e7a95e102f9c9653427eadab980d5d59e1dea972913b9c9e01ac37f86bba0ddf"},
-    {file = "django_model_utils-4.2.0-py3-none-any.whl", hash = "sha256:a768a25c80514e0ad4e4a6f9c02c44498985f36c5dfdea47b5b1e8cf994beba6"},
 ]
 django-storages = [
     {file = "django-storages-1.13.1.tar.gz", hash = "sha256:b3d98ecc09f1b1627c2b2cf430964322ce4e08617dbf9b4236c16a32875a1e0b"},

@@ -1,6 +1,5 @@
 import pytz
 from django.db import models
-from model_utils.models import TimeFramedModel
 from django.utils.translation import ugettext_lazy as _
 from organization.models import InternalGroup, InternalGroupPosition
 from users.models import User
