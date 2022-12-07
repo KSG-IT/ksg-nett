@@ -1,16 +1,12 @@
 import os
-import datetime
-from typing import Union, Dict, List, Optional
+from typing import Union, Dict, Optional
 from django.core.validators import MinValueValidator
 from django.conf import settings
 from django.db import models
 from django.db.models import QuerySet
 from django.utils import timezone
-from model_utils.managers import QueryManager
-from model_utils.models import TimeStampedModel, TimeFramedModel
 import common.models as common_models
-
-from api.exceptions import NoSociSessionError
+from django.utils.translation import gettext_lazy as _
 from users.models import User
 
 
@@ -32,7 +28,10 @@ class SociBankAccount(models.Model):
     card_uuid = models.CharField(max_length=50, blank=True, null=True, unique=True)
 
     objects = models.Manager()
-    soci_master_account = QueryManager(card_uuid=settings.SOCI_MASTER_ACCOUNT_CARD_ID)
+
+    @property
+    def soci_master_account(self):
+        return self.objects.get(card__uuid=settings.SOCI_MASTER_ACCOUNT_CARD_ID)
 
     @property
     def transaction_history(
@@ -80,7 +79,7 @@ class SociBankAccount(models.Model):
         return purchases["cost__sum"] or 0
 
 
-class SociProduct(TimeFramedModel):
+class SociProduct(models.Model):
     """
     A product for sale at Soci.
     Each product must have a unique SKU (stock keeping unit) identifier that enables us
@@ -106,6 +105,8 @@ class SociProduct(TimeFramedModel):
     default_stilletime_product = models.BooleanField(default=False)
     hide_from_api = models.BooleanField(default=False)
     sg_id = models.IntegerField(blank=True, null=True, default=None, unique=True)
+    start = models.DateTimeField(_("start"), null=True, blank=True)
+    end = models.DateTimeField(_("end"), null=True, blank=True)
 
     def __str__(self):
         return f"SociProduct {self.name} costing {self.price} kr"
@@ -220,6 +221,11 @@ class ProductOrder(models.Model):
     An order for a specific Soci product, and the order size.
     """
 
+    class Meta:
+        verbose_name = "Product order"
+        verbose_name_plural = "Product orders"
+        indexes = (models.Index(fields=["session", "source"]),)
+
     product = models.ForeignKey("SociProduct", on_delete=models.CASCADE)
 
     order_size = models.IntegerField(
@@ -250,7 +256,7 @@ class ProductOrder(models.Model):
         return f"Order(product={self.product}, order_size={self.order_size})"
 
 
-class Transfer(TimeStampedModel):
+class Transfer(models.Model):
     """
     A transfer between two personal Soci bank accounts.
     """
@@ -272,6 +278,7 @@ class Transfer(TimeStampedModel):
     )
 
     amount = models.IntegerField(blank=False, null=False)
+    created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return f"Transfer from {self.source.user} to {self.destination.user} of {self.amount} kr"
@@ -329,7 +336,7 @@ class Deposit(common_models.TimestampedModel):
         return f"Deposit(person={self.account.user},amount={self.amount})"
 
 
-class DepositComment(TimeStampedModel):
+class DepositComment(models.Model):
     """
     A comment made by some user on a deposit.
     This is useful in cases where a deposit is incomplete by missing a receipt or similar.
@@ -353,6 +360,7 @@ class DepositComment(TimeStampedModel):
         related_name="all_deposit_comments",
     )
     comment = models.TextField(null=False, blank=False)
+    created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         # Add ellipses for comments longer than 20 characters

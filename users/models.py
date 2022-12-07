@@ -6,7 +6,6 @@ from django.utils import timezone
 from django.contrib.auth.models import AbstractUser, Permission
 from django.db import models
 from django.db.models import QuerySet
-from model_utils.models import TimeStampedModel
 
 from common.util import get_semester_year_shorthand
 from users.managers import UsersHaveMadeOutManager
@@ -173,7 +172,7 @@ class User(AbstractUser):
             return active_session
 
 
-class UsersHaveMadeOut(TimeStampedModel):
+class UsersHaveMadeOut(models.Model):
     """
     UsersHaveMadeOut is a model representing a pair of users having made out. We model this with an
     explicit model to associate extra data to it.
@@ -187,6 +186,9 @@ class UsersHaveMadeOut(TimeStampedModel):
     )
 
     objects = UsersHaveMadeOutManager()
+
+    created = models.DateTimeField(auto_now_add=True)
+    modified = models.DateTimeField(auto_now=True)
 
     class Meta:
         indexes = [

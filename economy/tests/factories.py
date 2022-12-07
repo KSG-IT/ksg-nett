@@ -66,7 +66,7 @@ class TransferFactory(DjangoModelFactory):
     source = SubFactory(SociBankAccountFactory)
     destination = SubFactory(SociBankAccountFactory)
     amount = Faker("random_number", digits=4, fix_len=True)
-    created = Faker("date_time", tzinfo=pytz.timezone(settings.TIME_ZONE))
+    created_at = Faker("date_time", tzinfo=pytz.timezone(settings.TIME_ZONE))
 
 
 class DepositFactory(DjangoModelFactory):
