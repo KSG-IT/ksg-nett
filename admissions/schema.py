@@ -1376,7 +1376,7 @@ class CloseAdmissionMutation(graphene.Mutation):
                     phone=applicant.phone,
                     start_ksg=datetime.datetime.today(),
                     study_address=applicant.address,
-                    home_address=applicant.hometown,
+                    home_town=applicant.hometown,
                     study=applicant.study,
                     date_of_birth=applicant.date_of_birth,
                 )
