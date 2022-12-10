@@ -13,11 +13,6 @@ from organization.models import InternalGroup
 
 
 class Allergy(models.Model):
-    class Meta:
-        default_related_name = "users"
-        verbose_name_plural = "Users"
-        ordering = ("pk",)
-
     """
     Model containing food preferences and allergies
     """
@@ -36,10 +31,6 @@ class Allergy(models.Model):
 
 
 class User(AbstractUser):
-    """
-    A KSG user
-    """
-
     nickname = models.CharField(max_length=64, blank=True, null=True, default=None)
     email = models.EmailField(unique=True)
     date_of_birth = models.DateField(blank=True, null=True)
@@ -69,12 +60,12 @@ class User(AbstractUser):
     )
 
     def __str__(self):
-        return f"User {self.get_full_name()}"
+        return f"{self.get_full_name()}"
 
     def __repr__(self):
         return f"User(name={self.get_full_name()})"
 
-    def get_all_permissions(self):
+    def get_all_permissions(self, obj=None) -> list:
         all_permissions = []
         for user_type in self.user_types.all():
             for app_label, codename in user_type.permissions.values_list(
