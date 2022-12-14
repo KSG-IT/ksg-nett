@@ -862,7 +862,7 @@ class InterviewQuery(graphene.ObjectType):
     my_interviews = graphene.List(InterviewNode)
     my_upcoming_interviews = graphene.List(InterviewNode)
 
-    @gql_has_permissions("admissions.view_interviewtemplate")
+    @gql_has_permissions("admissions.view_interviewscheduletemplate")
     def resolve_interview_template(self, info, *args, **kwargs):
         all_boolean_evaluation_statements = (
             InterviewBooleanEvaluation.objects.all().order_by("order")
@@ -1570,6 +1570,7 @@ class AssignApplicantNewInterviewMutation(graphene.Mutation):
             applicant.save()
 
             send_new_interview_mail(applicant)
+            # TODO send email to interviewers
 
             return AssignApplicantNewInterviewMutation(success=True)
 
