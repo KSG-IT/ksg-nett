@@ -320,7 +320,7 @@ class DeleteUserMutation(DjangoDeleteMutation):
 class PatchUserMutation(DjangoPatchMutation):
     class Meta:
         model = User
-        exclude_fields = ("password",)
+        exclude_fields = ("password", "about_me")
         permissions = ("users.change_user",)
 
     @staticmethod
@@ -458,11 +458,33 @@ class RemoveUserFromUserTypeMutation(graphene.Mutation):
         return RemoveUserFromUserTypeMutation(user=user)
 
 
+class UpdateAboutMeMutation(graphene.Mutation):
+    class Arguments:
+        about_me = graphene.String()
+
+    user = graphene.Field(UserNode)
+
+    @staticmethod
+    def mutate(root, info, about_me):
+        user = info.context.user
+        if len(about_me) > 300:
+            raise ValueError("Value too long")
+
+        if about_me == "":
+            raise ValueError("Value too short")
+
+        user.about_me = about_me
+        user.first_time_login = False
+        user.save()
+        return UpdateAboutMeMutation(user=user)
+
+
 class UserMutations(graphene.ObjectType):
     create_user = CreateUserMutation.Field()
     patch_user = PatchUserMutation.Field()
     delete_user = DeleteUserMutation.Field()
     update_my_info = UpdateMyInfoMutation.Field()
+    update_about_me = UpdateAboutMeMutation.Field()
 
     add_user_to_user_type = AddUserToUserTypeMutation.Field()
     remove_user_from_user_type = RemoveUserFromUserTypeMutation.Field()

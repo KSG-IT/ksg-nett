@@ -76,12 +76,13 @@ class MyUserAdmin(UserAdmin):
             "Additional info",
             {
                 "fields": (
-                    "biography",
+                    "about_me",
                     "nickname",
                     "in_relationship",
                     "allergies",
                     "anonymize_in_made_out_map",
                     "requires_migration_wizard",
+                    "first_time_login",
                     "sg_id",
                     "ical_token",
                 )

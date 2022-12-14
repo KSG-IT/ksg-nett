@@ -43,7 +43,7 @@ class User(AbstractUser):
 
     start_ksg = models.DateField(auto_now_add=True)
 
-    biography = models.TextField(blank=True, default="", max_length=200)
+    about_me = models.TextField(blank=True, default="", max_length=200)
     in_relationship = models.BooleanField(null=True, default=False)
 
     allergies = models.ManyToManyField(Allergy, blank=True, related_name="users")
@@ -55,6 +55,7 @@ class User(AbstractUser):
     anonymize_in_made_out_map = models.BooleanField(default=True, null=False)
     sg_id = models.IntegerField(null=True, blank=True)
     requires_migration_wizard = models.BooleanField(default=False)
+    first_time_login = models.BooleanField(default=True)
     ical_token = models.CharField(
         max_length=128, unique=True, null=True, blank=True, default=None
     )
