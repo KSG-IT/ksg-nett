@@ -86,7 +86,6 @@ class UserNode(DjangoObjectType):
         "organization.schema.InternalGroupPositionMembershipNode"
     )
     money_spent = graphene.Int()
-    legacy_work_history = graphene.List("organization.schema.LegacyUserWorkHistoryNode")
 
     def resolve_internal_group_position_membership_history(
         self: User, info, *args, **kwargs
@@ -151,9 +150,6 @@ class UserNode(DjangoObjectType):
 
     def resolve_money_spent(self: User, info, **kwargs):
         return self.bank_account.money_spent
-
-    def resolve_legacy_work_history(self: User, info, **kwargs):
-        return self.legacy_work_history.all().order_by("date_from")
 
     def resolve_get_clean_full_name(self: User, info, **kwargs):
         return self.get_clean_full_name()

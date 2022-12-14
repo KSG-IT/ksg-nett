@@ -59,6 +59,12 @@ class User(AbstractUser):
     ical_token = models.CharField(
         max_length=128, unique=True, null=True, blank=True, default=None
     )
+    admission = models.ForeignKey(
+        "admissions.Admission",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+    )
 
     def __str__(self):
         return f"{self.get_full_name()}"

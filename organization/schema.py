@@ -1,6 +1,7 @@
 import datetime
+
+import bleach
 import graphene
-from django.contrib.auth.models import Group
 from django.db import transaction
 from django.utils import timezone
 from graphene import Node
@@ -12,25 +13,18 @@ from graphene_django_cud.mutations import (
 )
 from graphene_django import DjangoConnectionField
 
+from common.consts import BLEACH_ALLOWED_TAGS
 from common.decorators import gql_has_permissions
-from ksg_nett import settings
 from organization.consts import InternalGroupPositionMembershipType
 from organization.models import (
     InternalGroup,
     InternalGroupPosition,
     InternalGroupPositionMembership,
-    LegacyUserWorkHistory,
 )
 from graphene_django_cud.util import disambiguate_id
 from organization.graphql import InternalGroupPositionTypeEnum
 from users.schema import UserNode
 from users.models import User, UserType, UserTypeLogEntry
-
-
-class LegacyUserWorkHistoryNode(DjangoObjectType):
-    class Meta:
-        model = LegacyUserWorkHistory
-        interfaces = (Node,)
 
 
 class InternalGroupPositionMembershipData(graphene.ObjectType):
@@ -65,19 +59,26 @@ class InternalGroupNode(DjangoObjectType):
 
         return user_groupings
 
+    description = graphene.String()
+
+    def resolve_description(self: InternalGroup, info, **kwargs):
+        return bleach.clean(self.description, tags=BLEACH_ALLOWED_TAGS)
+
+    group_image = graphene.String()
+
+    def resolve_group_image(self: InternalGroup, info, **kwargs):
+        if self.group_image:
+            return self.group_image.url
+        else:
+            return None
+
     @classmethod
     def get_node(cls, info, id):
         return InternalGroup.objects.get(pk=id)
 
-    def resolve_group_image(self: InternalGroup, info, **kwargs):
-        if self.group_image:
-            return f"{settings.HOST_URL}{self.group_image.url}"
-        else:
-            return None
-
     def resolve_group_icon(self: InternalGroup, info, **kwargs):
         if self.group_icon:
-            return f"{settings.HOST_URL}{self.group_icon.url}"
+            return self.group_icon.url
         else:
             return None
 
@@ -172,31 +173,37 @@ class InternalGroupPositionMembershipQuery(graphene.ObjectType):
 class CreateInternalGroupMutation(DjangoCreateMutation):
     class Meta:
         model = InternalGroup
+        permissions = ("organization.add_internalgroup",)
 
 
 class PatchInternalGroupMutation(DjangoPatchMutation):
     class Meta:
         model = InternalGroup
+        permissions = ("organization.change_internalgroup",)
 
 
 class DeleteInternalGroupMutation(DjangoDeleteMutation):
     class Meta:
         model = InternalGroup
+        permissions = ("organization.delete_internalgroup",)
 
 
 class CreateInternalGroupPositionMutation(DjangoCreateMutation):
     class Meta:
         model = InternalGroupPosition
+        permissions = ("organization.add_internalgroupposition",)
 
 
 class PatchInternalGroupPositionMutation(DjangoPatchMutation):
     class Meta:
         model = InternalGroupPosition
+        permissions = ("organization.change_internalgroupposition",)
 
 
 class DeleteInternalGroupPosition(DjangoDeleteMutation):
     class Meta:
         model = InternalGroupPosition
+        permissions = ("organization.delete_internalgroupposition",)
 
 
 class AssignNewInternalGroupPositionMembership(graphene.Mutation):

@@ -7,7 +7,6 @@ from organization.models import (
     InternalGroup,
     InternalGroupPosition,
     InternalGroupPositionMembership,
-    LegacyUserWorkHistory,
 )
 
 
@@ -43,4 +42,3 @@ class InternalGroupPositionAdmin(admin.ModelAdmin):
 admin.site.register(InternalGroup, InternalGroupAdmin)
 admin.site.register(InternalGroupPosition, InternalGroupPositionAdmin)
 admin.site.register(InternalGroupPositionMembership)
-admin.site.register(LegacyUserWorkHistory)

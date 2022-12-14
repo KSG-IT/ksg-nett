@@ -31,6 +31,9 @@ class InternalGroup(models.Model):
     description = models.TextField(max_length=2048, blank=True, null=True)
     group_image = models.ImageField(upload_to="internalgroups", null=True, blank=True)
     group_icon = models.ImageField(upload_to="internalgroups", null=True, blank=True)
+    highlighted_name = models.CharField(
+        max_length=32, default="Funksjonærene", null=False
+    )
 
     @property
     def active_members(self):
@@ -44,17 +47,6 @@ class InternalGroup(models.Model):
 
         group_members.sort(key=lambda x: x.user.get_full_name())
         return group_members
-
-    @property
-    def group_image_url(self) -> Optional[str]:
-        if self.group_image and hasattr(self.group_image, "url"):
-            return self.group_image.url
-        return None
-
-    def group_icon_url(self) -> Optional[str]:
-        if self.group_icon and hasattr(self.group_icon, "url"):
-            return self.group_icon.url
-        return None
 
     @property
     def active_members_count(self) -> int:
@@ -83,7 +75,7 @@ class InternalGroupPositionMembership(models.Model):
 
     date_joined = models.DateField(default=timezone.now, null=False, blank=False)
     date_ended = models.DateField(default=None, null=True, blank=True)
-    type = models.CharField(  # move type from here to the membership objects
+    type = models.CharField(
         max_length=32,
         choices=InternalGroupPositionMembershipType.choices,
         null=False,
@@ -162,13 +154,22 @@ class InternalGroupPosition(models.Model):
         return f"{self.internal_group.name}: {self.name}"
 
 
-class LegacyUserWorkHistory(models.Model):
-    date_from = models.DateField(null=False, blank=False)
-    date_to = models.DateField(null=True, blank=True)
+class InternalGroupUserHighlight(models.Model):
+    """
+    A model for highlighting a user in an internal group
+    """
+
     user = models.ForeignKey(
-        "users.User", on_delete=models.CASCADE, related_name="legacy_work_history"
+        "users.User", on_delete=models.CASCADE, related_name="internal_group_highlights"
     )
-    identifying_name = models.CharField(max_length=128, null=False, blank=False)
+    internal_group = models.ForeignKey(
+        InternalGroup,
+        on_delete=models.CASCADE,
+        related_name="user_highlights",
+    )
+    description = models.CharField(max_length=1024, blank=True, null=True)
+    image = models.ImageField(upload_to="internalgroups", null=True, blank=True)
+    archived = models.BooleanField(default=False)
 
     def __str__(self):
-        return f"{self.user}: {self.identifying_name} from {self.date_from} to {self.date_to}"
+        return f"{self.user.get_full_name()}"

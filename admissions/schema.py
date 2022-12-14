@@ -1379,6 +1379,7 @@ class CloseAdmissionMutation(graphene.Mutation):
                     home_town=applicant.hometown,
                     study=applicant.study,
                     date_of_birth=applicant.date_of_birth,
+                    admission=admission,
                 )
 
                 # Step 3)
