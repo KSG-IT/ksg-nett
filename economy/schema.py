@@ -794,7 +794,7 @@ class PlaceSociOrderSessionOrderMutation(graphene.Mutation):
         else:
             cost_check = cost
 
-        if cost_check > balance:
+        if cost_check > balance and not me.bank_account.is_gold:
             raise IllegalOperation("You do not have enough funds to place this order")
 
         with transaction.atomic():
@@ -805,7 +805,7 @@ class PlaceSociOrderSessionOrderMutation(graphene.Mutation):
                 user=me,
             )
             if active_session.status == SociOrderSession.Status.DRINK_ORDERING:
-                # Stilletime we charge instantly the user
+                # During drink ordering we instantly charge the user
                 me.bank_account.remove_funds(cost)
 
             return PlaceSociOrderSessionOrderMutation(soci_order_session_order=order)

@@ -56,7 +56,10 @@ class SociBankAccount(models.Model):
 
     @property
     def is_gold(self):
-        return self.user.username in settings.SOCI_GOLD
+        return (
+            self.user.username in settings.SOCI_GOLD
+            or self.user.email in settings.SOCI_GOLD
+        )
 
     def __str__(self):
         return f"Soci Bank Account for {self.user} containing {self.balance} kr"
