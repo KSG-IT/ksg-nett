@@ -324,9 +324,6 @@ class Applicant(models.Model):
             self.priorities.all().delete()
 
             for index, position in enumerate(new_priority_order):
-                print(position)
-                print(self)
-                print(priorities[index])
                 InternalGroupPositionPriority.objects.create(
                     applicant=self,
                     internal_group_position=position,
