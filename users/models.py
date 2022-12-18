@@ -66,6 +66,11 @@ class User(AbstractUser):
         blank=True,
     )
 
+    # Email notification settings
+    notify_on_shift = models.BooleanField(default=False)
+    notify_on_deposit = models.BooleanField(default=True)
+    notify_on_quote = models.BooleanField(default=False)
+
     def __str__(self):
         return f"{self.get_full_name()}"
 
