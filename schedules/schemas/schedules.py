@@ -346,6 +346,49 @@ class DeleteShiftSlotMutation(DjangoDeleteMutation):
         permissions = ("schedules.delete_shiftslot",)
 
 
+class ShiftSlotRoleEnum(graphene.Enum):
+    BARISTA = ShiftSlot.RoleOption.BARISTA
+    KAFEANSVARLIG = ShiftSlot.RoleOption.KAFEANSVARLIG
+    BARSERVITOR = ShiftSlot.RoleOption.BARSERVITOR
+    HOVMESTER = ShiftSlot.RoleOption.HOVMESTER
+    KOKK = ShiftSlot.RoleOption.KOKK
+    SOUSCHEF = ShiftSlot.RoleOption.SOUSCHEF
+    ARRANGEMENTBARTENDER = ShiftSlot.RoleOption.ARRANGEMENTBARTENDER
+    ARRANGEMENTANSVARLIG = ShiftSlot.RoleOption.ARRANGEMENTANSVARLIG
+    BRYGGER = ShiftSlot.RoleOption.BRYGGER
+    BARTENDER = ShiftSlot.RoleOption.BARTENDER
+    BARSJEF = ShiftSlot.RoleOption.BARSJEF
+    SPRITBARTENDER = ShiftSlot.RoleOption.SPRITBARTENDER
+    SPRITBARSJEF = ShiftSlot.RoleOption.SPRITBARSJEF
+    UGLE = ShiftSlot.RoleOption.UGLE
+    BRANNVAKT = ShiftSlot.RoleOption.BRANNVAKT
+    RYDDDEVAKT = ShiftSlot.RoleOption.RYDDEVAKT
+    BAEREVAKT = ShiftSlot.RoleOption.BAEREVAKT
+    SOCIVAKT = ShiftSlot.RoleOption.SOCIVAKT
+
+
+class AddSlotToShiftInput(graphene.InputObjectType):
+    shift_slot_role = ShiftSlotRoleEnum(required=True)
+    count = graphene.Int(required=True)
+
+
+class AddSlotsToShiftMutation(graphene.Mutation):
+    class Arguments:
+        shift_id = graphene.ID(required=True)
+        slots = graphene.List(AddSlotToShiftInput, required=True)
+
+    shift = graphene.Field(ShiftNode)
+
+    @gql_has_permissions("schedules.add_shiftslot")
+    def mutate(self, info, shift_id, slots):
+        shift_id = disambiguate_id(shift_id)
+        shift = Shift.objects.get(pk=shift_id)
+        for slot in slots:
+            for i in range(slot.count):
+                ShiftSlot.objects.create(shift=shift, role=slot.shift_slot_role)
+        return AddSlotsToShiftMutation(shift=shift)
+
+
 class SchedulesMutations(graphene.ObjectType):
     create_shift = CreateShiftMutation.Field()
     delete_shift = DeleteShiftMutation.Field()
@@ -360,3 +403,4 @@ class SchedulesMutations(graphene.ObjectType):
     remove_user_from_shift_slot = RemoveUserFromShiftSlotMutation.Field()
     create_shift_slot = CreateShiftSlotMutation.Field()
     delete_shift_slot = DeleteShiftSlotMutation.Field()
+    add_slots_to_shift = AddSlotsToShiftMutation.Field()
