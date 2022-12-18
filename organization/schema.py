@@ -159,7 +159,7 @@ class InternalGroupPositionMembershipQuery(graphene.ObjectType):
     )
 
     def resolve_all_internal_group_position_memberships(self, info, *args, **kwargs):
-        return InternalGroupPositionMembership.objects.all()
+        return InternalGroupPositionMembership.objects.all().order_by("date_ended")
 
     def resolve_all_active_internal_group_position_memberships(
         self, info, *args, **kwargs
@@ -256,7 +256,10 @@ class AssignNewInternalGroupPositionMembership(graphene.Mutation):
 
         has_usertype_perm = info.context.user.has_perm("users.change_usertype")
 
-        if active_membership.type == InternalGroupPositionMembershipType.FUNCTIONARY:
+        if (
+            getattr(active_membership, "type", None)
+            == InternalGroupPositionMembershipType.FUNCTIONARY
+        ):
             functionary_user_type = UserType.objects.filter(name="Funksjonær").first()
             if functionary_user_type and has_usertype_perm:
                 # Can make this a bit more robust in the future
