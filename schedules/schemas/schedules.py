@@ -248,26 +248,31 @@ class CreateShiftsFromTemplateMutation(graphene.Mutation):
 class PatchShiftMutation(DjangoPatchMutation):
     class Meta:
         model = Shift
+        permissions = ("schedules.change_shift",)
 
 
 class DeleteShiftMutation(DjangoDeleteMutation):
     class Meta:
         model = Shift
+        permissions = ("schedules.delete_shift",)
 
 
 class CreateScheduleMutation(DjangoCreateMutation):
     class Meta:
         model = Schedule
+        permissions = ("schedules.add_schedule",)
 
 
 class PatchScheduleMutation(DjangoPatchMutation):
     class Meta:
         model = Schedule
+        permissions = ("schedules.change_schedule",)
 
 
 class DeleteScheduleMutation(DjangoDeleteMutation):
     class Meta:
         model = Schedule
+        permissions = ("schedules.delete_schedule",)
 
 
 class CreateShiftTradeMutation(DjangoCreateMutation):
