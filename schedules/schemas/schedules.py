@@ -137,6 +137,7 @@ class ShiftGroupWeeksUnion(graphene.Union):
 
 
 class ShiftQuery(graphene.ObjectType):
+    shift = Node.Field(ShiftNode)
     all_shifts = graphene.List(
         ShiftNode,
         date=graphene.Date(required=True),
