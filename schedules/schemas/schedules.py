@@ -10,7 +10,7 @@ from graphene_django_cud.mutations import (
 )
 from graphene_django_cud.util import disambiguate_id
 
-from common.decorators import gql_has_permissions
+from common.decorators import gql_has_permissions, gql_login_required
 from schedules.models import (
     Schedule,
     Shift,
@@ -65,6 +65,7 @@ class ShiftNode(DjangoObjectType):
         return self.slots.filter(user__isnull=False)
 
     @classmethod
+    @gql_login_required()
     def get_node(cls, info, id):
         return Shift.objects.get(pk=id)
 

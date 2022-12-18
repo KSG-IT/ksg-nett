@@ -60,9 +60,10 @@ class Schedule(models.Model):
 
     @classmethod
     def get_all_users_working_now(cls):
+        now = timezone.now()
         users = User.objects.filter(
-            filled_shifts__shift__datetime_start__lte=timezone.now(),
-            filled_shifts__shift__datetime_end__gte=timezone.now(),
+            filled_shifts__shift__datetime_start__lte=now,
+            filled_shifts__shift__datetime_end__gte=now,
         ).distinct()
         return users
 
@@ -131,10 +132,7 @@ class ShiftSlot(models.Model):
         BARSJEF = ("BARSJEF", "Barsjef")
         SPRITBARTENDER = ("SPRITBARTENDER", "Spritbartender")
         SPRITBARSJEF = ("SPRITBARSJEF", "Spritbarsjef")
-
         UGLE = ("UGLE", "Ugle")
-
-        # Consider mergin these two? Since they usually go on the same quota?
         BRANNVAKT = ("BRANNVAKT", "Brannvakt")
         RYDDEVAKT = ("RYDDEVAKT", "Ryddevakt")
         BAEREVAKT = ("BAEREVAKT", "Bærevakt")
