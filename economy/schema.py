@@ -599,11 +599,15 @@ class ApproveDepositMutation(graphene.Mutation):
         deposit_id = disambiguate_id(deposit_id)
         deposit = Deposit.objects.get(id=deposit_id)
         with transaction.atomic():
+            from economy.utils import send_deposit_approved_email
+
             deposit.approved_at = timezone.now()
             deposit.approved_by = info.context.user
             deposit.approved = True
             deposit.save()
             deposit.account.add_funds(deposit.amount)
+            if deposit.account.user.notify_on_deposit:
+                send_deposit_approved_email(deposit)
             return ApproveDepositMutation(deposit=deposit)
 
 

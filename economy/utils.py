@@ -140,3 +140,27 @@ def create_food_order_pdf_file(order_session):
         file, stylesheets=[css], font_config=font_config
     )
     return file
+
+
+def send_deposit_approved_email(deposit):
+    email_list = [deposit.account.user.email]
+
+    content = f"""
+        Hei!
+
+        Ditt innskudd på {deposit.amount} kr er nå godkjent. Du kan nå bruke pengene på KSG-nett.
+        """
+
+    html_content = f"""
+                Hei! 
+                <br>
+                <br>
+                Ditt innskudd på {deposit.amount} kr er nå godkjent. Du kan nå bruke pengene på KSG-nett.
+            """
+
+    send_email(
+        recipients=email_list,
+        subject="Innskudd godkjent",
+        message=content,
+        html_message=html_content,
+    )
