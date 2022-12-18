@@ -3,6 +3,7 @@ from secrets import token_urlsafe
 
 import bleach
 import graphene
+from django.conf import settings
 from graphene import Node
 from graphql_relay import to_global_id
 from graphene_django import DjangoObjectType
@@ -910,12 +911,17 @@ class InterviewQuery(graphene.ObjectType):
         """
         # We get all interviews available for booking
         now = timezone.datetime.now()
+        # Only get interviews that are from the next day onwards
+        # This way we people can check interviews at the start of the day
         cursor = timezone.make_aware(
             timezone.datetime(  # Use midnight helper here
                 year=now.year, month=now.month, day=now.day, hour=0, minute=0, second=0
             )
             + timezone.timedelta(days=1)
         )
+        if settings.ADMISSION_BOOK_INTERVIEWS_NOW:
+            cursor = now
+
         cursor += timezone.timedelta(days=day_offset)
         cursor_offset = cursor + timezone.timedelta(days=2)
         available_interviews = Interview.objects.filter(
@@ -973,6 +979,7 @@ class InterviewLocationQuery(graphene.ObjectType):
     all_interview_locations = graphene.List(InterviewLocationNode)
     interview_overview = graphene.Field(InterviewOverviewQuery)
 
+    @gql_has_permissions("admissions.view_interview")
     def resolve_interview_overview(self, info, *args, **kwargs):
         # We want to return all interviews in an orderly manner grouped by date and locations.
         interview_days = []
@@ -1022,6 +1029,7 @@ class InterviewLocationQuery(graphene.ObjectType):
             admission_id=Admission.get_active_admission().id,
         )
 
+    @gql_has_permissions("admissions.view_interview")
     def resolve_all_interview_locations(self, info, *args, **kwargs):
         return InterviewLocation.objects.all().order_by("name")
 
@@ -1123,10 +1131,7 @@ class ToggleApplicantWillBeAdmittedMutation(graphene.Mutation):
     @gql_has_permissions("admissions.change_admission")
     def mutate(self, info, id, *args, **kwargs):
         applicant_id = disambiguate_id(id)
-        applicant = Applicant.objects.filter(id=applicant_id).first()
-
-        if not applicant:
-            return ToggleApplicantWillBeAdmittedMutation(success=False)
+        applicant = Applicant.objects.get(id=applicant_id)
 
         applicant.will_be_admitted = not applicant.will_be_admitted
         applicant.save()
@@ -1200,6 +1205,7 @@ class ResetApplicantInternalGroupPositionOfferMutation(graphene.Mutation):
 
     applicant_interest = graphene.Field(ApplicantInterestNode)
 
+    @gql_has_permissions("admissions.change_applicantinterest")
     def mutate(self, info, applicant_interest_id, *args, **kwargs):
         applicant_interest_id = disambiguate_id(applicant_interest_id)
         applicant_interest = ApplicantInterest.objects.get(pk=applicant_interest_id)
@@ -1216,6 +1222,7 @@ class AddInternalGroupPositionPriorityMutation(graphene.Mutation):
 
     success = graphene.Boolean()
 
+    @gql_has_permissions("admissions.add_internalgrouppositionpriority")
     def mutate(self, info, internal_group_position_id, applicant_id, *args, **kwargs):
         internal_group_position_id = disambiguate_id(internal_group_position_id)
         applicant_id = disambiguate_id(applicant_id)

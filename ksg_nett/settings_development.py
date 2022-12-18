@@ -24,6 +24,8 @@ MEDIA_URL = "https://ksg-nett-dev.samfundet.no/media/"
 APP_URL = "app-dev.ksg-nett.no"
 BASE_URL = "https://ksg-nett-dev.samfundet.no"
 
+ADMISSION_BOOK_INTERVIEWS_NOW = True
+
 # Application definition
 DATABASES = {
     "default": {
