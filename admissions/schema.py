@@ -1269,11 +1269,13 @@ class UpdateInternalGroupPositionPriorityOrderMutation(graphene.Mutation):
 class PatchInternalGroupPositionPriority(DjangoPatchMutation):
     class Meta:
         model = InternalGroupPositionPriority
+        permissions = ("admissions.change_internalgrouppositionpriority",)
 
 
 class DeleteInternalGroupPositionPriority(DjangoDeleteMutation):
     class Meta:
         model = InternalGroupPositionPriority
+        permissions = ("admissions.delete_internalgrouppositionpriority",)
 
     @classmethod
     def before_save(cls, root, info, id, obj):
