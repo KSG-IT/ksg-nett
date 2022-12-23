@@ -421,6 +421,65 @@ def notify_interviewers_cancelled_interview_email(applicant, interview):
         bcc=interview.interviewers.values_list("email", flat=True),
     )
 
+def send_interview_confirmation_email(applicant, interview):
+    local_time = timezone.localtime(
+        interview.interview_start, pytz.timezone(settings.TIME_ZONE)
+    )
+    name = applicant.get_full_name
+    interview_location = interview.location.name
+    formatted_local_time = local_time.strftime("%d.%m.%Y kl. %H:%M")
+    content = (
+        _(
+            """
+            Hei!
+            
+            Du har fått et intervju hos KSG. 
+            
+            Intervjuinformasjon:
+            %(interview_location)s
+            %(interview_time)s
+            
+            """
+        )
+        % {
+            "name": name,
+            "interview_location": interview_location,
+            "interview_time": formatted_local_time,
+        }
+    )
+
+    html_content = (
+        _(
+            """
+            Hei!
+            <br />
+            Du har fått et intervju hos KSG. 
+            <br />
+            Intervjuinformasjon:
+            <br />
+            %(interview_location)s
+            <br />
+            %(interview_time)s
+            <br />
+            
+            """
+        )
+        % {
+            "name": name,
+            "interview_location": interview_location,
+            "interview_time": formatted_local_time,
+        }
+    )
+
+    return send_email(
+        _("Intervju KSG"),
+        message=content,
+        html_message=html_content,
+        recipients=[applicant.email],
+    )
+
+
+
 
 def read_admission_csv(file):
     """
