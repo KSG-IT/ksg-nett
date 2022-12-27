@@ -35,7 +35,8 @@ from admissions.utils import (
     send_applicant_notice_email,
     send_new_interview_mail,
     send_interview_cancelled_email,
-    notify_interviewers_cancelled_interview_email, send_interview_confirmation_email,
+    notify_interviewers_cancelled_interview_email, send_interview_confirmation_email, get_applicant_priority_list,
+    get_applicant_priority_position, remove_applicant_choice, construct_new_priority_list,
 )
 from django.core.exceptions import SuspiciousOperation, ValidationError
 from django.utils import timezone
@@ -1238,6 +1239,23 @@ class AddInternalGroupPositionPriorityMutation(graphene.Mutation):
         return AddInternalGroupPositionPriorityMutation(success=True)
 
 
+class ApplicantAddInternalGroupPositionPriorityMutation(graphene.Mutation):
+    class Arguments:
+        internal_group_position_id = graphene.ID(required=True)
+        applicant_id = graphene.ID(required=True)
+        token = graphene.String(required=True)
+
+    success = graphene.Boolean()
+
+    def mutate(self, info, internal_group_position_id, applicant_id, token, *args, **kwargs):
+        applicant, internal_group_position = get_applicant_priority_position(applicant_id, internal_group_position_id)
+        print("vroom", get_applicant_priority_position(applicant_id, internal_group_position_id))
+        if (token != applicant.token) or (not (applicant and internal_group_position)):
+            return ApplicantAddInternalGroupPositionPriorityMutation(success=False)
+        applicant.add_priority(internal_group_position)
+        return ApplicantAddInternalGroupPositionPriorityMutation(success=True)
+
+
 class UpdateInternalGroupPositionPriorityOrderMutation(graphene.Mutation):
     class Arguments:
         applicant_id = graphene.ID(required=True)
@@ -1249,21 +1267,7 @@ class UpdateInternalGroupPositionPriorityOrderMutation(graphene.Mutation):
 
     @gql_has_permissions("admissions.change_internalgrouppositionpriority")
     def mutate(self, info, applicant_id, priority_order, *args, **kwargs):
-        # Ids can be None
-        trimmed_global_ids = []
-        for priority_order_id in priority_order:
-            if not priority_order_id:
-                continue
-            trimmed_global_ids.append(priority_order_id)
-
-        applicant_id = disambiguate_id(applicant_id)
-        applicant = Applicant.objects.get(id=applicant_id)
-        ids = [disambiguate_id(global_id) for global_id in trimmed_global_ids]
-
-        parsed_priorities = []
-        for id in ids:
-            parsed_priorities.append(InternalGroupPosition.objects.get(id=id))
-
+        applicant, parsed_priorities = get_applicant_priority_list(applicant_id, priority_order)
         applicant.update_priority_order(parsed_priorities)
         applicant.refresh_from_db()
 
@@ -1271,6 +1275,32 @@ class UpdateInternalGroupPositionPriorityOrderMutation(graphene.Mutation):
         return UpdateInternalGroupPositionPriorityOrderMutation(
             internal_group_position_priorities=new_priorities
         )
+
+
+# create a mutation for updating priority order, but take in token as argument
+class ApplicantUpdateInternalGroupPositionPriorityOrderMutation(graphene.Mutation):
+    class Arguments:
+        applicant_id = graphene.ID(required=True)
+        token = graphene.String(required=True)
+        priority_order = graphene.List(graphene.ID, required=True)
+
+    internal_group_position_priorities = graphene.List(
+        InternalGroupPositionPriorityNode
+    )
+
+    # This mutation is only for giving applicants the ability to update their own priority order
+    def mutate(self, info, applicant_id, priority_order, token, *args, **kwargs):
+        applicant, parsed_priorities = get_applicant_priority_list(applicant_id, priority_order)
+        constructed_priorities = construct_new_priority_list(priority_order)
+        print("constructed_prios: ", constructed_priorities, "\n\n")
+        if token == applicant.token:
+            applicant.update_priority_order(constructed_priorities)
+            applicant.refresh_from_db()
+            new_priorities = applicant.get_priorities
+            print("new priorities \n", new_priorities)
+            return ApplicantUpdateInternalGroupPositionPriorityOrderMutation(
+                internal_group_position_priorities=new_priorities
+            )
 
 
 class PatchInternalGroupPositionPriority(DjangoPatchMutation):
@@ -1313,6 +1343,23 @@ class DeleteInternalGroupPositionPriority(DjangoDeleteMutation):
                 )
             )
         return obj
+
+
+class ApplicantDeleteInternalGroupPositionPriority(graphene.Mutation):
+    class Arguments:
+        internal_group_position_id = graphene.ID(required=True)
+        applicant_id = graphene.ID(required=True)
+        token = graphene.String(required=True)
+
+    success = graphene.Boolean()
+
+    def mutate(self, info, internal_group_position_id, applicant_id, token, *args, **kwargs):
+        applicant, internal_group_position = get_applicant_priority_position(applicant_id, internal_group_position_id)
+        if (token != applicant.token) or (not (applicant and internal_group_position)):
+            print("ting", get_applicant_priority_position(applicant_id, internal_group_position_id))
+            return ApplicantDeleteInternalGroupPositionPriority(success=False)
+        remove_applicant_choice(applicant, internal_group_position)
+        return ApplicantDeleteInternalGroupPositionPriority(success=True)
 
 
 # === Admission ===
@@ -1550,24 +1597,6 @@ class BookInterviewMutation(graphene.Mutation):
 
         return BookInterviewMutation(ok=False)
 
-    '''
-            if obj.status == ApplicantStatus.RETRACTED_APPLICATION:
-            send_interview_cancelled_email(obj)
-            if not hasattr(obj, "interview"):
-                return obj
-
-            interview = obj.interview
-            obj.interview = None
-            obj.save()
-
-            if interview.interview_start > timezone.now():
-                # Remove interviewers from interview
-                notify_interviewers_cancelled_interview_email(obj, interview)
-                interview.interviewers.clear()
-            return obj
-    
-    '''
-
 
 class AssignApplicantNewInterviewMutation(graphene.Mutation):
     class Arguments:
@@ -1725,6 +1754,9 @@ class AdmissionsMutations(graphene.ObjectType):
     update_internal_group_position_priority_order = (
         UpdateInternalGroupPositionPriorityOrderMutation.Field()
     )
+    applicant_update_internal_group_position_priority_order = (
+        ApplicantUpdateInternalGroupPositionPriorityOrderMutation.Field()
+    )
     send_applicant_notice = SendApplicantNoticeEmailMutation.Field()
 
     create_applicant_comment = CreateApplicantCommentMutation.Field()
@@ -1802,7 +1834,13 @@ class AdmissionsMutations(graphene.ObjectType):
     add_internal_group_position_priority = (
         AddInternalGroupPositionPriorityMutation.Field()
     )
+    applicant_add_internal_group_position_priority = (
+        ApplicantAddInternalGroupPositionPriorityMutation.Field()
+    )
     patch_internal_group_position_priority = PatchInternalGroupPositionPriority.Field()
     delete_internal_group_position_priority = (
         DeleteInternalGroupPositionPriority.Field()
+    )
+    applicant_delete_internal_group_position_priority = (
+        ApplicantDeleteInternalGroupPositionPriority.Field()
     )

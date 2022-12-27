@@ -3,6 +3,8 @@ import math
 import pytz
 from django.utils import timezone
 from django.db import transaction
+from graphene_django_cud.util import disambiguate_id
+
 from common.util import send_email
 from django.utils.translation import ugettext_lazy as _
 from django.conf import settings
@@ -16,7 +18,8 @@ from common.util import (
 )
 from admissions.consts import InternalGroupStatus, Priority, ApplicantStatus
 from graphql_relay import to_global_id
-from admissions.models import ApplicantInterest
+from admissions.models import ApplicantInterest, Applicant, InternalGroupPositionPriority
+from organization.models import InternalGroupPosition
 
 
 def get_available_interview_locations(datetime_from=None, datetime_to=None):
@@ -367,8 +370,8 @@ def notify_interviewers_cancelled_interview_email(applicant, interview):
     interview_location = interview.location.name
     formatted_local_time = local_time.strftime("%d.%m.%Y kl. %H:%M")
     content = (
-        _(
-            """
+            _(
+                """
             Hei!
             
             %(name)s har kansellert sitt intervju hos KSG. 
@@ -380,17 +383,17 @@ def notify_interviewers_cancelled_interview_email(applicant, interview):
             %(interview_time)s
             
             """
-        )
-        % {
-            "name": name,
-            "interview_location": interview_location,
-            "interview_time": formatted_local_time,
-        }
+            )
+            % {
+                "name": name,
+                "interview_location": interview_location,
+                "interview_time": formatted_local_time,
+            }
     )
 
     html_content = (
-        _(
-            """
+            _(
+                """
             Hei!
             <br />
             %(name)s har kansellert sitt intervju hos KSG. 
@@ -405,12 +408,12 @@ def notify_interviewers_cancelled_interview_email(applicant, interview):
             <br />
             
             """
-        )
-        % {
-            "name": name,
-            "interview_location": interview_location,
-            "interview_time": formatted_local_time,
-        }
+            )
+            % {
+                "name": name,
+                "interview_location": interview_location,
+                "interview_time": formatted_local_time,
+            }
     )
 
     return send_email(
@@ -421,6 +424,7 @@ def notify_interviewers_cancelled_interview_email(applicant, interview):
         bcc=interview.interviewers.values_list("email", flat=True),
     )
 
+
 def send_interview_confirmation_email(applicant, interview):
     local_time = timezone.localtime(
         interview.interview_start, pytz.timezone(settings.TIME_ZONE)
@@ -429,31 +433,31 @@ def send_interview_confirmation_email(applicant, interview):
     interview_location = interview.location.name
     formatted_local_time = local_time.strftime("%d.%m.%Y kl. %H:%M")
     content = (
-        _(
-            """
+            _(
+                """
             Hei!
             
-            Du har fått et intervju hos KSG. 
+            Dette er en bekreftelse på at du har fått et intervju hos KSG.
             
             Intervjuinformasjon:
             %(interview_location)s
             %(interview_time)s
             
             """
-        )
-        % {
-            "name": name,
-            "interview_location": interview_location,
-            "interview_time": formatted_local_time,
-        }
+            )
+            % {
+                "name": name,
+                "interview_location": interview_location,
+                "interview_time": formatted_local_time,
+            }
     )
 
     html_content = (
-        _(
-            """
+            _(
+                """
             Hei!
             <br />
-            Du har fått et intervju hos KSG. 
+            Dette er en bekreftelse på at du har fått et intervju hos KSG.
             <br />
             Intervjuinformasjon:
             <br />
@@ -463,22 +467,20 @@ def send_interview_confirmation_email(applicant, interview):
             <br />
             
             """
-        )
-        % {
-            "name": name,
-            "interview_location": interview_location,
-            "interview_time": formatted_local_time,
-        }
+            )
+            % {
+                "name": name,
+                "interview_location": interview_location,
+                "interview_time": formatted_local_time,
+            }
     )
 
     return send_email(
-        _("Intervju KSG"),
+        _("Bekreftelse intervju KSG"),
         message=content,
         html_message=html_content,
         recipients=[applicant.email],
     )
-
-
 
 
 def read_admission_csv(file):
@@ -527,8 +529,8 @@ def read_admission_csv(file):
             continue
 
         if (
-            Applicant.objects.filter(email=email).exists()
-            or User.objects.filter(email=email).exists()
+                Applicant.objects.filter(email=email).exists()
+                or User.objects.filter(email=email).exists()
         ):
             # Not sure if we should keep it implicit like this?
             continue
@@ -624,7 +626,7 @@ def create_interview_slots(interview_days):
 
     # We use the inferred duration as our cursor offset
     inferred_interview_duration = (
-        first_interview.interview_end - first_interview.interview_start
+            first_interview.interview_end - first_interview.interview_start
     )
     parsed_interviews = []
 
@@ -896,3 +898,60 @@ def get_applicant_offered_position(applicant):
         )
 
     return interest.position_to_be_offered
+
+
+def get_applicant_priority_list(applicant_id, priority_order):
+    trimmed_global_ids = []
+    for priority_order_id in priority_order:
+        if not priority_order_id:
+            continue
+        trimmed_global_ids.append(priority_order_id)
+
+    applicant_id = disambiguate_id(applicant_id)
+    applicant = Applicant.objects.get(id=applicant_id)
+    ids = [disambiguate_id(global_id) for global_id in trimmed_global_ids]
+
+    parsed_priorities = []
+    for id in ids:
+        parsed_priorities.append(InternalGroupPosition.objects.get(id=id))
+
+    return applicant, parsed_priorities
+
+def construct_new_priority_list(priority_order):
+    priority_order = [disambiguate_id(global_id) for global_id in priority_order]
+    return [InternalGroupPosition.objects.get(id=id) for id in priority_order]
+
+
+def get_applicant_priority_position(applicant_id, internal_group_position_id):
+    internal_group_position_id = disambiguate_id(internal_group_position_id)
+    applicant_id = disambiguate_id(applicant_id)
+    internal_group_position = InternalGroupPosition.objects.filter(
+        id=internal_group_position_id
+    ).first()
+    applicant = Applicant.objects.filter(id=applicant_id).first()
+    return applicant, internal_group_position
+
+
+def remove_applicant_choice(applicant, internal_group_position):
+    priorities = [Priority.FIRST, Priority.SECOND, Priority.THIRD]
+    unfiltered_priorities = applicant.get_priorities
+    filtered_priorities = []
+    # Unfiltered priorities can have None values. Get rid of them
+    for priority in unfiltered_priorities:
+        if not priority:
+            continue
+        # We don't want to re-add the position we are trying to delete
+        if priority.internal_group_position == internal_group_position:
+            continue
+
+        filtered_priorities.append(priority.internal_group_position)
+
+    # Delete the priorities so we can add them in the right order
+    print("Deleting priorities")
+    applicant.priorities.all().delete()
+    print("Filtered priorities", filtered_priorities)
+    for element in filtered_priorities:
+        applicant.add_priority(element)
+    applicant.save()
+
+
