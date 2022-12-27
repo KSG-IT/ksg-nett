@@ -50,7 +50,6 @@ INSTALLED_APPS = [
     "rest_framework.authtoken",
     "drf_yasg2",
     "graphene_django",
-    "storages",
     "corsheaders",
     "django_filters",
     # Project apps
@@ -68,8 +67,8 @@ INSTALLED_APPS = [
     "summaries",
     "users",
     "sensors",
-    "chat",
     "admissions",
+    "handbook",
 ]
 
 MIDDLEWARE = [
