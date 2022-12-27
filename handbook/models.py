@@ -1,26 +1,12 @@
-import enum
-
 from django.db import models
 
 
-class DocumentTypeEnum(enum.Enum):
-    FILE = "FILE"
-    DOCUMENT = "DOCUMENT"
-
-
 class Document(models.Model):
-    """
-    A document is either markdown content or a file. We do this so we can
-    store both types in the same table.
-    """
-
     class Meta:
         verbose_name = "Document"
         verbose_name_plural = "Documents"
 
     name = models.CharField(max_length=100)
-
-    # Content or File can exist but not both
     content = models.TextField()
 
     created_at = models.DateTimeField(auto_now_add=True)
