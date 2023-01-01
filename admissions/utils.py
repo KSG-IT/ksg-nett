@@ -18,7 +18,11 @@ from common.util import (
 )
 from admissions.consts import InternalGroupStatus, Priority, ApplicantStatus
 from graphql_relay import to_global_id
-from admissions.models import ApplicantInterest, Applicant, InternalGroupPositionPriority
+from admissions.models import (
+    ApplicantInterest,
+    Applicant,
+    InternalGroupPositionPriority,
+)
 from organization.models import InternalGroupPosition
 
 
@@ -370,50 +374,50 @@ def notify_interviewers_cancelled_interview_email(applicant, interview):
     interview_location = interview.location.name
     formatted_local_time = local_time.strftime("%d.%m.%Y kl. %H:%M")
     content = (
-            _(
-                """
-            Hei!
-            
-            %(name)s har kansellert sitt intervju hos KSG. 
-            
-            Du har blitt fjernet fra intervjuet.
-
-            Intervjuinformasjon:
-            %(interview_location)s
-            %(interview_time)s
-            
+        _(
             """
-            )
-            % {
-                "name": name,
-                "interview_location": interview_location,
-                "interview_time": formatted_local_time,
-            }
+                Hei!
+                
+                %(name)s har kansellert sitt intervju hos KSG. 
+                
+                Du har blitt fjernet fra intervjuet.
+    
+                Intervjuinformasjon:
+                %(interview_location)s
+                %(interview_time)s
+                
+                """
+        )
+        % {
+            "name": name,
+            "interview_location": interview_location,
+            "interview_time": formatted_local_time,
+        }
     )
 
     html_content = (
-            _(
-                """
-            Hei!
-            <br />
-            %(name)s har kansellert sitt intervju hos KSG. 
-            <br />
-            Du har blitt fjernet fra intervjuet.
-            <br />
-            Intervjuinformasjon:
-            <br />
-            %(interview_location)s
-            <br />
-            %(interview_time)s
-            <br />
-            
+        _(
             """
-            )
-            % {
-                "name": name,
-                "interview_location": interview_location,
-                "interview_time": formatted_local_time,
-            }
+                Hei!
+                <br />
+                %(name)s har kansellert sitt intervju hos KSG. 
+                <br />
+                Du har blitt fjernet fra intervjuet.
+                <br />
+                Intervjuinformasjon:
+                <br />
+                %(interview_location)s
+                <br />
+                %(interview_time)s
+                <br />
+                
+                """
+        )
+        % {
+            "name": name,
+            "interview_location": interview_location,
+            "interview_time": formatted_local_time,
+        }
     )
 
     return send_email(
@@ -433,8 +437,8 @@ def send_interview_confirmation_email(applicant, interview):
     interview_location = interview.location.name
     formatted_local_time = local_time.strftime("%d.%m.%Y kl. %H:%M")
     content = (
-            _(
-                """
+        _(
+            """
             Hei!
             
             Dette er en bekreftelse på at du har fått et intervju hos KSG.
@@ -444,17 +448,17 @@ def send_interview_confirmation_email(applicant, interview):
             %(interview_time)s
             
             """
-            )
-            % {
-                "name": name,
-                "interview_location": interview_location,
-                "interview_time": formatted_local_time,
-            }
+        )
+        % {
+            "name": name,
+            "interview_location": interview_location,
+            "interview_time": formatted_local_time,
+        }
     )
 
     html_content = (
-            _(
-                """
+        _(
+            """
             Hei!
             <br />
             Dette er en bekreftelse på at du har fått et intervju hos KSG.
@@ -467,12 +471,12 @@ def send_interview_confirmation_email(applicant, interview):
             <br />
             
             """
-            )
-            % {
-                "name": name,
-                "interview_location": interview_location,
-                "interview_time": formatted_local_time,
-            }
+        )
+        % {
+            "name": name,
+            "interview_location": interview_location,
+            "interview_time": formatted_local_time,
+        }
     )
 
     return send_email(
@@ -529,8 +533,8 @@ def read_admission_csv(file):
             continue
 
         if (
-                Applicant.objects.filter(email=email).exists()
-                or User.objects.filter(email=email).exists()
+            Applicant.objects.filter(email=email).exists()
+            or User.objects.filter(email=email).exists()
         ):
             # Not sure if we should keep it implicit like this?
             continue
@@ -626,7 +630,7 @@ def create_interview_slots(interview_days):
 
     # We use the inferred duration as our cursor offset
     inferred_interview_duration = (
-            first_interview.interview_end - first_interview.interview_start
+        first_interview.interview_end - first_interview.interview_start
     )
     parsed_interviews = []
 
@@ -677,7 +681,7 @@ def internal_group_applicant_data(internal_group):
             priorities__internal_group_position__internal_group=internal_group,
         )
         .exclude(status=ApplicantStatus.RETRACTED_APPLICATION)
-        .order_by("interview__interview_start")
+        .order_by("first_name")
     )
     second_priorities = (
         all_applicants.filter(
@@ -685,7 +689,7 @@ def internal_group_applicant_data(internal_group):
             priorities__internal_group_position__internal_group=internal_group,
         )
         .exclude(status=ApplicantStatus.RETRACTED_APPLICATION)
-        .order_by("interview__interview_start")
+        .order_by("first_name")
     )
     third_priorities = (
         all_applicants.filter(
@@ -693,15 +697,12 @@ def internal_group_applicant_data(internal_group):
             priorities__internal_group_position__internal_group=internal_group,
         )
         .exclude(status=ApplicantStatus.RETRACTED_APPLICATION)
-        .order_by("interview__interview_start")
+        .order_by("first_name")
     )
 
     all_priorities = InternalGroupPositionPriority.objects.filter(
         internal_group_position__internal_group=internal_group
     )
-    want_count = all_priorities.filter(
-        internal_group_priority=InternalGroupStatus.WANT
-    ).count()
 
     admission = Admission.get_active_admission()
     data = admission.available_internal_group_positions_data.filter(
@@ -709,9 +710,6 @@ def internal_group_applicant_data(internal_group):
     ).first()
     positions_to_fill = data.available_positions
 
-    # This now counts people who did not interview, we should probably have a
-    # purge step when moving from open admission to discussion
-    # maybe have this in its own mutation
     """
     Admission 
     Configure -> Open -> Discussing -> Locked -> Closed
@@ -733,6 +731,7 @@ def internal_group_applicant_data(internal_group):
         third_priorities=third_priorities,
         current_progress=current_progress,
         positions_to_fill=positions_to_fill,
+        mvp_list=[],  # TODO
     )
 
 
@@ -917,6 +916,7 @@ def get_applicant_priority_list(applicant_id, priority_order):
 
     return applicant, parsed_priorities
 
+
 def construct_new_priority_list(priority_order):
     priority_order = [disambiguate_id(global_id) for global_id in priority_order]
     return [InternalGroupPosition.objects.get(id=id) for id in priority_order]
@@ -953,5 +953,3 @@ def remove_applicant_choice(applicant, internal_group_position):
     for element in filtered_priorities:
         applicant.add_priority(element)
     applicant.save()
-
-

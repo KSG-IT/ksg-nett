@@ -50,7 +50,6 @@ INSTALLED_APPS = [
     "rest_framework.authtoken",
     "drf_yasg2",
     "graphene_django",
-    "storages",
     "corsheaders",
     "django_filters",
     # Project apps
@@ -68,8 +67,8 @@ INSTALLED_APPS = [
     "summaries",
     "users",
     "sensors",
-    "chat",
     "admissions",
+    "handbook",
 ]
 
 MIDDLEWARE = [
@@ -119,8 +118,7 @@ DATABASES = {
     }
 }
 
-# Default from pre 3.2. Possible to change to BigAutoField
-DEFAULT_AUTO_FIELD = "django.db.models.AutoField"
+DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # Password validation
 # https://docs.djangoproject.com/en/1.10/ref/settings/#auth-password-validators

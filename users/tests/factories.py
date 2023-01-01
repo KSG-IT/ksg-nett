@@ -23,7 +23,7 @@ class UserFactory(DjangoModelFactory):
     study_address = Faker("address")
     home_town = Faker("address")
     start_ksg = Faker("past_date")
-    biography = Faker("sentence")
+    about_me = Faker("sentence")
     in_relationship = False
     anonymize_in_made_out_map = False
 

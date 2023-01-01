@@ -35,8 +35,12 @@ from admissions.utils import (
     send_applicant_notice_email,
     send_new_interview_mail,
     send_interview_cancelled_email,
-    notify_interviewers_cancelled_interview_email, send_interview_confirmation_email, get_applicant_priority_list,
-    get_applicant_priority_position, remove_applicant_choice, construct_new_priority_list,
+    notify_interviewers_cancelled_interview_email,
+    send_interview_confirmation_email,
+    get_applicant_priority_list,
+    get_applicant_priority_position,
+    remove_applicant_choice,
+    construct_new_priority_list,
 )
 from django.core.exceptions import SuspiciousOperation, ValidationError
 from django.utils import timezone
@@ -163,7 +167,7 @@ class ApplicantNode(DjangoObjectType):
         return interviewers.filter(pk=user.id).exists()
 
     def resolve_interview_is_covered(
-            self: Applicant, info, internal_group_id, *args, **kwargs
+        self: Applicant, info, internal_group_id, *args, **kwargs
     ):
         internal_group_id = disambiguate_id(internal_group_id)
         internal_group = InternalGroup.objects.get(id=internal_group_id)
@@ -191,7 +195,7 @@ class ApplicantNode(DjangoObjectType):
 
     # This will be deprecated
     def resolve_interviewer_from_internal_group(
-            self: Applicant, info, internal_group_id, *args, **kwargs
+        self: Applicant, info, internal_group_id, *args, **kwargs
     ):
         """
         We want to be able to query whether or not there is an interviewer from the respective internal
@@ -257,33 +261,33 @@ class InterviewScheduleTemplateNode(DjangoObjectType):
     default_interview_day_end = Time()
 
     def resolve_interview_period_start_date(
-            self: InterviewScheduleTemplate, info, *args, **kwargs
+        self: InterviewScheduleTemplate, info, *args, **kwargs
     ):
         return self.interview_period_start_date
 
     def resolve_interview_period_end_date(
-            self: InterviewScheduleTemplate, info, *args, **kwargs
+        self: InterviewScheduleTemplate, info, *args, **kwargs
     ):
         return self.interview_period_end_date
 
     def resolve_default_interview_day_start(
-            self: InterviewScheduleTemplate, info, *args, **kwargs
+        self: InterviewScheduleTemplate, info, *args, **kwargs
     ):
         return self.default_interview_day_start
 
     def resolve_default_interview_day_end(
-            self: InterviewScheduleTemplate, info, *args, **kwargs
+        self: InterviewScheduleTemplate, info, *args, **kwargs
     ):
         return self.default_interview_day_end
 
     def resolve_default_interview_duration(
-            self: InterviewScheduleTemplate, info, *args, **kwargs
+        self: InterviewScheduleTemplate, info, *args, **kwargs
     ):
         # This is a timedelta object but is returned as "mm:ss" instead of "hh:mm:ss" which ruins stuff kinda
         return self.default_interview_duration
 
     def resolve_default_pause_duration(
-            self: InterviewScheduleTemplate, info, *args, **kwargs
+        self: InterviewScheduleTemplate, info, *args, **kwargs
     ):
         return self.default_pause_duration
 
@@ -323,7 +327,7 @@ class AdmissionNode(DjangoObjectType):
         return self.applicants.all().order_by("first_name")
 
     def resolve_available_internal_group_positions_data(
-            self: Admission, info, *args, **kwargs
+        self: Admission, info, *args, **kwargs
     ):
         available_positions = self.available_internal_group_positions_data.all()
         if available_positions:
@@ -414,6 +418,7 @@ class InternalGroupApplicantsData(graphene.ObjectType):
     positions_to_fill = graphene.Int()
     # How far they have come in their process
     current_progress = graphene.Int()
+    mvp_list = graphene.List(UserNode)
 
 
 class InternalGroupDiscussionData(graphene.ObjectType):
@@ -571,7 +576,7 @@ class ApplicantQuery(graphene.ObjectType):
 
     @gql_has_permissions("admissions.view_applicant")
     def resolve_internal_group_applicants_data(
-            self, info, internal_group, *args, **kwargs
+        self, info, internal_group, *args, **kwargs
     ):
         django_id = disambiguate_id(internal_group)
         internal_group = InternalGroup.objects.filter(id=django_id).first()
@@ -596,7 +601,7 @@ class ApplicantQuery(graphene.ObjectType):
 
     @gql_has_permissions("admissions.view_applicant")
     def resolve_internal_group_discussion_data(
-            self, info, internal_group_id, *args, **kwargs
+        self, info, internal_group_id, *args, **kwargs
     ):
         """
         Resolves data for the discussion view for a given internal group. This includes fields
@@ -754,7 +759,7 @@ class AdmissionQuery(graphene.ObjectType):
         return final_applicant_preview
 
     def resolve_current_admission_internal_group_position_data(
-            self, info, *args, **kwargs
+        self, info, *args, **kwargs
     ):
         admission = Admission.get_active_admission()
         return admission.available_internal_group_positions_data.all()
@@ -780,7 +785,7 @@ class AdmissionQuery(graphene.ObjectType):
 
     # Intended use for admission configuration
     def resolve_externally_available_internal_group_positions(
-            self, info, *args, **kwargs
+        self, info, *args, **kwargs
     ):
         return InternalGroupPosition.objects.filter(available_externally=True).order_by(
             "name"
@@ -794,7 +799,7 @@ class AdmissionQuery(graphene.ObjectType):
         return admission.internal_groups_accepting_applicants()
 
     def resolve_internal_group_positions_available_for_applicants(
-            self, info, *args, **kwargs
+        self, info, *args, **kwargs
     ):
         admission = Admission.get_active_admission()
         if not admission:
@@ -901,7 +906,7 @@ class InterviewQuery(graphene.ObjectType):
         ).order_by("interview_start")
 
     def resolve_interviews_available_for_booking(
-            self, info, day_offset, *args, **kwargs
+        self, info, day_offset, *args, **kwargs
     ):
         """
         The idea here is that we want to parse interviews in such a way that we only return
@@ -1050,7 +1055,7 @@ class PatchApplicantMutation(DjangoPatchMutation):
 
     @classmethod
     def validate_phone_number(
-            cls, root, info, value, input, id, obj: User, *args, **kwargs
+        cls, root, info, value, input, id, obj: User, *args, **kwargs
     ):
 
         if value == "":
@@ -1247,9 +1252,16 @@ class ApplicantAddInternalGroupPositionPriorityMutation(graphene.Mutation):
 
     success = graphene.Boolean()
 
-    def mutate(self, info, internal_group_position_id, applicant_id, token, *args, **kwargs):
-        applicant, internal_group_position = get_applicant_priority_position(applicant_id, internal_group_position_id)
-        print("vroom", get_applicant_priority_position(applicant_id, internal_group_position_id))
+    def mutate(
+        self, info, internal_group_position_id, applicant_id, token, *args, **kwargs
+    ):
+        applicant, internal_group_position = get_applicant_priority_position(
+            applicant_id, internal_group_position_id
+        )
+        print(
+            "vroom",
+            get_applicant_priority_position(applicant_id, internal_group_position_id),
+        )
         if (token != applicant.token) or (not (applicant and internal_group_position)):
             return ApplicantAddInternalGroupPositionPriorityMutation(success=False)
         applicant.add_priority(internal_group_position)
@@ -1267,7 +1279,9 @@ class UpdateInternalGroupPositionPriorityOrderMutation(graphene.Mutation):
 
     @gql_has_permissions("admissions.change_internalgrouppositionpriority")
     def mutate(self, info, applicant_id, priority_order, *args, **kwargs):
-        applicant, parsed_priorities = get_applicant_priority_list(applicant_id, priority_order)
+        applicant, parsed_priorities = get_applicant_priority_list(
+            applicant_id, priority_order
+        )
         applicant.update_priority_order(parsed_priorities)
         applicant.refresh_from_db()
 
@@ -1290,7 +1304,9 @@ class ApplicantUpdateInternalGroupPositionPriorityOrderMutation(graphene.Mutatio
 
     # This mutation is only for giving applicants the ability to update their own priority order
     def mutate(self, info, applicant_id, priority_order, token, *args, **kwargs):
-        applicant, parsed_priorities = get_applicant_priority_list(applicant_id, priority_order)
+        applicant, parsed_priorities = get_applicant_priority_list(
+            applicant_id, priority_order
+        )
         constructed_priorities = construct_new_priority_list(priority_order)
         print("constructed_prios: ", constructed_priorities, "\n\n")
         if token == applicant.token:
@@ -1353,10 +1369,19 @@ class ApplicantDeleteInternalGroupPositionPriority(graphene.Mutation):
 
     success = graphene.Boolean()
 
-    def mutate(self, info, internal_group_position_id, applicant_id, token, *args, **kwargs):
-        applicant, internal_group_position = get_applicant_priority_position(applicant_id, internal_group_position_id)
+    def mutate(
+        self, info, internal_group_position_id, applicant_id, token, *args, **kwargs
+    ):
+        applicant, internal_group_position = get_applicant_priority_position(
+            applicant_id, internal_group_position_id
+        )
         if (token != applicant.token) or (not (applicant and internal_group_position)):
-            print("ting", get_applicant_priority_position(applicant_id, internal_group_position_id))
+            print(
+                "ting",
+                get_applicant_priority_position(
+                    applicant_id, internal_group_position_id
+                ),
+            )
             return ApplicantDeleteInternalGroupPositionPriority(success=False)
         remove_applicant_choice(applicant, internal_group_position)
         return ApplicantDeleteInternalGroupPositionPriority(success=True)
@@ -1509,7 +1534,7 @@ class SetSelfAsInterviewerMutation(graphene.Mutation):
             raise Exception(f"Cannot assign {user} to interview that is over")
 
         if user.interviews_attended.filter(
-                interview_start=interview.interview_start, applicant__isnull=False
+            interview_start=interview.interview_start, applicant__isnull=False
         ).exists():
             raise Exception(f"{user} is already attending an interview at this time")
 

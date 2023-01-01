@@ -38,6 +38,7 @@ from schedules.schemas.templates import ScheduleTemplateQuery, ScheduleTemplateM
 
 from sensors.schema import SensorMeasurementQuery, SensorsMutations
 from summaries.schema import SummaryQuery, SummariesMutations
+from handbook.schema import DocumentQueries, HandbookMutations
 
 
 class Query(
@@ -47,6 +48,7 @@ class Query(
     BarTabQuery,
     DashboardQuery,
     DepositQuery,
+    DocumentQueries,
     ProductOrderQuery,
     SidebarQuery,
     SociBankAccountQuery,
@@ -74,6 +76,7 @@ class Mutation(
     AdmissionsMutations,
     BarTabMutations,
     EconomyMutations,
+    HandbookMutations,
     LoginMutations,
     OrganizationMutations,
     UserMutations,
