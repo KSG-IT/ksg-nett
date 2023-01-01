@@ -369,17 +369,17 @@ def notify_interviewers_cancelled_interview_email(applicant, interview):
     content = (
         _(
             """
-            Hei!
-            
-            %(name)s har kansellert sitt intervju hos KSG. 
-            
-            Du har blitt fjernet fra intervjuet.
-
-            Intervjuinformasjon:
-            %(interview_location)s
-            %(interview_time)s
-            
-            """
+                Hei!
+                
+                %(name)s har kansellert sitt intervju hos KSG. 
+                
+                Du har blitt fjernet fra intervjuet.
+    
+                Intervjuinformasjon:
+                %(interview_location)s
+                %(interview_time)s
+                
+                """
         )
         % {
             "name": name,
@@ -391,20 +391,20 @@ def notify_interviewers_cancelled_interview_email(applicant, interview):
     html_content = (
         _(
             """
-            Hei!
-            <br />
-            %(name)s har kansellert sitt intervju hos KSG. 
-            <br />
-            Du har blitt fjernet fra intervjuet.
-            <br />
-            Intervjuinformasjon:
-            <br />
-            %(interview_location)s
-            <br />
-            %(interview_time)s
-            <br />
-            
-            """
+                Hei!
+                <br />
+                %(name)s har kansellert sitt intervju hos KSG. 
+                <br />
+                Du har blitt fjernet fra intervjuet.
+                <br />
+                Intervjuinformasjon:
+                <br />
+                %(interview_location)s
+                <br />
+                %(interview_time)s
+                <br />
+                
+                """
         )
         % {
             "name": name,
@@ -616,7 +616,7 @@ def internal_group_applicant_data(internal_group):
             priorities__internal_group_position__internal_group=internal_group,
         )
         .exclude(status=ApplicantStatus.RETRACTED_APPLICATION)
-        .order_by("interview__interview_start")
+        .order_by("first_name")
     )
     second_priorities = (
         all_applicants.filter(
@@ -624,7 +624,7 @@ def internal_group_applicant_data(internal_group):
             priorities__internal_group_position__internal_group=internal_group,
         )
         .exclude(status=ApplicantStatus.RETRACTED_APPLICATION)
-        .order_by("interview__interview_start")
+        .order_by("first_name")
     )
     third_priorities = (
         all_applicants.filter(
@@ -632,15 +632,12 @@ def internal_group_applicant_data(internal_group):
             priorities__internal_group_position__internal_group=internal_group,
         )
         .exclude(status=ApplicantStatus.RETRACTED_APPLICATION)
-        .order_by("interview__interview_start")
+        .order_by("first_name")
     )
 
     all_priorities = InternalGroupPositionPriority.objects.filter(
         internal_group_position__internal_group=internal_group
     )
-    want_count = all_priorities.filter(
-        internal_group_priority=InternalGroupStatus.WANT
-    ).count()
 
     admission = Admission.get_active_admission()
     data = admission.available_internal_group_positions_data.filter(
@@ -648,9 +645,6 @@ def internal_group_applicant_data(internal_group):
     ).first()
     positions_to_fill = data.available_positions
 
-    # This now counts people who did not interview, we should probably have a
-    # purge step when moving from open admission to discussion
-    # maybe have this in its own mutation
     """
     Admission 
     Configure -> Open -> Discussing -> Locked -> Closed
@@ -672,6 +666,7 @@ def internal_group_applicant_data(internal_group):
         third_priorities=third_priorities,
         current_progress=current_progress,
         positions_to_fill=positions_to_fill,
+        mvp_list=[],  # TODO
     )
 
 

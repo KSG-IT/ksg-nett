@@ -413,6 +413,7 @@ class InternalGroupApplicantsData(graphene.ObjectType):
     positions_to_fill = graphene.Int()
     # How far they have come in their process
     current_progress = graphene.Int()
+    mvp_list = graphene.List(UserNode)
 
 
 class InternalGroupDiscussionData(graphene.ObjectType):
