@@ -36,6 +36,10 @@ from admissions.utils import (
     send_new_interview_mail,
     send_interview_cancelled_email,
     notify_interviewers_cancelled_interview_email,
+    send_interview_confirmation_email,
+    get_applicant_priority_list,
+    remove_applicant_choice,
+    construct_new_priority_list,
 )
 from django.core.exceptions import SuspiciousOperation, ValidationError
 from django.utils import timezone
@@ -921,7 +925,7 @@ class InterviewQuery(graphene.ObjectType):
             + timezone.timedelta(days=1)
         )
         if settings.ADMISSION_BOOK_INTERVIEWS_NOW:
-            cursor = now
+            cursor = timezone.make_aware(now)
 
         cursor += timezone.timedelta(days=day_offset)
         cursor_offset = cursor + timezone.timedelta(days=2)
@@ -1239,6 +1243,26 @@ class AddInternalGroupPositionPriorityMutation(graphene.Mutation):
         return AddInternalGroupPositionPriorityMutation(success=True)
 
 
+class ApplicantAddInternalGroupPositionPriorityMutation(graphene.Mutation):
+    class Arguments:
+        internal_group_position_id = graphene.ID(required=True)
+        token = graphene.String(required=True)
+
+    success = graphene.Boolean()
+
+    def mutate(self, info, internal_group_position_id, token, *args, **kwargs):
+        applicant = Applicant.objects.get(token=token)
+
+        internal_group_position_id = disambiguate_id(internal_group_position_id)
+
+        internal_group_position = InternalGroupPosition.objects.get(
+            id=internal_group_position_id
+        )
+
+        applicant.add_priority(internal_group_position)
+        return ApplicantAddInternalGroupPositionPriorityMutation(success=True)
+
+
 class UpdateInternalGroupPositionPriorityOrderMutation(graphene.Mutation):
     class Arguments:
         applicant_id = graphene.ID(required=True)
@@ -1250,7 +1274,6 @@ class UpdateInternalGroupPositionPriorityOrderMutation(graphene.Mutation):
 
     @gql_has_permissions("admissions.change_internalgrouppositionpriority")
     def mutate(self, info, applicant_id, priority_order, *args, **kwargs):
-        # Ids can be None
         trimmed_global_ids = []
         for priority_order_id in priority_order:
             if not priority_order_id:
@@ -1267,9 +1290,33 @@ class UpdateInternalGroupPositionPriorityOrderMutation(graphene.Mutation):
 
         applicant.update_priority_order(parsed_priorities)
         applicant.refresh_from_db()
-
         new_priorities = applicant.get_priorities
         return UpdateInternalGroupPositionPriorityOrderMutation(
+            internal_group_position_priorities=new_priorities
+        )
+
+
+class ApplicantUpdateInternalGroupPositionPriorityOrderMutation(graphene.Mutation):
+    """
+    Graphql endpoint allowing an applicant to change their priority order, given
+    that they provide a token.
+    """
+
+    class Arguments:
+        priority_order = graphene.List(graphene.ID, required=True)
+        token = graphene.String(required=True)
+
+    internal_group_position_priorities = graphene.List(
+        InternalGroupPositionPriorityNode
+    )
+
+    def mutate(self, info, priority_order, token, *args, **kwargs):
+        applicant = Applicant.objects.get(token=token)
+        constructed_priorities = construct_new_priority_list(priority_order)
+        applicant.update_priority_order(constructed_priorities)
+        applicant.refresh_from_db()
+        new_priorities = applicant.get_priorities
+        return ApplicantUpdateInternalGroupPositionPriorityOrderMutation(
             internal_group_position_priorities=new_priorities
         )
 
@@ -1314,6 +1361,25 @@ class DeleteInternalGroupPositionPriority(DjangoDeleteMutation):
                 )
             )
         return obj
+
+
+class ApplicantDeleteInternalGroupPositionPriority(graphene.Mutation):
+    class Arguments:
+        internal_group_position_id = graphene.ID(required=True)
+        token = graphene.String(required=True)
+
+    success = graphene.Boolean()
+
+    def mutate(self, info, internal_group_position_id, token, *args, **kwargs):
+        applicant = Applicant.objects.get(token=token)
+        internal_group_position_id = disambiguate_id(internal_group_position_id)
+        internal_group_position = InternalGroupPosition.objects.get(
+            id=internal_group_position_id
+        )
+
+        # move this to a model method
+        remove_applicant_choice(applicant, internal_group_position)
+        return ApplicantDeleteInternalGroupPositionPriority(success=True)
 
 
 # === Admission ===
@@ -1540,6 +1606,8 @@ class BookInterviewMutation(graphene.Mutation):
                 interview.save()
                 applicant.status = ApplicantStatus.SCHEDULED_INTERVIEW.value
                 applicant.save()
+                # I want to send an email here to the applicant with a confirmation, using the function
+                send_interview_confirmation_email(interview)
                 return BookInterviewMutation(ok=True)
 
             except IntegrityError:  # Someone already booked this interview
@@ -1706,6 +1774,9 @@ class AdmissionsMutations(graphene.ObjectType):
     update_internal_group_position_priority_order = (
         UpdateInternalGroupPositionPriorityOrderMutation.Field()
     )
+    applicant_update_internal_group_position_priority_order = (
+        ApplicantUpdateInternalGroupPositionPriorityOrderMutation.Field()
+    )
     send_applicant_notice = SendApplicantNoticeEmailMutation.Field()
 
     create_applicant_comment = CreateApplicantCommentMutation.Field()
@@ -1783,7 +1854,13 @@ class AdmissionsMutations(graphene.ObjectType):
     add_internal_group_position_priority = (
         AddInternalGroupPositionPriorityMutation.Field()
     )
+    applicant_add_internal_group_position_priority = (
+        ApplicantAddInternalGroupPositionPriorityMutation.Field()
+    )
     patch_internal_group_position_priority = PatchInternalGroupPositionPriority.Field()
     delete_internal_group_position_priority = (
         DeleteInternalGroupPositionPriority.Field()
+    )
+    applicant_delete_internal_group_position_priority = (
+        ApplicantDeleteInternalGroupPositionPriority.Field()
     )

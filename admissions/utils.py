@@ -3,6 +3,8 @@ import math
 import pytz
 from django.utils import timezone
 from django.db import transaction
+from graphene_django_cud.util import disambiguate_id
+
 from common.util import send_email
 from django.utils.translation import ugettext_lazy as _
 from django.conf import settings
@@ -16,7 +18,12 @@ from common.util import (
 )
 from admissions.consts import InternalGroupStatus, Priority, ApplicantStatus
 from graphql_relay import to_global_id
-from admissions.models import ApplicantInterest
+from admissions.models import (
+    ApplicantInterest,
+    Applicant,
+    InternalGroupPositionPriority,
+)
+from organization.models import InternalGroupPosition
 
 
 def get_available_interview_locations(datetime_from=None, datetime_to=None):
@@ -419,6 +426,66 @@ def notify_interviewers_cancelled_interview_email(applicant, interview):
         html_message=html_content,
         recipients=[],
         bcc=interview.interviewers.values_list("email", flat=True),
+    )
+
+
+def send_interview_confirmation_email(interview):
+    applicant = interview.applicant
+
+    local_time = timezone.localtime(
+        interview.interview_start, pytz.timezone(settings.TIME_ZONE)
+    )
+    name = applicant.get_full_name
+    interview_location = interview.location.name
+    formatted_local_time = local_time.strftime("%d.%m.%Y kl. %H:%M")
+    content = (
+        _(
+            """
+            Hei!
+            
+            Dette er en bekreftelse på at du har fått et intervju hos KSG.
+            
+            Intervjuinformasjon:
+            %(interview_location)s
+            %(interview_time)s
+            
+            """
+        )
+        % {
+            "name": name,
+            "interview_location": interview_location,
+            "interview_time": formatted_local_time,
+        }
+    )
+
+    html_content = (
+        _(
+            """
+            Hei!
+            <br />
+            Dette er en bekreftelse på at du har fått et intervju hos KSG.
+            <br />
+            Intervjuinformasjon:
+            <br />
+            %(interview_location)s
+            <br />
+            %(interview_time)s
+            <br />
+            
+            """
+        )
+        % {
+            "name": name,
+            "interview_location": interview_location,
+            "interview_time": formatted_local_time,
+        }
+    )
+
+    return send_email(
+        _("Bekreftelse intervju KSG"),
+        message=content,
+        html_message=html_content,
+        recipients=[applicant.email],
     )
 
 
@@ -832,3 +899,40 @@ def get_applicant_offered_position(applicant):
         )
 
     return interest.position_to_be_offered
+
+
+def get_applicant_priority_list(priority_order):
+    trimmed_global_ids = []
+    for priority_order_id in priority_order:
+        if not priority_order_id:
+            continue
+        trimmed_global_ids.append(priority_order_id)
+
+    position_ids = [disambiguate_id(global_id) for global_id in trimmed_global_ids]
+    return InternalGroupPosition.objects.filter(id__in=position_ids)
+
+
+def construct_new_priority_list(priority_order):
+    priority_order = [disambiguate_id(global_id) for global_id in priority_order]
+    return [InternalGroupPosition.objects.get(id=id) for id in priority_order]
+
+
+def remove_applicant_choice(applicant, internal_group_position):
+    priorities = [Priority.FIRST, Priority.SECOND, Priority.THIRD]
+    unfiltered_priorities = applicant.get_priorities
+    filtered_priorities = []
+    # Unfiltered priorities can have None values. Get rid of them
+    for priority in unfiltered_priorities:
+        if not priority:
+            continue
+        # We don't want to re-add the position we are trying to delete
+        if priority.internal_group_position == internal_group_position:
+            continue
+
+        filtered_priorities.append(priority.internal_group_position)
+
+    # Delete the priorities so we can add them in the right order
+    applicant.priorities.all().delete()
+    for element in filtered_priorities:
+        applicant.add_priority(element)
+    applicant.save()
