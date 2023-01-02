@@ -899,37 +899,20 @@ def get_applicant_offered_position(applicant):
     return interest.position_to_be_offered
 
 
-def get_applicant_priority_list(applicant_id, priority_order):
+def get_applicant_priority_list(priority_order):
     trimmed_global_ids = []
     for priority_order_id in priority_order:
         if not priority_order_id:
             continue
         trimmed_global_ids.append(priority_order_id)
 
-    applicant_id = disambiguate_id(applicant_id)
-    applicant = Applicant.objects.get(id=applicant_id)
-    ids = [disambiguate_id(global_id) for global_id in trimmed_global_ids]
-
-    parsed_priorities = []
-    for id in ids:
-        parsed_priorities.append(InternalGroupPosition.objects.get(id=id))
-
-    return applicant, parsed_priorities
+    position_ids = [disambiguate_id(global_id) for global_id in trimmed_global_ids]
+    return InternalGroupPosition.objects.filter(id__in=position_ids)
 
 
 def construct_new_priority_list(priority_order):
     priority_order = [disambiguate_id(global_id) for global_id in priority_order]
     return [InternalGroupPosition.objects.get(id=id) for id in priority_order]
-
-
-def get_applicant_priority_position(applicant_id, internal_group_position_id):
-    internal_group_position_id = disambiguate_id(internal_group_position_id)
-    applicant_id = disambiguate_id(applicant_id)
-    internal_group_position = InternalGroupPosition.objects.filter(
-        id=internal_group_position_id
-    ).first()
-    applicant = Applicant.objects.filter(id=applicant_id).first()
-    return applicant, internal_group_position
 
 
 def remove_applicant_choice(applicant, internal_group_position):
@@ -947,9 +930,7 @@ def remove_applicant_choice(applicant, internal_group_position):
         filtered_priorities.append(priority.internal_group_position)
 
     # Delete the priorities so we can add them in the right order
-    print("Deleting priorities")
     applicant.priorities.all().delete()
-    print("Filtered priorities", filtered_priorities)
     for element in filtered_priorities:
         applicant.add_priority(element)
     applicant.save()

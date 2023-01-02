@@ -38,7 +38,6 @@ from admissions.utils import (
     notify_interviewers_cancelled_interview_email,
     send_interview_confirmation_email,
     get_applicant_priority_list,
-    get_applicant_priority_position,
     remove_applicant_choice,
     construct_new_priority_list,
 )
@@ -926,7 +925,7 @@ class InterviewQuery(graphene.ObjectType):
             + timezone.timedelta(days=1)
         )
         if settings.ADMISSION_BOOK_INTERVIEWS_NOW:
-            cursor = now
+            cursor = timezone.make_aware(now)
 
         cursor += timezone.timedelta(days=day_offset)
         cursor_offset = cursor + timezone.timedelta(days=2)
@@ -1247,23 +1246,19 @@ class AddInternalGroupPositionPriorityMutation(graphene.Mutation):
 class ApplicantAddInternalGroupPositionPriorityMutation(graphene.Mutation):
     class Arguments:
         internal_group_position_id = graphene.ID(required=True)
-        applicant_id = graphene.ID(required=True)
         token = graphene.String(required=True)
 
     success = graphene.Boolean()
 
-    def mutate(
-        self, info, internal_group_position_id, applicant_id, token, *args, **kwargs
-    ):
-        applicant, internal_group_position = get_applicant_priority_position(
-            applicant_id, internal_group_position_id
+    def mutate(self, info, internal_group_position_id, token, *args, **kwargs):
+        applicant = Applicant.objects.get(token=token)
+
+        internal_group_position_id = disambiguate_id(internal_group_position_id)
+
+        internal_group_position = InternalGroupPosition.objects.get(
+            id=internal_group_position_id
         )
-        print(
-            "vroom",
-            get_applicant_priority_position(applicant_id, internal_group_position_id),
-        )
-        if (token != applicant.token) or (not (applicant and internal_group_position)):
-            return ApplicantAddInternalGroupPositionPriorityMutation(success=False)
+
         applicant.add_priority(internal_group_position)
         return ApplicantAddInternalGroupPositionPriorityMutation(success=True)
 
@@ -1279,44 +1274,51 @@ class UpdateInternalGroupPositionPriorityOrderMutation(graphene.Mutation):
 
     @gql_has_permissions("admissions.change_internalgrouppositionpriority")
     def mutate(self, info, applicant_id, priority_order, *args, **kwargs):
-        applicant, parsed_priorities = get_applicant_priority_list(
-            applicant_id, priority_order
-        )
+        trimmed_global_ids = []
+        for priority_order_id in priority_order:
+            if not priority_order_id:
+                continue
+            trimmed_global_ids.append(priority_order_id)
+
+        applicant_id = disambiguate_id(applicant_id)
+        applicant = Applicant.objects.get(id=applicant_id)
+        ids = [disambiguate_id(global_id) for global_id in trimmed_global_ids]
+
+        parsed_priorities = []
+        for id in ids:
+            parsed_priorities.append(InternalGroupPosition.objects.get(id=id))
+
         applicant.update_priority_order(parsed_priorities)
         applicant.refresh_from_db()
-
         new_priorities = applicant.get_priorities
         return UpdateInternalGroupPositionPriorityOrderMutation(
             internal_group_position_priorities=new_priorities
         )
 
 
-# create a mutation for updating priority order, but take in token as argument
 class ApplicantUpdateInternalGroupPositionPriorityOrderMutation(graphene.Mutation):
+    """
+    Graphql endpoint allowing an applicant to change their priority order, given
+    that they provide a token.
+    """
+
     class Arguments:
-        applicant_id = graphene.ID(required=True)
-        token = graphene.String(required=True)
         priority_order = graphene.List(graphene.ID, required=True)
+        token = graphene.String(required=True)
 
     internal_group_position_priorities = graphene.List(
         InternalGroupPositionPriorityNode
     )
 
-    # This mutation is only for giving applicants the ability to update their own priority order
-    def mutate(self, info, applicant_id, priority_order, token, *args, **kwargs):
-        applicant, parsed_priorities = get_applicant_priority_list(
-            applicant_id, priority_order
-        )
+    def mutate(self, info, priority_order, token, *args, **kwargs):
+        applicant = Applicant.objects.get(token=token)
         constructed_priorities = construct_new_priority_list(priority_order)
-        print("constructed_prios: ", constructed_priorities, "\n\n")
-        if token == applicant.token:
-            applicant.update_priority_order(constructed_priorities)
-            applicant.refresh_from_db()
-            new_priorities = applicant.get_priorities
-            print("new priorities \n", new_priorities)
-            return ApplicantUpdateInternalGroupPositionPriorityOrderMutation(
-                internal_group_position_priorities=new_priorities
-            )
+        applicant.update_priority_order(constructed_priorities)
+        applicant.refresh_from_db()
+        new_priorities = applicant.get_priorities
+        return ApplicantUpdateInternalGroupPositionPriorityOrderMutation(
+            internal_group_position_priorities=new_priorities
+        )
 
 
 class PatchInternalGroupPositionPriority(DjangoPatchMutation):
@@ -1364,25 +1366,18 @@ class DeleteInternalGroupPositionPriority(DjangoDeleteMutation):
 class ApplicantDeleteInternalGroupPositionPriority(graphene.Mutation):
     class Arguments:
         internal_group_position_id = graphene.ID(required=True)
-        applicant_id = graphene.ID(required=True)
         token = graphene.String(required=True)
 
     success = graphene.Boolean()
 
-    def mutate(
-        self, info, internal_group_position_id, applicant_id, token, *args, **kwargs
-    ):
-        applicant, internal_group_position = get_applicant_priority_position(
-            applicant_id, internal_group_position_id
+    def mutate(self, info, internal_group_position_id, token, *args, **kwargs):
+        applicant = Applicant.objects.get(token=token)
+        internal_group_position_id = disambiguate_id(internal_group_position_id)
+        internal_group_position = InternalGroupPosition.objects.get(
+            id=internal_group_position_id
         )
-        if (token != applicant.token) or (not (applicant and internal_group_position)):
-            print(
-                "ting",
-                get_applicant_priority_position(
-                    applicant_id, internal_group_position_id
-                ),
-            )
-            return ApplicantDeleteInternalGroupPositionPriority(success=False)
+
+        # move this to a model method
         remove_applicant_choice(applicant, internal_group_position)
         return ApplicantDeleteInternalGroupPositionPriority(success=True)
 
