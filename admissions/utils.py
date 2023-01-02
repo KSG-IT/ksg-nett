@@ -429,7 +429,9 @@ def notify_interviewers_cancelled_interview_email(applicant, interview):
     )
 
 
-def send_interview_confirmation_email(applicant, interview):
+def send_interview_confirmation_email(interview):
+    applicant = interview.applicant
+
     local_time = timezone.localtime(
         interview.interview_start, pytz.timezone(settings.TIME_ZONE)
     )

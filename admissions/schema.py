@@ -1607,7 +1607,7 @@ class BookInterviewMutation(graphene.Mutation):
                 applicant.status = ApplicantStatus.SCHEDULED_INTERVIEW.value
                 applicant.save()
                 # I want to send an email here to the applicant with a confirmation, using the function
-                send_interview_confirmation_email(applicant, interview)
+                send_interview_confirmation_email(interview)
                 return BookInterviewMutation(ok=True)
 
             except IntegrityError:  # Someone already booked this interview
