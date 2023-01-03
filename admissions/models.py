@@ -229,13 +229,13 @@ class Applicant(models.Model):
     first_name = models.CharField(null=True, max_length=100)
     last_name = models.CharField(null=True, max_length=100)
 
-    phone = models.CharField(default="", null=True, blank=True, max_length=12)
+    phone = models.CharField(default="", null=True, blank=True, max_length=32)
     email = models.EmailField(unique=True)
     date_of_birth = models.DateField(blank=True, null=True)
 
-    study = models.CharField(default="", blank=True, max_length=18)
-    address = models.CharField(default="", blank=True, max_length=30)
-    hometown = models.CharField(default="", blank=True, max_length=30)
+    study = models.CharField(default="", blank=True, max_length=100)
+    address = models.CharField(default="", blank=True, max_length=100)
+    hometown = models.CharField(default="", blank=True, max_length=100)
 
     wants_digital_interview = models.BooleanField(default=False)
     will_be_admitted = models.BooleanField(default=False)
