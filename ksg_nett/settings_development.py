@@ -6,6 +6,9 @@ from sentry_sdk.integrations.django import DjangoIntegration
 
 DEBUG = True
 
+# Raise exceptions on unhandled secret key
+SECRET_KEY = os.environ.get("SECRET_KEY", None)
+
 sentry_sdk.init(
     dsn="https://b803a49419fa48029eb23004cb67b99d@o487192.ingest.sentry.io/5545712",
     integrations=[DjangoIntegration()],
@@ -24,9 +27,9 @@ MEDIA_URL = "https://ksg-nett-dev.samfundet.no/media/"
 APP_URL = "app-dev.ksg-nett.no"
 BASE_URL = "https://ksg-nett-dev.samfundet.no"
 
+# When true can book interviews the same day
 ADMISSION_BOOK_INTERVIEWS_NOW = True
 
-# Application definition
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",

@@ -3,6 +3,9 @@ from ksg_nett.settings import *
 import sentry_sdk
 from sentry_sdk.integrations.django import DjangoIntegration
 
+# Raise exceptions on unhandled secret key
+SECRET_KEY = os.environ.get("SECRET_KEY", None)
+
 DEBUG = False
 EMAIL_HOST = "smtp.samfundet.no"
 EMAIL_USE_TLS = True
@@ -22,9 +25,9 @@ MEDIA_URL = "https://ksg-nett.samfundet.no/media/"
 APP_URL = "app.ksg-nett.no"
 BASE_URL = "https://ksg-nett.samfundet.no"
 
+# When False can only book interviews after midnight of current day
 ADMISSION_BOOK_INTERVIEWS_NOW = False
 
-# Application definition
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
