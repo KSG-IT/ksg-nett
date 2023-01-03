@@ -24,8 +24,8 @@ class Command(BaseCommand):
                 f"Migrating {legacy_deposits.count()} legacy deposits to new table"
             )
         )
-        for deposit in legacy_deposits:
-            with transaction.atomic():
+        with transaction.atomic():
+            for deposit in legacy_deposits:
 
                 # ToDo this timezone aware logic. Look at the timezone legacy objects
                 aware_datetime = deposit.registrert
