@@ -48,9 +48,12 @@ def create_session_and_orders_from_legacy_session(
         new_session.save()
 
         for purchase in purchase_list:
-            purchase = ProductOrder.objects.create(**purchase)
-            purchase.purchased_at = purchase["purchased_at"]
-            purchase.save()
+            purchase_obj = ProductOrder.objects.create(**purchase)
+            if purchase["purchased_at"]:
+                purchase_obj.purchased_at = purchase["purchased_at"]
+            else:
+                purchase_obj.purchased_at = new_session.closed_at
+            purchase_obj.save()
 
     print(f"Created session of {len(purchase_list)} orders")
 
