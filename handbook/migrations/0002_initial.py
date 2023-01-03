@@ -10,28 +10,30 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
+        ("handbook", "0001_initial"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
-        ("summaries", "0001_initial"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name="summary",
-            name="participants",
-            field=models.ManyToManyField(
+            model_name="document",
+            name="created_by",
+            field=models.ForeignKey(
                 blank=True,
-                related_name="meetings_attended_summaries",
+                null=True,
+                on_delete=django.db.models.deletion.CASCADE,
+                related_name="created_documents",
                 to=settings.AUTH_USER_MODEL,
             ),
         ),
         migrations.AddField(
-            model_name="summary",
-            name="reporter",
+            model_name="document",
+            name="updated_by",
             field=models.ForeignKey(
                 blank=True,
                 null=True,
-                on_delete=django.db.models.deletion.SET_NULL,
-                related_name="reported_summaries",
+                on_delete=django.db.models.deletion.CASCADE,
+                related_name="updated_documents",
                 to=settings.AUTH_USER_MODEL,
             ),
         ),
