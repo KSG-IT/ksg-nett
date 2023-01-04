@@ -443,12 +443,16 @@ def send_interview_confirmation_email(interview):
             """
             Hei!
             
+            Så gøy at du vil på intervju hos KSG:)
             Dette er en bekreftelse på at du har fått et intervju hos KSG.
             
             Intervjuinformasjon:
             %(interview_location)s
             %(interview_time)s
-            
+            Møt opp i glassinngangen til Samfundet fem minutter før intervjuet starter. 
+            Vi ser frem til å møte deg! 
+
+            Om du har noen spørsmål, send en mail til ksg-opptak@samfundet.no 
             """
         )
         % {
@@ -471,6 +475,14 @@ def send_interview_confirmation_email(interview):
             <br />
             %(interview_time)s
             <br />
+            
+            Møt opp i glassinngangen til Samfundet fem minutter før intervjuet starter.
+            <br />
+            Vi ser frem til å møte deg!
+            <br />
+            Om du har noen spørsmål, send en mail til ksg-opptak@samfundet.no
+            <br />
+            
             
             """
         )

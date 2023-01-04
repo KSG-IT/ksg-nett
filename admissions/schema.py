@@ -1073,6 +1073,8 @@ class PatchApplicantMutation(DjangoPatchMutation):
 
     @staticmethod
     def handle_image(image, name, info):
+        if not image:
+            return image
         file_type = image.name.split(".")[-1]
         return compress_image(image, image.name, file_type)
 
