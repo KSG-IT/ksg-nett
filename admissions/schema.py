@@ -458,6 +458,7 @@ class UploadApplicantsCSVMutation(graphene.Mutation):
 
     valid_applicants = graphene.List(ApplicantCSVData)
 
+    @gql_has_permissions("admissions.add_applicant")
     def mutate(self, info, applicants_file, *args, **kwargs):
         applicant_data = read_admission_csv(applicants_file)
         valid_applicants = [
@@ -589,6 +590,11 @@ class ApplicantQuery(graphene.ObjectType):
     @gql_has_permissions("admissions.view_applicant")
     def resolve_all_internal_group_applicant_data(self, info, *args, **kwargs):
         admission = Admission.get_active_admission()
+        if not admission:
+            return None
+
+        if admission.status != AdmissionStatus.IN_SESSION:
+            return None
         positions = admission.available_internal_group_positions.all()
         internal_groups = InternalGroup.objects.filter(positions__in=positions)
 
