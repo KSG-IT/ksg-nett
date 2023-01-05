@@ -221,13 +221,13 @@ class SociProductQuery(graphene.ObjectType):
     def resolve_default_soci_order_session_food_products(self, info, *args, **kwargs):
         return SociProduct.objects.filter(
             default_stilletime_product=True, type=SociProduct.Type.FOOD
-        )
+        ).order_by("price")
 
     @gql_login_required()
     def resolve_default_soci_order_session_drink_products(self, info, *args, **kwargs):
         return SociProduct.objects.filter(
             default_stilletime_product=True, type=SociProduct.Type.DRINK
-        )
+        ).order_by("price")
 
     @gql_has_permissions("economy.view_sociproduct")
     def resolve_all_soci_products(self, info, *args, **kwargs):
