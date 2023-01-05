@@ -23,6 +23,7 @@ SECRET_KEY = os.environ.get("SECRET_KEY", "ALEXISTHEGREATEST")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
+GRAPHIQL = True
 
 CORS_ORIGIN_ALLOW_HEADERS = list(default_headers)
 CORS_ORIGIN_ALLOW_ALL = True

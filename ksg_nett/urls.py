@@ -39,7 +39,10 @@ urlpatterns = [
     path("admissions/", include("admissions.urls")),
     # Developer
     path("admin/", admin.site.urls),
-    path("graphql/", csrf_exempt(FileUploadGraphQLView.as_view(graphiql=True))),
+    path(
+        "graphql/",
+        csrf_exempt(FileUploadGraphQLView.as_view(graphiql=settings.GRAPHIQL)),
+    ),
     path("sentry-debug/", trigger_error),
     path("", RedirectView.as_view(url="admin")),
     path(

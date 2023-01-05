@@ -7,6 +7,7 @@ from sentry_sdk.integrations.django import DjangoIntegration
 SECRET_KEY = os.environ.get("SECRET_KEY", None)
 
 DEBUG = False
+GRAPHIQL = False
 EMAIL_HOST = "smtp.samfundet.no"
 EMAIL_USE_TLS = True
 EMAIL_PORT = 587
