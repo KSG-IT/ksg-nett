@@ -1,3 +1,4 @@
+import bleach
 import graphene
 from django.contrib.auth.models import Permission
 from django.core.exceptions import PermissionDenied
@@ -469,7 +470,7 @@ class UpdateAboutMeMutation(graphene.Mutation):
         if about_me == "":
             raise ValueError("Value too short")
 
-        user.about_me = about_me
+        user.about_me = strip_tags(about_me)
         user.first_time_login = False
         user.save()
         return UpdateAboutMeMutation(user=user)
