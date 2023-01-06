@@ -105,7 +105,7 @@ class Quote(TimestampedModel):
         return self.votes.aggregate(value=Sum("value"))["value"]
 
     def __str__(self):
-        return "Quote by %s" % (self.tagged.all(),)
+        return self.text
 
     def __repr__(self):
         return "Quote(text=%s,tagged=%s)" % (
