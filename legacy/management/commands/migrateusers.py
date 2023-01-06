@@ -105,7 +105,7 @@ class Command(BaseCommand):
                     )
                     card_uuid = None
 
-                new_user.profile_image = f"profiles/{user.sg_ud}.jpg"
+                new_user.profile_image = f"profiles/{user.sg_id}.jpg"
 
                 SociBankAccount.objects.create(
                     user=new_user,
