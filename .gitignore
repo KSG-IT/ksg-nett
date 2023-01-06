@@ -53,6 +53,7 @@ coverage.xml
 # Django stuff:
 *.log
 local_settings.py
+settings_local.py
 
 # Flask stuff:
 instance/
@@ -99,3 +100,23 @@ ENV/
 
 # mypy
 .mypy_cache/
+
+# SQLite database
+db.sqlite3
+
+# PyCharm
+.idea/
+
+# MacOS metadata
+.DS_Store
+
+# Redis dump
+dump.rdb
+
+# Media and statics
+/static
+/media
+
+# Settings
+settings_local.py
+.vscode/

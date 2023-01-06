@@ -1,0 +1,10 @@
+dist: xenial
+language: python
+python:
+- '3.8'
+install:
+- pip install poetry
+- poetry install
+script:
+- make test-coverage
+after_success: coveralls

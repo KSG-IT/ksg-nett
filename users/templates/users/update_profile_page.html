@@ -1,0 +1,80 @@
+{% extends 'internal/base.html' %}
+{% load static %}
+{% load i18n %}
+{% load ksg_helpers %}
+
+{% block header %}
+    <link rel="stylesheet" href="{% static 'users/css/update_profile_page.css' %}">
+{% endblock %}
+{% block body_content %}
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>Rediger profilside</title>
+    </head>
+    <body>
+    <div class="default-container center main-container__margin">
+        <div class="default-flex-column center">
+            <form method="POST">
+                {% csrf_token %}
+                <div class="image-name-container">
+                    <div>
+                        {% include 'components/thumb.html' with size='large' url=profile_user.profile_image_url %}
+                    </div>
+                    <div class="image-name-container__names">
+                        <div class="placeholder-input-container">
+                            {{ user_form.first_name.label_tag }}
+                            {{ user_form.first_name }}
+                        </div>
+                        <div class="placeholder-input-container">
+                            {{ user_form.last_name.label_tag }}
+                            {{ user_form.last_name }}
+                        </div>
+                    </div>
+                </div>
+                <div class="input-fields-container">
+                    <div class="placeholder-input-container">
+                        {{ user_form.email.label_tag }}
+                        {{ user_form.email }}
+                    </div>
+                    <div class="placeholder-input-container">
+                        {{ user_form.phone.label_tag }}
+                        {{ user_form.phone }}
+                    </div>
+                    <div class="placeholder-input-container">
+                        {{ user_form.study.label_tag }}
+                        {{ user_form.study }}
+                    </div>
+                    <div class="placeholder-input-container">
+                        {{ user_form.study_address.label_tag }}
+                        {{ user_form.study_address }}
+                    </div>
+                    <div class="placeholder-input-container">
+                        {{ user_form.home_address.label_tag }}
+                        {{ user_form.home_address }}
+                    </div>
+                    <div class="placeholder-input-container">
+                        {{ user_form.commission.label_tag }}
+                        {{ user_form.commission }}
+                    </div>
+                    <div class="placeholder-input-container">
+                        {{ user_form.ksg_status.label_tag }}
+                        {{ user_form.ksg_status }}
+                    </div>
+                    <div class="placeholder-input-container">
+                        {{ user_form.in_relationship.label_tag }}
+                        {{ user_form.in_relationship }}
+                    </div>
+                    <div class="placeholder-input-container">
+                        {{ user_form.biography.label_tag }}
+                        {{ user_form.biography }}
+                    </div>
+                </div>
+                <input type="submit" value="Submit">
+            </form>
+        </div>
+
+    </div>
+    </body>
+    </html>
+{% endblock %}

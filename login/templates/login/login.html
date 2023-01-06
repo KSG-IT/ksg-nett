@@ -1,0 +1,31 @@
+{% load i18n %}
+{% load static %}
+
+{% block header %}
+    <link rel="stylesheet" href="{% static 'internal/css/main.css' %}">
+    <link rel="stylesheet" href="{% static 'login/css/login.css' %}">
+{% endblock %}
+
+{% block body_content %}
+    <div class="login__centering">
+        <form action="/login/" method="POST">
+            {% csrf_token %}
+            <div class="form-group login__flex-column login__input_container_width">
+                <span class="login__header_title bold ">
+                    KSG
+                </span>
+                <div class="login__flex-column">
+                    <label for="username" class="default-grey-label">Brukernavn</label>
+                    <input name="username" type="text" placeholder="Brukernavn" class="default-text-input-field">
+                </div>
+                <div class="login__flex-column">
+                    <label for="password" class="default-grey-label">Passord</label>
+                    <input name="password" type="password" placeholder="Passord" class="default-text-input-field">
+                </div>
+            </div>
+            <button type="submit" class="primary-blue-button">
+                Logg inn
+            </button>
+        </form>
+    </div>
+{% endblock %}

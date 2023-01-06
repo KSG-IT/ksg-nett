@@ -1,0 +1,25 @@
+FROM python:3.8
+LABEL MAINTAINER "Code Monkey <alexander@ursolutions.no>"
+
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+ENV APP_DIR /app/ \
+    POETRY_VIRTUALENVS_CREATE=false \
+    POETRY_VERSION=1.1.2 \
+    PATH="${PATH}:/root/.poetry/bin" 
+
+
+WORKDIR $APP_DIR
+RUN pip install --upgrade pip
+RUN pip install "poetry==1.1.2"
+
+COPY poetry.lock pyproject.toml $APP_DIR/
+RUN poetry install --no-interaction --no-ansi --no-dev
+
+COPY . $APP_DIR
+
+WORKDIR $APP_DIR
+EXPOSE 8000
+
+CMD ["poetry","run","python","manage.py","runserver","0.0.0.0:8000"]

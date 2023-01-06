@@ -1,0 +1,16 @@
+.login__flex-column {
+    display: flex;
+    flex-flow: column;
+}
+
+.login__header_title {
+    font-size: 28px;
+    margin-bottom: 10px;
+    margin-top: 60%;
+}
+
+.login__centering {
+    display: flex;
+    justify-content: center;
+    height: 100%;
+}
