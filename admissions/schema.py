@@ -415,7 +415,6 @@ class InternalGroupApplicantsData(graphene.ObjectType):
     third_priorities = graphene.List(ApplicantNode)
 
     positions_to_fill = graphene.Int()
-    # How far they have come blackconnectin their process
     current_progress = graphene.Int()
     mvp_list = graphene.List(UserNode)
 
@@ -976,8 +975,6 @@ class InterviewQuery(graphene.ObjectType):
                 second=0,
             )
         )
-        if settings.ADMISSION_BOOK_INTERVIEWS_NOW:
-            cursor = timezone.make_aware(date_selected)
 
         cursor_offset = cursor + timezone.timedelta(days=1)
         available_interviews = Interview.objects.filter(
