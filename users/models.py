@@ -174,6 +174,13 @@ class User(AbstractUser):
         if active_session.invited_users.filter(pk=self.pk).exists():
             return active_session
 
+    @property
+    def owes_money(self) -> bool:
+        if self.is_superuser:
+            return False
+        account = self.bank_account
+        return account.balance < 0
+
 
 class UsersHaveMadeOut(models.Model):
     """
