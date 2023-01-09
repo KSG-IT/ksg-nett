@@ -38,6 +38,11 @@ ALLOWED_HOSTS = [
     "*.samfundet.no",
 ]
 
+CORS_ALLOW_HEADERS = [
+    "baggage",
+    "sentry-trace",
+]
+
 INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
