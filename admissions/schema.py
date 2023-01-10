@@ -1553,7 +1553,7 @@ class GenerateInterviewsMutation(graphene.Mutation):
     ok = graphene.Boolean()
     interviews_generated = graphene.Int()
 
-    @gql_has_permissions("admissions.change_interview")
+    @gql_has_permissions("admissions.add_interview")
     def mutate(self, info, *args, **kwargs):
         # retrieve the schedule template
         schedule = InterviewScheduleTemplate.objects.all().first()
@@ -1561,6 +1561,12 @@ class GenerateInterviewsMutation(graphene.Mutation):
         generate_interviews_from_schedule(schedule)
         num = Interview.objects.all().count()
         return GenerateInterviewsMutation(ok=True, interviews_generated=num)
+
+
+class CreateInterviewMutation(DjangoCreateMutation):
+    class Meta:
+        model = Interview
+        permissions = "admissions.add_interview"
 
 
 class SetSelfAsInterviewerMutation(graphene.Mutation):
@@ -1892,6 +1898,7 @@ class AdmissionsMutations(graphene.ObjectType):
 
     re_send_application_token = ResendApplicantTokenMutation.Field()
     generate_interviews = GenerateInterviewsMutation.Field()
+    create_interview = CreateInterviewMutation.Field()
     book_interview = BookInterviewMutation.Field()
     assign_applicant_new_interview = AssignApplicantNewInterviewMutation.Field()
     delete_all_interviews = DeleteAllInterviewsMutation.Field()
