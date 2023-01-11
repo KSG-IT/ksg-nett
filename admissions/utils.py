@@ -1002,7 +1002,7 @@ def interview_overview_parser(interviews):
             cell = InterviewOverviewCell(
                 time=time,
                 content=name,
-                color="#FF0000" if interview.get_applicant else "#0000FF",
+                color="#FF0000" if interview.get_applicant else "#00FF00",
                 interview_id=to_global_id("InterviewNode", interview.id),
                 applicant_id=applicant_id,
             )
