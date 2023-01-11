@@ -11,14 +11,16 @@ from django.utils import timezone
 class TestInterviewModel(TestCase):
     def setUp(self) -> None:
         now = timezone.now()
-        self.interview_start = timezone.datetime(
-            now.year,
-            now.month,
-            now.day,
-            hour=12,
-            minute=0,
-            second=0,
-            tzinfo=pytz.timezone(settings.TIME_ZONE),
+        self.interview_start = timezone.make_aware(
+            timezone.datetime(
+                now.year,
+                now.month,
+                now.day,
+                hour=12,
+                minute=0,
+                second=0,
+            ),
+            timezone=pytz.timezone(settings.TIME_ZONE),
         )
         self.interview_location = InterviewLocation.objects.create(name="Knaus")
         Interview.objects.create(
@@ -42,4 +44,5 @@ class TestInterviewModel(TestCase):
             interview_start=interview_late_end,
             interview_end=interview_late_end + timezone.timedelta(minutes=30),
         )
+
         self.assertEqual(Interview.objects.all().count(), interview_count)
