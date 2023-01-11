@@ -972,7 +972,7 @@ def interview_overview_parser(interviews):
     from .schema import InterviewOverviewCell, InterviewLocationOverviewRow
     from .models import InterviewLocation
 
-    locations = InterviewLocation.objects.all().order_by("-name")
+    locations = InterviewLocation.objects.all().order_by("name")
 
     result = []
     for location in locations:
