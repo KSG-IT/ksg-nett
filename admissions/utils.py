@@ -948,3 +948,106 @@ def remove_applicant_choice(applicant, internal_group_position):
     for element in filtered_priorities:
         applicant.add_priority(element)
     applicant.save()
+
+
+def interview_overview_parser(interviews):
+    """
+    Accepts a queryset of interviews and formats them to an easiuly digestible format used by
+    the timetable on the frontend.
+
+      {
+        location: 'bodegaen',
+        interviews: [
+          {
+            time: '10:30',
+            name: 'Ola Nordmann',
+          },
+          {
+            time: '14:00',
+            name: '',
+          },
+        ],
+      },
+    """
+    from .schema import InterviewOverviewCell, InterviewLocationOverviewRow
+    from .models import InterviewLocation
+
+    locations = InterviewLocation.objects.all().order_by("-name")
+
+    result = []
+    for location in locations:
+        filtered_interviews = interviews.filter(location=location)
+        interviews_cells = []
+        for interview in filtered_interviews:
+            name = "Ledig"
+            applicant_id = None
+            if interview.get_applicant:
+                name = interview.applicant.get_full_name
+                applicant_id = to_global_id("ApplicantNode", interview.applicant.id)
+
+            local_time = timezone.localtime(
+                interview.interview_start, pytz.timezone(settings.TIME_ZONE)
+            )
+
+            minute = str(local_time.minute)
+            if len(minute) == 1:
+                minute = f"0{minute}"
+
+            hour = str(local_time.hour)
+            if len(hour) == 1:
+                hour = f"0{hour}"
+
+            time = f"{hour}:{minute}"
+
+            cell = InterviewOverviewCell(
+                time=time,
+                content=name,
+                color="#FF0000" if interview.get_applicant else "#0000FF",
+                interview_id=to_global_id("InterviewNode", interview.id),
+                applicant_id=applicant_id,
+            )
+            interviews_cells.append(cell)
+
+        if not interviews_cells:
+            continue
+
+        row = InterviewLocationOverviewRow(
+            location=location.name,
+            interviews=interviews_cells,
+        )
+
+        result.append(row)
+
+    # locations and result should be synced
+    return result, locations
+
+
+def add_evaluations_to_interview(interview):
+
+    InterviewBooleanEvaluation = apps.get_model(
+        app_label="admissions", model_name="InterviewBooleanEvaluation"
+    )
+    InterviewBooleanEvaluationAnswer = apps.get_model(
+        app_label="admissions", model_name="InterviewBooleanEvaluationAnswer"
+    )
+    InterviewAdditionalEvaluationStatement = apps.get_model(
+        app_label="admissions", model_name="InterviewAdditionalEvaluationStatement"
+    )
+    InterviewAdditionalEvaluationAnswer = apps.get_model(
+        app_label="admissions", model_name="InterviewAdditionalEvaluationAnswer"
+    )
+
+    boolean_evaluation_statements = InterviewBooleanEvaluation.objects.all()
+    additional_evaluation_statements = (
+        InterviewAdditionalEvaluationStatement.objects.all()
+    )
+    for statement in boolean_evaluation_statements:
+        InterviewBooleanEvaluationAnswer.objects.create(
+            interview=interview, statement=statement, value=None
+        )
+    for statement in additional_evaluation_statements:
+        InterviewAdditionalEvaluationAnswer.objects.create(
+            interview=interview, statement=statement, answer=None
+        )
+
+    interview.save()
