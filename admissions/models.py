@@ -194,9 +194,16 @@ class Interview(models.Model):
         "admissions.InterviewLocation", on_delete=models.CASCADE
     )
 
+    @property
+    def get_applicant(self):
+        # https://stackoverflow.com/a/27042585
+        if hasattr(self, "applicant"):
+            return self.applicant
+        return None
+
     def save(self, *args, **kwargs):
         """
-        An interview cannot overlap in the same location. Whe therefore make the following checks
+        An interview cannot overlap in the same location. We therefore make the following checks
         """
         try:
             Interview.objects.get(
