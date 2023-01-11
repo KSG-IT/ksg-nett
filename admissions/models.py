@@ -205,6 +205,17 @@ class Interview(models.Model):
         """
         An interview cannot overlap in the same location. We therefore make the following checks
         """
+
+        try:
+            # In case we hit create button twice by accident from frontend
+            Interview.objects.get(
+                interview_start=self.interview_start,
+                interview_end=self.interview_end,
+                location=self.location,
+            )
+        except self.DoesNotExist:
+            pass
+
         try:
             Interview.objects.get(
                 # First we check if we are trying to start an interview during another one
@@ -216,13 +227,6 @@ class Interview(models.Model):
                     Q(interview_start__lt=self.interview_end)
                     & Q(interview_end__gt=self.interview_end)
                 ),
-                location=self.location,
-            )
-
-            # In case we hit create button twice by accident from frontend
-            Interview.objects.get(
-                interview_start=self.interview_start,
-                interview_end=self.interview_end,
                 location=self.location,
             )
         except self.DoesNotExist:
