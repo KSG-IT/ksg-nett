@@ -218,6 +218,13 @@ class Interview(models.Model):
                 ),
                 location=self.location,
             )
+
+            # In case we hit create button twice by accident from frontend
+            Interview.objects.get(
+                interview_start=self.interview_start,
+                interview_end=self.interview_end,
+                location=self.location,
+            )
         except self.DoesNotExist:
             super(Interview, self).save(*args, **kwargs)
 
