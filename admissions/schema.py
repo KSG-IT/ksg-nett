@@ -1666,6 +1666,19 @@ class CreateInterviewMutation(DjangoCreateMutation):
         return return_data
 
 
+class DeleteInterviewMutation(DjangoDeleteMutation):
+    class Meta:
+        model = Interview
+        permissions = "admissions.delete_interview"
+
+    @classmethod
+    def before_save(cls, root, info, id, obj):
+        if obj.get_applicant:
+            raise Exception("Interview is not empty")
+
+        return obj
+
+
 class SetSelfAsInterviewerMutation(graphene.Mutation):
     class Arguments:
         interview_id = graphene.ID(required=True)
@@ -1996,6 +2009,7 @@ class AdmissionsMutations(graphene.ObjectType):
     re_send_application_token = ResendApplicantTokenMutation.Field()
     generate_interviews = GenerateInterviewsMutation.Field()
     create_interview = CreateInterviewMutation.Field()
+    delete_interview = DeleteInterviewMutation.Field()
     book_interview = BookInterviewMutation.Field()
     assign_applicant_new_interview = AssignApplicantNewInterviewMutation.Field()
     delete_all_interviews = DeleteAllInterviewsMutation.Field()
