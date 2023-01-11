@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+### Added
+- Added a CHANGELOG.md file to track changes to the project.
+- Add Shift model save method override if `datetime_start` is greater than `datetime_end`
 
 ## [2023.1.1] - 2023-01-07
 
