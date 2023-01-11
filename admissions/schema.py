@@ -687,18 +687,7 @@ class ApplicantQuery(graphene.ObjectType):
     @gql_has_permissions("admissions.view_applicant")
     def resolve_todays_applicants(self, info, *args, **kwargs):
         admission = Admission.get_active_admission()
-        # Get all applicants with an interview today
-        # today midnight
-        today = timezone.datetime(
-            year=timezone.now().year,
-            month=timezone.now().month,
-            day=timezone.now().day,
-            hour=0,
-            minute=0,
-            second=0,
-            tzinfo=timezone.get_current_timezone(),
-        )
-        today_end = today + timezone.timedelta(hours=23, minutes=59, seconds=59)
+        today, today_end = midnight_timestamps_from_date(datetime.date.today())
 
         applicants = Applicant.objects.filter(
             admission=admission,
