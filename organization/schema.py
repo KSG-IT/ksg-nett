@@ -10,6 +10,7 @@ from graphene_django_cud.mutations import (
     DjangoPatchMutation,
     DjangoDeleteMutation,
     DjangoCreateMutation,
+    DjangoBatchPatchMutation,
 )
 from graphene_django import DjangoConnectionField
 
@@ -20,6 +21,7 @@ from organization.models import (
     InternalGroup,
     InternalGroupPosition,
     InternalGroupPositionMembership,
+    InternalGroupUserHighlight,
 )
 from graphene_django_cud.util import disambiguate_id
 from organization.graphql import InternalGroupPositionTypeEnum
@@ -157,9 +159,20 @@ class InternalGroupPositionMembershipQuery(graphene.ObjectType):
     internal_group_position_memberships = graphene.List(
         InternalGroupPositionMembershipNode
     )
+    all_internal_group_position_memberships_by_internal_group = graphene.List(
+        InternalGroupPositionMembershipNode, internal_group_id=graphene.ID()
+    )
 
     def resolve_all_internal_group_position_memberships(self, info, *args, **kwargs):
         return InternalGroupPositionMembership.objects.all().order_by("date_ended")
+
+    def resolve_all_internal_group_position_memberships_by_internal_group(
+        self, info, internal_group_id, *args, **kwargs
+    ):
+        internal_group_id = disambiguate_id(internal_group_id)
+        return InternalGroupPositionMembership.objects.filter(
+            id=internal_group_id, date_ended__isnull=True
+        ).order_by("user__first_name")
 
     def resolve_all_active_internal_group_position_memberships(
         self, info, *args, **kwargs
@@ -331,6 +344,70 @@ class QuitKSGMutation(graphene.Mutation):
         return QuitKSGMutation(internal_group_position_membership=membership)
 
 
+class InternalGroupUserHighlightNode(DjangoObjectType):
+    class Meta:
+        model = InternalGroupUserHighlight
+        filter_fields = ["internal_group", "user"]
+        interfaces = (Node,)
+
+    image = graphene.String()
+
+    def resolve_image(self: InternalGroupUserHighlight, info, **kwargs):
+        if self.image:
+            return self.image.url
+        else:
+            return None
+
+    @classmethod
+    def get_node(cls, info, id):
+        return InternalGroupPosition.objects.get(pk=id)
+
+
+class CreateInternalGroupUserHighlightMutation(DjangoCreateMutation):
+    class Meta:
+        model = InternalGroupUserHighlight
+        permissions = ("organization.add_internalgroupuserhighlight",)
+
+
+class PatchInternalGroupUserHighlightMutation(DjangoPatchMutation):
+    class Meta:
+        model = InternalGroupUserHighlight
+        permissions = ("organization.change_internalgroupuserhighlight",)
+
+
+class DeleteInternalGroupUserHighlight(DjangoDeleteMutation):
+    class Meta:
+        model = InternalGroupUserHighlight
+        permissions = ("organization.delete_internalgroupuserhighlight",)
+
+
+class BatchPatchInternalGroupUserHighlightMutation(DjangoBatchPatchMutation):
+    class Meta:
+        model = InternalGroupUserHighlight
+        permissions = ("organization.change_internalgroupuserhighlight",)
+
+
+class InternalGroupUserHighlightQuery(graphene.ObjectType):
+    all_internal_group_user_highlights = graphene.List(InternalGroupUserHighlightNode)
+    internal_group_user_highlight = Node.Field(InternalGroupUserHighlightNode)
+    internal_group_user_highlights_by_internal_group = graphene.List(
+        InternalGroupUserHighlightNode, internal_group_id=graphene.ID()
+    )
+
+    @gql_has_permissions("organization.view_internalgroupuserhighlight")
+    def resolve_all_internal_group_user_highlights(self, info, *args, **kwargs):
+        return InternalGroupUserHighlight.objects.all()
+
+    @gql_has_permissions("organization.view_internalgroupuserhighlight")
+    def resolve_internal_group_user_highlights_by_internal_group(
+        self, info, internal_group_id, *args, **kwargs
+    ):
+        internal_group_id = disambiguate_id(internal_group_id)
+        return InternalGroupUserHighlight.objects.filter(
+            internal_group__id=internal_group_id
+        )
+
+
 class OrganizationMutations(graphene.ObjectType):
     create_internal_group = CreateInternalGroupMutation.Field()
     patch_internal_group = PatchInternalGroupMutation.Field()
@@ -339,6 +416,18 @@ class OrganizationMutations(graphene.ObjectType):
     create_internal_group_position = CreateInternalGroupPositionMutation.Field()
     patch_internal_group_position = PatchInternalGroupPositionMutation.Field()
     delete_internal_group_position = DeleteInternalGroupPosition.Field()
+
+    create_internal_group_user_highlight = (
+        CreateInternalGroupUserHighlightMutation.Field()
+    )
+    patch_internal_group_user_highlight = (
+        PatchInternalGroupUserHighlightMutation.Field()
+    )
+    delete_internal_group_user_highlight = DeleteInternalGroupUserHighlight.Field()
+
+    batch_patch_internal_group_user_highlight = (
+        BatchPatchInternalGroupUserHighlightMutation.Field()
+    )
 
     create_internal_group_position_membership = (
         CreateInternalGroupPositionMembershipMutation.Field()

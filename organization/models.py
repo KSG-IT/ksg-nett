@@ -167,7 +167,8 @@ class InternalGroupUserHighlight(models.Model):
         on_delete=models.CASCADE,
         related_name="user_highlights",
     )
-    description = models.CharField(max_length=1024, blank=True, null=True)
+    occupation = models.CharField(max_length=32, null=False, blank=True, default="")
+    description = models.TextField(max_length=1024, blank=True, null=True)
     image = models.ImageField(upload_to="internalgroups", null=True, blank=True)
     archived = models.BooleanField(default=False)
 
