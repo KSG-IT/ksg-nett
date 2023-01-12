@@ -847,11 +847,11 @@ class DeleteSociOrderSessionFoodOrderMutation(graphene.Mutation):
 
 class InviteUsersToSociOrderSessionMutation(graphene.Mutation):
     class Arguments:
-        users = graphene.List(graphene.String, required=True)
+        users = graphene.List(graphene.ID, required=True)
 
     soci_order_session = graphene.Field(SociOrderSessionNode)
 
-    @gql_login_required()
+    @gql_has_permissions("economy.change_sociordersession")
     def mutate(self, info, users, *args, **kwargs):
         from economy.utils import send_soci_order_session_invitation_email
 
@@ -891,3 +891,4 @@ class EconomyMutations(graphene.ObjectType):
         DeleteSociOrderSessionFoodOrderMutation.Field()
     )
     soci_order_session_next_status = SociOrderSessionNextStatusMutation.Field()
+    invite_users_to_order_session = InviteUsersToSociOrderSessionMutation.Field()
