@@ -48,6 +48,6 @@ class Command(BaseCommand):
 
         self.stdout.write(
             self.style.SUCCESS(
-                "Session last purchase is less than 2 hours ago, not closing session"
+                f"{timezone.now().strftime('%Y-%d-%m, %H:%M:%S')} Session last purchase is less than 2 hours ago, not closing session"
             )
         )
