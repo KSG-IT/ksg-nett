@@ -14,6 +14,9 @@ class Command(BaseCommand):
             raise CommandError(e)
 
     def close_stale_session(self):
+        """
+        Run this using a crontab. Runs script close_stale.sh
+        """
         session = SociSession.get_active_session()
         if not session:
             self.stdout.write(self.style.SUCCESS("No active session found"))
