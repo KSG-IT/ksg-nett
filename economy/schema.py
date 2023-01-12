@@ -464,9 +464,14 @@ class UndoProductOrderMutation(graphene.Mutation):
         session = product_order.session
         if session.closed:
             raise SuspiciousOperation("Cannot undo a product order in a closed session")
+
+        if session.type == SociSession.Type.SOCIETETEN:
+            raise SuspiciousOperation("Cannot undo a product order in a Soci Session")
+
         account = product_order.source
-        account.add_funds(product_order.cost)
-        product_order.delete()
+        with transaction.atomic():
+            account.add_funds(product_order.cost)
+            product_order.delete()
         return UndoProductOrderMutation(found=True)
 
 
@@ -498,15 +503,15 @@ class PlaceProductOrderMutation(graphene.Mutation):
         product = SociProduct.objects.get(id=product_id)
         account = user.bank_account
         cost = product.price * order_size
-
-        account.remove_funds(cost)
-        product_order = ProductOrder.objects.create(
-            source=account,
-            product=product,
-            order_size=order_size,
-            cost=cost,
-            session=session,
-        )
+        with transaction.atomic():
+            account.remove_funds(cost)
+            product_order = ProductOrder.objects.create(
+                source=account,
+                product=product,
+                order_size=order_size,
+                cost=cost,
+                session=session,
+            )
         return PlaceProductOrderMutation(product_order=product_order)
 
 
