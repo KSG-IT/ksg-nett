@@ -20,6 +20,9 @@ class Command(BaseCommand):
             return
 
         last_purchase = session.product_orders.order_by("-purchased_at").first()
+        if not last_purchase:
+            self.stdout.write(self.style.SUCCESS("No purchases found"))
+            return
         purchase_delta = timezone.now() - last_purchase.purchased_at
         hours = purchase_delta.total_seconds() / 3600
         if hours >= 2:
