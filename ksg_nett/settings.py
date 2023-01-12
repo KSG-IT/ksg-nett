@@ -41,7 +41,7 @@ ALLOWED_HOSTS = [
 CORS_ALLOW_HEADERS = [
     "baggage",
     "sentry-trace",
-]
+] + CORS_ORIGIN_ALLOW_HEADERS
 
 INSTALLED_APPS = [
     "django.contrib.admin",
