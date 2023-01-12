@@ -19,12 +19,20 @@ class Command(BaseCommand):
         """
         session = SociSession.get_active_session()
         if not session:
-            self.stdout.write(self.style.SUCCESS("No active session found"))
+            self.stdout.write(
+                self.style.SUCCESS(
+                    f"{timezone.now().strftime('%Y-%d-%m, %H:%M:%S')} No active session found"
+                )
+            )
             return
 
         last_purchase = session.product_orders.order_by("-purchased_at").first()
         if not last_purchase:
-            self.stdout.write(self.style.SUCCESS("No purchases found"))
+            self.stdout.write(
+                self.style.SUCCESS(
+                    f"{timezone.now().strftime('%Y-%d-%m, %H:%M:%S')} No purchases found"
+                )
+            )
             return
         purchase_delta = timezone.now() - last_purchase.purchased_at
         hours = purchase_delta.total_seconds() / 3600
