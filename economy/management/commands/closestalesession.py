@@ -28,7 +28,7 @@ class Command(BaseCommand):
         if hours >= 2:
             self.stdout.write(
                 self.style.SUCCESS(
-                    "Session last purchase is more than 2 hours ago, closing session"
+                    f"{timezone.now().strftime('%Y-%d-%m, %H:%M:%S')} Session last purchase is more than 2 hours ago, closing session"
                 )
             )
             session.closed_at = timezone.now()
