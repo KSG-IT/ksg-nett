@@ -1,5 +1,6 @@
 import graphene
 from django.db import transaction
+from django.utils.html import strip_tags
 from graphene import Node
 from graphene_django import DjangoObjectType
 from graphene_django.filter import DjangoFilterConnectionField
@@ -11,7 +12,7 @@ from graphene_django_cud.mutations import (
 from graphene_django import DjangoConnectionField
 from graphene_django_cud.util import disambiguate_id
 
-from common.decorators import gql_has_permissions
+from common.decorators import gql_has_permissions, gql_login_required
 from quotes.models import Quote, QuoteVote
 from quotes.filters import QuoteFilter
 from graphql_relay import from_global_id
@@ -81,6 +82,14 @@ class CreateQuoteMutation(DjangoCreateMutation):
     class Meta:
         model = Quote
         auto_context_fields = {"reported_by": "user"}
+
+    @staticmethod
+    def handle_text(text, name, info):
+        return strip_tags(text)
+
+    @staticmethod
+    def handle_context(context, name, info):
+        return strip_tags(context)
 
 
 class PatchQuoteMutation(DjangoPatchMutation):

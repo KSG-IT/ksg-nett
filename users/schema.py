@@ -322,11 +322,31 @@ class PatchUserMutation(DjangoPatchMutation):
 
     @staticmethod
     def handle_first_name(first_name: str, name, info):
-        return first_name.strip("")
+        return strip_tags(first_name.strip(""))
 
     @staticmethod
     def handle_last_name(last_name: str, name, info):
-        return last_name.strip("")
+        return strip_tags(last_name.strip(""))
+
+    @staticmethod
+    def handle_nickname(nickname: str, name, info):
+        return strip_tags(nickname.strip(""))
+
+    @staticmethod
+    def handle_study(study: str, name, info):
+        return strip_tags(study.strip(""))
+
+    @staticmethod
+    def handle_about_me(about_me: str, name, info):
+        return strip_tags(about_me.strip(""))
+
+    @staticmethod
+    def handle_study_address(study_address: str, name, info):
+        return strip_tags(study_address.strip(""))
+
+    @staticmethod
+    def handle_home_town(home_town: str, name, info):
+        return strip_tags(home_town.strip(""))
 
 
 class UpdateMyInfoMutation(graphene.Mutation):
