@@ -12,4 +12,4 @@ class SummaryAdmin(admin.ModelAdmin):
     filter_horizontal = ("participants",)
 
 
-admin.site.register(SummaryAdmin, Summary)
+admin.site.register(Summary, SummaryAdmin)
