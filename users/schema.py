@@ -97,6 +97,7 @@ class UserNode(DjangoObjectType):
 
     future_shifts = graphene.List(ShiftSlotNode)
     ical_token = graphene.String()
+    owes_money = graphene.Boolean(source="owes_money")
 
     def resolve_future_shifts(self: User, info, *args, **kwargs):
         return self.future_shifts
