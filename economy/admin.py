@@ -55,6 +55,11 @@ class SociSessionAdmin(admin.ModelAdmin):
 @admin.register(ProductOrder)
 class ProductOrderAdmin(admin.ModelAdmin):
     list_display = ["id", "product", "order_size", "source", "cost"]
+    search_fields = [
+        "source__user__username",
+        "source__user__first_name",
+        "source__user__last_name",
+    ]
 
     @staticmethod
     def cost(product_order: ProductOrder):
