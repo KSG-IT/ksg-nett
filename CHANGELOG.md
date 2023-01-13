@@ -1,11 +1,21 @@
 # CHANGELOG
 
-## [Unreleased]
-
+## [v2023.1.2] - 2023-01-13
 ### Added
 - API charge bank account logging
+- Owes money resolver on UserNode
+- CORS headers for sentry frontend tracing
+- User and Quote field escaping
+- Close stale order session management command and script
+- Add versioning to settings
 
-## [2023.1.1] - 2023-01-07
+### Changed
+- Wrap purchases in transactions
+
+### Fixed
+- Apply schedule template bug
+
+## [v2023.1.1] - 2023-01-07
 
 First release.
 
