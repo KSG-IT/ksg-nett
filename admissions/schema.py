@@ -920,7 +920,7 @@ class InterviewQuery(graphene.ObjectType):
     all_future_available_interviews = graphene.List(InterviewNode)
     my_interviews = graphene.List(InterviewNode)
     my_upcoming_interviews = graphene.List(InterviewNode)
-    interview_overview = graphene.Field(
+    interview_table_overview = graphene.Field(
         InterviewOverviewTableData, date=graphene.Date(required=True)
     )
 
@@ -1048,7 +1048,7 @@ class InterviewQuery(graphene.ObjectType):
         return interviews.order_by("interview_start", "location__name")
 
     @gql_has_permissions("admissions.view_interview")
-    def resolve_interview_overview(self, info, date, *args, **kwargs):
+    def resolve_interview_table_overview(self, info, date, *args, **kwargs):
         datetime_early, datetime_late = midnight_timestamps_from_date(date)
         interviews = Interview.objects.filter(
             interview_start__gte=datetime_early,
