@@ -63,7 +63,7 @@ class ProductOrderAdmin(admin.ModelAdmin):
 
 @admin.register(SociOrderSession)
 class SociOrderSessionAdmin(admin.ModelAdmin):
-    pass
+    filter_horizontal = ("invited_users",)
 
 
 @admin.register(SociOrderSessionOrder)

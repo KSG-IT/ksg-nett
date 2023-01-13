@@ -55,6 +55,13 @@ def apply_schedule_template(
     """
     Runs through all the shift templates and applies them to the schedule
     """
+
+    if number_of_weeks < 1:
+        raise ValueError("Number of weeks must be 1 or more")
+
+    if number_of_weeks > 20:
+        raise ValueError("Number of weeks must be 20 or less")
+
     first_day_of_week = apply_from - datetime.timedelta(days=apply_from.weekday())
     shifts_created = 0
 

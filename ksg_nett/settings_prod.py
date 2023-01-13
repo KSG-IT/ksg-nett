@@ -28,6 +28,7 @@ BASE_URL = "https://ksg-nett.samfundet.no"
 
 # When False can only book interviews after midnight of current day
 ADMISSION_BOOK_INTERVIEWS_NOW = False
+OWES_MONEY_THRESHOLD = -500
 
 DATABASES = {
     "default": {

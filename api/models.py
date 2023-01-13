@@ -12,3 +12,31 @@ from rest_framework.authtoken.models import Token
 def create_auth_token(sender, instance=None, created=False, **kwargs):
     if created:
         Token.objects.create(user=instance)
+
+
+class PurchaseTransactionLogEntry(models.Model):
+    """
+    Tracks economic transactions coming from the X-App API calls for a given user. Intended
+    to be used for debugging and auditing purposes.
+    """
+
+    class Meta:
+        verbose_name = "Purchase transaction log entry"
+        verbose_name_plural = "Purchase transaction log entries"
+
+    class TransactionSourceOptions(models.TextChoices):
+        API = ("API", "API")
+
+    user = models.ForeignKey(
+        "users.User",
+        on_delete=models.CASCADE,
+        related_name="purchase_transaction_log_entries",
+    )
+    amount = models.IntegerField()
+    timestamp = models.DateTimeField(auto_now_add=True)
+    transaction_source = models.CharField(
+        max_length=10, choices=TransactionSourceOptions.choices
+    )
+
+    def __str__(self):
+        return f"{self.user} - {self.amount} - {self.transaction_source} - {self.timestamp}"
