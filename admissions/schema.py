@@ -46,6 +46,7 @@ from admissions.utils import (
     remove_applicant_choice,
     construct_new_priority_list,
     interview_overview_parser,
+    notify_interviewers_applicant_has_been_removed_from_interview_email,
 )
 from django.core.exceptions import SuspiciousOperation, ValidationError
 from django.utils import timezone
@@ -573,6 +574,12 @@ class ApplicantQuery(graphene.ObjectType):
         )
 
     def resolve_get_applicant_from_token(self, info, token, *args, **kwargs):
+        """
+        WHen this resolver is hit we can set status to 'HAS_OPENED_EMAIL probably
+        """
+        if token is None:
+            return None
+
         applicant = Applicant.objects.get(token=token)
         return applicant
 
@@ -1809,6 +1816,41 @@ class AssignApplicantNewInterviewMutation(graphene.Mutation):
             return AssignApplicantNewInterviewMutation(success=True)
 
 
+class RemoveApplicantFromInterviewMutation(graphene.Mutation):
+    class Arguments:
+        interview_id = graphene.ID(required=True)
+
+    interview = graphene.Field(InterviewNode)
+
+    @gql_has_permissions("admissions.change_interview")
+    def mutate(self, info, interview_id, *args, **kwargs):
+        interview_id = disambiguate_id(interview_id)
+        interview = Interview.objects.get(pk=interview_id)
+        applicant = interview.get_applicant
+
+        now = timezone.now()
+
+        if interview.interview_start < now:
+            raise Exception("Cannot remove applicant from interview in the past")
+
+        if not applicant:
+            raise Exception("Interview is not booked")
+
+        if applicant.status == ApplicantStatus.INTERVIEW_FINISHED:
+            raise Exception("Applicant has already finished the interview")
+
+        with transaction.atomic():
+            interview.applicant = None
+            interview.save()
+            applicant.status = ApplicantStatus.HAS_SET_PRIORITIES
+            applicant.save()
+            notify_interviewers_applicant_has_been_removed_from_interview_email(
+                applicant, interview
+            )
+
+        return RemoveApplicantFromInterviewMutation(interview=interview)
+
+
 # === InterviewLocation ===
 class CreateInterviewLocationMutation(DjangoCreateMutation):
     class Meta:
@@ -2001,6 +2043,7 @@ class AdmissionsMutations(graphene.ObjectType):
     delete_interview = DeleteInterviewMutation.Field()
     book_interview = BookInterviewMutation.Field()
     assign_applicant_new_interview = AssignApplicantNewInterviewMutation.Field()
+    remove_applicant_from_interview = RemoveApplicantFromInterviewMutation.Field()
     delete_all_interviews = DeleteAllInterviewsMutation.Field()
     set_self_as_interviewer = SetSelfAsInterviewerMutation.Field()
     remove_self_as_interviewer = RemoveSelfAsInterviewerMutation.Field()
