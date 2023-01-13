@@ -4,6 +4,7 @@ from __future__ import unicode_literals
 import re
 from django.utils import timezone
 from django.contrib.auth.models import AbstractUser, Permission
+from django.conf import settings
 from django.db import models
 from django.db.models import QuerySet
 
@@ -173,6 +174,13 @@ class User(AbstractUser):
             return
         if active_session.invited_users.filter(pk=self.pk).exists():
             return active_session
+
+    @property
+    def owes_money(self) -> bool:
+        if self.is_superuser:
+            return False
+        account = self.bank_account
+        return account.balance < settings.OWES_MONEY_THRESHOLD
 
 
 class UsersHaveMadeOut(models.Model):

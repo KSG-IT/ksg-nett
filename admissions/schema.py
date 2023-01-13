@@ -415,7 +415,6 @@ class InternalGroupApplicantsData(graphene.ObjectType):
     third_priorities = graphene.List(ApplicantNode)
 
     positions_to_fill = graphene.Int()
-    # How far they have come in their process
     current_progress = graphene.Int()
     mvp_list = graphene.List(UserNode)
 
@@ -847,6 +846,11 @@ class InterviewDay(graphene.ObjectType):
     locations = graphene.List(InterviewLocationDateGrouping)
 
 
+class InterviewPeriodDates(graphene.ObjectType):
+    start_date = graphene.Date()
+    end_date = graphene.Date()
+
+
 class InterviewOverviewQuery(graphene.ObjectType):
     # We use this to orderly structure the interview overview for each day in the interview period
     interview_day_groupings = graphene.List(InterviewDay)
@@ -891,8 +895,9 @@ class InterviewQuery(graphene.ObjectType):
     interview_template = graphene.Field(InterviewTemplate)
     # Intended to be used by an applicant
     interviews_available_for_booking = graphene.List(
-        AvailableInterviewsDayGrouping, day_offset=graphene.Int(required=True)
+        AvailableInterviewsDayGrouping, date_selected=graphene.Date(required=True)
     )
+    interview_period_dates = graphene.Field(InterviewPeriodDates)
     # Intended to be used by an interviewer giving someone a new interview
     all_available_interviews = graphene.List(InterviewNode)
     all_future_available_interviews = graphene.List(InterviewNode)
@@ -935,8 +940,18 @@ class InterviewQuery(graphene.ObjectType):
             interview_end__gte=timezone.now(),
         ).order_by("interview_start")
 
+    def resolve_interview_period_dates(self, info, *args, **kwargs):
+        admission = Admission.get_active_admission()
+        interview_schedule_template = (
+            InterviewScheduleTemplate.get_interview_schedule_template()
+        )
+        return InterviewPeriodDates(
+            start_date=interview_schedule_template.interview_period_start_date,
+            end_date=interview_schedule_template.interview_period_end_date,
+        )
+
     def resolve_interviews_available_for_booking(
-        self, info, day_offset, *args, **kwargs
+        self, info, date_selected, *args, **kwargs
     ):
         """
         The idea here is that we want to parse interviews in such a way that we only return
@@ -945,21 +960,23 @@ class InterviewQuery(graphene.ObjectType):
         is available and an applicant tries to book the same as another one they can just
         try one of the other interviews.
         """
+        if date_selected <= timezone.datetime.today().date():
+            return []
         # We get all interviews available for booking
-        now = timezone.datetime.now()
         # Only get interviews that are from the next day onwards
         # This way we people can check interviews at the start of the day
         cursor = timezone.make_aware(
             timezone.datetime(  # Use midnight helper here
-                year=now.year, month=now.month, day=now.day, hour=0, minute=0, second=0
+                year=date_selected.year,
+                month=date_selected.month,
+                day=date_selected.day,
+                hour=0,
+                minute=0,
+                second=0,
             )
-            + timezone.timedelta(days=1)
         )
-        if settings.ADMISSION_BOOK_INTERVIEWS_NOW:
-            cursor = timezone.make_aware(now)
 
-        cursor += timezone.timedelta(days=day_offset)
-        cursor_offset = cursor + timezone.timedelta(days=2)
+        cursor_offset = cursor + timezone.timedelta(days=1)
         available_interviews = Interview.objects.filter(
             applicant__isnull=True,
         )
