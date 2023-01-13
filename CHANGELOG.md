@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+### Added
+- API charge bank account logging
 
 ## [2023.1.1] - 2023-01-07
 
