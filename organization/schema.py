@@ -420,10 +420,6 @@ class OrganizationMutations(graphene.ObjectType):
     )
     delete_internal_group_user_highlight = DeleteInternalGroupUserHighlight.Field()
 
-    batch_patch_internal_group_user_highlight = (
-        BatchPatchInternalGroupUserHighlightMutation.Field()
-    )
-
     create_internal_group_position_membership = (
         CreateInternalGroupPositionMembershipMutation.Field()
     )
