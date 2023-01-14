@@ -359,7 +359,7 @@ class InternalGroupUserHighlightNode(DjangoObjectType):
             return None
 
     @classmethod
-    @gql_login_required
+    @gql_login_required()
     def get_node(cls, info, id):
         return InternalGroupPosition.objects.get(pk=id)
 
@@ -389,11 +389,11 @@ class InternalGroupUserHighlightQuery(graphene.ObjectType):
         InternalGroupUserHighlightNode, internal_group_id=graphene.ID()
     )
 
-    @gql_login_required
+    @gql_login_required()
     def resolve_all_internal_group_user_highlights(self, info, *args, **kwargs):
         return InternalGroupUserHighlight.objects.all()
 
-    @gql_login_required
+    @gql_login_required()
     def resolve_internal_group_user_highlights_by_internal_group(
         self, info, internal_group_id, *args, **kwargs
     ):
