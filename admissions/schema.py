@@ -506,12 +506,11 @@ class CreateApplicantsFromCSVDataMutation(graphene.Mutation):
                     phone=applicant["phone"],
                     token=auth_token,
                 )
+                ok = resend_auth_token_email(applicant)
                 emails.append(applicant.email)
             except Exception as e:
                 print("Failed to create applicant")
                 print(e)
-
-        ok = mass_send_welcome_to_interview_email(emails)
 
         return CreateApplicantsFromCSVDataMutation(ok=ok)
 
@@ -736,12 +735,12 @@ class CreateApplicationsMutation(graphene.Mutation):
         registered_emails = []
         for email in emails:
             try:
-                Applicant.create_or_update_application(email)
+                applicant = Applicant.create_or_update_application(email)
+                resend_auth_token_email(applicant)
                 registered_emails.append(email)
             except IntegrityError:
                 faulty_emails.append(email)
 
-        mass_send_welcome_to_interview_email(registered_emails)
         return CreateApplicationsMutation(
             ok=True,
             applications_created=len(emails) - len(faulty_emails),

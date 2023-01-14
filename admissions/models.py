@@ -304,7 +304,9 @@ class Applicant(models.Model):
         """Can extend this method in the future to handle adding applications to new positions"""
         current_admission = Admission.get_or_create_current_admission()
         auth_token = token_urlsafe(32)
-        cls.objects.create(email=email, admission=current_admission, token=auth_token)
+        return cls.objects.create(
+            email=email, admission=current_admission, token=auth_token
+        )
 
     @classmethod
     def valid_applicants(cls):
