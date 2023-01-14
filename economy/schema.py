@@ -603,6 +603,11 @@ class ApproveDepositMutation(graphene.Mutation):
     def mutate(self, info, deposit_id):
         deposit_id = disambiguate_id(deposit_id)
         deposit = Deposit.objects.get(id=deposit_id)
+
+        if deposit.approved:
+            # Already approved. Do nothing
+            return ApproveDepositMutation(deposit=deposit)
+
         with transaction.atomic():
             from economy.utils import send_deposit_approved_email
 
@@ -626,6 +631,11 @@ class InvalidateDepositMutation(graphene.Mutation):
     def mutate(self, info, deposit_id):
         deposit_id = disambiguate_id(deposit_id)
         deposit = Deposit.objects.get(id=deposit_id)
+
+        if not deposit.approved:
+            # Already invalidated. Do nothing
+            return ApproveDepositMutation(deposit=deposit)
+
         with transaction.atomic():
             deposit.approved_at = None
             deposit.approved_by = None
