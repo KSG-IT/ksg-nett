@@ -101,16 +101,29 @@ def shift_template_timestamps_to_datetime(
     time_start = shift_template.time_start
     time_end = shift_template.time_end
 
-    datetime_start = datetime.datetime.combine(shift_date, time_start)
     datetime_start = timezone.make_aware(
-        datetime_start, timezone=pytz.timezone(settings.TIME_ZONE)
+        timezone.datetime(
+            year=shift_date.year,
+            month=shift_date.month,
+            day=shift_date.day,
+            hour=time_start.hour,
+            minute=time_start.minute,
+            second=0,
+        ),
+        timezone=pytz.timezone("Europe/Belgrade"),
     )
-
     if time_end < time_start:
         # Shift happens over midnight. We combine the next day with this time
         shift_date = shift_date + datetime.timedelta(days=1)
 
-    datetime_end = datetime.datetime.combine(shift_date, time_end)
+    datetime_end = timezone.datetime(
+        year=shift_date.year,
+        month=shift_date.month,
+        day=shift_date.day,
+        hour=time_end.hour,
+        minute=time_end.minute,
+        second=0,
+    )
     """
     # Need to revisit this. Not sure if we should just ignore this completely
     # https://stackoverflow.com/questions/21465528/resolving-ambiguoustimeerror-from-djangos-make-aware

@@ -113,6 +113,11 @@ class Shift(models.Model):
     def __str__(self):
         return f"{self.datetime_start.strftime('%Y-%-m-%-d')} {self.schedule.name}: {self.name}"
 
+    def save(self, *args, **kwargs):
+        if self.datetime_start > self.datetime_end:
+            raise ValueError("datetime_start must be before datetime_end")
+        super().save(*args, **kwargs)
+
 
 class ShiftSlot(models.Model):
     class Meta:

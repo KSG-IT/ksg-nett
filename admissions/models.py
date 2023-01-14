@@ -194,10 +194,28 @@ class Interview(models.Model):
         "admissions.InterviewLocation", on_delete=models.CASCADE
     )
 
+    @property
+    def get_applicant(self):
+        # https://stackoverflow.com/a/27042585
+        if hasattr(self, "applicant"):
+            return self.applicant
+        return None
+
     def save(self, *args, **kwargs):
         """
-        An interview cannot overlap in the same location. Whe therefore make the following checks
+        An interview cannot overlap in the same location. We therefore make the following checks
         """
+
+        try:
+            # In case we hit create button twice by accident from frontend
+            Interview.objects.get(
+                interview_start=self.interview_start,
+                interview_end=self.interview_end,
+                location=self.location,
+            )
+        except self.DoesNotExist:
+            pass
+
         try:
             Interview.objects.get(
                 # First we check if we are trying to start an interview during another one
@@ -286,7 +304,9 @@ class Applicant(models.Model):
         """Can extend this method in the future to handle adding applications to new positions"""
         current_admission = Admission.get_or_create_current_admission()
         auth_token = token_urlsafe(32)
-        cls.objects.create(email=email, admission=current_admission, token=auth_token)
+        return cls.objects.create(
+            email=email, admission=current_admission, token=auth_token
+        )
 
     @classmethod
     def valid_applicants(cls):

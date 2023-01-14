@@ -315,3 +315,32 @@ def chose_random_element(iterable):
 
 def strip_chars_from_string(string: str, chars: List[str]):
     return "".join([char for char in string if char not in chars])
+
+
+def midnight_timestamps_from_date(date):
+    """
+    Returns a tuple of timestamps for the start and end of the day
+    """
+    datetime_early = timezone.make_aware(
+        timezone.datetime(
+            year=date.year,
+            month=date.month,
+            day=date.day,
+            hour=0,
+            minute=0,
+            second=0,
+        ),
+        timezone=pytz.timezone(settings.TIME_ZONE),
+    )
+    datetime_late = timezone.make_aware(
+        timezone.datetime(
+            year=date.year,
+            month=date.month,
+            day=date.day,
+            hour=23,
+            minute=59,
+            second=59,
+        ),
+        timezone=pytz.timezone(settings.TIME_ZONE),
+    )
+    return datetime_early, datetime_late

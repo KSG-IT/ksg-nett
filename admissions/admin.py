@@ -92,6 +92,7 @@ class AdmissionAdmin(admin.ModelAdmin):
 @admin.register(Applicant)
 class ApplicantAdmin(admin.ModelAdmin):
     inlines = [InternalGroupPositionPriorityInline]
+    search_fields = ["first_name", "last_name", "email", "phone"]
 
 
 @admin.register(InternalGroupPositionPriority)

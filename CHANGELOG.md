@@ -1,5 +1,14 @@
 # CHANGELOG
 
+## [v2023.1.3] - 2023-01-14
+### Added
+- Resolver for interview overview
+- Internal group user highlight model
+- Admin site search fields for some models
+
+### Changed
+- Applicant email is direct instead of bcc now
+
 ## [v2023.1.2] - 2023-01-13
 ### Added
 - API charge bank account logging
@@ -8,6 +17,8 @@
 - User and Quote field escaping
 - Close stale order session management command and script
 - Add versioning to settings
+- Added a CHANGELOG.md file to track changes to the project.
+- Add Shift model save method override if `datetime_start` is greater than `datetime_end`
 
 ### Changed
 - Wrap purchases in transactions
