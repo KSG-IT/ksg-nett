@@ -15,7 +15,7 @@ from graphene_django_cud.mutations import (
 from graphene_django import DjangoConnectionField
 
 from common.consts import BLEACH_ALLOWED_TAGS
-from common.decorators import gql_has_permissions
+from common.decorators import gql_has_permissions, gql_login_required
 from organization.consts import InternalGroupPositionMembershipType
 from organization.models import (
     InternalGroup,
@@ -359,6 +359,7 @@ class InternalGroupUserHighlightNode(DjangoObjectType):
             return None
 
     @classmethod
+    @gql_login_required
     def get_node(cls, info, id):
         return InternalGroupPosition.objects.get(pk=id)
 
@@ -381,12 +382,6 @@ class DeleteInternalGroupUserHighlight(DjangoDeleteMutation):
         permissions = ("organization.delete_internalgroupuserhighlight",)
 
 
-class BatchPatchInternalGroupUserHighlightMutation(DjangoBatchPatchMutation):
-    class Meta:
-        model = InternalGroupUserHighlight
-        permissions = ("organization.change_internalgroupuserhighlight",)
-
-
 class InternalGroupUserHighlightQuery(graphene.ObjectType):
     all_internal_group_user_highlights = graphene.List(InternalGroupUserHighlightNode)
     internal_group_user_highlight = Node.Field(InternalGroupUserHighlightNode)
@@ -394,11 +389,11 @@ class InternalGroupUserHighlightQuery(graphene.ObjectType):
         InternalGroupUserHighlightNode, internal_group_id=graphene.ID()
     )
 
-    @gql_has_permissions("organization.view_internalgroupuserhighlight")
+    @gql_login_required
     def resolve_all_internal_group_user_highlights(self, info, *args, **kwargs):
         return InternalGroupUserHighlight.objects.all()
 
-    @gql_has_permissions("organization.view_internalgroupuserhighlight")
+    @gql_login_required
     def resolve_internal_group_user_highlights_by_internal_group(
         self, info, internal_group_id, *args, **kwargs
     ):
