@@ -47,7 +47,7 @@ class InternalGroupNode(DjangoObjectType):
         all_users = User.objects.filter(
             internal_group_position_history__position__internal_group=self,
             internal_group_position_history__date_ended__isnull=True,
-        )
+        ).distinct()
 
         user_groupings = []
         for position in positions:
