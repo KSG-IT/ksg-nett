@@ -3,6 +3,7 @@ from secrets import token_urlsafe
 
 import bleach
 import graphene
+import pytz
 from django.conf import settings
 from graphene import Node
 from graphql_relay import to_global_id
@@ -17,7 +18,11 @@ from graphene_file_upload.scalars import Upload
 
 from common.consts import BLEACH_ALLOWED_TAGS
 from common.decorators import gql_has_permissions
-from common.util import date_time_combiner, compress_image
+from common.util import (
+    date_time_combiner,
+    compress_image,
+    midnight_timestamps_from_date,
+)
 from django.db.models import Q, Case, When, Value
 from graphene_django.filter import DjangoFilterConnectionField
 from admissions.utils import (
@@ -40,6 +45,8 @@ from admissions.utils import (
     get_applicant_priority_list,
     remove_applicant_choice,
     construct_new_priority_list,
+    interview_overview_parser,
+    notify_interviewers_applicant_has_been_removed_from_interview_email,
 )
 from django.core.exceptions import SuspiciousOperation, ValidationError
 from django.utils import timezone
@@ -567,6 +574,12 @@ class ApplicantQuery(graphene.ObjectType):
         )
 
     def resolve_get_applicant_from_token(self, info, token, *args, **kwargs):
+        """
+        WHen this resolver is hit we can set status to 'HAS_OPENED_EMAIL probably
+        """
+        if token is None:
+            return None
+
         applicant = Applicant.objects.get(token=token)
         return applicant
 
@@ -681,18 +694,7 @@ class ApplicantQuery(graphene.ObjectType):
     @gql_has_permissions("admissions.view_applicant")
     def resolve_todays_applicants(self, info, *args, **kwargs):
         admission = Admission.get_active_admission()
-        # Get all applicants with an interview today
-        # today midnight
-        today = timezone.datetime(
-            year=timezone.now().year,
-            month=timezone.now().month,
-            day=timezone.now().day,
-            hour=0,
-            minute=0,
-            second=0,
-            tzinfo=timezone.get_current_timezone(),
-        )
-        today_end = today + timezone.timedelta(hours=23, minutes=59, seconds=59)
+        today, today_end = midnight_timestamps_from_date(datetime.date.today())
 
         applicants = Applicant.objects.filter(
             admission=admission,
@@ -890,6 +892,28 @@ class AvailableInterviewsDayGrouping(graphene.ObjectType):
     interview_slots = graphene.List(InterviewSlot)
 
 
+class InterviewOverviewCell(graphene.ObjectType):
+
+    time = graphene.String()  # Returned in HH:mm format
+    content = graphene.String()  # Either "Available" or "Applicant name"
+    applicant_id = (
+        graphene.ID()
+    )  # If content is "Applicant name", this is the applicant's ID
+    interview_id = graphene.ID()
+    color = graphene.String()  # Either "green" or "red"
+
+
+class InterviewLocationOverviewRow(graphene.ObjectType):
+    location = graphene.String()
+    interviews = graphene.List(InterviewOverviewCell)
+
+
+class InterviewOverviewTableData(graphene.ObjectType):
+    interview_rows = graphene.List(InterviewLocationOverviewRow)
+    locations = graphene.List(graphene.String)
+    timestamp_header = graphene.List(graphene.String)
+
+
 class InterviewQuery(graphene.ObjectType):
     interview = Node.Field(InterviewNode)
     interview_template = graphene.Field(InterviewTemplate)
@@ -903,6 +927,9 @@ class InterviewQuery(graphene.ObjectType):
     all_future_available_interviews = graphene.List(InterviewNode)
     my_interviews = graphene.List(InterviewNode)
     my_upcoming_interviews = graphene.List(InterviewNode)
+    interview_table_overview = graphene.Field(
+        InterviewOverviewTableData, date=graphene.Date(required=True)
+    )
 
     @gql_has_permissions("admissions.view_interviewscheduletemplate")
     def resolve_interview_template(self, info, *args, **kwargs):
@@ -1026,6 +1053,62 @@ class InterviewQuery(graphene.ObjectType):
             applicant__isnull=True, interview_start__gt=timezone.now()
         )
         return interviews.order_by("interview_start", "location__name")
+
+    @gql_has_permissions("admissions.view_interview")
+    def resolve_interview_table_overview(self, info, date, *args, **kwargs):
+        datetime_early, datetime_late = midnight_timestamps_from_date(date)
+        interviews = Interview.objects.filter(
+            interview_start__gte=datetime_early,
+            interview_start__lte=datetime_late,
+        )
+        interview_rows, locations = interview_overview_parser(interviews)
+        location_names = locations.values_list("name", flat=True)
+
+        interview_schedule = InterviewScheduleTemplate.get_interview_schedule_template()
+        default_duration = interview_schedule.default_interview_duration
+        now = timezone.now()
+        start = interview_schedule.default_interview_day_start
+
+        start = timezone.datetime(
+            year=now.year,
+            month=now.month,
+            day=now.day,
+            hour=start.hour,
+            minute=start.minute,
+            second=0,
+        )
+        local_start = start
+        end = interview_schedule.default_interview_day_end
+        end = timezone.datetime(
+            year=now.year,
+            month=now.month,
+            day=now.day,
+            hour=end.hour,
+            minute=end.minute,
+            second=0,
+        )
+        local_end = end
+
+        timestamps = []
+        while local_start <= local_end:
+            minute = str(local_start.minute)
+            if len(minute) == 1:
+                minute = "0" + minute
+
+            hour = str(local_start.hour)
+            if len(hour) == 1:
+                hour = "0" + hour
+
+            timestamp_string = hour + ":" + minute
+
+            timestamps.append(timestamp_string)
+            local_start += default_duration
+
+        return InterviewOverviewTableData(
+            interview_rows=interview_rows,
+            locations=location_names,
+            timestamp_header=timestamps,
+        )
 
 
 class InterviewLocationQuery(graphene.ObjectType):
@@ -1553,7 +1636,7 @@ class GenerateInterviewsMutation(graphene.Mutation):
     ok = graphene.Boolean()
     interviews_generated = graphene.Int()
 
-    @gql_has_permissions("admissions.change_interview")
+    @gql_has_permissions("admissions.add_interview")
     def mutate(self, info, *args, **kwargs):
         # retrieve the schedule template
         schedule = InterviewScheduleTemplate.objects.all().first()
@@ -1561,6 +1644,35 @@ class GenerateInterviewsMutation(graphene.Mutation):
         generate_interviews_from_schedule(schedule)
         num = Interview.objects.all().count()
         return GenerateInterviewsMutation(ok=True, interviews_generated=num)
+
+
+class CreateInterviewMutation(DjangoCreateMutation):
+    class Meta:
+        model = Interview
+        permissions = "admissions.add_interview"
+        exclude_fields = ("additional_evaluations", "boolean_evaluations")
+
+    # Need to generaste nterview questions after creaation
+
+    @classmethod
+    def after_mutate(cls, root, info, input, obj, return_data):
+        from .utils import add_evaluations_to_interview
+
+        add_evaluations_to_interview(obj)
+        return return_data
+
+
+class DeleteInterviewMutation(DjangoDeleteMutation):
+    class Meta:
+        model = Interview
+        permissions = "admissions.delete_interview"
+
+    @classmethod
+    def before_save(cls, root, info, id, obj):
+        if obj.get_applicant:
+            raise Exception("Interview is not empty")
+
+        return obj
 
 
 class SetSelfAsInterviewerMutation(graphene.Mutation):
@@ -1702,6 +1814,41 @@ class AssignApplicantNewInterviewMutation(graphene.Mutation):
             # TODO send email to interviewers
 
             return AssignApplicantNewInterviewMutation(success=True)
+
+
+class RemoveApplicantFromInterviewMutation(graphene.Mutation):
+    class Arguments:
+        interview_id = graphene.ID(required=True)
+
+    interview = graphene.Field(InterviewNode)
+
+    @gql_has_permissions("admissions.change_interview")
+    def mutate(self, info, interview_id, *args, **kwargs):
+        interview_id = disambiguate_id(interview_id)
+        interview = Interview.objects.get(pk=interview_id)
+        applicant = interview.get_applicant
+
+        now = timezone.now()
+
+        if interview.interview_start < now:
+            raise Exception("Cannot remove applicant from interview in the past")
+
+        if not applicant:
+            raise Exception("Interview is not booked")
+
+        if applicant.status == ApplicantStatus.INTERVIEW_FINISHED:
+            raise Exception("Applicant has already finished the interview")
+
+        with transaction.atomic():
+            interview.applicant = None
+            interview.save()
+            applicant.status = ApplicantStatus.HAS_SET_PRIORITIES
+            applicant.save()
+            notify_interviewers_applicant_has_been_removed_from_interview_email(
+                applicant, interview
+            )
+
+        return RemoveApplicantFromInterviewMutation(interview=interview)
 
 
 # === InterviewLocation ===
@@ -1892,8 +2039,11 @@ class AdmissionsMutations(graphene.ObjectType):
 
     re_send_application_token = ResendApplicantTokenMutation.Field()
     generate_interviews = GenerateInterviewsMutation.Field()
+    create_interview = CreateInterviewMutation.Field()
+    delete_interview = DeleteInterviewMutation.Field()
     book_interview = BookInterviewMutation.Field()
     assign_applicant_new_interview = AssignApplicantNewInterviewMutation.Field()
+    remove_applicant_from_interview = RemoveApplicantFromInterviewMutation.Field()
     delete_all_interviews = DeleteAllInterviewsMutation.Field()
     set_self_as_interviewer = SetSelfAsInterviewerMutation.Field()
     remove_self_as_interviewer = RemoveSelfAsInterviewerMutation.Field()

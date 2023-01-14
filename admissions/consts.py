@@ -17,6 +17,7 @@ class AdmissionStatus(models.TextChoices):
 
 class ApplicantStatus(models.TextChoices):
     EMAIL_SENT = ("email-sent", "Email sent")
+    # EMAIL_OPENED = ("email-opened", "Email opened")
     HAS_REGISTERED_PROFILE = ("has-registered-profile", "Has registered profile")
     HAS_SET_PRIORITIES = ("has-set-priorities", "Has set priorities")
     SCHEDULED_INTERVIEW = ("scheduled-interview", "Scheduled interview")
