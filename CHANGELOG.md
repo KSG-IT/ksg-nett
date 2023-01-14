@@ -1,8 +1,13 @@
 # CHANGELOG
 
-## [v2023.1.3] - 
+## [v2023.1.3] - 2023-01-14
 ### Added
 - Resolver for interview overview
+- Internal group user highlight model
+- Admin site search fields for some models
+
+### Changed
+- Applicant email is direct instead of bcc now
 
 ## [v2023.1.2] - 2023-01-13
 ### Added
