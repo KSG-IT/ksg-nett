@@ -56,10 +56,12 @@ class SociBankAccount(models.Model):
 
     @property
     def is_gold(self):
+        if self.user.is_superuser:
+            return True
+
         return (
             self.user.username in settings.SOCI_GOLD
             or self.user.email in settings.SOCI_GOLD
-            or self.user.is_superuser
         )
 
     def __str__(self):

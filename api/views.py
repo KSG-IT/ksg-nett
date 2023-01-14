@@ -1,5 +1,5 @@
 import jwt
-from django.db import DatabaseError
+from django.db import DatabaseError, transaction
 from django.utils import timezone
 from drf_yasg2.openapi import Parameter, IN_QUERY, TYPE_STRING
 from drf_yasg2.utils import swagger_auto_schema
@@ -20,6 +20,7 @@ from rest_framework_simplejwt.views import (
     TokenVerifyView,
 )
 
+from api.models import PurchaseTransactionLogEntry
 from api.permissions import SensorTokenPermission
 from api.serializers import (
     CheckBalanceSerializer,
@@ -263,8 +264,15 @@ class ChargeBankAccountView(APIView):
                 {"message": "Insufficient funds"}, status=status.HTTP_400_BAD_REQUEST
             )
 
-        account.remove_funds(total_cost)
+        with transaction.atomic():
+            account.remove_funds(total_cost)
+            for order in orders:
+                order.save()
 
-        for order in orders:
-            order.save()
+            PurchaseTransactionLogEntry.objects.create(
+                user=account.user,
+                amount=total_cost,
+                transaction_source=PurchaseTransactionLogEntry.TransactionSourceOptions.API,
+            )
+
         return Response(status=status.HTTP_200_OK)
