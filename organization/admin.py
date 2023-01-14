@@ -7,6 +7,7 @@ from organization.models import (
     InternalGroup,
     InternalGroupPosition,
     InternalGroupPositionMembership,
+    InternalGroupUserHighlight,
 )
 
 
@@ -39,6 +40,11 @@ class InternalGroupPositionAdmin(admin.ModelAdmin):
     inlines = (InternalGroupPositionMembershipInline,)
 
 
+class InternalGroupUserHightlightAdmin(admin.ModelAdmin):
+    list_display = ("user", "internal_group", "occupation", "archived", "image")
+
+
 admin.site.register(InternalGroup, InternalGroupAdmin)
 admin.site.register(InternalGroupPosition, InternalGroupPositionAdmin)
 admin.site.register(InternalGroupPositionMembership)
+admin.site.register(InternalGroupUserHighlight, InternalGroupUserHightlightAdmin)

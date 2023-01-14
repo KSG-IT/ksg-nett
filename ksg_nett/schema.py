@@ -27,6 +27,7 @@ from organization.schema import (
     InternalGroupPositionQuery,
     InternalGroupPositionMembershipQuery,
     OrganizationMutations,
+    InternalGroupUserHighlightQuery,
 )
 from quotes.schema import QuoteQuery, QuotesMutations
 from schedules.schemas.schedules import (
@@ -59,6 +60,7 @@ class Query(
     InternalGroupQuery,
     InternalGroupPositionQuery,
     InternalGroupPositionMembershipQuery,
+    InternalGroupUserHighlightQuery,
     InterviewQuery,
     InterviewLocationQuery,
     ShiftQuery,
