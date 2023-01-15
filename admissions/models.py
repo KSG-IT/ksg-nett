@@ -193,6 +193,9 @@ class Interview(models.Model):
     location = models.ForeignKey(
         "admissions.InterviewLocation", on_delete=models.CASCADE
     )
+    registered_at_samfundet = models.BooleanField(
+        default=False, null=False, blank=False
+    )
 
     @property
     def get_applicant(self):
