@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## [v2023.1.4] - 2023-01-15
+
+### Added
+- Strip email on password reset for leading and trailing whitespace
+- Strip email on applicant resend token for leading and trailing whitespace
+- Activity logging to applicant mutation and queries
+
 ## [v2023.1.3] - 2023-01-14
 ### Added
 - Resolver for interview overview
