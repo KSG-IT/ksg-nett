@@ -3,8 +3,6 @@ from secrets import token_urlsafe
 
 import bleach
 import graphene
-import pytz
-from django.conf import settings
 from graphene import Node
 from graphql_relay import to_global_id
 from graphene_django import DjangoObjectType
@@ -31,7 +29,6 @@ from admissions.utils import (
     obfuscate_admission,
     group_interviews_by_date,
     create_interview_slots,
-    mass_send_welcome_to_interview_email,
     internal_group_applicant_data,
     admission_applicant_preview,
     get_admission_final_applicant_qs,
@@ -42,7 +39,6 @@ from admissions.utils import (
     send_interview_cancelled_email,
     notify_interviewers_cancelled_interview_email,
     send_interview_confirmation_email,
-    get_applicant_priority_list,
     remove_applicant_choice,
     construct_new_priority_list,
     interview_overview_parser,
@@ -492,6 +488,7 @@ class CreateApplicantsFromCSVDataMutation(graphene.Mutation):
 
     ok = graphene.Boolean()
 
+    @gql_has_permissions("admissions.add_applicant")
     def mutate(self, info, applicants, *args, **kwargs):
         admission = Admission.get_active_admission()
         emails = []
@@ -580,6 +577,8 @@ class ApplicantQuery(graphene.ObjectType):
             return None
 
         applicant = Applicant.objects.get(token=token)
+        applicant.last_activity = timezone.now()
+        applicant.save()
         return applicant
 
     @gql_has_permissions("admissions.view_applicant")
@@ -710,13 +709,17 @@ class ResendApplicantTokenMutation(graphene.Mutation):
 
     ok = graphene.Boolean()
 
-    def mutate(self, info, email, *args, **kwargs):
+    def mutate(self, info, email: str, *args, **kwargs):
         active_admission = Admission.get_active_admission()
         if not active_admission or not active_admission.status == AdmissionStatus.OPEN:
             raise Exception("Admission is not open")
+
+        email = email.strip()
         applicant = Applicant.objects.filter(email__iexact=email).first()
         if applicant:
             ok = resend_auth_token_email(applicant)
+            applicant.last_activity = timezone.now()
+            applicant.save()
             return ResendApplicantTokenMutation(ok=ok)
         return ResendApplicantTokenMutation(ok=False)
 
@@ -967,7 +970,6 @@ class InterviewQuery(graphene.ObjectType):
         ).order_by("interview_start")
 
     def resolve_interview_period_dates(self, info, *args, **kwargs):
-        admission = Admission.get_active_admission()
         interview_schedule_template = (
             InterviewScheduleTemplate.get_interview_schedule_template()
         )
@@ -1384,6 +1386,7 @@ class ApplicantAddInternalGroupPositionPriorityMutation(graphene.Mutation):
 
     def mutate(self, info, internal_group_position_id, token, *args, **kwargs):
         applicant = Applicant.objects.get(token=token)
+        applicant.last_activity = timezone.now()
 
         internal_group_position_id = disambiguate_id(internal_group_position_id)
 
@@ -1444,6 +1447,7 @@ class ApplicantUpdateInternalGroupPositionPriorityOrderMutation(graphene.Mutatio
 
     def mutate(self, info, priority_order, token, *args, **kwargs):
         applicant = Applicant.objects.get(token=token)
+        applicant.last_activity = timezone.now()
         constructed_priorities = construct_new_priority_list(priority_order)
         applicant.update_priority_order(constructed_priorities)
         applicant.refresh_from_db()
@@ -1755,6 +1759,8 @@ class BookInterviewMutation(graphene.Mutation):
 
     def mutate(self, info, interview_ids, applicant_token, *args, **kwargs):
         applicant = Applicant.objects.get(token=applicant_token)
+        applicant.last_activity = timezone.now()
+
         if getattr(applicant, "interview", None):
             raise SuspiciousOperation("Applicant already has an interview")
 
