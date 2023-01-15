@@ -7,6 +7,9 @@
 - Strip email on applicant resend token for leading and trailing whitespace
 - Activity logging to applicant mutation and queries
 
+### Fixed
+- Approve deposit duplicate approval bug
+
 ## [v2023.1.3] - 2023-01-14
 ### Added
 - Resolver for interview overview
