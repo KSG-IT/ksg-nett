@@ -57,7 +57,8 @@ class ResetMyPasswordMutation(graphene.Mutation):
 
     ok = graphene.Boolean()
 
-    def mutate(self, info, username):
+    def mutate(self, info, username: str):
+        username = username.strip()
         user = User.objects.filter(
             Q(username__iexact=username) | Q(email__iexact=username)
         ).first()
