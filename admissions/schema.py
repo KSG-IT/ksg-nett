@@ -932,6 +932,7 @@ class InterviewQuery(graphene.ObjectType):
     interview_table_overview = graphene.Field(
         InterviewOverviewTableData, date=graphene.Date(required=True)
     )
+    finished_interviews = graphene.List(InterviewNode)
 
     @gql_has_permissions("admissions.view_interviewscheduletemplate")
     def resolve_interview_template(self, info, *args, **kwargs):
@@ -1110,6 +1111,12 @@ class InterviewQuery(graphene.ObjectType):
             locations=location_names,
             timestamp_header=timestamps,
         )
+
+    @gql_has_permissions("admissions.view_interview")
+    def resolve_finished_interviews(self, info, *args, **kwargs):
+        return Interview.objects.filter(
+            applicant__status=ApplicantStatus.INTERVIEW_FINISHED,
+        ).order_by("applicant__id")
 
 
 class InterviewLocationQuery(graphene.ObjectType):

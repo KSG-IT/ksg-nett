@@ -76,18 +76,6 @@ def generate_interviews_from_schedule(schedule):
     default_interview_day_end = schedule.default_interview_day_end
     interview_period_start_date = schedule.interview_period_start_date
 
-    """
-     timezone.datetime(
-        year=shift_date.year,
-        month=shift_date.month,
-        day=shift_date.day,
-        hour=0,
-        minute=0,
-        second=0,
-        tzinfo=pytz.timezone(settings.TIME_ZONE),
-    )
-    """
-
     datetime_cursor = timezone.make_aware(
         timezone.datetime(
             year=interview_period_start_date.year,
