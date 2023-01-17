@@ -3,6 +3,7 @@ from secrets import token_urlsafe
 
 import bleach
 import graphene
+from django.conf import settings
 from graphene import Node
 from graphql_relay import to_global_id
 from graphene_django import DjangoObjectType
@@ -1009,13 +1010,21 @@ class InterviewQuery(graphene.ObjectType):
             applicant__isnull=True,
         )
 
-        available_interviews = available_interviews.filter(
-            interview_start__gte=cursor,
+        soft_limit_cursor = cursor + settings.ADMISSION_LATE_BATCH_TIMESTAMP
+        available_interviews_this_day = available_interviews.filter(
+            interview_start__gte=soft_limit_cursor,
             interview_start__lte=cursor_offset,
         )
+
+        if not available_interviews_this_day:
+            available_interviews_this_day = available_interviews.filter(
+                interview_start__gte=cursor,
+                interview_start__lte=cursor_offset,
+            )
+
         available_interviews_timeslot_grouping = []
         parsed_interviews = create_interview_slots(
-            group_interviews_by_date(available_interviews)
+            group_interviews_by_date(available_interviews_this_day)
         )
 
         for day in parsed_interviews:
