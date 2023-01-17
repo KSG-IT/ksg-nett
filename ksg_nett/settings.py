@@ -232,6 +232,8 @@ PNG_COMPRESSION_HIGH_QUALITY = 2800
 
 
 ADMISSION_BOOK_INTERVIEWS_NOW = False
+# The late batch is used as a soft limit for what interviews are bookable first
+ADMISSION_LATE_BATCH_TIMESTAMP = timedelta(hours=15)
 
 # Simple JWT SETTINGS
 # -----------------------------
