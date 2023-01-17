@@ -17,6 +17,7 @@ from django.conf import settings
 from django.conf.urls import include
 from django.conf.urls.static import static
 from django.contrib import admin
+from django.http import HttpResponse
 from django.urls import path
 
 from api.api_docs import SchemaView
@@ -29,9 +30,16 @@ def trigger_error(request):
     division_by_zero = 1 / 0
 
 
+def health_check(request):
+    return HttpResponse(
+        "OK",
+    )
+
+
 urlpatterns = [
     # Website
     path("", include("common.urls")),
+    path("health-check", health_check),
     path("external/", include("external.urls")),
     path("users/", include("users.urls")),
     path("economy/", include("economy.urls")),
