@@ -8,6 +8,7 @@ from api.views import (
     SociBankAccountBalanceDetailView,
     TerminateSociSessionView,
     SensorMeasurementView,
+    BlacklistedSongsListView,
     ChargeBankAccountView,
 )
 
@@ -69,5 +70,10 @@ urlpatterns = [
                 )
             ]
         ),
+    ),
+    path(
+        "blacklist/",
+        BlacklistedSongsListView.as_view(),
+        name="blacklist",
     ),
 ]
