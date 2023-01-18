@@ -1681,7 +1681,7 @@ class GenerateInterviewsMutation(graphene.Mutation):
 class CreateInterviewMutation(DjangoCreateMutation):
     class Meta:
         model = Interview
-        permissions = "admissions.add_interview"
+        permissions = ("admissions.add_interview",)
         exclude_fields = ("additional_evaluations", "boolean_evaluations")
 
     # Need to generaste nterview questions after creaation
