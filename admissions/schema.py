@@ -1697,7 +1697,7 @@ class CreateInterviewMutation(DjangoCreateMutation):
 class DeleteInterviewMutation(DjangoDeleteMutation):
     class Meta:
         model = Interview
-        permissions = "admissions.delete_interview"
+        permissions = ("admissions.delete_interview",)
 
     @classmethod
     def before_save(cls, root, info, id, obj):
