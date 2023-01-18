@@ -185,7 +185,20 @@ class ApplicantNode(DjangoObjectType):
             internal_group_position_history__date_ended__isnull=True,
             internal_group_position_history__position__internal_group=internal_group,
         )
+
+        applicant = interview.get_applicant
+        # Should never happen
+        if not applicant:
+            return False
+
+        priorities = applicant.get_priorities
+        # filter none values
+        priorities = [priority for priority in priorities if priority]
+
         if interviewers_from_internal_group:
+            # Edge case where we do not want to mark it as covered.
+            if len(priorities) == 1 and interviewers.count() < 2:
+                return False
             return True
 
         return False
@@ -1668,7 +1681,7 @@ class GenerateInterviewsMutation(graphene.Mutation):
 class CreateInterviewMutation(DjangoCreateMutation):
     class Meta:
         model = Interview
-        permissions = "admissions.add_interview"
+        permissions = ("admissions.add_interview",)
         exclude_fields = ("additional_evaluations", "boolean_evaluations")
 
     # Need to generaste nterview questions after creaation
