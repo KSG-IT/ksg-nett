@@ -185,7 +185,18 @@ class ApplicantNode(DjangoObjectType):
             internal_group_position_history__date_ended__isnull=True,
             internal_group_position_history__position__internal_group=internal_group,
         )
+
+        applicant = interview.get_applicant
+        # Should never happen
+        if not applicant:
+            return False
+
+        priorities = applicant.get_priorities
+
         if interviewers_from_internal_group:
+            # Edge case where we do not want to mark it as covered.
+            if len(priorities) == 1 and interviewers.count() < 2:
+                return False
             return True
 
         return False
