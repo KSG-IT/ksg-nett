@@ -67,7 +67,9 @@ class Admission(models.Model):
 
     def internal_groups_accepting_applicants(self):
         positions = self.available_internal_group_positions.all()
-        internal_groups = InternalGroup.objects.filter(positions__in=positions)
+        internal_groups = InternalGroup.objects.filter(
+            positions__in=positions
+        ).distinct()
         return internal_groups.order_by("name")
 
     @classmethod
