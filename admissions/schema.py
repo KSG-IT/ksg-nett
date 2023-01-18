@@ -192,6 +192,8 @@ class ApplicantNode(DjangoObjectType):
             return False
 
         priorities = applicant.get_priorities
+        # filter none values
+        priorities = [priority for priority in priorities if priority]
 
         if interviewers_from_internal_group:
             # Edge case where we do not want to mark it as covered.
