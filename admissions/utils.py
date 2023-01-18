@@ -504,6 +504,10 @@ def send_interview_confirmation_email(interview):
             %(interview_time)s
             Møt opp i glassinngangen til Samfundet fem minutter før intervjuet starter. 
             Vi ser frem til å møte deg! 
+            
+            
+            Om du har huket av på digitalt intervju vil du få tilsendt en lenke ved intervjustart og
+            kan se bort fra beskjed om å møte opp ved glaassinngangen.
 
             Om du har noen spørsmål, send en mail til ksg-opptak@samfundet.no 
             """
@@ -532,6 +536,10 @@ def send_interview_confirmation_email(interview):
             Møt opp i glassinngangen til Samfundet fem minutter før intervjuet starter.
             <br />
             Vi ser frem til å møte deg!
+            <br />
+            
+            Om du har huket av på digitalt intervju vil du få tilsendt en lenke ved intervjustart og
+            kan se bort fra beskjed om å møte opp ved glaassinngangen.
             <br />
             Om du har noen spørsmål, send en mail til ksg-opptak@samfundet.no
             <br />
