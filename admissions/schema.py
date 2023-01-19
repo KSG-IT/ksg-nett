@@ -44,6 +44,7 @@ from admissions.utils import (
     construct_new_priority_list,
     interview_overview_parser,
     notify_interviewers_applicant_has_been_removed_from_interview_email,
+    get_interview_statistics,
 )
 from django.core.exceptions import SuspiciousOperation, ValidationError
 from django.utils import timezone
@@ -930,6 +931,19 @@ class InterviewOverviewTableData(graphene.ObjectType):
     timestamp_header = graphene.List(graphene.String)
 
 
+class UserInterviewCount(graphene.ObjectType):
+    user = graphene.Field(UserNode)
+    interview_count = graphene.Int()
+
+
+class InterviewStatistics(graphene.ObjectType):
+    total_applicants = graphene.Int()
+    total_finished_interviews = graphene.Int()
+    total_booked_interviews = graphene.Int()
+    total_available_interviews = graphene.Int()
+    user_interview_counts = graphene.List(UserInterviewCount)
+
+
 class InterviewQuery(graphene.ObjectType):
     interview = Node.Field(InterviewNode)
     interview_template = graphene.Field(InterviewTemplate)
@@ -947,6 +961,7 @@ class InterviewQuery(graphene.ObjectType):
         InterviewOverviewTableData, date=graphene.Date(required=True)
     )
     finished_interviews = graphene.List(InterviewNode)
+    interview_statistics = graphene.Field(InterviewStatistics)
 
     @gql_has_permissions("admissions.view_interviewscheduletemplate")
     def resolve_interview_template(self, info, *args, **kwargs):
@@ -1139,6 +1154,13 @@ class InterviewQuery(graphene.ObjectType):
         return Interview.objects.filter(
             applicant__status=ApplicantStatus.INTERVIEW_FINISHED,
         ).order_by("applicant__id")
+
+    @gql_has_permissions("admissions.view_interview")
+    def resolve_interview_statistics(self, info, *args, **kwargs):
+        admission = Admission.get_active_admission()
+        if not admission:
+            return None
+        return get_interview_statistics(admission)
 
 
 class InterviewLocationQuery(graphene.ObjectType):

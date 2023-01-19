@@ -1112,3 +1112,55 @@ def add_evaluations_to_interview(interview):
         )
 
     interview.save()
+
+
+def get_interview_statistics(admission):
+    """
+    total_applicants = graphene.Int()
+    total_finished_interviews = graphene.Int()
+    total_booked_interviews = graphene.Int()
+    total_available_interviews = graphene.Int()
+    user_interview_counts = graphene.List(UserInterviewCount)
+
+    """
+    from .schema import InterviewStatistics, UserInterviewCount
+    from users.models import User
+    from .models import Interview
+
+    interviews = Interview.objects.filter(applicant__admission=admission)
+    total_applicants = admission.applicants.count()
+    total_booked_interviews = interviews.filter(
+        applicant__isnull=False, applicant__status=ApplicantStatus.SCHEDULED_INTERVIEW
+    ).count()
+    total_finished_interviews = interviews.filter(
+        applicant__isnull=False, applicant__status=ApplicantStatus.INTERVIEW_FINISHED
+    ).count()
+
+    now = timezone.now()
+    total_available_interviews = Interview.objects.filter(
+        applicant__isnull=True, interview_start__gte=now
+    ).count()
+
+    user_interview_counts = []
+    users = User.objects.filter(
+        interviews_attended__applicant__admission=admission
+    ).distinct()
+    for user in users:
+        user_interview_counts.append(
+            UserInterviewCount(
+                user=user,
+                interview_count=user.interviews_attended.filter(
+                    applicant__admission=admission
+                ).count(),
+            )
+        )
+
+    user_interview_counts.sort(key=lambda x: x.interview_count, reverse=True)
+
+    return InterviewStatistics(
+        total_applicants=total_applicants,
+        total_booked_interviews=total_booked_interviews,
+        total_finished_interviews=total_finished_interviews,
+        total_available_interviews=total_available_interviews,
+        user_interview_counts=user_interview_counts,
+    )
