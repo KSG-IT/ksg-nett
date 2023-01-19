@@ -40,3 +40,19 @@ class PurchaseTransactionLogEntry(models.Model):
 
     def __str__(self):
         return f"{self.user} - {self.amount} - {self.transaction_source} - {self.timestamp}"
+
+
+class BlacklistedSong(models.Model):
+    class Meta:
+        verbose_name = "Blacklisted song"
+        verbose_name_plural = "Blacklisted songs"
+
+    name = models.CharField(max_length=100)
+    spotify_song_id = models.CharField(max_length=100, unique=True)
+    blacklisted_until = models.DateTimeField(null=True)
+    blacklisted_by = models.ForeignKey(
+        "users.User",
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="blacklisted_songs",
+    )

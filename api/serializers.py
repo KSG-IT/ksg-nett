@@ -60,6 +60,10 @@ class SociProductSerializer(serializers.Serializer):
     icon = serializers.CharField(read_only=True, label="Product icon descriptor")
 
 
+class BlacklistedSongSerializer(serializers.Serializer):
+    spotify_song_id = serializers.CharField(read_only=True, label="Spotify song ID")
+
+
 class CheckBalanceSerializer(serializers.Serializer):
     id = serializers.IntegerField(read_only=True, label="This soci bank account ID")
 
