@@ -288,7 +288,7 @@ class BlacklistedSongsListView(ListAPIView):
     queryset = BlacklistedSong.objects.all()
 
     @swagger_auto_schema(
-        tags=["Backlisted songs"], operation_summary="List Backlisted songs"
+        tags=["Blacklisted songs"], operation_summary="List Blacklisted songs"
     )
     def get(self, request, *args, **kwargs):
         now = timezone.now()
