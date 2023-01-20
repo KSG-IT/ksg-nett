@@ -1115,14 +1115,6 @@ def add_evaluations_to_interview(interview):
 
 
 def get_interview_statistics(admission):
-    """
-    total_applicants = graphene.Int()
-    total_finished_interviews = graphene.Int()
-    total_booked_interviews = graphene.Int()
-    total_available_interviews = graphene.Int()
-    user_interview_counts = graphene.List(UserInterviewCount)
-
-    """
     from .schema import InterviewStatistics, UserInterviewCount
     from users.models import User
     from .models import Interview
