@@ -1003,13 +1003,16 @@ class InterviewQuery(graphene.ObjectType):
         is available and an applicant tries to book the same as another one they can just
         try one of the other interviews.
         """
-        if date_selected <= timezone.datetime.today().date():
+
+        admission = Admission.get_active_admission()
+        if (
+            date_selected <= timezone.datetime.today().date()
+            and not admission.interview_booking_override_enabled
+        ):
             return []
-        # We get all interviews available for booking
-        # Only get interviews that are from the next day onwards
-        # This way we people can check interviews at the start of the day
+
         cursor = timezone.make_aware(
-            timezone.datetime(  # Use midnight helper here
+            timezone.datetime(
                 year=date_selected.year,
                 month=date_selected.month,
                 day=date_selected.day,
@@ -1024,17 +1027,37 @@ class InterviewQuery(graphene.ObjectType):
             applicant__isnull=True,
         )
 
-        soft_limit_cursor = cursor + settings.ADMISSION_LATE_BATCH_TIMESTAMP
+        # Interviews for a specific date
         available_interviews_this_day = available_interviews.filter(
-            interview_start__gte=soft_limit_cursor,
+            interview_start__gte=cursor,
             interview_start__lte=cursor_offset,
         )
 
-        if not available_interviews_this_day:
-            available_interviews_this_day = available_interviews.filter(
-                interview_start__gte=cursor,
-                interview_start__lte=cursor_offset,
+        if admission.interview_booking_override_enabled:
+            override_diff = timezone.now() + admission.interview_booking_override_delta
+            available_interviews_this_day = available_interviews_this_day.filter(
+                interview_start__gte=override_diff
             )
+
+        if (
+            admission.interview_booking_late_batch_enabled
+            and date_selected > timezone.now().date()
+        ):
+            late_batch_diff = timezone.make_aware(
+                timezone.datetime(
+                    year=date_selected.year,
+                    month=date_selected.month,
+                    day=date_selected.day,
+                    hour=admission.interview_booking_late_batch_time.hour,
+                    minute=admission.interview_booking_late_batch_time.minute,
+                    second=admission.interview_booking_late_batch_time.second,
+                )
+            )
+            late_batch_interviews = available_interviews_this_day.filter(
+                interview_start__gte=late_batch_diff
+            )
+            if late_batch_interviews.exists():
+                available_interviews_this_day = late_batch_interviews
 
         available_interviews_timeslot_grouping = []
         parsed_interviews = create_interview_slots(

@@ -56,6 +56,14 @@ class Admission(models.Model):
         "organization.InternalGroupPosition",
         through=AdmissionAvailableInternalGroupPositionData,
     )
+    interview_booking_late_batch_enabled = models.BooleanField(default=False)
+    interview_booking_late_batch_time = models.TimeField(
+        default=datetime.time(15, 00, 00)
+    )
+    interview_booking_override_enabled = models.BooleanField(default=False)
+    interview_booking_override_delta = models.DurationField(
+        default=datetime.timedelta(hours=6),
+    )
 
     @property
     def semester(self) -> str:
