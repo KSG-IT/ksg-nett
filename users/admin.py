@@ -50,6 +50,7 @@ class SociBankAccountInline(admin.StackedInline):
 class MyUserAdmin(UserAdmin):
     list_display = ["pk", "full_name", "is_active"]
     form = MyUserChangeForm
+    filter_horizontal = ("allergies",)
     add_form = MyUserCreationForm
     fieldsets = UserAdmin.fieldsets + (
         (
@@ -83,6 +84,7 @@ class MyUserAdmin(UserAdmin):
                     "anonymize_in_made_out_map",
                     "requires_migration_wizard",
                     "first_time_login",
+                    "can_rewrite_about_me",
                     "sg_id",
                     "ical_token",
                 )

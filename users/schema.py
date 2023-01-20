@@ -14,7 +14,7 @@ from graphene_django_cud.mutations import (
 )
 from common.decorators import gql_has_permissions, gql_login_required
 from quotes.schema import QuoteNode
-from users.models import User, UserType, UserTypeLogEntry
+from users.models import User, UserType, UserTypeLogEntry, Allergy
 from common.util import get_semester_year_shorthand
 from django.db.models.functions import Concat
 from economy.utils import parse_transaction_history
@@ -38,6 +38,16 @@ class UserTypeLogEntryNode(DjangoObjectType):
     @gql_has_permissions("users.view_usertypelogentry")
     def get_node(cls, info, id):
         return UserTypeLogEntry.objects.get(pk=id)
+
+
+class AllergyNode(DjangoObjectType):
+    class Meta:
+        model = Allergy
+        interfaces = (Node,)
+
+    @classmethod
+    def get_node(cls, info, id):
+        return Allergy.objects.get(pk=id)
 
 
 class UserTypeNode(DjangoObjectType):
@@ -98,6 +108,7 @@ class UserNode(DjangoObjectType):
     future_shifts = graphene.List(ShiftSlotNode)
     ical_token = graphene.String()
     owes_money = graphene.Boolean(source="owes_money")
+    allergies = graphene.List(AllergyNode)
 
     def resolve_future_shifts(self: User, info, *args, **kwargs):
         return self.future_shifts
@@ -170,6 +181,9 @@ class UserNode(DjangoObjectType):
             return token
 
         return self.ical_token
+
+    def resolve_allergies(self: User, info, **kwargs):
+        return self.allergies.all().order_by("name")
 
     @classmethod
     @gql_login_required()
@@ -305,6 +319,13 @@ class UserQuery(graphene.ObjectType):
         return UserType.objects.all().order_by("name")
 
 
+class AllergyQuery(graphene.ObjectType):
+    all_allergies = graphene.List(AllergyNode)
+
+    def resolve_all_allergies(self, info, *args, **kwargs):
+        return Allergy.objects.all().order_by("name")
+
+
 class CreateUserMutation(DjangoCreateMutation):
     class Meta:
         model = User
@@ -372,6 +393,9 @@ class UpdateMyInfoMutation(graphene.Mutation):
 
     def mutate(self, info, **kwargs):
         user = info.context.user
+        if not user.requires_migration_wizard:
+            raise Exception("User does not require migration wizard")
+
         card_uuid = kwargs.pop("card_uuid", None)
 
         for key, value in kwargs.items():
@@ -392,6 +416,37 @@ class UpdateMyInfoMutation(graphene.Mutation):
             bank_account.card_uuid = card_uuid
             bank_account.save()
         return UpdateMyInfoMutation(user=user)
+
+
+class UpdateMyAllergies(graphene.Mutation):
+    class Arguments:
+        allergy_ids = graphene.List(graphene.ID)
+
+    user = graphene.Field(UserNode)
+
+    def mutate(self, info, allergy_ids):
+        user = info.context.user
+        allergy_ids = [disambiguate_id(allergy_id) for allergy_id in allergy_ids]
+        allergies = Allergy.objects.filter(id__in=allergy_ids)
+        user.allergies.set(allergies)
+        return UpdateMyAllergies(user=user)
+
+
+class UpdateMyEmailSettingsMutation(graphene.Mutation):
+    class Arguments:
+        notify_on_shift = graphene.Boolean(required=True)
+        notify_on_deposit = graphene.Boolean(required=True)
+        notify_on_quote = graphene.Boolean(required=True)
+
+    user = graphene.Field(UserNode)
+
+    def mutate(self, info, notify_on_shift, notify_on_deposit, notify_on_quote):
+        user = info.context.user
+        user.notify_on_shift = notify_on_shift
+        user.notify_on_deposit = notify_on_deposit
+        user.notify_on_quote = notify_on_quote
+        user.save()
+        return UpdateMyEmailSettingsMutation(user=user)
 
 
 class AddUserToUserTypeMutation(graphene.Mutation):
@@ -485,11 +540,23 @@ class UpdateAboutMeMutation(graphene.Mutation):
     @staticmethod
     def mutate(root, info, about_me):
         user = info.context.user
+
+        if not user.first_time_login and not user.can_rewrite_about_me:
+            raise PermissionDenied("You can't rewrite your about me anymore")
+
         if len(about_me) > 300:
             raise ValueError("Value too long")
 
-        if about_me == "":
+        about_me = about_me.strip()
+        about_me_strip_check = about_me.strip("\r\n")
+        about_me_strip_check = about_me_strip_check.strip(".")
+
+        if about_me_strip_check == "":
             raise ValueError("Value too short")
+
+        if not user.first_time_login and user.can_rewrite_about_me:
+            user.can_rewrite_about_me = False
+            user.save()
 
         user.about_me = strip_tags(about_me)
         user.first_time_login = False
@@ -503,6 +570,8 @@ class UserMutations(graphene.ObjectType):
     delete_user = DeleteUserMutation.Field()
     update_my_info = UpdateMyInfoMutation.Field()
     update_about_me = UpdateAboutMeMutation.Field()
+    update_my_allergies = UpdateMyAllergies.Field()
+    update_my_email_notifications = UpdateMyEmailSettingsMutation.Field()
 
     add_user_to_user_type = AddUserToUserTypeMutation.Field()
     remove_user_from_user_type = RemoveUserFromUserTypeMutation.Field()

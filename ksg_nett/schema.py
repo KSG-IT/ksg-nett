@@ -7,7 +7,7 @@ from admissions.schema import (
     InterviewQuery,
 )
 from common.schema import DashboardQuery, SidebarQuery
-from users.schema import UserQuery, UserMutations
+from users.schema import UserQuery, UserMutations, AllergyQuery
 from login.schema import LoginMutations, AuthenticationQuery
 from economy.schema import (
     SociProductQuery,
@@ -45,6 +45,7 @@ from handbook.schema import DocumentQueries, HandbookMutations
 class Query(
     AdmissionQuery,
     ApplicantQuery,
+    AllergyQuery,
     AuthenticationQuery,
     BarTabQuery,
     DashboardQuery,

@@ -57,6 +57,8 @@ class User(AbstractUser):
     sg_id = models.IntegerField(null=True, blank=True)
     requires_migration_wizard = models.BooleanField(default=False)
     first_time_login = models.BooleanField(default=True)
+    can_rewrite_about_me = models.BooleanField(default=True)
+
     ical_token = models.CharField(
         max_length=128, unique=True, null=True, blank=True, default=None
     )

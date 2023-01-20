@@ -2,6 +2,8 @@ import secrets
 
 from django.utils import timezone
 
+from common.util import send_email
+
 
 def group_shifts_by_day(shifts):
     from schedules.schemas.schedules import (
@@ -143,3 +145,31 @@ def normalize_shifts(shifts, display_mode):
         return group_shifts_by_day(shifts)
     elif display_mode == Schedule.DisplayModeOptions.MULTIPLE_LOCATIONS:
         return group_shifts_by_location(shifts)
+
+
+def send_given_shift_email(shift_slot):
+    user = shift_slot.user
+    content = f"""
+        Hei!
+
+        Du har blitt satt opp på vakt!
+        
+        Vakt: {shift_slot.shift.name}
+        Hvor: {shift_slot.shift.location}
+        
+        """
+
+    html_content = f"""
+        <p>Hei!</p>
+        <p>Du har blitt satt opp på vakt!</p>
+        <p>Vakt: {shift_slot.shift.name}</p>
+        <p>Hvor: {shift_slot.shift.location}</p>
+        
+            """
+
+    send_email(
+        recipients=[user.email],
+        subject="Du har blitt satt opp på vakt!",
+        message=content,
+        html_message=html_content,
+    )
