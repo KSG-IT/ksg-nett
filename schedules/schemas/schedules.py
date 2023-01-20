@@ -1,5 +1,6 @@
 import graphene
 import pytz
+from django.db import transaction
 from graphene import Node
 from graphene_django import DjangoObjectType
 import datetime
@@ -17,7 +18,7 @@ from schedules.models import (
     ShiftTrade,
     ShiftSlot,
 )
-from schedules.utils.schedules import normalize_shifts
+from schedules.utils.schedules import normalize_shifts, send_given_shift_email
 from schedules.utils.templates import apply_schedule_template
 from users.models import User
 from django.utils import timezone
@@ -334,10 +335,13 @@ class AddUserToShiftSlotMutation(graphene.Mutation):
     def mutate(self, info, shift_slot_id, user_id):
         shift_slot_id = disambiguate_id(shift_slot_id)
         user_id = disambiguate_id(user_id)
-        shift_slot = ShiftSlot.objects.get(pk=shift_slot_id)
-        user = User.objects.get(pk=user_id)
-        shift_slot.user = user
-        shift_slot.save()
+        with transaction.atomic():
+            shift_slot = ShiftSlot.objects.get(pk=shift_slot_id)
+            user = User.objects.get(pk=user_id)
+            shift_slot.user = user
+            if user.notify_on_shift:
+                send_given_shift_email(shift_slot)
+            shift_slot.save()
         return AddUserToShiftSlotMutation(shift_slot=shift_slot)
 
 

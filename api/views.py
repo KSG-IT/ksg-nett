@@ -20,13 +20,14 @@ from rest_framework_simplejwt.views import (
     TokenVerifyView,
 )
 
-from api.models import PurchaseTransactionLogEntry
+from api.models import PurchaseTransactionLogEntry, BlacklistedSong
 from api.permissions import SensorTokenPermission
 from api.serializers import (
     CheckBalanceSerializer,
     SociProductSerializer,
     SensorMeasurementSerializer,
     CustomTokenObtainSlidingSerializer,
+    BlacklistedSongSerializer,
 )
 
 from sensors.consts import MEASUREMENT_TYPE_TEMPERATURE, MEASUREMENT_TYPE_CHOICES
@@ -276,3 +277,24 @@ class ChargeBankAccountView(APIView):
             )
 
         return Response(status=status.HTTP_200_OK)
+
+
+class BlacklistedSongsListView(ListAPIView):
+    """
+    Retrieves a list of ids that are blacklisted from the Soci jukebox.
+    """
+
+    serializer_class = BlacklistedSongSerializer
+    queryset = BlacklistedSong.objects.all()
+
+    @swagger_auto_schema(
+        tags=["Blacklisted songs"], operation_summary="List Blacklisted songs"
+    )
+    def get(self, request, *args, **kwargs):
+        now = timezone.now()
+        blacklisted_songs = self.get_queryset().filter(blacklisted_until__gte=now)
+
+        serializer = self.get_serializer(blacklisted_songs, many=True)
+        data = blacklisted_songs.values_list("spotify_song_id", flat=True)
+
+        return Response(data, status=status.HTTP_200_OK)
