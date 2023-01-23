@@ -17,6 +17,8 @@ from quotes.models import Quote, QuoteVote
 from quotes.filters import QuoteFilter
 from graphql_relay import from_global_id
 
+from quotes.utils import send_tagged_in_quote_email
+
 
 class QuoteNode(DjangoObjectType):
     class Meta:
@@ -161,6 +163,10 @@ class ApproveQuoteMutation(graphene.Mutation):
         with transaction.atomic():
             quote.approved_by = info.context.user
             quote.approved = True
+            tagged_users = quote.tagged.filter(notify_on_quote=True)
+            if tagged_users:
+                send_tagged_in_quote_email(quote, tagged_users)
+
             quote.save()
         return ApproveQuoteMutation(quote=quote)
 
