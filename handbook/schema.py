@@ -41,12 +41,19 @@ class CreateDocumentMutation(DjangoCreateMutation):
     class Meta:
         model = Document
         permissions = ("handbook.add_document",)
+        auto_context_fields = {
+            "created_by": "user",
+            "updated_by": "user",
+        }
 
 
 class UpdateDocumentMutation(DjangoUpdateMutation):
     class Meta:
         model = Document
         permissions = ("handbook.change_document",)
+        auto_context_fields = {
+            "updated_by": "user",
+        }
 
 
 class DeleteDocumentMutation(DjangoDeleteMutation):
