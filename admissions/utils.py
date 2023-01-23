@@ -1134,9 +1134,11 @@ def get_interview_statistics(admission):
     ).count()
 
     user_interview_counts = []
-    users = User.objects.filter(
-        interviews_attended__applicant__admission=admission
-    ).distinct()
+    users = (
+        User.objects.filter(interviews_attended__applicant__admission=admission)
+        .distinct()
+        .prefetch_related("interviews_attended")
+    )
     for user in users:
         user_interview_counts.append(
             UserInterviewCount(
