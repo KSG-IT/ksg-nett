@@ -340,6 +340,9 @@ class AdmissionNode(DjangoObjectType):
     )
     applicants = graphene.List(ApplicantNode)
 
+    interview_booking_late_batch_time = graphene.Time()
+    interview_booking_override_delta = TimeDelta()
+
     def resolve_applicants(self: Admission, info, *args, **kwargs):
         return self.applicants.all().order_by("first_name")
 
@@ -360,7 +363,18 @@ class AdmissionNode(DjangoObjectType):
 
         return self.available_internal_group_positions_data.all()
 
+    def resolve_interview_booking_late_batch_time(
+        self: Admission, info, *args, **kwargs
+    ):
+        return self.interview_booking_late_batch_time
+
+    def resolve_interview_booking_override_delta(
+        self: Admission, info, *args, **kwargs
+    ):
+        return self.interview_booking_override_delta
+
     @classmethod
+    @gql_has_permissions("admissions.view_admission")
     def get_node(cls, info, id):
         return Admission.objects.get(pk=id)
 
@@ -1596,16 +1610,19 @@ class ApplicantDeleteInternalGroupPositionPriority(graphene.Mutation):
 class CreateAdmissionMutation(DjangoCreateMutation):
     class Meta:
         model = Admission
+        permissions = ("admissions.create_admission",)
 
 
 class PatchAdmissionMutation(DjangoPatchMutation):
     class Meta:
         model = Admission
+        permissions = ("admissions.change_admission",)
 
 
 class DeleteAdmissionMutation(DjangoDeleteMutation):
     class Meta:
         model = Admission
+        permissions = ("admissions.delete_admission",)
 
 
 class LockAdmissionMutation(graphene.Mutation):
