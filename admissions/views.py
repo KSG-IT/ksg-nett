@@ -52,6 +52,7 @@ def download_callsheet_workbook(request):
             index + 2, 3
         ).value = parsed_applicant.offered_internal_group_position_name
         ws.cell(index + 2, 4).value = parsed_applicant.applicant_priority
+        ws.cell(index + 2, 5).value = parsed_applicant.will_be_admitted
 
     response = HttpResponse(content_type="application/ms-excel")
     response[
