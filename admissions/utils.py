@@ -882,7 +882,6 @@ def parse_applicant_interest_qs_to_gql_applicant_preview(applicant_interest_qs):
             phone=applicant_interest.applicant.phone,
             offered_internal_group_position_name=applicant_interest.position_to_be_offered.name,
             applicant_priority="None",
-            will_be_admitted=True,
         )
         parsed_applicant_interests.append(flattened_applicant_data)
     return parsed_applicant_interests
@@ -900,7 +899,6 @@ def parse_applicant_qs_to_gql_applicant_preview(applicant_qs):
             phone=applicant.phone,
             offered_internal_group_position_name=priority.internal_group_position.name,
             applicant_priority=priority.applicant_priority,
-            will_be_admitted=applicant.will_be_admitted,
         )
         parsed_applicant_list.append(flattened_applicant_data)
 
