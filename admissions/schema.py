@@ -792,6 +792,7 @@ class ApplicantPreview(graphene.ObjectType):
     offered_internal_group_position_name = graphene.String()
     applicant_priority = graphene.String()
     phone = graphene.String()
+    will_be_admitted = graphene.Boolean()
 
 
 class AdmissionQuery(graphene.ObjectType):
