@@ -829,6 +829,8 @@ def get_applicant_position_offer(applicant):
     they stand go receive if admitted
     """
     applicant_priorities = applicant.get_priorities
+    applicant_priorities = [priority for priority in applicant_priorities if priority]
+
     for priority in applicant_priorities:
         if priority.internal_group_priority == InternalGroupStatus.WANT:
             return priority
