@@ -881,7 +881,7 @@ def parse_applicant_interest_qs_to_gql_applicant_preview(applicant_interest_qs):
             full_name=applicant_interest.applicant.get_full_name,
             phone=applicant_interest.applicant.phone,
             offered_internal_group_position_name=applicant_interest.position_to_be_offered.name,
-            applicant_priority="N/A",
+            applicant_priority="None",
         )
         parsed_applicant_interests.append(flattened_applicant_data)
     return parsed_applicant_interests
