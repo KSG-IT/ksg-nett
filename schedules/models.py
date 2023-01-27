@@ -83,6 +83,7 @@ class Shift(models.Model):
         SELSKAPSSIDEN = "SELSKAPSSIDEN", _("Selskapssiden")
         STROSSA = "STROSSA", _("Strossa")
         DAGLIGHALLEN_BAR = "DAGLIGHALLEN_BAR", _("Daglighallen Bar")
+        KONTORET = "KONTORET", _("Kontoret")
 
     name = models.CharField(max_length=69, null=False, blank=False)
     location = models.CharField(
