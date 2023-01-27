@@ -1,10 +1,31 @@
 import pytz
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
-from organization.models import InternalGroup, InternalGroupPosition
+from organization.models import InternalGroup, InternalGroupPosition, InternalGroupPositionMembership
 from users.models import User
 from django.utils import timezone
 from django.conf import settings
+
+
+class RoleOption(models.TextChoices):
+    BARISTA = ("BARISTA", "Barista")
+    KAFEANSVARLIG = ("KAFEANSVARLIG", "Kaféansvarlig")
+    BARSERVITOR = ("BARSERVITOR", "Barservitør")
+    HOVMESTER = ("HOVMESTER", "Hovmester")
+    KOKK = ("KOKK", "Kokk")
+    SOUSCHEF = ("SOUSCHEF", "Souschef")
+    ARRANGEMENTBARTENDER = ("ARRANGEMENTBARTENDER", "Arrangementbartender")
+    ARRANGEMENTANSVARLIG = ("ARRANGEMENTANSVARLIG", "Arrangementansvarlig")
+    BRYGGER = ("BRYGGER", "Brygger")
+    BARTENDER = ("BARTENDER", "Bartender")
+    BARSJEF = ("BARSJEF", "Barsjef")
+    SPRITBARTENDER = ("SPRITBARTENDER", "Spritbartender")
+    SPRITBARSJEF = ("SPRITBARSJEF", "Spritbarsjef")
+    UGLE = ("UGLE", "Ugle")
+    BRANNVAKT = ("BRANNVAKT", "Brannvakt")
+    RYDDEVAKT = ("RYDDEVAKT", "Ryddevakt")
+    BAEREVAKT = ("BAEREVAKT", "Bærevakt")
+    SOCIVAKT = ("SOCIVAKT", "Socivakt")
 
 
 class Schedule(models.Model):
@@ -26,6 +47,9 @@ class Schedule(models.Model):
         choices=DisplayModeOptions.choices,
         default=DisplayModeOptions.SINGLE_LOCATION,
     )
+    default_role = models.CharField(
+        max_length=64, choices=RoleOption.choices, null=True, blank=False, default=None
+    )
 
     def shifts_from_range(self, shifts_from, number_of_weeks):
         monday = shifts_from - timezone.timedelta(days=shifts_from.weekday())
@@ -36,9 +60,9 @@ class Schedule(models.Model):
         )
         monday = timezone.make_aware(monday, timezone=pytz.timezone(settings.TIME_ZONE))
         sunday = (
-            monday
-            + timezone.timedelta(days=6, hours=23, minutes=59, seconds=59)
-            * number_of_weeks
+                monday
+                + timezone.timedelta(days=6, hours=23, minutes=59, seconds=59)
+                * number_of_weeks
         )
 
         shifts = Shift.objects.filter(
@@ -66,6 +90,35 @@ class Schedule(models.Model):
             filled_shifts__shift__datetime_end__gte=now,
         ).distinct()
         return users
+
+    def autofill_slots(self, date_start, date_end, role):
+        shifts_to_fill = Shift.objects.filter(datetime_start__gte=date_start, datetime_end__lte=date_end,
+                                              schedule=self)
+        SHIFTS_TO_FILL = shifts_to_fill.count()
+        data = dict()
+        slots_per_shift = []
+        for i, shift in enumerate(shifts_to_fill):
+            interests = shift.interests.all()
+            for interest in interests:
+                slot_count = shift.slots.filter()
+                if interest.user_id not in data:
+                    data[interest.user_id] = [[0] * slot_count] * SHIFTS_TO_FILL
+                data[interest.user_id][i] = []
+            slots_per_shift.append(shift.slots.count())
+        print(data)
+        print(slots_per_shift)
+        for slot_count in slots_per_shift:
+            print(slot_count)
+            for key in data:
+                data[key]
+
+    #   graph_data = []
+    # graph = csr_matrix([[0, 0, 1], [1, 1, 0]])
+    #  for i, shift_to_fill in enumerate(shifts_to_fill):
+    #     row = [0] * len(shift_to_fill.slots)
+    #    roster = shift_to_fill.interests.values_list("user_id")
+    #   for user_id in roster:
+    #      graph_data[]
 
 
 class Shift(models.Model):
@@ -122,26 +175,6 @@ class Shift(models.Model):
 class ShiftSlot(models.Model):
     class Meta:
         verbose_name_plural = "Shift slots"
-
-    class RoleOption(models.TextChoices):
-        BARISTA = ("BARISTA", "Barista")
-        KAFEANSVARLIG = ("KAFEANSVARLIG", "Kaféansvarlig")
-        BARSERVITOR = ("BARSERVITOR", "Barservitør")
-        HOVMESTER = ("HOVMESTER", "Hovmester")
-        KOKK = ("KOKK", "Kokk")
-        SOUSCHEF = ("SOUSCHEF", "Souschef")
-        ARRANGEMENTBARTENDER = ("ARRANGEMENTBARTENDER", "Arrangementbartender")
-        ARRANGEMENTANSVARLIG = ("ARRANGEMENTANSVARLIG", "Arrangementansvarlig")
-        BRYGGER = ("BRYGGER", "Brygger")
-        BARTENDER = ("BARTENDER", "Bartender")
-        BARSJEF = ("BARSJEF", "Barsjef")
-        SPRITBARTENDER = ("SPRITBARTENDER", "Spritbartender")
-        SPRITBARSJEF = ("SPRITBARSJEF", "Spritbarsjef")
-        UGLE = ("UGLE", "Ugle")
-        BRANNVAKT = ("BRANNVAKT", "Brannvakt")
-        RYDDEVAKT = ("RYDDEVAKT", "Ryddevakt")
-        BAEREVAKT = ("BAEREVAKT", "Bærevakt")
-        SOCIVAKT = ("SOCIVAKT", "Socivakt")
 
     shift = models.ForeignKey(Shift, on_delete=models.CASCADE, related_name="slots")
     user = models.ForeignKey(
@@ -288,7 +321,7 @@ class ShiftSlotTemplate(models.Model):
         related_name="shift_slot_templates",
     )
     role = models.CharField(
-        max_length=64, choices=ShiftSlot.RoleOption.choices, null=False, blank=False
+        max_length=64, choices=RoleOption.choices, null=False, blank=False
     )
     count = models.IntegerField()
 
@@ -299,11 +332,40 @@ class ShiftSlotTemplate(models.Model):
         )
 
 
-"""
-class ScheduleRoster(models.Model):
-    class Meta:
-        verbose_name_plural = "Schedule rosters"
+class ShiftInterest(models.Model):
+    shift = models.ForeignKey(
+        Shift,
+        blank=False,
+        null=False,
+        on_delete=models.CASCADE,
+        related_name="interests"
+    )
 
-    schedule = models.OneToOneField(Schedule, on_delete=models.CASCADE)
-    user_pool = models.ManyToManyField(User, related_name="schedule_rosters")
-"""
+    user = models.ForeignKey(
+        User,
+        blank=False,
+        null=False,
+        on_delete=models.CASCADE,
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+
+class ScheduleRoster(models.Model):
+    schedule = models.ForeignKey(
+        Schedule,
+        blank=False,
+        null=False,
+        on_delete=models.CASCADE,
+    )
+
+    user = models.ForeignKey(
+        User,
+        blank=False,
+        null=False,
+        on_delete=models.CASCADE,
+    )
+
+    autofill_as = models.CharField(
+        max_length=64, choices=RoleOption.choices, null=True, blank=False, default=None
+    )

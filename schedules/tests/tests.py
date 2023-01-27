@@ -1,5 +1,9 @@
 import datetime
+
+import pytz
 from django.test import TestCase
+from django.utils.timezone import make_aware
+
 from schedules.utils.templates import (
     apply_schedule_template,
     shift_template_timestamps_to_datetime,
@@ -8,9 +12,10 @@ from schedules.tests.factories import (
     ScheduleFactory,
     ScheduleTemplateFactory,
     ShiftTemplateFactory,
-    ShiftSlotTemplateFactory,
+    ShiftSlotTemplateFactory, ShiftFactory, ShiftSlotFactory, ShiftInterestFactory,
 )
-from schedules.models import ShiftTemplate, ShiftSlot
+from schedules.models import ShiftTemplate, ShiftSlot, Shift, Schedule
+from users.tests.factories import UserFactory
 
 
 class TestScheduleTemplateShiftTemplateTimestampsToDatetimeHelper(TestCase):
@@ -92,3 +97,28 @@ class TestApplyScheduleTemplateHelper(TestCase):
         slots = ShiftSlot.objects.filter(shift__schedule=self.schedule)
         self.assertEqual(self.schedule.shifts.all().count(), 2)
         self.assertEqual(slots.count(), 11)
+
+
+class TestShiftInterest(TestCase):
+    def setUp(self):
+        self.start = make_aware(datetime.datetime(2022, 5, 2, 15, 0), timezone=pytz.timezone("Europe/Oslo"))
+        self.end = self.start + datetime.timedelta(hours=8)
+        self.schedule = ScheduleFactory.create(name="Edgar")
+
+        shift = ShiftFactory(name="Edgar tidligvakt", schedule=self.schedule, datetime_start=self.start,
+                             datetime_end=self.end)
+        ShiftSlotFactory.create_batch(4, shift=shift, user=None, role=ShiftSlot.RoleOption.BARISTA)
+
+        shift2 = ShiftFactory(name="Edgar tidligvakt", schedule=self.schedule,
+                              datetime_start=self.start + datetime.timedelta(days=1),
+                              datetime_end=self.end + datetime.timedelta(days=1, hours=8))
+        ShiftSlotFactory.create_batch(4, shift=shift2, user=None, role=ShiftSlot.RoleOption.BARISTA)
+
+        interested_user = UserFactory()
+        ShiftInterestFactory.create_batch(2, shift=shift)
+        ShiftInterestFactory.create(shift=shift, user=interested_user)
+        ShiftInterestFactory.create(shift=shift2, user=interested_user)
+        ShiftInterestFactory.create_batch(3, shift=shift2)
+
+    def test__hello_world(self):
+        self.schedule.autofill_slots(self.start, self.end + datetime.timedelta(days=2))
