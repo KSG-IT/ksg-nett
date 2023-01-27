@@ -51,7 +51,7 @@ class ShiftNode(DjangoObjectType):
     filled_slots = graphene.NonNull(graphene.List(graphene.NonNull(ShiftSlotNode)))
     location_display = graphene.String()
 
-    def resolve_location_display(self, info):
+    def resolve_location_display(self: Shift, info):
         return self.get_location_display()
 
     def resolve_users(self, info):
@@ -373,7 +373,7 @@ class ShiftSlotRoleEnum(graphene.Enum):
     SPRITBARSJEF = ShiftSlot.RoleOption.SPRITBARSJEF
     UGLE = ShiftSlot.RoleOption.UGLE
     BRANNVAKT = ShiftSlot.RoleOption.BRANNVAKT
-    RYDDDEVAKT = ShiftSlot.RoleOption.RYDDEVAKT
+    RYDDEVAKT = ShiftSlot.RoleOption.RYDDEVAKT
     BAEREVAKT = ShiftSlot.RoleOption.BAEREVAKT
     SOCIVAKT = ShiftSlot.RoleOption.SOCIVAKT
 
