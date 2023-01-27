@@ -3,6 +3,7 @@ import graphene
 from django.contrib.auth.models import Permission
 from django.core.exceptions import PermissionDenied
 from django.db import transaction
+from django.db.models import Value
 from django.utils import timezone
 from graphene import Node
 from graphene_django import DjangoObjectType
@@ -297,6 +298,7 @@ class UserQuery(graphene.ObjectType):
     def resolve_all_users(self, info, *args, **kwargs):
         return User.objects.all()
 
+    @gql_login_required()
     def resolve_all_active_users(self, info, *args, **kwargs):
         return (
             User.objects.filter(is_active=True)
@@ -306,10 +308,11 @@ class UserQuery(graphene.ObjectType):
 
     all_active_users_list = graphene.List(UserNode, q=graphene.String())
 
+    @gql_login_required()
     def resolve_all_active_users_list(self, info, q, *args, **kwargs):
         return (
             User.objects.filter(is_active=True)
-            .annotate(full_name=Concat("first_name", "nickname", "last_name"))
+            .annotate(full_name=Concat("first_name", Value(" "), "last_name"))
             .filter(full_name__icontains=q)
             .order_by("full_name")
         )
