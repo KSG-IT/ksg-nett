@@ -1,5 +1,20 @@
 # CHANGELOG
 
+## [v2023.1.6] - 2023-01-27
+
+### Fixed
+- Admissions: Interview statistics N+1 query issue
+- Schedules: Missing 'Kontoret' option for location
+- Schedules: Missing 'Ryddevakt' option for role
+- Users: User search performance
+
+### Changed
+- UpdateDocumentMutation -> PatchDocumentMutation
+
+## [v2023.1.5] - 2023-01-??
+
+Things happend. Not sure what.
+
 ## [v2023.1.4] - 2023-01-15
 
 ### Added
