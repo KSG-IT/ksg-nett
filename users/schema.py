@@ -314,7 +314,7 @@ class UserQuery(graphene.ObjectType):
             User.objects.filter(is_active=True)
             .annotate(full_name=Concat("first_name", Value(" "), "last_name"))
             .filter(full_name__icontains=q)
-            .order_by("full_name")[0:10]
+            .order_by("full_name")
         )
 
     @gql_has_permissions("users.view_usertype")
