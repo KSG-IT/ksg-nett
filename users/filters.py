@@ -1,4 +1,4 @@
-from django.db.models import Q, Case, When, CharField
+from django.db.models import Q, Case, When, CharField, Value as V
 from django_filters import FilterSet, CharFilter, OrderingFilter, BooleanFilter
 from django.db.models.functions import Concat
 
@@ -20,7 +20,7 @@ class UserFilter(FilterSet):
             full_name=Case(
                 When(
                     ~Q(first_name="") & ~Q(last_name=""),
-                    then=Concat("first_name", "last_name"),
+                    then=Concat("first_name", V(" "), "last_name"),
                 ),
                 default="username",
                 output_field=CharField(),
