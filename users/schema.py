@@ -14,7 +14,7 @@ from graphene_django_cud.mutations import (
 )
 from common.decorators import gql_has_permissions, gql_login_required
 from quotes.schema import QuoteNode
-from users.models import User, UserType, UserTypeLogEntry, Allergy
+from users.models import User, UserType, UserTypeLogEntry, Allergy, Theme
 from common.util import get_semester_year_shorthand
 from django.db.models.functions import Concat
 from economy.utils import parse_transaction_history
@@ -48,6 +48,16 @@ class AllergyNode(DjangoObjectType):
     @classmethod
     def get_node(cls, info, id):
         return Allergy.objects.get(pk=id)
+
+
+class ThemeNode(DjangoObjectType):
+    class Meta:
+        model = Theme
+        interfaces = (Node,)
+
+    @classmethod
+    def get_node(cls, info, id):
+        return Theme.objects.get(pk=id)
 
 
 class UserTypeNode(DjangoObjectType):
@@ -109,6 +119,8 @@ class UserNode(DjangoObjectType):
     ical_token = graphene.String()
     owes_money = graphene.Boolean(source="owes_money")
     allergies = graphene.List(AllergyNode)
+    themes = graphene.List(ThemeNode)
+    selected_theme = graphene.Field(ThemeNode)
 
     def resolve_future_shifts(self: User, info, *args, **kwargs):
         return self.future_shifts
@@ -184,6 +196,12 @@ class UserNode(DjangoObjectType):
 
     def resolve_allergies(self: User, info, **kwargs):
         return self.allergies.all().order_by("name")
+
+    def resolve_themes(self: User, info, **kwargs):
+        return self.themes.all().order_by("name")
+
+    def resolve_selected_theme(self: User, info, **kwargs):
+        return self.selected_theme
 
     @classmethod
     @gql_login_required()
@@ -324,6 +342,13 @@ class AllergyQuery(graphene.ObjectType):
 
     def resolve_all_allergies(self, info, *args, **kwargs):
         return Allergy.objects.all().order_by("name")
+
+
+class ThemeQuery(graphene.ObjectType):
+    all_themes = graphene.List(ThemeNode)
+
+    def resolve_all_themes(self, info, *args, **kwargs):
+        return Theme.objects.all().order_by("name")
 
 
 class CreateUserMutation(DjangoCreateMutation):

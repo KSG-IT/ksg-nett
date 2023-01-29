@@ -8,7 +8,14 @@ from django.contrib.auth.forms import UserChangeForm, UserCreationForm
 from django.utils.translation import ugettext_lazy as _
 
 from economy.models import SociBankAccount
-from users.models import User, Allergy, UsersHaveMadeOut, UserType, UserTypeLogEntry
+from users.models import (
+    User,
+    Allergy,
+    UsersHaveMadeOut,
+    UserType,
+    UserTypeLogEntry,
+    Theme,
+)
 
 
 class MyUserChangeForm(UserChangeForm):
@@ -31,6 +38,10 @@ class AllergyAdmin(admin.ModelAdmin):
     list_display = ["pk", "name"]
 
 
+class ThemeAdmin(admin.ModelAdmin):
+    list_display = ["pk", "name"]
+
+
 class UserTypeInline(admin.TabularInline):
     fk_name = "user"
     model = UserType.users.through
@@ -50,7 +61,7 @@ class SociBankAccountInline(admin.StackedInline):
 class MyUserAdmin(UserAdmin):
     list_display = ["pk", "full_name", "is_active"]
     form = MyUserChangeForm
-    filter_horizontal = ("allergies",)
+    filter_horizontal = ("allergies", "themes")
     add_form = MyUserCreationForm
     fieldsets = UserAdmin.fieldsets + (
         (
@@ -81,6 +92,8 @@ class MyUserAdmin(UserAdmin):
                     "nickname",
                     "in_relationship",
                     "allergies",
+                    "themes",
+                    "selected_theme",
                     "anonymize_in_made_out_map",
                     "requires_migration_wizard",
                     "first_time_login",
@@ -130,6 +143,7 @@ class UserTypeLogEntryAdmin(admin.ModelAdmin):
 
 
 admin.site.register(User, MyUserAdmin)
+admin.site.register(Theme, ThemeAdmin)
 admin.site.register(Allergy, AllergyAdmin)
 admin.site.register(UsersHaveMadeOut, UsersHaveMadeOutAdmin)
 admin.site.register(UserType, UserTypeAdmin)
