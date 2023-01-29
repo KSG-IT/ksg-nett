@@ -947,6 +947,8 @@ def get_applicant_offered_position(applicant):
     """
 
     applicant_priorities = applicant.get_priorities
+    applicant_priorities = [priority for priority in applicant_priorities if priority]
+
     for priority in applicant_priorities:
         if priority.internal_group_priority == InternalGroupStatus.WANT:
             return priority.internal_group_position
