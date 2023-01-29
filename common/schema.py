@@ -50,8 +50,11 @@ class DashboardQuery(graphene.ObjectType):
         soci_order_session = me.get_invited_soci_order_session
 
         admission = Admission.get_last_closed_admission()
-        delta_since_closed = timezone.now() - admission.closed_at
-        show_newbies = delta_since_closed.days < 30
+        if not admission:
+            show_newbies = False
+        else:
+            delta_since_closed = timezone.now() - admission.closed_at
+            show_newbies = delta_since_closed.days < 30
 
         return DashboardData(
             last_quotes=quotes,
