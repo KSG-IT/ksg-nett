@@ -1720,6 +1720,7 @@ class CloseAdmissionMutation(graphene.Mutation):
         # Step 6)
         # It's a wrap folks
         admission.status = AdmissionStatus.CLOSED
+        admission.closed_at = timezone.now()
         admission.save()
         admitted_applicants.update(will_be_admitted=False)
         return CloseAdmissionMutation(failed_user_generation=failed_user_generation)

@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## [v2023.1.7] - 2023-01-29
+- Common: Dashboard data resolver for newbies
+- Users: Resolver for new users
+
 ## [v2023.1.6] - 2023-01-27
 
 ### Fixed
