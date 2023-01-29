@@ -1,4 +1,7 @@
 import graphene
+from django.utils import timezone
+
+from admissions.models import Admission
 from schedules.schemas.schedules import ShiftSlotNode
 from summaries.schema import SummaryNode
 from summaries.models import Summary
@@ -16,6 +19,7 @@ class DashboardData(graphene.ObjectType):
         graphene.List(graphene.NonNull(ShiftSlotNode))
     )
     soci_order_session = graphene.Field("economy.schema.SociOrderSessionNode")
+    show_newbies = graphene.Boolean()
 
 
 class SidebarData(graphene.ObjectType):
@@ -44,10 +48,16 @@ class DashboardQuery(graphene.ObjectType):
         wanted = SociBankAccount.get_wanted_list()
         upcoming_shifts = me.future_shifts
         soci_order_session = me.get_invited_soci_order_session
+
+        admission = Admission.get_last_closed_admission()
+        delta_since_closed = timezone.now() - admission.closed_at
+        show_newbies = delta_since_closed.days < 30
+
         return DashboardData(
             last_quotes=quotes,
             last_summaries=summaries,
             wanted_list=wanted,
             my_upcoming_shifts=upcoming_shifts,
             soci_order_session=soci_order_session,
+            show_newbies=show_newbies,
         )

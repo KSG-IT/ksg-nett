@@ -14,6 +14,8 @@ from graphene_django_cud.mutations import (
     DjangoDeleteMutation,
     DjangoCreateMutation,
 )
+
+from admissions.models import Admission
 from common.decorators import gql_has_permissions, gql_login_required
 from quotes.schema import QuoteNode
 from users.models import User, UserType, UserTypeLogEntry, Allergy
@@ -97,6 +99,10 @@ class UserNode(DjangoObjectType):
     upvoted_quote_ids = graphene.NonNull(graphene.List(graphene.ID))
     internal_group_position_membership_history = graphene.List(
         "organization.schema.InternalGroupPositionMembershipNode"
+    )
+    active_internal_group_position = graphene.Field(
+        "organization.schema.InternalGroupPositionNode",
+        source="active_internal_group_position",
     )
     money_spent = graphene.Int()
 
@@ -224,6 +230,7 @@ class UserQuery(graphene.ObjectType):
     )
     user_type = Node.Field(UserTypeNode)
     all_user_types = graphene.List(UserTypeNode)
+    newbies = graphene.List(UserNode)
 
     @gql_has_permissions("users.change_user")
     def resolve_manage_users_data(self, info, internal_group_id, *args, **kwargs):
@@ -341,6 +348,14 @@ class UserQuery(graphene.ObjectType):
             )
             .order_by("full_name")[0:10]
         )
+
+    @gql_login_required()
+    def resolve_newbies(self, info, *args, **kwargs):
+        admission = Admission.get_last_closed_admission()
+        if admission is None:
+            return []
+
+        return User.objects.filter(admission=admission).order_by("first_name")
 
 
 class AllergyQuery(graphene.ObjectType):
