@@ -308,6 +308,24 @@ class Deposit(common_models.TimestampedModel):
     def _receipt_upload_location(self, filename):
         return os.path.join("receipts", filename)
 
+    class StripePaymentIntentStatusOptions(models.TextChoices):
+        CREATED = "CREATED"
+        SUCCESS = "SUCCESS"
+
+    class PaymentMethodOptions(models.TextChoices):
+        VIPPS = "VIPPS"
+        BANK_TRANSFER = "BANK_TRANSFER"
+        STRIPE = "STRIPE"
+
+    stripe_payment_intent_status = models.CharField(
+        choices=StripePaymentIntentStatusOptions.choices,
+        default=StripePaymentIntentStatusOptions.CREATED,
+        max_length=32,
+        null=True,
+        blank=True,
+    )
+    stripe_payment_id = models.CharField(max_length=64, null=True, blank=True)
+
     account = models.ForeignKey(
         "SociBankAccount",
         related_name="deposits",
@@ -316,7 +334,14 @@ class Deposit(common_models.TimestampedModel):
         on_delete=models.SET_NULL,
     )
     description = models.TextField(default="", blank=True)
-    amount = models.IntegerField(blank=False, null=False)
+    amount = models.IntegerField(
+        blank=False, null=False, help_text="Amount paid by customer"
+    )
+    resolved_amount = models.IntegerField(
+        blank=True,
+        null=True,
+        help_text="Amount after deducting stripe fee's and flooring to a whole number",
+    )
     receipt = models.ImageField(
         upload_to=_receipt_upload_location, blank=True, null=True, default=None
     )
