@@ -272,7 +272,7 @@ WANTED_LIST_THRESHOLD = -2000
 OWES_MONEY_THRESHOLD = 0
 SOCI_GOLD = []
 
-VERSION = "2023.1.7"
+VERSION = "2023.2.2"
 
 # Channels
 ASGI_APPLICATION = "ksg_nett.routing.application"
