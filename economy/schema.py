@@ -259,7 +259,7 @@ class DepositQuery(graphene.ObjectType):
     all_approved_deposits = DjangoConnectionField(DepositNode)
     ongoing_deposit_intent = graphene.Field(DepositNode)
 
-    @gql_has_permissions("economy.change_deposit")
+    @gql_has_permissions("economy.approve_deposit")
     def resolve_all_deposits(self, info, q, unverified_only, *args, **kwargs):
         # ToDo implement user fullname search filtering
         return Deposit.objects.filter(

@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## [v2023.2.1] - 2023-02-10
+
+### Fixed
+
+- Schedules: Incorrect depsits resolver permission
+
 ## [v2023.1.7] - 2023-01-29
 - Common: Dashboard data resolver for newbies
 - Users: Resolver for new users
