@@ -149,6 +149,8 @@ def send_deposit_approved_email(deposit):
         Hei!
 
         Ditt innskudd på {deposit.amount} kr er nå godkjent. Du kan nå bruke pengene på KSG-nett.
+        
+        Du får {deposit.resolved_amount} kr på konto.
         """
 
     html_content = f"""
@@ -156,6 +158,8 @@ def send_deposit_approved_email(deposit):
                 <br>
                 <br>
                 Ditt innskudd på {deposit.amount} kr er nå godkjent. Du kan nå bruke pengene på KSG-nett.
+                <br>
+                Du får {deposit.resolved_amount} kr på konto.
             """
 
     send_email(
@@ -164,3 +168,75 @@ def send_deposit_approved_email(deposit):
         message=content,
         html_message=html_content,
     )
+
+
+def stripe_create_Payment_intent(amount, customer=None):
+    import stripe
+    import math
+
+    amount_in_smallest_currency = amount * 100
+    STRIPE_API_KEY = settings.STRIPE_SECRET_KEY
+
+    if not STRIPE_API_KEY:
+        raise EnvironmentError("Stripe API key missing")
+
+    STRIPE_FLAT_FEE = settings.STRIPE_FLAT_FEE * 100
+    STRIPE_PERCENTAGE_FEE = settings.STRIPE_PERCENTAGE_FEE / 100.0
+
+    percentage_applied = amount_in_smallest_currency * STRIPE_PERCENTAGE_FEE
+    total_fee_in_smallest_currency = percentage_applied + STRIPE_FLAT_FEE
+
+    resolved_amount_in_smallest_currency = math.floor(
+        amount_in_smallest_currency - total_fee_in_smallest_currency
+    )
+    resolved_amount_in_nok = math.floor(resolved_amount_in_smallest_currency / 100.0)
+
+    stripe.api_key = STRIPE_API_KEY
+
+    if customer:
+        customer_id = stripe_search_customer(f"email:'{customer.email}'")
+
+        if not customer_id:
+            customer_id = create_new_stripe_customer(customer)
+
+        intent = stripe.PaymentIntent.create(
+            amount=amount_in_smallest_currency,
+            currency="nok",
+            automatic_payment_methods={"enabled": True},
+            customer=customer_id,
+        )
+    else:
+
+        intent = stripe.PaymentIntent.create(
+            amount=amount_in_smallest_currency,
+            currency="nok",
+            automatic_payment_methods={"enabled": True},
+        )
+    return intent, resolved_amount_in_nok
+
+
+def stripe_search_customer(query_string):
+    import stripe
+
+    res = stripe.Customer.search(query=query_string)
+    data = res["data"]
+
+    if len(data) == 0:
+        return None
+
+    if len(data) > 1:
+        raise Exception(
+            f"Multiple Stripe customers resolved for query string: {query_string}"
+        )
+
+    customer_data = data[0]
+    return customer_data["id"]
+
+
+def create_new_stripe_customer(customer):
+    import stripe
+
+    customer = stripe.Customer.create(
+        name=customer.get_full_name(), email=customer.email, phone=customer.phone
+    )
+    return customer.id
