@@ -1,9 +1,12 @@
 import json
 
+import stripe
 from django.conf import settings
+from django.db import transaction
 from graphene_django_cud.util import disambiguate_id, disambiguate_ids
 from economy.models import (
     SociProduct,
+    Deposit,
 )
 from weasyprint import CSS, HTML
 
@@ -11,7 +14,7 @@ from django.template.loader import render_to_string
 from users.models import User
 from django.utils import timezone
 from rest_framework import status
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 
 
 def generate_pdf_response_from_template(context, file_name, template_name):
@@ -51,3 +54,42 @@ def download_soci_session_list_pdf(request):
         ctx, "Krysselist.pdf", "economy/soci_session_list.html"
     )
     return res
+
+
+def stripe_webhook(request):
+    payload = request.body
+    sig_header = request.headers["STRIPE_SIGNATURE"]
+
+    try:
+        event = stripe.Webhook.construct_event(
+            payload, sig_header, settings.STRIPE_WEBHOOK_SECRET
+        )
+    except ValueError as e:
+        # Invalid payload
+        raise e
+    except stripe.error.SignatureVerificationError as e:
+        # Invalid signature
+        raise e
+
+    if event["type"] == "payment_intent.succeeded":
+        payment_intent = event["data"]["object"]
+        intent_id = payment_intent["id"]
+        deposit = Deposit.objects.get(stripe_payment_id=intent_id)
+        if deposit.approved:
+            # Already approved. Do nothing
+
+            return JsonResponse(data={"success": True})
+
+        with transaction.atomic():
+            from economy.utils import send_deposit_approved_email
+
+            deposit.approved_at = timezone.now()
+            deposit.approved = True
+            deposit.save()
+            deposit.account.add_funds(deposit.resolved_amount)
+            if deposit.account.user.notify_on_deposit:
+                send_deposit_approved_email(deposit)
+    else:
+        raise Exception(f"Unhandled event type {event['type']}")
+
+    return JsonResponse(data={"success": True})

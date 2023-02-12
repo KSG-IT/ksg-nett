@@ -1,5 +1,15 @@
 # CHANGELOG
 
+## [v2023.2.2] - 2023-02-10
+
+### Added
+
+- Economy: Stripe intergration
+	* Dependencies
+	* Payment intent creation
+	* Customer creation
+	* Payment verification webhook
+
 ## [v2023.2.1] - 2023-02-10
 
 ### Fixed
