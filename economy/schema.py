@@ -634,7 +634,6 @@ class CreateDepositMutation(DjangoCreateMutation):
 class DeleteDepositMutation(DjangoDeleteMutation):
     class Meta:
         model = Deposit
-        permissions = ("economy.delete_deposit",)
 
     @classmethod
     def before_save(cls, root, info, input, obj):
