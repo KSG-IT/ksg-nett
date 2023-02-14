@@ -1,5 +1,16 @@
 # CHANGELOG
 
+## [v2023.2.3] - 2023-02-14
+
+### Changed
+
+- Economy: raise min value deposit to Stripe minium (3 NOK)
+
+### Fixed
+
+- Quotes: incorrect approve/invalidate permissions
+- Economy: util function docstring typos
+
 ## [v2023.2.2] - 2023-02-10
 
 ### Added
