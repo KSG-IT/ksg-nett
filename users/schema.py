@@ -474,6 +474,21 @@ class UpdateMyEmailSettingsMutation(graphene.Mutation):
         return UpdateMyEmailSettingsMutation(user=user)
 
 
+class UpdateMyThemeMutation(graphene.Mutation):
+    class Arguments:
+        theme_id = graphene.ID(required=True)
+
+    user = graphene.Field(UserNode)
+
+    def mutate(self, info, theme_id):
+        user = info.context.user
+        theme_id = disambiguate_id(theme_id)
+        theme = Theme.objects.get(id=theme_id)
+        user.selected_theme = theme
+        print("du er stygg og dum")
+        user.save()
+        return UpdateMyThemeMutation(user=user)
+
 class AddUserToUserTypeMutation(graphene.Mutation):
     class Arguments:
         user_id = graphene.ID()
@@ -597,6 +612,7 @@ class UserMutations(graphene.ObjectType):
     update_about_me = UpdateAboutMeMutation.Field()
     update_my_allergies = UpdateMyAllergies.Field()
     update_my_email_notifications = UpdateMyEmailSettingsMutation.Field()
+    update_my_theme = UpdateMyThemeMutation.Field()
 
     add_user_to_user_type = AddUserToUserTypeMutation.Field()
     remove_user_from_user_type = RemoveUserFromUserTypeMutation.Field()

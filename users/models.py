@@ -39,6 +39,7 @@ class Theme(models.Model):
     primaryShade = models.IntegerField()
     colorScheme = models.CharField(max_length=256)
     name = models.CharField(max_length=32)
+    label = models.CharField(max_length=32, default="Color Label")
 
     def __str__(self):
         return self.name
