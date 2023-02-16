@@ -8,6 +8,7 @@ from django.conf import settings
 from django.db import models
 from django.db.models import QuerySet
 
+from common.context_processors import internal_groups
 from common.util import get_semester_year_shorthand
 from users.managers import UsersHaveMadeOutManager
 from organization.models import InternalGroup
@@ -212,6 +213,17 @@ class User(AbstractUser):
             return False
         account = self.bank_account
         return account.balance < settings.OWES_MONEY_THRESHOLD
+
+    @property
+    def active_internal_group_position(self):
+        membership = self.internal_group_position_history.filter(
+            date_ended__isnull=True,
+            position__internal_group__type=InternalGroup.Type.INTERNAL_GROUP,
+        )
+        if membership.exists():
+            return membership.first().position
+
+        return None
 
 
 class UsersHaveMadeOut(models.Model):

@@ -340,6 +340,9 @@ class AdmissionNode(DjangoObjectType):
     )
     applicants = graphene.List(ApplicantNode)
 
+    interview_booking_late_batch_time = graphene.Time()
+    interview_booking_override_delta = TimeDelta()
+
     def resolve_applicants(self: Admission, info, *args, **kwargs):
         return self.applicants.all().order_by("first_name")
 
@@ -360,7 +363,18 @@ class AdmissionNode(DjangoObjectType):
 
         return self.available_internal_group_positions_data.all()
 
+    def resolve_interview_booking_late_batch_time(
+        self: Admission, info, *args, **kwargs
+    ):
+        return self.interview_booking_late_batch_time
+
+    def resolve_interview_booking_override_delta(
+        self: Admission, info, *args, **kwargs
+    ):
+        return self.interview_booking_override_delta
+
     @classmethod
+    @gql_has_permissions("admissions.view_admission")
     def get_node(cls, info, id):
         return Admission.objects.get(pk=id)
 
@@ -1018,13 +1032,16 @@ class InterviewQuery(graphene.ObjectType):
         is available and an applicant tries to book the same as another one they can just
         try one of the other interviews.
         """
-        if date_selected <= timezone.datetime.today().date():
+
+        admission = Admission.get_active_admission()
+        if (
+            date_selected <= timezone.datetime.today().date()
+            and not admission.interview_booking_override_enabled
+        ):
             return []
-        # We get all interviews available for booking
-        # Only get interviews that are from the next day onwards
-        # This way we people can check interviews at the start of the day
+
         cursor = timezone.make_aware(
-            timezone.datetime(  # Use midnight helper here
+            timezone.datetime(
                 year=date_selected.year,
                 month=date_selected.month,
                 day=date_selected.day,
@@ -1039,17 +1056,37 @@ class InterviewQuery(graphene.ObjectType):
             applicant__isnull=True,
         )
 
-        soft_limit_cursor = cursor + settings.ADMISSION_LATE_BATCH_TIMESTAMP
+        # Interviews for a specific date
         available_interviews_this_day = available_interviews.filter(
-            interview_start__gte=soft_limit_cursor,
+            interview_start__gte=cursor,
             interview_start__lte=cursor_offset,
         )
 
-        if not available_interviews_this_day:
-            available_interviews_this_day = available_interviews.filter(
-                interview_start__gte=cursor,
-                interview_start__lte=cursor_offset,
+        if admission.interview_booking_override_enabled:
+            override_diff = timezone.now() + admission.interview_booking_override_delta
+            available_interviews_this_day = available_interviews_this_day.filter(
+                interview_start__gte=override_diff
             )
+
+        if (
+            admission.interview_booking_late_batch_enabled
+            and date_selected > timezone.now().date()
+        ):
+            late_batch_diff = timezone.make_aware(
+                timezone.datetime(
+                    year=date_selected.year,
+                    month=date_selected.month,
+                    day=date_selected.day,
+                    hour=admission.interview_booking_late_batch_time.hour,
+                    minute=admission.interview_booking_late_batch_time.minute,
+                    second=admission.interview_booking_late_batch_time.second,
+                )
+            )
+            late_batch_interviews = available_interviews_this_day.filter(
+                interview_start__gte=late_batch_diff
+            )
+            if late_batch_interviews.exists():
+                available_interviews_this_day = late_batch_interviews
 
         available_interviews_timeslot_grouping = []
         parsed_interviews = create_interview_slots(
@@ -1573,16 +1610,19 @@ class ApplicantDeleteInternalGroupPositionPriority(graphene.Mutation):
 class CreateAdmissionMutation(DjangoCreateMutation):
     class Meta:
         model = Admission
+        permissions = ("admissions.create_admission",)
 
 
 class PatchAdmissionMutation(DjangoPatchMutation):
     class Meta:
         model = Admission
+        permissions = ("admissions.change_admission",)
 
 
 class DeleteAdmissionMutation(DjangoDeleteMutation):
     class Meta:
         model = Admission
+        permissions = ("admissions.delete_admission",)
 
 
 class LockAdmissionMutation(graphene.Mutation):
@@ -1680,6 +1720,7 @@ class CloseAdmissionMutation(graphene.Mutation):
         # Step 6)
         # It's a wrap folks
         admission.status = AdmissionStatus.CLOSED
+        admission.closed_at = timezone.now()
         admission.save()
         admitted_applicants.update(will_be_admitted=False)
         return CloseAdmissionMutation(failed_user_generation=failed_user_generation)

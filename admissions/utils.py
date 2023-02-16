@@ -829,6 +829,8 @@ def get_applicant_position_offer(applicant):
     they stand go receive if admitted
     """
     applicant_priorities = applicant.get_priorities
+    applicant_priorities = [priority for priority in applicant_priorities if priority]
+
     for priority in applicant_priorities:
         if priority.internal_group_priority == InternalGroupStatus.WANT:
             return priority
@@ -879,7 +881,7 @@ def parse_applicant_interest_qs_to_gql_applicant_preview(applicant_interest_qs):
             full_name=applicant_interest.applicant.get_full_name,
             phone=applicant_interest.applicant.phone,
             offered_internal_group_position_name=applicant_interest.position_to_be_offered.name,
-            applicant_priority="N/A",
+            applicant_priority="None",
         )
         parsed_applicant_interests.append(flattened_applicant_data)
     return parsed_applicant_interests
@@ -945,6 +947,8 @@ def get_applicant_offered_position(applicant):
     """
 
     applicant_priorities = applicant.get_priorities
+    applicant_priorities = [priority for priority in applicant_priorities if priority]
+
     for priority in applicant_priorities:
         if priority.internal_group_priority == InternalGroupStatus.WANT:
             return priority.internal_group_position
@@ -1134,9 +1138,11 @@ def get_interview_statistics(admission):
     ).count()
 
     user_interview_counts = []
-    users = User.objects.filter(
-        interviews_attended__applicant__admission=admission
-    ).distinct()
+    users = (
+        User.objects.filter(interviews_attended__applicant__admission=admission)
+        .distinct()
+        .prefetch_related("interviews_attended")
+    )
     for user in users:
         user_interview_counts.append(
             UserInterviewCount(

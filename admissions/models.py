@@ -56,6 +56,15 @@ class Admission(models.Model):
         "organization.InternalGroupPosition",
         through=AdmissionAvailableInternalGroupPositionData,
     )
+    interview_booking_late_batch_enabled = models.BooleanField(default=False)
+    interview_booking_late_batch_time = models.TimeField(
+        default=datetime.time(15, 00, 00)
+    )
+    interview_booking_override_enabled = models.BooleanField(default=False)
+    interview_booking_override_delta = models.DurationField(
+        default=datetime.timedelta(hours=6),
+    )
+    closed_at = models.DateTimeField(null=True, blank=True)
 
     @property
     def semester(self) -> str:
@@ -82,6 +91,12 @@ class Admission(models.Model):
             active_admission = cls.objects.create(date=timezone.datetime.now())
 
         return active_admission.first()
+
+    @classmethod
+    def get_last_closed_admission(cls):
+        return (
+            cls.objects.filter(status=AdmissionStatus.CLOSED).order_by("-date").first()
+        )
 
     @classmethod
     def get_active_admission(cls):

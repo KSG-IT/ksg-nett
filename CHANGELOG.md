@@ -1,5 +1,51 @@
 # CHANGELOG
 
+## [v2023.2.3] - 2023-02-14
+
+### Changed
+
+- Economy: raise min value deposit to Stripe minium (3 NOK)
+
+### Fixed
+
+- Quotes: incorrect approve/invalidate permissions
+- Economy: util function docstring typos
+
+## [v2023.2.2] - 2023-02-10
+
+### Added
+
+- Economy: Stripe intergration
+	* Dependencies
+	* Payment intent creation
+	* Customer creation
+	* Payment verification webhook
+
+## [v2023.2.1] - 2023-02-10
+
+### Fixed
+
+- Schedules: Incorrect depsits resolver permission
+
+## [v2023.1.7] - 2023-01-29
+- Common: Dashboard data resolver for newbies
+- Users: Resolver for new users
+
+## [v2023.1.6] - 2023-01-27
+
+### Fixed
+- Admissions: Interview statistics N+1 query issue
+- Schedules: Missing 'Kontoret' option for location
+- Schedules: Missing 'Ryddevakt' option for role
+- Users: User search performance
+
+### Changed
+- UpdateDocumentMutation -> PatchDocumentMutation
+
+## [v2023.1.5] - 2023-01-??
+
+Things happend. Not sure what.
+
 ## [v2023.1.4] - 2023-01-15
 
 ### Added

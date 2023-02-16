@@ -1,8 +1,8 @@
 import bleach
 from graphene_django_cud.mutations import (
     DjangoCreateMutation,
-    DjangoUpdateMutation,
     DjangoDeleteMutation,
+    DjangoPatchMutation,
 )
 
 from common.consts import BLEACH_ALLOWED_TAGS
@@ -41,12 +41,19 @@ class CreateDocumentMutation(DjangoCreateMutation):
     class Meta:
         model = Document
         permissions = ("handbook.add_document",)
+        auto_context_fields = {
+            "created_by": "user",
+            "updated_by": "user",
+        }
 
 
-class UpdateDocumentMutation(DjangoUpdateMutation):
+class PatchDocumentMutation(DjangoPatchMutation):
     class Meta:
         model = Document
         permissions = ("handbook.change_document",)
+        auto_context_fields = {
+            "updated_by": "user",
+        }
 
 
 class DeleteDocumentMutation(DjangoDeleteMutation):
@@ -57,5 +64,5 @@ class DeleteDocumentMutation(DjangoDeleteMutation):
 
 class HandbookMutations(graphene.ObjectType):
     create_document = CreateDocumentMutation.Field()
-    update_document = UpdateDocumentMutation.Field()
+    patch_document = PatchDocumentMutation.Field()
     delete_document = DeleteDocumentMutation.Field()
