@@ -18,8 +18,12 @@ def parse_deposit(deposit):
     )
 
 
+def stilletime_closed_email_notification(soci_session):
+    pass
+
+
 def parse_transfer(transfer, user):
-    # The sign of the amount depends of if the user is the source or destination of the transfer
+    # The sign of the amount depends on if the user is the source or destination of the transfer
     if transfer.destination == user.bank_account:
         sign = 1
     else:
@@ -48,7 +52,7 @@ def parse_product_order(product_order):
 
 def parse_transaction_history(bank_account, slice=None):
     """
-    Accepts a SociBankAccount object and and parses its transaction history
+    Accepts a SociBankAccount object and parses its transaction history
     to the generic format of a BankAccountActivity. Optional keywordargument
     slice determines how many such objects we want
     """
@@ -75,10 +79,6 @@ def parse_transaction_history(bank_account, slice=None):
         activities = activities[:slice]
 
     return activities
-
-
-def stilletime_closed_email_notification(soci_session):
-    pass
 
 
 def send_soci_order_session_invitation_email(soci_session, invited_users):

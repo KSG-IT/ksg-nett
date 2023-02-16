@@ -276,7 +276,7 @@ STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET", None)
 STRIPE_FLAT_FEE = 2  # in NOK
 STRIPE_PERCENTAGE_FEE = 2.4
 
-VERSION = "2023.2.2"
+VERSION = "2023.2.3"
 
 # Channels
 ASGI_APPLICATION = "ksg_nett.routing.application"

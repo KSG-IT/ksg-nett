@@ -156,7 +156,7 @@ class ApproveQuoteMutation(graphene.Mutation):
 
     quote = graphene.Field(QuoteNode)
 
-    @gql_has_permissions("quotes.change_quote")
+    @gql_has_permissions("quotes.approve_quote")
     def mutate(self, info, quote_id):
         quote_id = disambiguate_id(quote_id)
         quote = Quote.objects.get(pk=quote_id)
@@ -177,7 +177,7 @@ class InvalidateQuoteMutation(graphene.Mutation):
 
     quote = graphene.Field(QuoteNode)
 
-    @gql_has_permissions("quotes.change_quote")
+    @gql_has_permissions("quotes.invalidate_quote")
     def mutate(self, info, quote_id):
         quote_id = disambiguate_id(quote_id)
         quote = Quote.objects.get(pk=quote_id)

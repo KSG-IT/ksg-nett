@@ -622,8 +622,8 @@ class CreateDepositMutation(DjangoCreateMutation):
 
     @classmethod
     def validate_amount(cls, root, info, value, input, **kwargs):
-        if value < 1:
-            raise ValueError("Deposit amount cannot be less than 1")
+        if value < 3:
+            raise ValueError("Deposit amount cannot be less than 3")
 
         if value > 30000:
             raise ValueError("Deposit amount cannot exceed 30000")
