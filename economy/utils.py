@@ -170,7 +170,35 @@ def send_deposit_approved_email(deposit):
     )
 
 
-def stripe_create_Payment_intent(amount, customer=None):
+def send_deposit_refunded_email(deposit):
+    email_list = [deposit.account.user.email]
+
+    content = f"""
+        Hei!
+        
+        Ditt innskudd på {deposit.amount} kr er nå refundert. Det kan ta litt tid før pengene er tilbake
+        på kontoen din. Du har blitt trukket for {deposit.resolved_amount} kr på KSG-nett.
+        
+        Du får {deposit.resolved_amount} kr på konto.
+        """
+
+    html_content = f"""
+                Hei!
+                <br>
+                <br>
+                Ditt innskudd på {deposit.amount} kr er nå refundert. Det kan ta litt tid før pengene er tilbake 
+                på kontoen din. Du har blitt trukket for {deposit.resolved_amount} kr på KSG-nett.
+            """
+
+    send_email(
+        recipients=email_list,
+        subject="Innskudd refundert",
+        message=content,
+        html_message=html_content,
+    )
+
+
+def stripe_create_Payment_intent(amount, customer=None, charge_saved_card=False):
     import stripe
     import math
 
@@ -199,14 +227,33 @@ def stripe_create_Payment_intent(amount, customer=None):
         if not customer_id:
             customer_id = create_new_stripe_customer(customer)
 
+        if charge_saved_card:
+            try:
+                data = stripe.PaymentMethod.list(customer=customer_id, type="card")
+                default_payment_method = data["data"][0]["id"]
+            except IndexError:
+                default_payment_method = None
+        else:
+            default_payment_method = None
+
         intent = stripe.PaymentIntent.create(
             amount=amount_in_smallest_currency,
             currency="nok",
             automatic_payment_methods={"enabled": True},
             customer=customer_id,
+            # payment_method=default_payment_method,
+            # off_session=bool(default_payment_method),
+            # confirm=bool(default_payment_method),
+            # return_url=settings.APP_URL + "/economy/me",
+            payment_method_options={
+                "card": {
+                    # Stripe recommends automatic but since European regulations require
+                    # 3D Secure for all transactions, we use any.
+                    "request_three_d_secure": "any",
+                }
+            },
         )
     else:
-
         intent = stripe.PaymentIntent.create(
             amount=amount_in_smallest_currency,
             currency="nok",

@@ -89,6 +89,25 @@ def stripe_webhook(request):
             deposit.account.add_funds(deposit.resolved_amount)
             if deposit.account.user.notify_on_deposit:
                 send_deposit_approved_email(deposit)
+
+    elif event["type"] == "charge.refunded":
+        payment_intent_id = event["data"]["object"]["payment_intent"]
+
+        deposit = Deposit.objects.get(stripe_payment_id=payment_intent_id)
+        if not deposit.approved:
+            # Already invalidated. Do nothing
+            return JsonResponse(data={"success": True})
+
+        with transaction.atomic():
+            from economy.utils import send_deposit_refunded_email
+
+            deposit.approved = False
+            deposit.account.remove_funds(deposit.resolved_amount)
+            deposit.save()
+            if deposit.account.user.notify_on_deposit:
+                send_deposit_refunded_email(deposit)
+                # Could be confusing user flow if we don't delete the deposit
+                deposit.delete()
     else:
         raise Exception(f"Unhandled event type {event['type']}")
 
