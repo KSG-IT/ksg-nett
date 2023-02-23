@@ -21,7 +21,11 @@ from graphene_django import DjangoConnectionField
 from graphene_django_cud.util import disambiguate_id
 from twisted.mail._except import IllegalOperation
 
-from common.decorators import gql_has_permissions, gql_login_required
+from common.decorators import (
+    gql_has_permissions,
+    gql_login_required,
+    gql_feature_flag_required,
+)
 from economy.models import (
     SociProduct,
     Deposit,
@@ -938,6 +942,40 @@ class InviteUsersToSociOrderSessionMutation(graphene.Mutation):
         return InviteUsersToSociOrderSessionMutation(soci_order_session=active_session)
 
 
+class CreateDepositAndPaymentIntentMutation(graphene.Mutation):
+    class Arguments:
+        amount = graphene.Int(required=True)
+
+    deposit = graphene.Field(DepositNode)
+
+    @gql_login_required()
+    @gql_feature_flag_required(settings.STRIPE_INTEGRATION_FEATURE_FLAG)
+    def mutate(self, info, amount, *args, **kwargs):
+
+        if amount < 50:
+            raise IllegalOperation("Minimum deposit amount is 50 kr")
+
+        if amount > 30_000:
+            raise IllegalOperation("Maximum deposit amount is 30 000 kr")
+
+        from economy.utils import stripe_create_Payment_intent
+
+        with transaction.atomic():
+            obj = Deposit(
+                account=info.context.user.bank_account,
+                amount=amount,
+            )
+            intent, resolved_amount_in_nok = stripe_create_Payment_intent(
+                amount, customer=info.context.user
+            )
+            obj.stripe_payment_id = intent.id
+            obj.stripe_payment_intent_status = (
+                Deposit.StripePaymentIntentStatusOptions.CREATED
+            )
+            obj.resolved_amount = resolved_amount_in_nok
+            obj.save()
+
+
 class EconomyMutations(graphene.ObjectType):
     create_soci_product = CreateSociProductMutation.Field()
     patch_soci_product = PatchSociProductMutation.Field()
@@ -966,3 +1004,6 @@ class EconomyMutations(graphene.ObjectType):
     )
     soci_order_session_next_status = SociOrderSessionNextStatusMutation.Field()
     invite_users_to_order_session = InviteUsersToSociOrderSessionMutation.Field()
+
+    # Stripe mutations
+    create_deposit_and_payment_intent = CreateDepositAndPaymentIntentMutation.Field()

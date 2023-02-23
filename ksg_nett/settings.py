@@ -278,6 +278,9 @@ STRIPE_PERCENTAGE_FEE = 2.4
 
 VERSION = "2023.2.3"
 
+# Feature flag keys
+STRIPE_INTEGRATION_FEATURE_FLAG = "stripe_integration"
+
 # Channels
 ASGI_APPLICATION = "ksg_nett.routing.application"
 
