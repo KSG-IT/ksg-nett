@@ -32,15 +32,12 @@ def download_callsheet_workbook(request):
     ws.cell(1, 4).value = "Prioritet"
     ws.cell(1, 4).font = Font(bold=True)
 
-    ws.cell(1, 5).value = "Fikk beholde"
+    ws.cell(1, 5).value = "Takket ja?"
     ws.cell(1, 5).font = Font(bold=True)
 
-    ws.cell(1, 6).value = "Takket ja?"
+    ws.cell(1, 6).value = "Tidspunkter utilgjengelig"
     ws.cell(1, 6).font = Font(bold=True)
-
-    ws.cell(1, 7).value = "Tidspunkter utilgjengelig"
-    ws.cell(1, 7).font = Font(bold=True)
-    ws.cell(2, 7).value = "Ikke implementert enda"
+    ws.cell(2, 6).value = "Ikke implementert enda"
 
     # We use the graphql list as a proxy data model
     parsed_applicants = admission_applicant_preview(admission)

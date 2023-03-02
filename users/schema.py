@@ -3,6 +3,8 @@ import graphene
 from django.contrib.auth.models import Permission
 from django.core.exceptions import PermissionDenied
 from django.db import transaction
+from django.db.models import Value, Q
+from django.db.models import Value
 from django.utils import timezone
 from graphene import Node
 from graphene_django import DjangoObjectType
@@ -12,6 +14,8 @@ from graphene_django_cud.mutations import (
     DjangoDeleteMutation,
     DjangoCreateMutation,
 )
+
+from admissions.models import Admission
 from common.decorators import gql_has_permissions, gql_login_required
 from quotes.schema import QuoteNode
 from users.models import User, UserType, UserTypeLogEntry, Allergy
@@ -95,6 +99,10 @@ class UserNode(DjangoObjectType):
     upvoted_quote_ids = graphene.NonNull(graphene.List(graphene.ID))
     internal_group_position_membership_history = graphene.List(
         "organization.schema.InternalGroupPositionMembershipNode"
+    )
+    active_internal_group_position = graphene.Field(
+        "organization.schema.InternalGroupPositionNode",
+        source="active_internal_group_position",
     )
     money_spent = graphene.Int()
 
@@ -215,12 +223,14 @@ class UserQuery(graphene.ObjectType):
     me = graphene.Field(UserNode)
     all_users = DjangoFilterConnectionField(UserNode, filterset_class=UserFilter)
     all_active_users = DjangoFilterConnectionField(UserNode, filterset_class=UserFilter)
+    searchbar_users = graphene.List(UserNode, search_string=graphene.String())
     manage_users_data = graphene.Field(
         ManageInternalGroupUsersData,
         internal_group_id=graphene.ID(),
     )
     user_type = Node.Field(UserTypeNode)
     all_user_types = graphene.List(UserTypeNode)
+    newbies = graphene.List(UserNode)
 
     @gql_has_permissions("users.change_user")
     def resolve_manage_users_data(self, info, internal_group_id, *args, **kwargs):
@@ -294,9 +304,11 @@ class UserQuery(graphene.ObjectType):
 
         return info.context.user
 
+    @gql_login_required()
     def resolve_all_users(self, info, *args, **kwargs):
         return User.objects.all()
 
+    @gql_login_required()
     def resolve_all_active_users(self, info, *args, **kwargs):
         return (
             User.objects.filter(is_active=True)
@@ -306,10 +318,11 @@ class UserQuery(graphene.ObjectType):
 
     all_active_users_list = graphene.List(UserNode, q=graphene.String())
 
+    @gql_login_required()
     def resolve_all_active_users_list(self, info, q, *args, **kwargs):
         return (
             User.objects.filter(is_active=True)
-            .annotate(full_name=Concat("first_name", "nickname", "last_name"))
+            .annotate(full_name=Concat("first_name", Value(" "), "last_name"))
             .filter(full_name__icontains=q)
             .order_by("full_name")
         )
@@ -317,6 +330,32 @@ class UserQuery(graphene.ObjectType):
     @gql_has_permissions("users.view_usertype")
     def resolve_all_user_types(self, info, *args, **kwargs):
         return UserType.objects.all().order_by("name")
+
+    @gql_login_required()
+    def resolve_searchbar_users(self, info, search_string, *args, **kwargs):
+        search_string = search_string.strip()
+        if search_string == "":
+            return []
+
+        return (
+            User.objects.filter(is_active=True)
+            .annotate(full_name=Concat("first_name", Value(" "), "last_name"))
+            .filter(
+                Q(full_name__icontains=search_string)
+                | Q(email__icontains=search_string)
+                | Q(nickname__icontains=search_string)
+                | Q(phone__icontains=search_string)
+            )
+            .order_by("full_name")[0:10]
+        )
+
+    @gql_login_required()
+    def resolve_newbies(self, info, *args, **kwargs):
+        admission = Admission.get_last_closed_admission()
+        if admission is None:
+            return []
+
+        return User.objects.filter(admission=admission).order_by("first_name")
 
 
 class AllergyQuery(graphene.ObjectType):

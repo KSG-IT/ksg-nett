@@ -257,8 +257,9 @@ class DepositQuery(graphene.ObjectType):
         DepositNode
     )  # Pending will never be more than a couple at a time
     all_approved_deposits = DjangoConnectionField(DepositNode)
+    ongoing_deposit_intent = graphene.Field(DepositNode)
 
-    @gql_has_permissions("economy.change_deposit")
+    @gql_has_permissions("economy.approve_deposit")
     def resolve_all_deposits(self, info, q, unverified_only, *args, **kwargs):
         # ToDo implement user fullname search filtering
         return Deposit.objects.filter(
@@ -266,11 +267,24 @@ class DepositQuery(graphene.ObjectType):
             approved=not unverified_only,
         ).order_by("-created_at")
 
+    @gql_has_permissions("economy.approve_deposit")
     def resolve_all_pending_deposits(self, info, *args, **kwargs):
         return Deposit.objects.filter(approved=False).order_by("-created_at")
 
+    @gql_has_permissions("economy.approve_deposit")
     def resolve_all_approved_deposits(self, info, *args, **kwargs):
         return Deposit.objects.filter(approved=True).order_by("-created_at")
+
+    def resolve_ongoing_deposit_intent(self, info, *args, **kwargs):
+        user = info.context.user
+        try:
+            ongoing_deposit_intent = user.bank_account.deposits.get(
+                stripe_payment_intent_status=Deposit.StripePaymentIntentStatusOptions.CREATED,
+                approved=False,
+            )
+        except Deposit.DoesNotExist:
+            ongoing_deposit_intent = None
+        return ongoing_deposit_intent
 
 
 class ProductOrderQuery(graphene.ObjectType):
@@ -419,6 +433,26 @@ class SociOrderSessionQuery(graphene.ObjectType):
         return session.orders.filter(product__type=SociProduct.Type.DRINK).order_by(
             "ordered_at"
         )
+
+
+class StripeQuery(graphene.ObjectType):
+    get_client_secret_from_deposit_id = graphene.String(
+        deposit_id=graphene.ID(required=True)
+    )
+
+    @gql_login_required()
+    def resolve_get_client_secret_from_deposit_id(
+        self, info, deposit_id, *args, **kwargs
+    ):
+        import stripe
+
+        deposit_id = disambiguate_id(deposit_id)
+        deposit = Deposit.objects.get(id=deposit_id)
+
+        stripe.api_key = settings.STRIPE_SECRET_KEY
+        intent = stripe.PaymentIntent.retrieve(deposit.stripe_payment_id)
+
+        return intent.client_secret
 
 
 class CreateSociProductMutation(DjangoCreateMutation):
@@ -573,12 +607,23 @@ class CreateDepositMutation(DjangoCreateMutation):
     @classmethod
     def before_save(cls, root, info, input, obj):
         obj.account = info.context.user.bank_account
+        from economy.utils import stripe_create_Payment_intent
+
+        with transaction.atomic():
+            intent, resolved_amount_in_nok = stripe_create_Payment_intent(
+                obj.amount, customer=info.context.user
+            )
+            obj.stripe_payment_id = intent.id
+            obj.stripe_payment_intent_status = (
+                Deposit.StripePaymentIntentStatusOptions.CREATED
+            )
+            obj.resolved_amount = resolved_amount_in_nok
         return obj
 
     @classmethod
     def validate_amount(cls, root, info, value, input, **kwargs):
-        if value < 1:
-            raise ValueError("Deposit amount cannot be less than 1")
+        if value < 3:
+            raise ValueError("Deposit amount cannot be less than 3")
 
         if value > 30000:
             raise ValueError("Deposit amount cannot exceed 30000")
@@ -589,7 +634,21 @@ class CreateDepositMutation(DjangoCreateMutation):
 class DeleteDepositMutation(DjangoDeleteMutation):
     class Meta:
         model = Deposit
-        permissions = ("economy.delete_deposit",)
+
+    @classmethod
+    def before_save(cls, root, info, input, obj):
+        if obj.approved:
+            raise Exception("Cannot delete approved deposit")
+
+        user = info.context.user
+
+        has_permission = user.has_perm("economy.delete_deposit")
+        is_my_deposit = obj.account = user.bank_account
+
+        if not (has_permission or is_my_deposit):
+            raise PermissionError
+
+        return obj
 
 
 class ApproveDepositMutation(graphene.Mutation):
