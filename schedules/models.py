@@ -1,6 +1,9 @@
 import pytz
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
+from scipy.sparse import csr_matrix
+from scipy.sparse.csgraph import maximum_bipartite_matching
+
 from organization.models import InternalGroup, InternalGroupPosition, InternalGroupPositionMembership
 from users.models import User
 from django.utils import timezone
@@ -91,35 +94,49 @@ class Schedule(models.Model):
         ).distinct()
         return users
 
-    def autofill_slots(self, date_start, date_end, role):
+    def autofill_slots(self, date_start, date_end):
         shifts_to_fill = Shift.objects.filter(datetime_start__gte=date_start, datetime_end__lte=date_end,
-                                              schedule=self)
-        SHIFTS_TO_FILL = shifts_to_fill.count()
+                                              schedule=self).all()
+        # Length for the adjacency matrix
+        SLOTS_AVAILABLE = 0
+        slots_length = []
+        for shift in shifts_to_fill:
+            c = shift.slots.count()
+            SLOTS_AVAILABLE += c
+            slots_length.append(c)
+
         data = dict()
-        slots_per_shift = []
+        roster = self.roster.all()
         for i, shift in enumerate(shifts_to_fill):
+            # Progress the offset based on the previous shift's slots amount
+            offset = 0
+            for k in range(i):
+                offset += slots_length[k]
+
             interests = shift.interests.all()
             for interest in interests:
-                slot_count = shift.slots.filter()
+                slots = interest.shift.slots.all()
                 if interest.user_id not in data:
-                    data[interest.user_id] = [[0] * slot_count] * SHIFTS_TO_FILL
-                data[interest.user_id][i] = []
-            slots_per_shift.append(shift.slots.count())
-        print(data)
-        print(slots_per_shift)
-        for slot_count in slots_per_shift:
-            print(slot_count)
-            for key in data:
-                data[key]
+                    data[interest.user_id] = [0] * SLOTS_AVAILABLE
 
-    #   graph_data = []
-    # graph = csr_matrix([[0, 0, 1], [1, 1, 0]])
-    #  for i, shift_to_fill in enumerate(shifts_to_fill):
-    #     row = [0] * len(shift_to_fill.slots)
-    #    roster = shift_to_fill.interests.values_list("user_id")
-    #   for user_id in roster:
-    #      graph_data[]
+                for j in range(slots.count()):
+                    if roster.filter(user_id=interest.user_id).get().autofill_as == slots[j].role:
+                        data[interest.user_id][j + offset] = 1
 
+        graph = csr_matrix(list(data.values()))
+        result = maximum_bipartite_matching(graph, perm_type='row')
+        users = list(data.keys())
+        slots = shifts_to_fill.values_list("slots")
+        for i, match in enumerate(result):
+            if match != -1:
+                user_id = users[match]
+                shift_slot_id = slots[i][0]
+                slot = ShiftSlot.objects.get(id=shift_slot_id)
+                slot.user_id = user_id
+                slot.save()
+        for slot in ShiftSlot.objects.all():
+            if slot.user_id != None:
+                print(f"User({slot.user_id}) -> Shift({slot.shift_id})")
 
 class Shift(models.Model):
     class Meta:
@@ -136,7 +153,6 @@ class Shift(models.Model):
         SELSKAPSSIDEN = "SELSKAPSSIDEN", _("Selskapssiden")
         STROSSA = "STROSSA", _("Strossa")
         DAGLIGHALLEN_BAR = "DAGLIGHALLEN_BAR", _("Daglighallen Bar")
-        KONTORET = "KONTORET", _("Kontoret")
 
     name = models.CharField(max_length=69, null=False, blank=False)
     location = models.CharField(
@@ -358,6 +374,7 @@ class ScheduleRoster(models.Model):
         blank=False,
         null=False,
         on_delete=models.CASCADE,
+        related_name="roster"
     )
 
     user = models.ForeignKey(

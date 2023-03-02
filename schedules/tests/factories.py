@@ -15,7 +15,7 @@ from schedules.models import (
     ScheduleTemplate,
     ShiftTemplate,
     ShiftSlotTemplate,
-    ShiftTrade, ShiftInterest,
+    ShiftTrade, ShiftInterest, ScheduleRoster, RoleOption,
 )
 from users.tests.factories import UserFactory
 
@@ -127,6 +127,17 @@ class ShiftSlotTemplateFactory(DjangoModelFactory):
 
     shift_template = SubFactory(ShiftTemplateFactory)
     role = LazyAttribute(
-        lambda o: random.choice([x[0] for x in ShiftSlot.RoleOption.choices])
+        lambda o: random.choice([x[0] for x in RoleOption.choices])
     )
     count = LazyAttribute(lambda o: random.randint(1, 5))
+
+
+class ScheduleRosterFactory(DjangoModelFactory):
+    class Meta:
+        model = ScheduleRoster
+
+    schedule = SubFactory(ScheduleFactory)
+    user = SubFactory(UserFactory)
+    autofill_as = LazyAttribute(
+        lambda o: random.choice([x[0] for x in RoleOption.choices])
+    )

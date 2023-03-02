@@ -12,9 +12,9 @@ from schedules.tests.factories import (
     ScheduleFactory,
     ScheduleTemplateFactory,
     ShiftTemplateFactory,
-    ShiftSlotTemplateFactory, ShiftFactory, ShiftSlotFactory, ShiftInterestFactory,
+    ShiftSlotTemplateFactory, ShiftFactory, ShiftSlotFactory, ShiftInterestFactory, ScheduleRosterFactory,
 )
-from schedules.models import ShiftTemplate, ShiftSlot, Shift, Schedule
+from schedules.models import ShiftTemplate, ShiftSlot, RoleOption
 from users.tests.factories import UserFactory
 
 
@@ -66,11 +66,11 @@ class TestApplyScheduleTemplateHelper(TestCase):
         )
 
         ShiftSlotTemplateFactory.create(
-            shift_template=self.early_shift, role=ShiftSlot.RoleOption.BARISTA, count=4
+            shift_template=self.early_shift, role=RoleOption.BARISTA, count=4
         )
         ShiftSlotTemplateFactory.create(
             shift_template=self.early_shift,
-            role=ShiftSlot.RoleOption.KAFEANSVARLIG,
+            role=RoleOption.KAFEANSVARLIG,
             count=1,
         )
 
@@ -83,11 +83,11 @@ class TestApplyScheduleTemplateHelper(TestCase):
         )
 
         ShiftSlotTemplateFactory.create(
-            shift_template=self.late_shift, role=ShiftSlot.RoleOption.BARISTA, count=5
+            shift_template=self.late_shift, role=RoleOption.BARISTA, count=5
         )
         ShiftSlotTemplateFactory.create(
             shift_template=self.late_shift,
-            role=ShiftSlot.RoleOption.KAFEANSVARLIG,
+            role=RoleOption.KAFEANSVARLIG,
             count=1,
         )
 
@@ -101,24 +101,34 @@ class TestApplyScheduleTemplateHelper(TestCase):
 
 class TestShiftInterest(TestCase):
     def setUp(self):
-        self.start = make_aware(datetime.datetime(2022, 5, 2, 15, 0), timezone=pytz.timezone("Europe/Oslo"))
-        self.end = self.start + datetime.timedelta(hours=8)
-        self.schedule = ScheduleFactory.create(name="Edgar")
+        start = make_aware(datetime.datetime(2022, 5, 2, 15, 0), timezone=pytz.timezone("Europe/Oslo"))
+        end = start + datetime.timedelta(hours=8)
+        self.schedule = ScheduleFactory.create(name="Edgar", default_role=RoleOption.BARISTA)
+        users = UserFactory.create_batch(5)
+        roster = []
+        for user in users:
+            roster.append(
+                ScheduleRosterFactory.create(user=user, schedule=self.schedule, autofill_as=self.schedule.default_role))
 
-        shift = ShiftFactory(name="Edgar tidligvakt", schedule=self.schedule, datetime_start=self.start,
-                             datetime_end=self.end)
-        ShiftSlotFactory.create_batch(4, shift=shift, user=None, role=ShiftSlot.RoleOption.BARISTA)
+        shift = ShiftFactory(name="Edgar tidligvakt", schedule=self.schedule, datetime_start=start,
+                             datetime_end=end)
+        ShiftSlotFactory.create_batch(4, shift=shift, user=None, role=RoleOption.BARISTA)
+        ShiftSlotFactory.create(shift=shift, user=None, role=RoleOption.KAFEANSVARLIG)
 
-        shift2 = ShiftFactory(name="Edgar tidligvakt", schedule=self.schedule,
-                              datetime_start=self.start + datetime.timedelta(days=1),
-                              datetime_end=self.end + datetime.timedelta(days=1, hours=8))
-        ShiftSlotFactory.create_batch(4, shift=shift2, user=None, role=ShiftSlot.RoleOption.BARISTA)
+        shift2 = ShiftFactory(name="Edgar Senvakt", schedule=self.schedule,
+                              datetime_start=start + datetime.timedelta(days=1),
+                              datetime_end=end + datetime.timedelta(days=1, hours=8))
 
-        interested_user = UserFactory()
-        ShiftInterestFactory.create_batch(2, shift=shift)
-        ShiftInterestFactory.create(shift=shift, user=interested_user)
-        ShiftInterestFactory.create(shift=shift2, user=interested_user)
-        ShiftInterestFactory.create_batch(3, shift=shift2)
+        ShiftSlotFactory.create_batch(4, shift=shift2, user=None, role=RoleOption.BARISTA)
+
+        ShiftInterestFactory.create(shift=shift, user=users[0])
+        ShiftInterestFactory.create(shift=shift, user=users[1])
+        ShiftInterestFactory.create(shift=shift, user=users[2])
+        ShiftInterestFactory.create(shift=shift2, user=users[3])
+        ShiftInterestFactory.create(shift=shift, user=users[4])
+        ShiftInterestFactory.create(shift=shift2, user=users[4])
 
     def test__hello_world(self):
-        self.schedule.autofill_slots(self.start, self.end + datetime.timedelta(days=2))
+        start = make_aware(datetime.datetime(2022, 5, 2, 14, 0), timezone=pytz.timezone("Europe/Oslo"))
+        end = start + datetime.timedelta(days=3)
+        self.schedule.autofill_slots(start, end)
