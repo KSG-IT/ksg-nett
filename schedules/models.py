@@ -134,9 +134,7 @@ class Schedule(models.Model):
                 slot = ShiftSlot.objects.get(id=shift_slot_id)
                 slot.user_id = user_id
                 slot.save()
-        for slot in ShiftSlot.objects.all():
-            if slot.user_id != None:
-                print(f"User({slot.user_id}) -> Shift({slot.shift_id})")
+               
 
 class Shift(models.Model):
     class Meta:

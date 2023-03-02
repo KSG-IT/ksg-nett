@@ -109,6 +109,9 @@ class TestShiftInterest(TestCase):
         for user in users:
             roster.append(
                 ScheduleRosterFactory.create(user=user, schedule=self.schedule, autofill_as=self.schedule.default_role))
+        ka_user = UserFactory.create()
+        ka_roster = ScheduleRosterFactory.create(user=ka_user, schedule=self.schedule,
+                                                 autofill_as=RoleOption.KAFEANSVARLIG)
 
         shift = ShiftFactory(name="Edgar tidligvakt", schedule=self.schedule, datetime_start=start,
                              datetime_end=end)
@@ -127,6 +130,7 @@ class TestShiftInterest(TestCase):
         ShiftInterestFactory.create(shift=shift2, user=users[3])
         ShiftInterestFactory.create(shift=shift, user=users[4])
         ShiftInterestFactory.create(shift=shift2, user=users[4])
+        ShiftInterestFactory.create(shift=shift, user=ka_user)
 
     def test__hello_world(self):
         start = make_aware(datetime.datetime(2022, 5, 2, 14, 0), timezone=pytz.timezone("Europe/Oslo"))
