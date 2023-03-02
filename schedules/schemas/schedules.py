@@ -16,7 +16,7 @@ from schedules.models import (
     Schedule,
     Shift,
     ShiftTrade,
-    ShiftSlot,
+    ShiftSlot, RoleOption,
 )
 from schedules.utils.schedules import normalize_shifts, send_given_shift_email
 from schedules.utils.templates import apply_schedule_template
@@ -358,24 +358,24 @@ class DeleteShiftSlotMutation(DjangoDeleteMutation):
 
 
 class ShiftSlotRoleEnum(graphene.Enum):
-    BARISTA = ShiftSlot.RoleOption.BARISTA
-    KAFEANSVARLIG = ShiftSlot.RoleOption.KAFEANSVARLIG
-    BARSERVITOR = ShiftSlot.RoleOption.BARSERVITOR
-    HOVMESTER = ShiftSlot.RoleOption.HOVMESTER
-    KOKK = ShiftSlot.RoleOption.KOKK
-    SOUSCHEF = ShiftSlot.RoleOption.SOUSCHEF
-    ARRANGEMENTBARTENDER = ShiftSlot.RoleOption.ARRANGEMENTBARTENDER
-    ARRANGEMENTANSVARLIG = ShiftSlot.RoleOption.ARRANGEMENTANSVARLIG
-    BRYGGER = ShiftSlot.RoleOption.BRYGGER
-    BARTENDER = ShiftSlot.RoleOption.BARTENDER
-    BARSJEF = ShiftSlot.RoleOption.BARSJEF
-    SPRITBARTENDER = ShiftSlot.RoleOption.SPRITBARTENDER
-    SPRITBARSJEF = ShiftSlot.RoleOption.SPRITBARSJEF
-    UGLE = ShiftSlot.RoleOption.UGLE
-    BRANNVAKT = ShiftSlot.RoleOption.BRANNVAKT
-    RYDDEVAKT = ShiftSlot.RoleOption.RYDDEVAKT
-    BAEREVAKT = ShiftSlot.RoleOption.BAEREVAKT
-    SOCIVAKT = ShiftSlot.RoleOption.SOCIVAKT
+    BARISTA = RoleOption.BARISTA
+    KAFEANSVARLIG = RoleOption.KAFEANSVARLIG
+    BARSERVITOR = RoleOption.BARSERVITOR
+    HOVMESTER = RoleOption.HOVMESTER
+    KOKK = RoleOption.KOKK
+    SOUSCHEF = RoleOption.SOUSCHEF
+    ARRANGEMENTBARTENDER = RoleOption.ARRANGEMENTBARTENDER
+    ARRANGEMENTANSVARLIG = RoleOption.ARRANGEMENTANSVARLIG
+    BRYGGER = RoleOption.BRYGGER
+    BARTENDER = RoleOption.BARTENDER
+    BARSJEF = RoleOption.BARSJEF
+    SPRITBARTENDER = RoleOption.SPRITBARTENDER
+    SPRITBARSJEF = RoleOption.SPRITBARSJEF
+    UGLE = RoleOption.UGLE
+    BRANNVAKT = RoleOption.BRANNVAKT
+    RYDDEVAKT = RoleOption.RYDDEVAKT
+    BAEREVAKT = RoleOption.BAEREVAKT
+    SOCIVAKT = RoleOption.SOCIVAKT
 
 
 class AddSlotToShiftInput(graphene.InputObjectType):
