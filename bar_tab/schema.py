@@ -140,7 +140,7 @@ class BarTabQuery(graphene.ObjectType):
         if active:
             bar_tabs = bar_tabs.exclude(id=active.id)
 
-        return bar_tab
+        return bar_tabs
 
     @gql_has_permissions("bar_tab.view_bartabproduct")
     def resolve_all_bar_tab_products(self, info, **kwargs):
