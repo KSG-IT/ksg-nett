@@ -32,6 +32,7 @@ openpyxl = "^3.0.10"
 icalendar = "^5.0.1"
 bleach = "^5.0.1"
 stripe = "^5.1.1"
+qrcode = {extras = ["pil"], version = "^7.4.2"}
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.3"

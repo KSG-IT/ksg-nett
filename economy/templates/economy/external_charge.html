@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>KSG-nett digibong</title>
+</head>
+<body>
+<h1>KSG-nett digibong</h1>
+{{ bank_account_secret }}
+
+
+<section>
+  Her har du mulighet til å krysse en KSG digibong.
+</section>
+<form method="post" action="{% url 'external_charge' bank_account_secret %}">
+  {% csrf_token %}
+  {{ form.as_table }}
+  <input type="submit" value="Kryss bongen">
+</form>
+</body>
+</html>

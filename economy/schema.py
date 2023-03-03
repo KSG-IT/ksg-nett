@@ -338,6 +338,7 @@ class SociBankAccountQuery(graphene.ObjectType):
     my_expenditures = graphene.Field(
         TotalExpenditure, date_range=TotalExpenditureDateRange()
     )
+    my_external_charge_qr_code_url = graphene.String()
 
     def resolve_my_bank_account(self, info, *args, **kwargs):
         if not hasattr(info.context, "user") or not info.context.user.is_authenticated:
@@ -392,6 +393,13 @@ class SociBankAccountQuery(graphene.ObjectType):
             data.append(expenditure_day)
 
         return TotalExpenditure(data=data, total=total)
+
+    def resolve_my_external_charge_qr_code_url(self, info, *args, **kwargs):
+        account = info.context.user.bank_account
+        secret = account.external_charge_secret
+        if not secret:
+            secret = account.regenerate_external_charge_secret()
+        return settings.BASE_URL + f"/economy/external-charge-qr-code/{secret}"
 
 
 class SociOrderSessionQuery(graphene.ObjectType):

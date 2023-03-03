@@ -8,6 +8,8 @@ from django.utils import timezone
 import common.models as common_models
 from django.utils.translation import gettext_lazy as _
 from users.models import User
+from secrets import token_urlsafe
+import qrcode
 
 
 class SociBankAccount(models.Model):
@@ -26,6 +28,7 @@ class SociBankAccount(models.Model):
 
     balance = models.IntegerField(default=0, editable=False)
     card_uuid = models.CharField(max_length=50, blank=True, null=True, unique=True)
+    external_charge_secret = models.CharField(max_length=64, null=True, blank=True)
 
     objects = models.Manager()
 
@@ -83,6 +86,11 @@ class SociBankAccount(models.Model):
     def money_spent(self) -> int:
         purchases = self.product_orders.all().aggregate(models.Sum("cost"))
         return purchases["cost__sum"] or 0
+
+    def regenerate_external_charge_secret(self):
+        self.external_charge_secret = token_urlsafe(32)
+        self.save()
+        return self.external_charge_secret
 
 
 class SociProduct(models.Model):

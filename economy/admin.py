@@ -16,6 +16,11 @@ from economy.models import (
 class SociBankAccountAdmin(admin.ModelAdmin):
     list_display = ["user", "card_uuid", "balance"]
     readonly_fields = ["balance"]
+    search_fields = [
+        "user__username",
+        "user__first_name",
+        "user__last_name",
+    ]
 
 
 @admin.register(SociProduct)

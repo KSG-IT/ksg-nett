@@ -215,7 +215,7 @@ MEDIA_ROOT = "media/"
 MEDIA_URL = "http://localhost:8000/media/"
 
 APP_URL = "http://localhost:3012"
-BASE_URL = "localhost:8000"
+BASE_URL = "http://localhost:8000"
 
 MAX_MEDIA_SIZE = 128 * (1024**2)
 
