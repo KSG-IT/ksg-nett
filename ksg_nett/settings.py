@@ -284,6 +284,7 @@ VERSION = "2023.3.3"
 STRIPE_INTEGRATION_FEATURE_FLAG = "stripe_integration"
 BANK_TRANSFER_DEPOSIT_FEATURE_FLAG = "bank_transfer_deposit"
 DEPOSIT_TIME_RESTRICTIONS_FEATURE_FLAG = "deposit_time_restrictions"
+EXTERNAL_CHARGING_FEATURE_FLAG = "external_charging"
 
 
 # Channels

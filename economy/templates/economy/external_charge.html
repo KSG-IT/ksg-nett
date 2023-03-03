@@ -6,16 +6,24 @@
 </head>
 <body>
 <h1>KSG-nett digibong</h1>
-{{ bank_account_secret }}
-
-
 <section>
   Her har du mulighet til å krysse en KSG digibong.
 </section>
-<form method="post" action="{% url 'external_charge' bank_account_secret %}">
-  {% csrf_token %}
-  {{ form.as_table }}
-  <input type="submit" value="Kryss bongen">
-</form>
+<div style="display: flex; flex-direction: column">
+
+  <form method="post" action="{% url 'external_charge' bank_account_secret %}">
+    {% csrf_token %}
+    <div>
+      <label for="id_amount">Beløp</label>
+      <input type="number" name="amount" id="id_amount" pattern="[0-9]*" inputmode="numeric" step="1" min="0"
+             max="1000000" required>
+    </div>
+    <div>
+      {{ form.bar_tab_customer }}
+    </div>
+    <input type="submit" value="Kryss bongen">
+  </form>
+</div>
+
 </body>
 </html>

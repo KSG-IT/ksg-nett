@@ -6,6 +6,7 @@ from django.db import transaction
 from django.shortcuts import render
 from graphene_django_cud.util import disambiguate_id, disambiguate_ids
 
+from common.decorators import view_feature_flag_required
 from economy.models import SociProduct, Deposit, SociBankAccount
 from weasyprint import CSS, HTML
 
@@ -124,6 +125,7 @@ def stripe_webhook(request):
     return JsonResponse(data={"success": True})
 
 
+@view_feature_flag_required(settings.EXTERNAL_CHARGING_FEATURE_FLAG)
 def external_charge_view(request, bank_account_secret, *args, **kwargs):
     if request.method == "POST":
         form = ExternalChargeForm(request.POST)
@@ -172,6 +174,7 @@ def external_charge_view(request, bank_account_secret, *args, **kwargs):
         )
 
 
+@view_feature_flag_required(settings.EXTERNAL_CHARGING_FEATURE_FLAG)
 def external_charge_qr_code(request, bank_account_secret):
     qr = qrcode.QRCode(
         version=1,
