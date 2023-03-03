@@ -271,6 +271,7 @@ class DepositQuery(graphene.ObjectType):
         return Deposit.objects.filter(
             account__user__first_name__contains=q,
             approved=not unverified_only,
+            deposit_method=Deposit.DepositMethod.BANK_TRANSFER,
         ).order_by("-created_at")
 
     @gql_has_permissions("economy.approve_deposit")
