@@ -13,7 +13,7 @@ from economy.schema import BankAccountActivity
 def parse_deposit(deposit):
     return BankAccountActivity(
         name="Innskudd",
-        amount=deposit.amount,
+        amount=deposit.resolved_amount,
         timestamp=deposit.approved_at,
         quantity=None,
     )
