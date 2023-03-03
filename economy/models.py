@@ -312,7 +312,7 @@ class Deposit(common_models.TimestampedModel):
         CREATED = "CREATED"
         SUCCESS = "SUCCESS"
 
-    class PaymentMethodOptions(models.TextChoices):
+    class DepositMethod(models.TextChoices):
         VIPPS = "VIPPS"
         BANK_TRANSFER = "BANK_TRANSFER"
         STRIPE = "STRIPE"
@@ -333,6 +333,9 @@ class Deposit(common_models.TimestampedModel):
         null=True,
         on_delete=models.SET_NULL,
     )
+    deposit_method = models.CharField(
+        choices=DepositMethod.choices, max_length=32, null=True, blank=True
+    )
     description = models.TextField(default="", blank=True)
     amount = models.IntegerField(
         blank=False, null=False, help_text="Amount paid by customer"
@@ -340,7 +343,7 @@ class Deposit(common_models.TimestampedModel):
     resolved_amount = models.IntegerField(
         blank=True,
         null=True,
-        help_text="Amount after deducting stripe fee's and flooring to a whole number",
+        help_text="Amount after deducting stripe fee's and flooring to a whole number, if applicable.",
     )
     receipt = models.ImageField(
         upload_to=_receipt_upload_location, blank=True, null=True, default=None

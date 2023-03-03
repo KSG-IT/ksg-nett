@@ -4,7 +4,8 @@ from django.template.loader import render_to_string
 from weasyprint import CSS, HTML
 from weasyprint.text.fonts import FontConfiguration
 
-from common.util import send_email
+from common.models import FeatureFlag
+from common.util import send_email, check_feature_flag
 from economy.models import SociProduct
 from economy.schema import BankAccountActivity
 
