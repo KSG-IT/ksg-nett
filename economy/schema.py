@@ -975,7 +975,10 @@ class CreateDepositMutation(graphene.Mutation):
         )
         if time_restrictions:
             # they are only allowed to deposit after 20:00 if they are working
-            if local_time.hour >= 15 and not info.context.user.is_at_work:
+            if (
+                local_time.hour >= settings.DEPOSIT_TIME_RESTRICTION_HOUR
+                and not info.context.user.is_at_work
+            ):
                 raise IllegalOperation("Deposits are only allowed before 20:00")
 
         if amount < 50:
