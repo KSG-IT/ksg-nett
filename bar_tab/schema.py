@@ -144,7 +144,7 @@ class BarTabQuery(graphene.ObjectType):
 
     @gql_has_permissions("bar_tab.view_bartabproduct")
     def resolve_all_bar_tab_products(self, info, **kwargs):
-        return BarTabProduct.objects.all().order_by("name")
+        return BarTabProduct.objects.all().order_by("price")
 
     @gql_has_permissions("bar_tab.view_bartab")
     def resolve_active_bar_tab(self, info, **kwargs):

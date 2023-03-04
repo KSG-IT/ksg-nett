@@ -1,5 +1,15 @@
 # CHANGELOG
 
+## [2023.3.1] - 2023-03-04
+
+### Added
+- Common: Flags to enable/disable features
+
+### Changed
+- Economy: Stripe webhook add refund event
+- Economy: Create deposit mutation.
+    * Handle stripe and bank transfer payments
+	
 ## [v2023.2.3] - 2023-02-14
 
 ### Changed

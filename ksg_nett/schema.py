@@ -6,7 +6,12 @@ from admissions.schema import (
     InterviewLocationQuery,
     InterviewQuery,
 )
-from common.schema import DashboardQuery, SidebarQuery
+from common.schema import (
+    DashboardQuery,
+    SidebarQuery,
+    FeatureFlagQuery,
+    CommonMutations,
+)
 from users.schema import UserQuery, UserMutations, AllergyQuery
 from login.schema import LoginMutations, AuthenticationQuery
 from economy.schema import (
@@ -52,6 +57,7 @@ class Query(
     DashboardQuery,
     DepositQuery,
     DocumentQueries,
+    FeatureFlagQuery,
     ProductOrderQuery,
     SidebarQuery,
     SociBankAccountQuery,
@@ -80,6 +86,7 @@ class Query(
 class Mutation(
     AdmissionsMutations,
     BarTabMutations,
+    CommonMutations,
     EconomyMutations,
     HandbookMutations,
     LoginMutations,

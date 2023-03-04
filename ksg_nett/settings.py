@@ -276,7 +276,15 @@ STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET", None)
 STRIPE_FLAT_FEE = 2  # in NOK
 STRIPE_PERCENTAGE_FEE = 2.4
 
-VERSION = "2023.2.3"
+DEPOSIT_TIME_RESTRICTION_HOUR = os.environ.get("DEPOSIT_TIME_RESTRICTION_HOUR", 20)
+
+VERSION = "2023.3.1"
+
+# Feature flag keys
+STRIPE_INTEGRATION_FEATURE_FLAG = "stripe_integration"
+BANK_TRANSFER_DEPOSIT_FEATURE_FLAG = "bank_transfer_deposit"
+DEPOSIT_TIME_RESTRICTIONS_FEATURE_FLAG = "deposit_time_restrictions"
+
 
 # Channels
 ASGI_APPLICATION = "ksg_nett.routing.application"

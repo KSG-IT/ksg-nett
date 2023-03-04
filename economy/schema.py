@@ -21,7 +21,13 @@ from graphene_django import DjangoConnectionField
 from graphene_django_cud.util import disambiguate_id
 from twisted.mail._except import IllegalOperation
 
-from common.decorators import gql_has_permissions, gql_login_required
+from common.decorators import (
+    gql_has_permissions,
+    gql_login_required,
+    gql_feature_flag_required,
+)
+from common.models import FeatureFlag
+from common.util import check_feature_flag
 from economy.models import (
     SociProduct,
     Deposit,
@@ -265,11 +271,14 @@ class DepositQuery(graphene.ObjectType):
         return Deposit.objects.filter(
             account__user__first_name__contains=q,
             approved=not unverified_only,
+            deposit_method=Deposit.DepositMethod.BANK_TRANSFER,
         ).order_by("-created_at")
 
     @gql_has_permissions("economy.approve_deposit")
     def resolve_all_pending_deposits(self, info, *args, **kwargs):
-        return Deposit.objects.filter(approved=False).order_by("-created_at")
+        return Deposit.objects.filter(
+            approved=False, deposit_method=Deposit.DepositMethod.BANK_TRANSFER
+        ).order_by("-created_at")
 
     @gql_has_permissions("economy.approve_deposit")
     def resolve_all_approved_deposits(self, info, *args, **kwargs):
@@ -281,6 +290,7 @@ class DepositQuery(graphene.ObjectType):
             ongoing_deposit_intent = user.bank_account.deposits.get(
                 stripe_payment_intent_status=Deposit.StripePaymentIntentStatusOptions.CREATED,
                 approved=False,
+                deposit_method=Deposit.DepositMethod.STRIPE,
             )
         except Deposit.DoesNotExist:
             ongoing_deposit_intent = None
@@ -599,38 +609,6 @@ class PatchSociBankAccountMutation(DjangoPatchMutation):
         model = SociBankAccount
 
 
-class CreateDepositMutation(DjangoCreateMutation):
-    class Meta:
-        model = Deposit
-        login_required = True
-
-    @classmethod
-    def before_save(cls, root, info, input, obj):
-        obj.account = info.context.user.bank_account
-        from economy.utils import stripe_create_Payment_intent
-
-        with transaction.atomic():
-            intent, resolved_amount_in_nok = stripe_create_Payment_intent(
-                obj.amount, customer=info.context.user
-            )
-            obj.stripe_payment_id = intent.id
-            obj.stripe_payment_intent_status = (
-                Deposit.StripePaymentIntentStatusOptions.CREATED
-            )
-            obj.resolved_amount = resolved_amount_in_nok
-        return obj
-
-    @classmethod
-    def validate_amount(cls, root, info, value, input, **kwargs):
-        if value < 3:
-            raise ValueError("Deposit amount cannot be less than 3")
-
-        if value > 30000:
-            raise ValueError("Deposit amount cannot exceed 30000")
-
-        return value
-
-
 class DeleteDepositMutation(DjangoDeleteMutation):
     class Meta:
         model = Deposit
@@ -936,6 +914,76 @@ class InviteUsersToSociOrderSessionMutation(graphene.Mutation):
         active_session.invited_users.add(*list(user_qs))
         send_soci_order_session_invitation_email(active_session, user_qs)
         return InviteUsersToSociOrderSessionMutation(soci_order_session=active_session)
+
+
+class DepositMethodEnum(graphene.Enum):
+    STRIPE = Deposit.DepositMethod.STRIPE
+    BANK_TRANSFER = Deposit.DepositMethod.BANK_TRANSFER
+
+
+class CreateDepositMutation(graphene.Mutation):
+    class Arguments:
+        amount = graphene.Int(required=True)
+        description = graphene.String(required=False)
+        deposit_method = DepositMethodEnum(required=True)
+
+    deposit = graphene.Field(DepositNode)
+
+    @gql_login_required()
+    def mutate(self, info, amount, deposit_method, description, *args, **kwargs):
+
+        # Deposits are only allowed before 20:00 localtime
+        local_time = timezone.localtime(
+            timezone.now(), pytz.timezone(settings.TIME_ZONE)
+        )
+
+        time_restrictions = check_feature_flag(
+            settings.DEPOSIT_TIME_RESTRICTIONS_FEATURE_FLAG, fail_silently=True
+        )
+        if time_restrictions:
+            # they are only allowed to deposit after 20:00 if they are working
+            if (
+                local_time.hour >= settings.DEPOSIT_TIME_RESTRICTION_HOUR
+                and not info.context.user.is_at_work
+            ):
+                raise IllegalOperation("Deposits are only allowed before 20:00")
+
+        if amount < 50:
+            raise IllegalOperation("Minimum deposit amount is 50 kr")
+
+        if amount > 30_000:
+            raise IllegalOperation("Maximum deposit amount is 30 000 kr")
+
+        deposit = Deposit(
+            account=info.context.user.bank_account,
+            amount=amount,
+            created_at=timezone.now(),
+            description=description,
+            deposit_method=deposit_method,
+        )
+
+        if deposit_method == Deposit.DepositMethod.STRIPE:
+            from economy.utils import stripe_create_Payment_intent
+
+            check_feature_flag(settings.STRIPE_INTEGRATION_FEATURE_FLAG)
+            with transaction.atomic():
+                intent, resolved_amount_in_nok = stripe_create_Payment_intent(
+                    amount, customer=info.context.user
+                )
+                deposit.stripe_payment_id = intent.id
+                deposit.stripe_payment_intent_status = (
+                    Deposit.StripePaymentIntentStatusOptions.CREATED
+                )
+                deposit.resolved_amount = resolved_amount_in_nok
+
+        elif deposit_method == DepositMethodEnum.BANK_TRANSFER:
+            check_feature_flag(settings.BANK_TRANSFER_DEPOSIT_FEATURE_FLAG)
+            deposit.resolved_amount = amount
+        else:
+            raise IllegalOperation("Invalid deposit method")
+
+        deposit.save()
+        return CreateDepositMutation(deposit=deposit)
 
 
 class EconomyMutations(graphene.ObjectType):
