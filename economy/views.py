@@ -58,7 +58,6 @@ def download_soci_session_list_pdf(request):
     return res
 
 
-@view_feature_flag_required(settings.STRIPE_INTEGRATION_FEATURE_FLAG)
 def stripe_webhook(request):
     payload = request.body
     sig_header = request.headers["STRIPE_SIGNATURE"]
