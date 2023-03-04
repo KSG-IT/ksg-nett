@@ -131,6 +131,17 @@ def external_charge_view(request, bank_account_secret, *args, **kwargs):
         form = ExternalChargeForm(request.POST)
         if form.is_valid():
             amount = form.cleaned_data["amount"]
+
+            if amount <= 0:
+                return render(
+                    request,
+                    "economy/external_charge.html",
+                    context={
+                        "bank_account_secret": bank_account_secret,
+                        "form": form,
+                        "error": "Beløpet må være større enn 0",
+                    },
+                )
             bar_tab_customer = form.cleaned_data["bar_tab_customer"]
             try:
                 account = SociBankAccount.objects.get(
@@ -145,7 +156,12 @@ def external_charge_view(request, bank_account_secret, *args, **kwargs):
             if account.balance < amount:
                 return render(
                     request,
-                    "economy/external_charge_error.html",
+                    "economy/external_charge.html",
+                    context={
+                        "bank_account_secret": bank_account_secret,
+                        "form": form,
+                        "error": "Det er ikke nok penger på kontoen",
+                    },
                 )
 
             account.remove_funds(amount)
@@ -162,11 +178,9 @@ def external_charge_view(request, bank_account_secret, *args, **kwargs):
                 },
             )
 
-        # Form not valid
-
     else:
         form = ExternalChargeForm()
-        ctx = {"bank_account_secret": bank_account_secret, "form": form}
+        ctx = {"bank_account_secret": bank_account_secret, "form": form, "error": None}
         return render(
             request,
             "economy/external_charge.html",
