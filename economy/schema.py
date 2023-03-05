@@ -24,9 +24,7 @@ from twisted.mail._except import IllegalOperation
 from common.decorators import (
     gql_has_permissions,
     gql_login_required,
-    gql_feature_flag_required,
 )
-from common.models import FeatureFlag
 from common.util import check_feature_flag
 from economy.models import (
     SociProduct,
@@ -45,7 +43,7 @@ from users.models import User
 class BankAccountActivity(graphene.ObjectType):
     # Either name of product, 'Transfer' or 'Deposit' (Should we have a pending deposit status)
     name = graphene.NonNull(graphene.String)
-    amount = graphene.NonNull(graphene.Int)
+    amount = graphene.Int()
     quantity = graphene.Int()  # Transfer or deposit returns None for this field
     timestamp = graphene.NonNull(graphene.DateTime)
 
@@ -949,12 +947,10 @@ class CreateDepositMutation(graphene.Mutation):
             settings.DEPOSIT_TIME_RESTRICTIONS_FEATURE_FLAG, fail_silently=True
         )
         if time_restrictions:
-            # they are only allowed to deposit after 20:00 if they are working
-            if (
-                local_time.hour >= settings.DEPOSIT_TIME_RESTRICTION_HOUR
-                and not info.context.user.is_at_work
-            ):
-                raise IllegalOperation("Deposits are only allowed before 20:00")
+            if not (8 <= local_time.hour <= 20) and not info.context.user.is_at_work:
+                raise IllegalOperation(
+                    "Deposits are only allowed between 08:00 and 20:00"
+                )
 
         if amount < 50:
             raise IllegalOperation("Minimum deposit amount is 50 kr")
