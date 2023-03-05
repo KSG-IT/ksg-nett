@@ -16,7 +16,8 @@ from schedules.models import (
     Schedule,
     Shift,
     ShiftTrade,
-    ShiftSlot, RoleOption,
+    ShiftSlot,
+    RoleOption,
 )
 from schedules.utils.schedules import normalize_shifts, send_given_shift_email
 from schedules.utils.templates import apply_schedule_template
@@ -400,6 +401,33 @@ class AddSlotsToShiftMutation(graphene.Mutation):
         return AddSlotsToShiftMutation(shift=shift)
 
 
+class AutofillShiftSlotsMutation(graphene.Mutation):
+    class Arguments:
+        schedule_id = graphene.ID(required=True)
+        from_date = graphene.Date(required=True)
+        to_date = graphene.Date(required=True)
+
+    success = graphene.Boolean()
+
+    @gql_has_permissions("schedules.change_shiftslot")
+    def mutate(self, info, schedule_id, from_date, to_date):
+        today = timezone.now().date()
+
+        if from_date < today:
+            raise ValueError("From date must be in the future")
+
+        if to_date < today:
+            raise ValueError("To date must be in the future")
+
+        if to_date < from_date:
+            raise ValueError("To date must be after from date")
+
+        schedule_id = disambiguate_id(schedule_id)
+        schedule = Schedule.objects.get(pk=schedule_id)
+        schedule.autofill_slots(from_date, to_date)
+        return AutofillShiftSlotsMutation(success=True)
+
+
 class SchedulesMutations(graphene.ObjectType):
     create_shift = CreateShiftMutation.Field()
     delete_shift = DeleteShiftMutation.Field()
@@ -415,3 +443,5 @@ class SchedulesMutations(graphene.ObjectType):
     create_shift_slot = CreateShiftSlotMutation.Field()
     delete_shift_slot = DeleteShiftSlotMutation.Field()
     add_slots_to_shift = AddSlotsToShiftMutation.Field()
+
+    autofill_shift_slots = AutofillShiftSlotsMutation.Field()

@@ -4,7 +4,11 @@ from django.utils.translation import ugettext_lazy as _
 from scipy.sparse import csr_matrix
 from scipy.sparse.csgraph import maximum_bipartite_matching
 
-from organization.models import InternalGroup, InternalGroupPosition, InternalGroupPositionMembership
+from organization.models import (
+    InternalGroup,
+    InternalGroupPosition,
+    InternalGroupPositionMembership,
+)
 from users.models import User
 from django.utils import timezone
 from django.conf import settings
@@ -63,9 +67,9 @@ class Schedule(models.Model):
         )
         monday = timezone.make_aware(monday, timezone=pytz.timezone(settings.TIME_ZONE))
         sunday = (
-                monday
-                + timezone.timedelta(days=6, hours=23, minutes=59, seconds=59)
-                * number_of_weeks
+            monday
+            + timezone.timedelta(days=6, hours=23, minutes=59, seconds=59)
+            * number_of_weeks
         )
 
         shifts = Shift.objects.filter(
@@ -95,8 +99,9 @@ class Schedule(models.Model):
         return users
 
     def autofill_slots(self, date_start, date_end):
-        shifts_to_fill = Shift.objects.filter(datetime_start__gte=date_start, datetime_end__lte=date_end,
-                                              schedule=self).all()
+        shifts_to_fill = Shift.objects.filter(
+            datetime_start__gte=date_start, datetime_end__lte=date_end, schedule=self
+        )
         # Length for the adjacency matrix
         SLOTS_AVAILABLE = 0
         slots_length = []
@@ -120,11 +125,14 @@ class Schedule(models.Model):
                     data[interest.user_id] = [0] * SLOTS_AVAILABLE
 
                 for j in range(slots.count()):
-                    if roster.filter(user_id=interest.user_id).get().autofill_as == slots[j].role:
+                    if (
+                        roster.get(user_id=interest.user_id).autofill_as
+                        == slots[j].role
+                    ):
                         data[interest.user_id][j + offset] = 1
 
         graph = csr_matrix(list(data.values()))
-        result = maximum_bipartite_matching(graph, perm_type='row')
+        result = maximum_bipartite_matching(graph, perm_type="row")
         users = list(data.keys())
         slots = shifts_to_fill.values_list("slots")
         for i, match in enumerate(result):
@@ -134,7 +142,7 @@ class Schedule(models.Model):
                 slot = ShiftSlot.objects.get(id=shift_slot_id)
                 slot.user_id = user_id
                 slot.save()
-               
+
 
 class Shift(models.Model):
     class Meta:
@@ -353,7 +361,7 @@ class ShiftInterest(models.Model):
         blank=False,
         null=False,
         on_delete=models.CASCADE,
-        related_name="interests"
+        related_name="interests",
     )
 
     user = models.ForeignKey(
@@ -372,7 +380,7 @@ class ScheduleRoster(models.Model):
         blank=False,
         null=False,
         on_delete=models.CASCADE,
-        related_name="roster"
+        related_name="roster",
     )
 
     user = models.ForeignKey(

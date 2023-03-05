@@ -7,7 +7,9 @@ from schedules.models import (
     ShiftSlot,
     ScheduleTemplate,
     ShiftSlotTemplate,
-    ShiftTemplate, ShiftInterest,
+    ShiftTemplate,
+    ShiftInterest,
+    ScheduleRoster,
 )
 
 
@@ -48,6 +50,7 @@ class ShiftTemplateAdmin(admin.ModelAdmin):
 class ShiftSlotTemplateAdmin(admin.ModelAdmin):
     pass
 
+
 class ShiftInterestAdmin(admin.ModelAdmin):
     pass
 
@@ -60,3 +63,4 @@ admin.site.register(ScheduleTemplate, ScheduleTemplateAdmin)
 admin.site.register(ShiftTemplate, ShiftTemplateAdmin)
 admin.site.register(ShiftSlotTemplate, ShiftSlotTemplateAdmin)
 admin.site.register(ShiftInterest, ShiftInterestAdmin)
+admin.site.register(ScheduleRoster)
