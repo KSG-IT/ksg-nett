@@ -13,6 +13,9 @@ from django.conf import settings
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.utils import timezone
 from django.db.models import QuerySet
+from twisted.mail._except import IllegalOperation
+
+from common.models import FeatureFlag
 
 
 def get_semester_year_shorthand(timestamp: Union[datetime, date]) -> str:
@@ -344,3 +347,13 @@ def midnight_timestamps_from_date(date):
         timezone=pytz.timezone(settings.TIME_ZONE),
     )
     return datetime_early, datetime_late
+
+
+def check_feature_flag(feature_flag_key, fail_silently=False):
+    flag, _ = FeatureFlag.objects.get_or_create(name=feature_flag_key)
+
+    if fail_silently:
+        return flag.enabled
+
+    if not flag.enabled:
+        raise IllegalOperation(f"Feature flag {feature_flag_key} is not enabled")

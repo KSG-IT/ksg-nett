@@ -1,7 +1,11 @@
 import graphene
 from django.utils import timezone
+from graphene_django import DjangoObjectType
+from graphene_django_cud.util import disambiguate_id
 
 from admissions.models import Admission
+from common.decorators import gql_has_permissions
+from common.models import FeatureFlag
 from schedules.schemas.schedules import ShiftSlotNode
 from summaries.schema import SummaryNode
 from summaries.models import Summary
@@ -9,6 +13,12 @@ from quotes.schema import QuoteNode
 from quotes.models import Quote
 from users.schema import UserNode
 from economy.models import SociBankAccount, Deposit
+
+
+class FeatureFlagNode(DjangoObjectType):
+    class Meta:
+        model = FeatureFlag
+        interfaces = (graphene.relay.Node,)
 
 
 class DashboardData(graphene.ObjectType):
@@ -64,3 +74,37 @@ class DashboardQuery(graphene.ObjectType):
             soci_order_session=soci_order_session,
             show_newbies=show_newbies,
         )
+
+
+class FeatureFlagQuery(graphene.ObjectType):
+    all_feature_flags = graphene.List(graphene.NonNull(FeatureFlagNode))
+    get_feature_flag_by_key = graphene.Field(
+        FeatureFlagNode, key=graphene.String(required=True)
+    )
+
+    def resolve_all_feature_flags(self, info, *args, **kwargs):
+        return FeatureFlag.objects.all()
+
+    def resolve_get_feature_flag_by_key(self, info, key, *args, **kwargs):
+        flag, _ = FeatureFlag.objects.get_or_create(name=key)
+        return flag
+
+
+class ToggleFeatureFlagMutation(graphene.Mutation):
+    class Arguments:
+        feature_flag_id = graphene.ID(required=True)
+
+    feature_flag = graphene.Field(FeatureFlagNode)
+
+    @gql_has_permissions("common.change_featureflag")
+    def mutate(self, info, feature_flag_id, *args, **kwargs):
+        feature_flag_id = disambiguate_id(feature_flag_id)
+        feature_flag = FeatureFlag.objects.get(id=feature_flag_id)
+        feature_flag.enabled = not feature_flag.enabled
+        feature_flag.save()
+
+        return ToggleFeatureFlagMutation(feature_flag=feature_flag)
+
+
+class CommonMutations(graphene.ObjectType):
+    toggle_feature_flag = ToggleFeatureFlagMutation.Field()

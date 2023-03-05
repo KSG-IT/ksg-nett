@@ -196,6 +196,13 @@ class User(AbstractUser):
 
         return None
 
+    @property
+    def is_at_work(self):
+        return self.filled_shifts.filter(
+            shift__datetime_start__lte=timezone.now(),
+            shift__datetime_end__gte=timezone.now(),
+        ).exists()
+
 
 class UsersHaveMadeOut(models.Model):
     """

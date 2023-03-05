@@ -1,6 +1,9 @@
 from functools import wraps
 from typing import Callable
 from django.core.exceptions import PermissionDenied
+from twisted.mail._except import IllegalOperation
+
+from .models import FeatureFlag
 
 
 def _handle_not_permitted(
@@ -94,6 +97,51 @@ def gql_login_required(
                     return None
                 else:
                     raise PermissionDenied(fail_message)
+            return func(cls, info, *args, **kwargs)
+
+        return wrapper
+
+    return decorator
+
+
+def view_feature_flag_required(
+    feature_flag_name: str,
+    fail_to_none: bool = False,
+    fail_message: str = "Feature flag is not enabled",
+):
+    def decorator(func):
+        @wraps(func)
+        def wrapper(request, *args, **kwargs):
+            feature_flag, _ = FeatureFlag.objects.get_or_create(name=feature_flag_name)
+            if not feature_flag.enabled:
+                if fail_to_none:
+                    return None
+                else:
+                    raise IllegalOperation(fail_message)
+
+            return func(request, *args, **kwargs)
+
+        return wrapper
+
+    return decorator
+
+
+def gql_feature_flag_required(
+    feature_flag_name: str,
+    fail_to_none: bool = False,
+):
+    def decorator(func):
+        @wraps(func)
+        def wrapper(cls, info, *args, **kwargs):
+            feature_flag, _ = FeatureFlag.objects.get_or_create(name=feature_flag_name)
+            if not feature_flag.enabled:
+                if fail_to_none:
+                    return None
+                else:
+                    raise IllegalOperation(
+                        f"Feature flag {feature_flag_name} is not enabled"
+                    )
+
             return func(cls, info, *args, **kwargs)
 
         return wrapper
