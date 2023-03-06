@@ -9,6 +9,7 @@ from economy.models import (
     Transfer,
     SociOrderSession,
     SociOrderSessionOrder,
+    ExternalCharge,
 )
 
 
@@ -78,4 +79,9 @@ class SociOrderSessionAdmin(admin.ModelAdmin):
 
 @admin.register(SociOrderSessionOrder)
 class UserSociOrderSessionCollectionAdmin(admin.ModelAdmin):
+    pass
+
+
+@admin.register(ExternalCharge)
+class ExternalChargeAdmin(admin.ModelAdmin):
     pass

@@ -7,6 +7,8 @@ from django.db.models import QuerySet
 from django.utils import timezone
 import common.models as common_models
 from django.utils.translation import gettext_lazy as _
+
+from bar_tab.models import BarTabCustomer
 from users.models import User
 from secrets import token_urlsafe
 import qrcode
@@ -499,3 +501,29 @@ class SociOrderSessionOrder(models.Model):
     )
     amount = models.IntegerField(null=False, blank=False)
     ordered_at = models.DateTimeField(auto_now_add=True)
+
+
+class ExternalCharge(models.Model):
+    class Meta:
+        verbose_name = "External Charge"
+        verbose_name_plural = "External Charges"
+
+    bar_tab_customer = models.ForeignKey(
+        BarTabCustomer,
+        null=False,
+        blank=False,
+        on_delete=models.CASCADE,
+        related_name="external_charges",
+    )
+    amount = models.IntegerField(null=False, blank=False)
+    reference = models.CharField(default="", max_length=255, blank=True)
+    bank_account = models.ForeignKey(
+        SociBankAccount,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="external_charges",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    webhook_attempts = models.IntegerField(default=0)
+    webhook_success = models.BooleanField(default=False)

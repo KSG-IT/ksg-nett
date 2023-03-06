@@ -7,12 +7,12 @@ from django.shortcuts import render
 from graphene_django_cud.util import disambiguate_id, disambiguate_ids
 
 from common.decorators import view_feature_flag_required
-from economy.models import SociProduct, Deposit, SociBankAccount
+from economy.models import SociProduct, Deposit, SociBankAccount, ExternalCharge
 from weasyprint import CSS, HTML
 
 from django.template.loader import render_to_string
 
-from economy.utils import send_external_charge_email
+from economy.utils import send_external_charge_email, send_external_charge_webhook
 from users.models import User
 from django.utils import timezone
 from rest_framework import status
@@ -129,58 +129,88 @@ def stripe_webhook(request):
 def external_charge_view(request, bank_account_secret, *args, **kwargs):
     if request.method == "POST":
         form = ExternalChargeForm(request.POST)
-        if form.is_valid():
-            amount = form.cleaned_data["amount"]
-
-            if amount <= 0:
-                return render(
-                    request,
-                    "economy/external_charge.html",
-                    context={
-                        "bank_account_secret": bank_account_secret,
-                        "form": form,
-                        "error": "Beløpet må være større enn 0",
-                    },
-                )
-            bar_tab_customer = form.cleaned_data["bar_tab_customer"]
-            try:
-                account = SociBankAccount.objects.get(
-                    external_charge_secret=bank_account_secret
-                )
-            except SociBankAccount.DoesNotExist:
-                return render(
-                    request,
-                    "economy/external_charge_error.html",
-                )
-
-            if account.balance < amount:
-                return render(
-                    request,
-                    "economy/external_charge.html",
-                    context={
-                        "bank_account_secret": bank_account_secret,
-                        "form": form,
-                        "error": "Det er ikke nok penger på kontoen",
-                    },
-                )
-
-            account.remove_funds(amount)
-            account.regenerate_external_charge_secret()
-            if account.user.notify_on_deposit:  # change to external charge flag
-                send_external_charge_email(account.user, amount, bar_tab_customer)
-
+        if not form.is_valid():
             return render(
                 request,
-                "economy/external_charge_success.html",
+                "economy/external_charge.html",
+                context={"form": form},
+            )
+        amount = form.cleaned_data["amount"]
+
+        if not 0 <= amount < settings.EXTERNAL_CHARGE_MAX_AMOUNT:
+            return render(
+                request,
+                "economy/external_charge.html",
                 context={
-                    "amount": amount,
-                    "account_name": account.user.get_full_name(),
+                    "form": form,
+                    "error": f"Beløpet må være større enn 0 og maks {settings.EXTERNAL_CHARGE_MAX_AMOUNT}",
+                },
+            )
+        bar_tab_customer = form.cleaned_data["bar_tab_customer"]
+        try:
+            account = SociBankAccount.objects.get(
+                external_charge_secret=bank_account_secret
+            )
+        except SociBankAccount.DoesNotExist:
+            return render(
+                request,
+                "economy/external_charge_error.html",
+            )
+
+        if account.balance < amount:
+            return render(
+                request,
+                "economy/external_charge.html",
+                context={
+                    "form": form,
+                    "error": "Det er ikke nok penger på kontoen",
                 },
             )
 
-    else:
+        reference = form.cleaned_data["reference"]
+
+        account.remove_funds(amount)
+        account.regenerate_external_charge_secret()
+        ExternalCharge.objects.create(
+            bank_account=account,
+            amount=amount,
+            bar_tab_customer=bar_tab_customer,
+            reference=reference,
+        )
+        if account.user.notify_on_deposit:  # change to external charge flag
+            send_external_charge_email(account.user, amount, bar_tab_customer)
+
+        if bar_tab_customer.webhook_url:
+            webhook_payload = {
+                "amount": amount,
+                "reference": reference,
+                "account_name": account.user.get_full_name(),
+                "source_identifier": "societeten",
+            }
+            send_external_charge_webhook(bar_tab_customer.webhook_url, webhook_payload)
+
+        return render(
+            request,
+            "economy/external_charge_success.html",
+            context={
+                "amount": amount,
+                "account_name": account.user.get_full_name(),
+            },
+        )
+
+    elif request.method == "GET":
+        account = SociBankAccount.objects.filter(
+            external_charge_secret=bank_account_secret
+        ).first()
+
+        if not account:
+            return render(
+                request,
+                "economy/external_charge_error.html",
+            )
+
         form = ExternalChargeForm()
-        ctx = {"bank_account_secret": bank_account_secret, "form": form, "error": None}
+        ctx = {"form": form, "error": None}
         return render(
             request,
             "economy/external_charge.html",
@@ -206,3 +236,29 @@ def external_charge_qr_code(request, bank_account_secret):
     response = HttpResponse(content_type="image/png")
     img.save(response, "PNG")
     return response
+
+
+@view_feature_flag_required(settings.EXTERNAL_CHARGING_FEATURE_FLAG)
+def external_charge_webhook(request):
+    if not request.method == "POST":
+        return JsonResponse(
+            data={
+                "success": False,
+                "error": "Invalid requset method. Only POST requests are allowed.",
+            }
+        )
+
+    payload = request.body
+
+    amount = payload["amount"]
+
+    if amount <= 0:
+        return JsonResponse(
+            data={
+                "success": False,
+                "error": "Invalid amount. Amount must be greater than 0.",
+            }
+        )
+
+    reference = payload["reference"]
+    # Todo: Do the rest of the stuff

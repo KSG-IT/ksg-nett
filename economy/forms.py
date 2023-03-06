@@ -26,8 +26,12 @@ class ProductOrderForm(forms.ModelForm):
 
 
 class ExternalChargeForm(forms.Form):
-    amount = forms.IntegerField()
-    bar_tab_customer = forms.ModelChoiceField(queryset=BarTabCustomer.objects.all())
+    amount = forms.IntegerField(label="Beløp", min_value=1, max_value=300, initial=1)
+    bar_tab_customer = forms.ModelChoiceField(
+        queryset=BarTabCustomer.objects.all().order_by("name"),
+        label="Hybel som krysser",
+    )
+    reference = forms.CharField(required=False, label="Referanse (valgfritt)")
 
     def clean(self):
         cleaned_data = super().clean()
