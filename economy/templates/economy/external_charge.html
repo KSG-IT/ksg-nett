@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>KSG-nett digibong</title>
+
+  <style>
+      body {
+          font-family: 'Inter', 'Open Sans', Helvetica, Arial, sans-serif;
+          background-color: #F8F9FA;
+          margin: 0;
+          padding: 8px;
+          font-size: 18px;
+          -webkit-font-smoothing: antialiased;
+          -moz-osx-font-smoothing: grayscale;
+
+      }
+
+      h1 {
+          text-align: center;
+      }
+
+      section {
+          margin: 0 auto;
+          max-width: 600px;
+      }
+
+      form {
+          display: flex;
+          flex-direction: column;
+
+      }
+
+      form > div {
+          display: flex;
+          flex-direction: column;
+          margin-bottom: 1em;
+      }
+
+      form > div > label {
+          margin-bottom: 0.5em;
+      }
+
+      form > div > input {
+          padding: 0.5em;
+      }
+
+      form > input {
+          padding: 0.5em;
+          background-color: #943937;
+          color: #FFFFFF;
+          border: none;
+          border-radius: 4px;
+          cursor: pointer;
+      }
+
+      form > input:hover {
+          background-color: #7A2C2B;
+      }
+
+      section {
+          margin: 0 auto;
+          max-width: 600px;
+      }
+
+      .info-box {
+          background-color: #EAF5FE;
+          border-radius: 4px;
+          padding: 1em;
+          margin-bottom: 1em;
+      }
+  </style>
+</head>
+<body>
+<h1>Societeten digibong</h1>
+
+<section>
+  <div class="info-box">
+    <p>
+      Her kan du krysse en KSG digibong. Du kan krysse bongen med et beløp mellom 0 og 300 kroner.
+      Du kan også legge inn en referanse så vi vet hvem som har krysset.
+    </p>
+  </div>
+</section>
+
+<section>
+  {% if error %}
+
+    <div style="color: red">
+      {{ error }}
+    </div>
+
+  {% endif %}
+
+
+    <form method="post">
+      {% csrf_token %}
+      <div>
+        <label for="id_amount">Beløp</label>
+        <input type="number" name="amount" id="id_amount" pattern="[0-9]*" inputmode="numeric" step="1" min="0"
+               max="300" required>
+      </div>
+      <div>
+        {{ form.bar_tab_customer }}
+      </div>
+
+      <div>
+        {{ form.reference.label_tag }}
+        <input type="text" name="reference" id="id_reference" maxlength="100">
+      </div>
+      <input type="submit" value="Kryss bongen">
+    </form>
+
+</section>
+</body>
+</html>
