@@ -232,7 +232,6 @@ def external_charge_qr_code(request, bank_account_secret):
     qr.make(fit=True)
 
     img = qr.make_image(fill_color="black", back_color="white")
-    img.save("qr.png")
     response = HttpResponse(content_type="image/png")
     img.save(response, "PNG")
     return response
