@@ -133,7 +133,7 @@ def external_charge_view(request, bank_account_secret, *args, **kwargs):
             return render(
                 request,
                 "economy/external_charge.html",
-                context={"form": form},
+                context={"form": form, "production": settings.PRODUCTION},
             )
         amount = form.cleaned_data["amount"]
 
@@ -144,6 +144,7 @@ def external_charge_view(request, bank_account_secret, *args, **kwargs):
                 context={
                     "form": form,
                     "error": f"Beløpet må være større enn 0 og maks {settings.EXTERNAL_CHARGE_MAX_AMOUNT}",
+                    "production": settings.PRODUCTION,
                 },
             )
         bar_tab_customer = form.cleaned_data["bar_tab_customer"]
@@ -164,6 +165,7 @@ def external_charge_view(request, bank_account_secret, *args, **kwargs):
                 context={
                     "form": form,
                     "error": "Det er ikke nok penger på kontoen",
+                    "production": settings.PRODUCTION,
                 },
             )
 
@@ -210,7 +212,7 @@ def external_charge_view(request, bank_account_secret, *args, **kwargs):
             )
 
         form = ExternalChargeForm()
-        ctx = {"form": form, "error": None}
+        ctx = {"form": form, "error": None, "production": settings.PRODUCTION}
         return render(
             request,
             "economy/external_charge.html",

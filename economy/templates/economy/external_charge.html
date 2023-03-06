@@ -74,10 +74,20 @@
 <body>
 <h1>Societeten digibong</h1>
 
+{% if not production %}
+  <div style="color: red">
+    <p>
+      Dette er en testversjon. Dette er ikke gyldig bong på hyblene.
+    </p>
+  </div>
+{% endif %}
+
+
 <section>
   <div class="info-box">
     <p>
-      Her kan du krysse en KSG digibong. Du kan krysse bongen med et beløp mellom 0 og 300 kroner.
+      Her kan du krysse en KSG di
+      gibong. Du kan krysse bongen med et beløp mellom 0 og 300 kroner.
       Du kan også legge inn en referanse så vi vet hvem som har krysset.
     </p>
   </div>
@@ -93,23 +103,23 @@
   {% endif %}
 
 
-    <form method="post">
-      {% csrf_token %}
-      <div>
-        <label for="id_amount">Beløp</label>
-        <input type="number" name="amount" id="id_amount" pattern="[0-9]*" inputmode="numeric" step="1" min="0"
-               max="300" required>
-      </div>
-      <div>
-        {{ form.bar_tab_customer }}
-      </div>
+  <form method="post">
+    {% csrf_token %}
+    <div>
+      <label for="id_amount">Beløp</label>
+      <input type="number" name="amount" id="id_amount" pattern="[0-9]*" inputmode="numeric" step="1" min="0"
+             max="300" required>
+    </div>
+    <div>
+      {{ form.bar_tab_customer }}
+    </div>
 
-      <div>
-        {{ form.reference.label_tag }}
-        <input type="text" name="reference" id="id_reference" maxlength="100">
-      </div>
-      <input type="submit" value="Kryss bongen">
-    </form>
+    <div>
+      {{ form.reference.label_tag }}
+      <input type="text" name="reference" id="id_reference" maxlength="100">
+    </div>
+    <input type="submit" value="Kryss bongen">
+  </form>
 
 </section>
 </body>
