@@ -638,30 +638,38 @@ class DeleteDepositMutation(DjangoDeleteMutation):
 class ApproveDepositMutation(graphene.Mutation):
     class Arguments:
         deposit_id = graphene.ID(required=True)
+        corrected_amount = graphene.Int()
 
     deposit = graphene.Field(DepositNode)
 
-    # Create custom permission for this
     @gql_has_permissions("economy.approve_deposit")
-    def mutate(self, info, deposit_id):
+    def mutate(self, info, deposit_id, corrected_amount=None, *args, **kwargs):
         deposit_id = disambiguate_id(deposit_id)
         deposit = Deposit.objects.get(id=deposit_id)
+
+        if deposit.deposit_method == Deposit.DepositMethod.STRIPE:
+            raise Exception("Cannot manually approve Stripe deposits")
 
         if deposit.approved:
             # Already approved. Do nothing
             return ApproveDepositMutation(deposit=deposit)
 
-        with transaction.atomic():
-            from economy.utils import send_deposit_approved_email
+        from economy.utils import send_deposit_approved_email
 
-            deposit.approved_at = timezone.now()
-            deposit.approved_by = info.context.user
-            deposit.approved = True
-            deposit.save()
-            deposit.account.add_funds(deposit.amount)
-            if deposit.account.user.notify_on_deposit:
-                send_deposit_approved_email(deposit)
-            return ApproveDepositMutation(deposit=deposit)
+        deposit.approved_at = timezone.now()
+        deposit.approved_by = info.context.user
+        deposit.approved = True
+
+        if corrected_amount:
+            deposit.amount = corrected_amount
+            deposit.resolved_amount = corrected_amount
+
+        deposit.save()
+        deposit.account.add_funds(deposit.amount)
+        if deposit.account.user.notify_on_deposit:
+            send_deposit_approved_email(deposit)
+
+        return ApproveDepositMutation(deposit=deposit)
 
 
 class InvalidateDepositMutation(graphene.Mutation):
