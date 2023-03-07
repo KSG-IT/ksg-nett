@@ -5,7 +5,7 @@ import calendar
 
 import pytz
 from django.conf import settings
-from django.core.exceptions import SuspiciousOperation
+from django.core.exceptions import SuspiciousOperation, PermissionDenied
 from django.db import transaction
 from graphene import Node
 from django.db.models import Q, Sum
@@ -21,6 +21,7 @@ from graphene_django import DjangoConnectionField
 from graphene_django_cud.util import disambiguate_id
 from twisted.mail._except import IllegalOperation
 
+from api.exceptions import InsufficientFundsException
 from common.decorators import (
     gql_has_permissions,
     gql_login_required,
@@ -531,16 +532,32 @@ class PlaceProductOrderMutation(graphene.Mutation):
         user_id = graphene.ID(required=True)
         product_id = graphene.ID(required=True)
         order_size = graphene.Int(required=True)
+        overcharge = graphene.Boolean(required=False)
 
     product_order = graphene.Field(ProductOrderNode)
 
     @gql_has_permissions("economy.add_productorder")
     def mutate(
-        self, info, soci_session_id, user_id, product_id, order_size, *args, **kwargs
+        self,
+        info,
+        soci_session_id,
+        user_id,
+        product_id,
+        order_size,
+        overcharge=False,
+        *args,
+        **kwargs,
     ):
         """
-        Intentionally allows a user to be overdrawn
+        Overcharging is only allowed if the user has the permission to do so. Overcharging means
+        that the user can order more than the amount of money they have in their bank account.
         """
+
+        request_user = info.context.user
+        if overcharge and not request_user.has_perm("economy.overcharge_product_order"):
+            # Check this early to simplify rest of business logic
+            raise PermissionDenied("You do not have permission to overcharge")
+
         soci_session_id = disambiguate_id(soci_session_id)
         session = SociSession.objects.get(id=soci_session_id)
         if session.closed:
@@ -553,7 +570,10 @@ class PlaceProductOrderMutation(graphene.Mutation):
         product = SociProduct.objects.get(id=product_id)
         account = user.bank_account
         cost = product.price * order_size
-        with transaction.atomic():
+
+        can_afford = cost <= account.balance
+
+        if can_afford:
             account.remove_funds(cost)
             product_order = ProductOrder.objects.create(
                 source=account,
@@ -562,6 +582,20 @@ class PlaceProductOrderMutation(graphene.Mutation):
                 cost=cost,
                 session=session,
             )
+            return PlaceProductOrderMutation(product_order=product_order)
+
+        # Cannot afford it and overcharge is not allowed
+        if not overcharge:
+            raise InsufficientFundsException("Insufficient funds")
+
+        account.remove_funds(cost)
+        product_order = ProductOrder.objects.create(
+            source=account,
+            product=product,
+            order_size=order_size,
+            cost=cost,
+            session=session,
+        )
         return PlaceProductOrderMutation(product_order=product_order)
 
 
