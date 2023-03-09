@@ -27,6 +27,7 @@ from common.decorators import (
     gql_login_required,
 )
 from common.util import check_feature_flag
+from economy.emails import send_deposit_invalidated_email
 from economy.models import (
     SociProduct,
     Deposit,
@@ -721,13 +722,15 @@ class InvalidateDepositMutation(graphene.Mutation):
             # Already invalidated. Do nothing
             return ApproveDepositMutation(deposit=deposit)
 
-        with transaction.atomic():
-            deposit.approved_at = None
-            deposit.approved_by = None
-            deposit.approved = False
-            deposit.save()
-            deposit.account.remove_funds(deposit.amount)
-            return InvalidateDepositMutation(deposit=deposit)
+        deposit.approved_at = None
+        deposit.approved_by = None
+        deposit.approved = False
+        deposit.save()
+        deposit.account.remove_funds(deposit.resolved_amount)
+        if deposit.account.user.notify_on_deposit:
+            send_deposit_invalidated_email(deposit)
+
+        return InvalidateDepositMutation(deposit=deposit)
 
 
 class CreateSociOrderSessionMutation(graphene.Mutation):
