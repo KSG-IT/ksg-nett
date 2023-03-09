@@ -149,6 +149,11 @@ class SociSession(models.Model):
     Every session has a user that signed off, i.e. who authenticated the session.
     """
 
+    class Meta:
+        permissions = [
+            ("can_overcharge", "Can overcharge"),
+        ]
+
     class Type(models.TextChoices):
         SOCIETETEN = ("SOCIETETEN", "Societeten")
         STILLETIME = ("STILLETIME", "Stilletime")

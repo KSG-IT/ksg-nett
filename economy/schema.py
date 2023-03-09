@@ -5,7 +5,7 @@ import calendar
 
 import pytz
 from django.conf import settings
-from django.core.exceptions import SuspiciousOperation
+from django.core.exceptions import SuspiciousOperation, PermissionDenied
 from django.db import transaction
 from graphene import Node
 from django.db.models import Q, Sum
@@ -21,11 +21,13 @@ from graphene_django import DjangoConnectionField
 from graphene_django_cud.util import disambiguate_id
 from twisted.mail._except import IllegalOperation
 
+from api.exceptions import InsufficientFundsException
 from common.decorators import (
     gql_has_permissions,
     gql_login_required,
 )
 from common.util import check_feature_flag
+from economy.emails import send_deposit_invalidated_email
 from economy.models import (
     SociProduct,
     Deposit,
@@ -531,16 +533,32 @@ class PlaceProductOrderMutation(graphene.Mutation):
         user_id = graphene.ID(required=True)
         product_id = graphene.ID(required=True)
         order_size = graphene.Int(required=True)
+        overcharge = graphene.Boolean(required=False)
 
     product_order = graphene.Field(ProductOrderNode)
 
     @gql_has_permissions("economy.add_productorder")
     def mutate(
-        self, info, soci_session_id, user_id, product_id, order_size, *args, **kwargs
+        self,
+        info,
+        soci_session_id,
+        user_id,
+        product_id,
+        order_size,
+        overcharge=False,
+        *args,
+        **kwargs,
     ):
         """
-        Intentionally allows a user to be overdrawn
+        Overcharging is only allowed if the user has the permission to do so. Overcharging means
+        that the user can order more than the amount of money they have in their bank account.
         """
+
+        request_user = info.context.user
+        if overcharge and not request_user.has_perm("economy.overcharge_product_order"):
+            # Check this early to simplify rest of business logic
+            raise PermissionDenied("You do not have permission to overcharge")
+
         soci_session_id = disambiguate_id(soci_session_id)
         session = SociSession.objects.get(id=soci_session_id)
         if session.closed:
@@ -553,7 +571,10 @@ class PlaceProductOrderMutation(graphene.Mutation):
         product = SociProduct.objects.get(id=product_id)
         account = user.bank_account
         cost = product.price * order_size
-        with transaction.atomic():
+
+        can_afford = cost <= account.balance
+
+        if can_afford:
             account.remove_funds(cost)
             product_order = ProductOrder.objects.create(
                 source=account,
@@ -562,6 +583,20 @@ class PlaceProductOrderMutation(graphene.Mutation):
                 cost=cost,
                 session=session,
             )
+            return PlaceProductOrderMutation(product_order=product_order)
+
+        # Cannot afford it and overcharge is not allowed
+        if not overcharge:
+            raise InsufficientFundsException("Insufficient funds")
+
+        account.remove_funds(cost)
+        product_order = ProductOrder.objects.create(
+            source=account,
+            product=product,
+            order_size=order_size,
+            cost=cost,
+            session=session,
+        )
         return PlaceProductOrderMutation(product_order=product_order)
 
 
@@ -638,30 +673,38 @@ class DeleteDepositMutation(DjangoDeleteMutation):
 class ApproveDepositMutation(graphene.Mutation):
     class Arguments:
         deposit_id = graphene.ID(required=True)
+        corrected_amount = graphene.Int()
 
     deposit = graphene.Field(DepositNode)
 
-    # Create custom permission for this
     @gql_has_permissions("economy.approve_deposit")
-    def mutate(self, info, deposit_id):
+    def mutate(self, info, deposit_id, corrected_amount=None, *args, **kwargs):
         deposit_id = disambiguate_id(deposit_id)
         deposit = Deposit.objects.get(id=deposit_id)
+
+        if deposit.deposit_method == Deposit.DepositMethod.STRIPE:
+            raise Exception("Cannot manually approve Stripe deposits")
 
         if deposit.approved:
             # Already approved. Do nothing
             return ApproveDepositMutation(deposit=deposit)
 
-        with transaction.atomic():
-            from economy.utils import send_deposit_approved_email
+        from economy.utils import send_deposit_approved_email
 
-            deposit.approved_at = timezone.now()
-            deposit.approved_by = info.context.user
-            deposit.approved = True
-            deposit.save()
-            deposit.account.add_funds(deposit.amount)
-            if deposit.account.user.notify_on_deposit:
-                send_deposit_approved_email(deposit)
-            return ApproveDepositMutation(deposit=deposit)
+        deposit.approved_at = timezone.now()
+        deposit.approved_by = info.context.user
+        deposit.approved = True
+
+        if corrected_amount:
+            deposit.amount = corrected_amount
+            deposit.resolved_amount = corrected_amount
+
+        deposit.save()
+        deposit.account.add_funds(deposit.amount)
+        if deposit.account.user.notify_on_deposit:
+            send_deposit_approved_email(deposit)
+
+        return ApproveDepositMutation(deposit=deposit)
 
 
 class InvalidateDepositMutation(graphene.Mutation):
@@ -679,13 +722,15 @@ class InvalidateDepositMutation(graphene.Mutation):
             # Already invalidated. Do nothing
             return ApproveDepositMutation(deposit=deposit)
 
-        with transaction.atomic():
-            deposit.approved_at = None
-            deposit.approved_by = None
-            deposit.approved = False
-            deposit.save()
-            deposit.account.remove_funds(deposit.amount)
-            return InvalidateDepositMutation(deposit=deposit)
+        deposit.approved_at = None
+        deposit.approved_by = None
+        deposit.approved = False
+        deposit.save()
+        deposit.account.remove_funds(deposit.resolved_amount)
+        if deposit.account.user.notify_on_deposit:
+            send_deposit_invalidated_email(deposit)
+
+        return InvalidateDepositMutation(deposit=deposit)
 
 
 class CreateSociOrderSessionMutation(graphene.Mutation):
