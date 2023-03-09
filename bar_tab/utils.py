@@ -131,6 +131,7 @@ def send_invoice_email(invoice, user):
     return send_email(
         f"BSF Faktura #{invoice.id} - {invoice.customer.name}",
         message=content,
+        reply_to="ksg-soci-okonomi@samfundet.no og",
         fail_silently=False,
         html_message=html_content,
         recipients=[invoice.customer.email],
