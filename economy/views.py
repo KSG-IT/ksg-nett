@@ -179,6 +179,7 @@ def external_charge_view(request, bank_account_secret, *args, **kwargs):
             bar_tab_customer=bar_tab_customer,
             reference=reference,
         )
+        # ToDo: add or create a baartab and add an entry
         if account.user.notify_on_deposit:  # change to external charge flag
             send_external_charge_email(account.user, amount, bar_tab_customer)
 
