@@ -7,7 +7,7 @@ def send_deposit_invalidated_email(deposit):
     content = f"""
         Hei!
 
-        Ditt innskudd på {deposit.amount} kr har blitt underkjent.
+        Ditt innskudd på {deposit.resolved_amount} kr har blitt underkjent.
         """
 
     html_content = f"""
@@ -15,7 +15,7 @@ def send_deposit_invalidated_email(deposit):
         <br>
         <br>
         
-        Ditt innskudd på {deposit.amount} kr har blitt underkjent.
+        Ditt innskudd på {deposit.resolved_amount} kr har blitt underkjent.
     """
 
     send_email(
