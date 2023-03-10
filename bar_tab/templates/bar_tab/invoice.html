@@ -1,9 +1,9 @@
 {% load static %}
 {% load ksg_helpers %}
-
+<p>{{ invoice.customer.name }}</p>
 <head>
   <meta charset="UTF-8">
-  <title>Faktura lol</title>
+  <title>KSG-nett faktura: {{ invoice.customer.name }}-{{ invoice.id }}</title>
   <link href="https://fonts.googleapis.com/css?family=Work+Sans:300,400,600,700&display=swap" rel="stylesheet">
   <style type="text/css">
 
@@ -305,29 +305,26 @@
           <td class="tar smallcol">{{ home_sum | floatformat:"2" | format_to_comma }} kr</td>
         </tr>
         </tbody>
-
-
       </table>
 
-      <h6>Oppsummert per vare/navn</h6>
       <table class="order-table">
         <thead>
         <tr>
-          <th class="tal smallcol">Hvem</th>
-          <td class="tal smallcol"></td>
-          <td class="tal smallcol"></td>
-          <td class="tal smallcol"></td>
-          <th class="tar smallcol">Sum</th>
+          <th class="tal smallcol" style="font-size: 14px">Oppsummering</th>
+          <th class="tal smallcol"></th>
+          <th class="tal smallcol"></th>
+          <th class="tal smallcol"></th>
+          <th class="tar smallcol"></th>
         </tr>
         </thead>
         <tbody>
-        {% for order in home_orders_summarized_by_name %}
+        {% for name, cost in home_orders_summarized_by_name.items %}
           <tr>
-            <td class="tal smallcol">{{ order.name }}</td>
+            <td class="tal smallcol">{{ name }}</td>
             <td class="tal smallcol"></td>
             <td class="tal smallcol"></td>
             <td class="tal smallcol"></td>
-            <td class="tar smallcol">{{ order.cost | floatformat:"2" | format_to_comma }} kr</td>
+            <td class="tar smallcol">{{ cost | floatformat:"2" | format_to_comma }} kr</td>
           </tr>
         {% endfor %}
         </tbody>
@@ -363,32 +360,29 @@
           </tr>
           </tbody>
         </table>
-        <h6>Oppsummert per vare/navn</h6>
         <table class="order-table">
           <thead>
           <tr>
-            <th class="tal smallcol">Hvem</th>
-            <td class="tal smallcol"></td>
-            <td class="tal smallcol"></td>
-            <td class="tal smallcol"></td>
-            <th class="tar smallcol">Sum</th>
+            <th class="tal smallcol" style="font-size: 14px">Oppsummering</th>
+            <th class="tal smallcol"></th>
+            <th class="tal smallcol"></th>
+            <th class="tal smallcol"></th>
+            <th class="tar smallcol"></th>
           </tr>
           </thead>
           <tbody>
-          {% for order in home_orders_summarized_by_name %}
+          {% for name, cost in away_orders_summarized_by_name.items %}
             <tr>
-              <td class="tal smallcol">{{ order.name }}</td>
+              <td class="tal smallcol">{{ name }}</td>
               <td class="tal smallcol"></td>
               <td class="tal smallcol"></td>
               <td class="tal smallcol"></td>
-              <td class="tar smallcol">{{ order.cost | floatformat:"2" | format_to_comma }} kr</td>
+              <td class="tar smallcol">{{ cost | floatformat:"2" | format_to_comma }} kr</td>
             </tr>
           {% endfor %}
           </tbody>
         </table>
       {% endif %}
-
-
       <table class="summary-table">
         <tbody>
         <tr>
