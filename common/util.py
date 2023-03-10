@@ -248,7 +248,7 @@ def send_email(
     message="",
     html_message="",
     sender="ksg-nett-no-reply@samfundet.no",
-    reply_to=None,
+    reply_to=[],
     recipients=[],
     attachments=None,
     cc=[],
