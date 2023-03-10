@@ -671,7 +671,7 @@ class DeleteDepositMutation(DjangoDeleteMutation):
         is_my_deposit = obj.account = user.bank_account
 
         if not (has_permission or is_my_deposit):
-            raise PermissionError
+            raise PermissionError("You do not have permission to delete this deposit")
 
         return obj
 
