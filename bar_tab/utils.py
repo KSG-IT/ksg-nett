@@ -80,11 +80,43 @@ def create_pdfs_from_invoices(invoices):
 def create_pdf_file(invoice):
     orders = invoice.bar_tab.orders.filter(customer=invoice.customer)
     away, home = orders.filter(away=True), orders.filter(away=False)
+
+    away_orders_summarized_by_name = []
+    for order in away:
+        existing = [
+            existing_order
+            for existing_order in away_orders_summarized_by_name
+            if existing_order["name"] == order.name
+        ]
+        if existing:
+            existing[0]["cost"] += order.cost
+        else:
+            away_orders_summarized_by_name.append(
+                {"name": order.name, "cost": order.cost}
+            )
+
+    home_orders_summarized_by_name = []
+    for order in home:
+        print(order)
+        existing = [
+            existing_order
+            for existing_order in home_orders_summarized_by_name
+            if existing_order["name"] == order.name
+        ]
+        if existing:
+            existing[0]["cost"] += order.cost
+        else:
+            home_orders_summarized_by_name.append(
+                {"name": order.name, "cost": order.cost}
+            )
+
     context = {
         "invoice": invoice,
         "away_orders": away,
         "away_sum": sum([order.cost for order in away]),
         "home_orders": home,
+        "away_orders_summarized_by_name": away_orders_summarized_by_name,
+        "home_orders_summarized_by_name": home_orders_summarized_by_name,
         "home_sum": sum([order.cost for order in home]),
     }
     html_content = render_to_string(
