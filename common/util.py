@@ -248,6 +248,7 @@ def send_email(
     message="",
     html_message="",
     sender="ksg-nett-no-reply@samfundet.no",
+    reply_to=[],
     recipients=[],
     attachments=None,
     cc=[],
@@ -260,7 +261,9 @@ def send_email(
     if not message and html_message:
         message = strip_tags(html_message)
 
-    email = EmailMultiAlternatives(subject, message, sender, recipients, bcc=bcc)
+    email = EmailMultiAlternatives(
+        subject, message, sender, recipients, cc=cc, bcc=bcc, reply_to=reply_to
+    )
 
     if html_message:
         email.attach_alternative(html_message, "text/html")

@@ -215,7 +215,7 @@ MEDIA_ROOT = "media/"
 MEDIA_URL = "http://localhost:8000/media/"
 
 APP_URL = "http://localhost:3012"
-BASE_URL = "localhost:8000"
+BASE_URL = "http://localhost:8000"
 
 MAX_MEDIA_SIZE = 128 * (1024**2)
 
@@ -278,13 +278,16 @@ STRIPE_PERCENTAGE_FEE = 2.4
 
 DEPOSIT_TIME_RESTRICTION_HOUR = os.environ.get("DEPOSIT_TIME_RESTRICTION_HOUR", 20)
 
-VERSION = "2023.3.1"
+VERSION = "2023.3.2"
 
 # Feature flag keys
 STRIPE_INTEGRATION_FEATURE_FLAG = "stripe_integration"
 BANK_TRANSFER_DEPOSIT_FEATURE_FLAG = "bank_transfer_deposit"
 DEPOSIT_TIME_RESTRICTIONS_FEATURE_FLAG = "deposit_time_restrictions"
+EXTERNAL_CHARGING_FEATURE_FLAG = "external_charging"
 
+
+EXTERNAL_CHARGE_MAX_AMOUNT = os.environ.get("EXTERNAL_CHARGE_MAX_AMOUNT", 300)
 
 # Channels
 ASGI_APPLICATION = "ksg_nett.routing.application"

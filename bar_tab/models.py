@@ -91,6 +91,8 @@ class BarTabCustomer(models.Model):
     short_name = models.CharField(max_length=32)
     email = models.EmailField()
 
+    webhook_url = models.CharField(default=None, max_length=255, blank=True, null=True)
+
     def __str__(self):
         return f"{self.name}"
 
