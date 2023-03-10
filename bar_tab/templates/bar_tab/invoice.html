@@ -179,12 +179,12 @@
       .summary-table th {
           border-bottom: 1px solid #888;
           text-align: left;
-          font-size: 14px;
+          font-size: 12px;
       }
 
       .summary-table td {
           padding-top: 0.3em;
-          font-size: 14px;
+          font-size: 12px;
       }
 
 
@@ -296,6 +296,7 @@
             <td class="tar smallcol order">{{ order.cost | floatformat:"2" | format_to_comma }} kr</td>
           </tr>
         {% endfor %}
+
         <tr>
           <td class="tal smallcol">Total</td>
           <td class="tal smallcol"></td>
@@ -303,6 +304,32 @@
           <td class="tal smallcol"></td>
           <td class="tar smallcol">{{ home_sum | floatformat:"2" | format_to_comma }} kr</td>
         </tr>
+        </tbody>
+
+
+      </table>
+
+      <h6>Oppsummert per vare/navn</h6>
+      <table class="order-table">
+        <thead>
+        <tr>
+          <th class="tal smallcol">Hvem</th>
+          <td class="tal smallcol"></td>
+          <td class="tal smallcol"></td>
+          <td class="tal smallcol"></td>
+          <th class="tar smallcol">Sum</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for order in home_orders_summarized_by_name %}
+          <tr>
+            <td class="tal smallcol">{{ order.name }}</td>
+            <td class="tal smallcol"></td>
+            <td class="tal smallcol"></td>
+            <td class="tal smallcol"></td>
+            <td class="tar smallcol">{{ order.cost | floatformat:"2" | format_to_comma }} kr</td>
+          </tr>
+        {% endfor %}
         </tbody>
       </table>
       {% if away_orders %}
@@ -334,6 +361,29 @@
             <td class="tal smallcol"></td>
             <td class="tar smallcol">{{ away_sum | floatformat:"2" | format_to_comma }} kr</td>
           </tr>
+          </tbody>
+        </table>
+        <h6>Oppsummert per vare/navn</h6>
+        <table class="order-table">
+          <thead>
+          <tr>
+            <th class="tal smallcol">Hvem</th>
+            <td class="tal smallcol"></td>
+            <td class="tal smallcol"></td>
+            <td class="tal smallcol"></td>
+            <th class="tar smallcol">Sum</th>
+          </tr>
+          </thead>
+          <tbody>
+          {% for order in home_orders_summarized_by_name %}
+            <tr>
+              <td class="tal smallcol">{{ order.name }}</td>
+              <td class="tal smallcol"></td>
+              <td class="tal smallcol"></td>
+              <td class="tal smallcol"></td>
+              <td class="tar smallcol">{{ order.cost | floatformat:"2" | format_to_comma }} kr</td>
+            </tr>
+          {% endfor %}
           </tbody>
         </table>
       {% endif %}
@@ -368,5 +418,6 @@
       </table>
     </div>
   </div>
+
 </div>
 </body>
