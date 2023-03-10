@@ -1,6 +1,6 @@
 from common.util import send_email
 from django.db.models import Sum
-from bar_tab.models import BarTab
+from bar_tab.models import BarTab, BarTabOrder
 from tempfile import NamedTemporaryFile
 
 from django.conf import settings
@@ -81,34 +81,42 @@ def create_pdf_file(invoice):
     orders = invoice.bar_tab.orders.filter(customer=invoice.customer)
     away, home = orders.filter(away=True), orders.filter(away=False)
 
-    away_orders_summarized_by_name = []
-    for order in away:
-        existing = [
-            existing_order
-            for existing_order in away_orders_summarized_by_name
-            if existing_order["name"] == order.name
-        ]
-        if existing:
-            existing[0]["cost"] += order.cost
-        else:
-            away_orders_summarized_by_name.append(
-                {"name": order.name, "cost": order.cost}
-            )
+    bong_away = away.filter(type=BarTabOrder.Type.BONG)
+    bong_home = home.filter(type=BarTabOrder.Type.BONG)
+    list_away = away.filter(type=BarTabOrder.Type.LIST)
+    list_home = home.filter(type=BarTabOrder.Type.LIST)
 
-    home_orders_summarized_by_name = []
-    for order in home:
-        print(order)
-        existing = [
-            existing_order
-            for existing_order in home_orders_summarized_by_name
-            if existing_order["name"] == order.name
-        ]
-        if existing:
-            existing[0]["cost"] += order.cost
+    away_orders_summarized_by_name = {}
+    for order in list_away:
+        cost = away_orders_summarized_by_name.get(order.name, None)
+
+        if cost:
+            away_orders_summarized_by_name[order.name] += order.cost
         else:
-            home_orders_summarized_by_name.append(
-                {"name": order.name, "cost": order.cost}
-            )
+            away_orders_summarized_by_name.update({order.name: order.cost})
+
+    for order in bong_away:
+        cost = away_orders_summarized_by_name.get(order.name, None)
+
+        if cost:
+            away_orders_summarized_by_name[BarTabOrder.Type.BONG] += order.cost
+        else:
+            away_orders_summarized_by_name.update({BarTabOrder.Type.BONG: order.cost})
+
+    home_orders_summarized_by_name = {}
+    for order in list_home:
+        cost = home_orders_summarized_by_name.get(order.name, None)
+        if cost:
+            home_orders_summarized_by_name[order.name] += order.cost
+        else:
+            home_orders_summarized_by_name.update({order.name: order.cost})
+
+    for order in bong_home:
+        cost = home_orders_summarized_by_name.get(order.name, None)
+        if cost:
+            home_orders_summarized_by_name[BarTabOrder.Type.BONG] += order.cost
+        else:
+            home_orders_summarized_by_name.update({BarTabOrder.Type.BONG: order.cost})
 
     context = {
         "invoice": invoice,
@@ -119,6 +127,7 @@ def create_pdf_file(invoice):
         "home_orders_summarized_by_name": home_orders_summarized_by_name,
         "home_sum": sum([order.cost for order in home]),
     }
+
     html_content = render_to_string(
         template_name="bar_tab/invoice.html", context=context
     )
