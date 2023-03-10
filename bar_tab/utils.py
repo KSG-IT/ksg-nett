@@ -81,42 +81,32 @@ def create_pdf_file(invoice):
     orders = invoice.bar_tab.orders.filter(customer=invoice.customer)
     away, home = orders.filter(away=True), orders.filter(away=False)
 
-    bong_away = away.filter(type=BarTabOrder.Type.BONG)
-    bong_home = home.filter(type=BarTabOrder.Type.BONG)
-    list_away = away.filter(type=BarTabOrder.Type.LIST)
-    list_home = home.filter(type=BarTabOrder.Type.LIST)
-
     away_orders_summarized_by_name = {}
-    for order in list_away:
-        cost = away_orders_summarized_by_name.get(order.name, None)
-
-        if cost:
-            away_orders_summarized_by_name[order.name] += order.cost
-        else:
-            away_orders_summarized_by_name.update({order.name: order.cost})
-
-    for order in bong_away:
-        cost = away_orders_summarized_by_name.get(order.name, None)
-
-        if cost:
-            away_orders_summarized_by_name[BarTabOrder.Type.BONG] += order.cost
-        else:
-            away_orders_summarized_by_name.update({BarTabOrder.Type.BONG: order.cost})
-
     home_orders_summarized_by_name = {}
-    for order in list_home:
-        cost = home_orders_summarized_by_name.get(order.name, None)
-        if cost:
-            home_orders_summarized_by_name[order.name] += order.cost
-        else:
-            home_orders_summarized_by_name.update({order.name: order.cost})
 
-    for order in bong_home:
-        cost = home_orders_summarized_by_name.get(order.name, None)
-        if cost:
-            home_orders_summarized_by_name[BarTabOrder.Type.BONG] += order.cost
+    for order in home:
+        if order.type == BarTabOrder.Type.BONG:
+            name = "Bong"
         else:
-            home_orders_summarized_by_name.update({BarTabOrder.Type.BONG: order.cost})
+            name = order.name
+
+        cost = home_orders_summarized_by_name.get(name, None)
+        if cost:
+            home_orders_summarized_by_name[name] += order.cost
+        else:
+            home_orders_summarized_by_name.update({name: order.cost})
+
+    for order in away:
+        if order.type == BarTabOrder.Type.BONG:
+            name = "Bong"
+        else:
+            name = order.name
+
+        cost = away_orders_summarized_by_name.get(name, None)
+        if cost:
+            away_orders_summarized_by_name[name] += order.cost
+        else:
+            away_orders_summarized_by_name.update({name: order.cost})
 
     context = {
         "invoice": invoice,
