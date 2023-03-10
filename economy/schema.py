@@ -271,7 +271,6 @@ class DepositQuery(graphene.ObjectType):
         return Deposit.objects.filter(
             account__user__first_name__contains=q,
             approved=not unverified_only,
-            deposit_method=Deposit.DepositMethod.BANK_TRANSFER,
         ).order_by("-created_at")
 
     @gql_has_permissions("economy.approve_deposit")
@@ -640,14 +639,21 @@ class DeleteSociSessionMutation(DjangoDeleteMutation):
         model = SociSession
 
 
-class CreateSociBankAccountMutation(DjangoCreateMutation):
-    class Meta:
-        model = SociBankAccount
-
-
 class PatchSociBankAccountMutation(DjangoPatchMutation):
     class Meta:
         model = SociBankAccount
+        exclude_fields = ("balance",)
+
+    @classmethod
+    def before_mutate(cls, root, info, input, id):
+        user = info.context.user
+        id = int(disambiguate_id(id))
+        if user.bank_account.id != id or not user.has_perm(
+            "economy.change_socibankaccount"
+        ):
+            raise PermissionError("You do not have permission to change this account")
+
+        return input
 
 
 class DeleteDepositMutation(DjangoDeleteMutation):
@@ -721,6 +727,9 @@ class InvalidateDepositMutation(graphene.Mutation):
         if not deposit.approved:
             # Already invalidated. Do nothing
             return ApproveDepositMutation(deposit=deposit)
+
+        if deposit.deposit_method == Deposit.DepositMethod.STRIPE:
+            raise Exception("Cannot manually invalidate Stripe deposits")
 
         deposit.approved_at = None
         deposit.approved_by = None
@@ -1048,7 +1057,6 @@ class EconomyMutations(graphene.ObjectType):
     delete_soci_session = DeleteSociSessionMutation.Field()
     close_soci_session = CloseSociSessionMutation.Field()
 
-    create_soci_bank_account = CreateSociBankAccountMutation.Field()
     patch_soci_bank_account = PatchSociBankAccountMutation.Field()
 
     create_deposit = CreateDepositMutation.Field()
