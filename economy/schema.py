@@ -673,6 +673,16 @@ class DeleteDepositMutation(DjangoDeleteMutation):
         if not (has_permission or is_my_deposit):
             raise PermissionError("You do not have permission to delete this deposit")
 
+        if obj.deposit_method == Deposit.DepositMethod.STRIPE and obj.stripe_payment_id:
+            import stripe
+
+            stripe.api_key = settings.STRIPE_SECRET_KEY
+
+            stripe.PaymentIntent.cancel(
+                obj.stripe_payment_id,
+                cancellation_reason="requested_by_customer",
+            )
+
         return obj
 
 
