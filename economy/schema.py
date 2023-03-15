@@ -648,7 +648,7 @@ class PatchSociBankAccountMutation(DjangoPatchMutation):
     def before_mutate(cls, root, info, input, id):
         user = info.context.user
         id = int(disambiguate_id(id))
-        if user.bank_account.id != id or not user.has_perm(
+        if user.bank_account.id != id and not user.has_perm(
             "economy.change_socibankaccount"
         ):
             raise PermissionError("You do not have permission to change this account")
