@@ -384,10 +384,7 @@ class ScheduleRoster(models.Model):
     )
 
     user = models.ForeignKey(
-        User,
-        blank=False,
-        null=False,
-        on_delete=models.CASCADE,
+        User, blank=False, null=False, on_delete=models.CASCADE, related_name="rosters"
     )
 
     autofill_as = models.CharField(
