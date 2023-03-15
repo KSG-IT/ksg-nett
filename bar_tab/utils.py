@@ -1,6 +1,6 @@
 from common.util import send_email
 from django.db.models import Sum
-from bar_tab.models import BarTab
+from bar_tab.models import BarTab, BarTabOrder
 from tempfile import NamedTemporaryFile
 
 from django.conf import settings
@@ -80,13 +80,44 @@ def create_pdfs_from_invoices(invoices):
 def create_pdf_file(invoice):
     orders = invoice.bar_tab.orders.filter(customer=invoice.customer)
     away, home = orders.filter(away=True), orders.filter(away=False)
+
+    away_orders_summarized_by_name = {}
+    home_orders_summarized_by_name = {}
+
+    for order in home:
+        if order.type == BarTabOrder.Type.BONG:
+            name = "Bong"
+        else:
+            name = order.name
+
+        cost = home_orders_summarized_by_name.get(name, None)
+        if cost:
+            home_orders_summarized_by_name[name] += order.cost
+        else:
+            home_orders_summarized_by_name.update({name: order.cost})
+
+    for order in away:
+        if order.type == BarTabOrder.Type.BONG:
+            name = "Bong"
+        else:
+            name = order.name
+
+        cost = away_orders_summarized_by_name.get(name, None)
+        if cost:
+            away_orders_summarized_by_name[name] += order.cost
+        else:
+            away_orders_summarized_by_name.update({name: order.cost})
+
     context = {
         "invoice": invoice,
         "away_orders": away,
         "away_sum": sum([order.cost for order in away]),
         "home_orders": home,
+        "away_orders_summarized_by_name": away_orders_summarized_by_name,
+        "home_orders_summarized_by_name": home_orders_summarized_by_name,
         "home_sum": sum([order.cost for order in home]),
     }
+
     html_content = render_to_string(
         template_name="bar_tab/invoice.html", context=context
     )
@@ -131,6 +162,7 @@ def send_invoice_email(invoice, user):
     return send_email(
         f"BSF Faktura #{invoice.id} - {invoice.customer.name}",
         message=content,
+        reply_to=["ksg-soci-okonomi@samfundet.no og"],
         fail_silently=False,
         html_message=html_content,
         recipients=[invoice.customer.email],
