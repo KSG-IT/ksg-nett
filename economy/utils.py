@@ -288,3 +288,4 @@ def create_new_stripe_customer(customer):
         name=customer.get_full_name(), email=customer.email, phone=customer.phone
     )
     return customer.id
+

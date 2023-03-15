@@ -9,7 +9,7 @@ from django.core.exceptions import SuspiciousOperation
 from django.db import transaction
 from graphene import Node
 from django.db.models import Q, Sum
-from django.db.models.functions import Coalesce
+from django.db.models.functions import Coalesce, TruncDay, TruncDate
 from graphene_django import DjangoObjectType
 from django.utils import timezone
 from graphene_django_cud.mutations import (
@@ -40,6 +40,23 @@ from economy.models import (
 )
 from schedules.models import Schedule
 from users.models import User
+
+
+class ExpenditureDay(graphene.ObjectType):
+    day = graphene.Date()
+    sum = graphene.Int()
+
+
+class TotalExpenditure(graphene.ObjectType):
+    data = graphene.List(ExpenditureDay)
+    total = graphene.Int()
+
+
+class TotalExpenditureDateRange(graphene.Enum):
+    THIS_MONTH = "this-month"
+    THIS_SEMESTER = "this-semester"
+    ALL_SEMESTERS = "all-semesters"
+    ALL_TIME = "all-time"
 
 
 class BankAccountActivity(graphene.ObjectType):
@@ -300,9 +317,49 @@ class DepositQuery(graphene.ObjectType):
 class ProductOrderQuery(graphene.ObjectType):
     product_order = Node.Field(ProductOrderNode)
     all_product_orders = DjangoConnectionField(ProductOrderNode)
+    product_orders_by_item_and_date = graphene.Field(
+        TotalExpenditure,
+        product_id=graphene.ID(),
+        date_from=graphene.Date(),
+        date_to=graphene.Date(),
+    )
 
     def resolve_all_product_orders(self, info, *args, **kwargs):
         return ProductOrder.objects.all().order_by("-purchased_at")
+
+    def resolve_product_orders_by_item_and_date(
+        self, info, product_id, date_from, date_to, *args, **kwargs
+    ):
+
+        soci_item = disambiguate_id(product_id)
+
+        date_from = timezone.make_aware(
+            datetime.datetime.combine(date_from, datetime.time.min)
+        )
+        date_to = timezone.make_aware(
+            datetime.datetime.combine(date_to, datetime.time.max)
+        )
+
+        product_orders = (
+            ProductOrder.objects.filter(
+                product_id=soci_item, purchased_at__range=(date_from, date_to)
+            )
+            .annotate(date=TruncDate("purchased_at"))
+            .values("date")
+            .annotate(sum=Sum("cost"))
+            .order_by("date")
+        )
+
+        return TotalExpenditure(
+            data=[
+                ExpenditureDay(
+                    day=product_order["date"],
+                    sum=product_order["sum"],
+                )
+                for product_order in product_orders
+            ],
+            total=sum([product_order["sum"] for product_order in product_orders]),
+        )
 
 
 class SociSessionQuery(graphene.ObjectType):
@@ -312,23 +369,6 @@ class SociSessionQuery(graphene.ObjectType):
     def resolve_all_soci_sessions(self, info, *args, **kwargs):
         SociSession.objects.all().delete()
         return SociSession.objects.all().order_by("created_at")
-
-
-class ExpenditureDay(graphene.ObjectType):
-    day = graphene.Date()
-    sum = graphene.Int()
-
-
-class TotalExpenditure(graphene.ObjectType):
-    data = graphene.List(ExpenditureDay)
-    total = graphene.Int()
-
-
-class TotalExpenditureDateRange(graphene.Enum):
-    THIS_MONTH = "this-month"
-    THIS_SEMESTER = "this-semester"
-    ALL_SEMESTERS = "all-semesters"
-    ALL_TIME = "all-time"
 
 
 class SociBankAccountQuery(graphene.ObjectType):
