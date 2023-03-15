@@ -1,5 +1,40 @@
 # CHANGELOG
+## [2023.3.2] - 2023-03-10
 
+### Added
+- Common
+  - reply_to field in send mail util
+- Economy
+  - overcharge argument to add product order mutation
+
+### Changed
+- Economy
+  - Return all deposits in  all_deposits resolver instead of only bank transfer type
+  - Add Invalidate mutation deposit method check
+    - Cannot invalidate stripe deposits
+  - Bar tab invoice
+    - Conditional away orders rendering
+    - Hardcode reference email
+    - Add summary per item/customer to invoice
+
+### Fixed
+- Economy
+  - Missing permission check for bank account mutation
+  - Exclude balance from bank account mutation
+  - QR code being written to disc
+- Common
+  - Missing cc kwarg in send mail util
+
+## [2023.3.1] - 2023-03-04
+
+### Added
+- Common: Flags to enable/disable features
+
+### Changed
+- Economy: Stripe webhook add refund event
+- Economy: Create deposit mutation.
+    * Handle stripe and bank transfer payments
+	
 ## [v2023.2.3] - 2023-02-14
 
 ### Changed

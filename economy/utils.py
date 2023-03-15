@@ -13,7 +13,7 @@ from economy.schema import BankAccountActivity
 def parse_deposit(deposit):
     return BankAccountActivity(
         name="Innskudd",
-        amount=deposit.amount,
+        amount=deposit.resolved_amount,
         timestamp=deposit.approved_at,
         quantity=None,
     )
@@ -199,6 +199,31 @@ def send_deposit_refunded_email(deposit):
     )
 
 
+def send_external_charge_email(user, amount, bar_tab_customer):
+    content = f"""
+        Hei!
+        
+        Du har blitt krysset på en hybel. {bar_tab_customer.name} har krysset
+        deg for {amount} kr.
+        
+    """
+
+    html_content = f"""
+                Hei!
+                <br>
+                <br>
+                Du har blitt krysset på en hybel. {bar_tab_customer.name} har krysset
+                deg for {amount} kr.
+            """
+
+    send_email(
+        recipients=[user.email],
+        subject="Krysset på hybel",
+        message=content,
+        html_message=html_content,
+    )
+
+
 def stripe_create_Payment_intent(amount, customer=None, charge_saved_card=False):
     import stripe
     import math
@@ -289,3 +314,6 @@ def create_new_stripe_customer(customer):
     )
     return customer.id
 
+
+def send_external_charge_webhook(url, payload):
+    pass
