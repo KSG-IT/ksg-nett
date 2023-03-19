@@ -18,12 +18,23 @@ from schedules.models import (
     ShiftTrade,
     ShiftSlot,
     RoleOption,
+    ShiftInterest,
 )
 from schedules.utils.schedules import normalize_shifts, send_given_shift_email
 from schedules.utils.templates import apply_schedule_template
 from users.models import User
 from django.utils import timezone
 from django.conf import settings
+
+
+class ShiftInterestNode(DjangoObjectType):
+    class Meta:
+        model = ShiftInterest
+        interfaces = (Node,)
+
+    @classmethod
+    def get_node(cls, info, id):
+        return ShiftInterest.objects.get(pk=id)
 
 
 class ShiftSlotNode(DjangoObjectType):
@@ -428,6 +439,22 @@ class AutofillShiftSlotsMutation(graphene.Mutation):
         return AutofillShiftSlotsMutation(success=True)
 
 
+class CreateShiftInterestMutation(DjangoCreateMutation):
+    class Meta:
+        model = ShiftInterest
+        auto_context_field = {"user": "user"}
+
+
+class DeleteShiftInterestMutation(DjangoDeleteMutation):
+    class Meta:
+        model = ShiftInterest
+
+
+class MyShiftAvailabilityObject(graphene.ObjectType):
+    shift = graphene.NonNull(graphene.Field(ShiftNode))
+    shift_interest = graphene.Field(ShiftInterestNode)
+
+
 class SchedulesMutations(graphene.ObjectType):
     create_shift = CreateShiftMutation.Field()
     delete_shift = DeleteShiftMutation.Field()
@@ -444,4 +471,5 @@ class SchedulesMutations(graphene.ObjectType):
     delete_shift_slot = DeleteShiftSlotMutation.Field()
     add_slots_to_shift = AddSlotsToShiftMutation.Field()
 
+    create_shift_interest = CreateShiftInterestMutation.Field()
     autofill_shift_slots = AutofillShiftSlotsMutation.Field()
