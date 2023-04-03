@@ -75,6 +75,7 @@ INSTALLED_APPS = [
     "sensors",
     "admissions",
     "handbook",
+    "events",
 ]
 
 MIDDLEWARE = [
