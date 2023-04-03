@@ -1,6 +1,8 @@
 import random
 import re
 import sys
+import binascii
+import uuid
 from io import BytesIO
 from datetime import datetime, date
 from typing import Union, List, Tuple
@@ -14,6 +16,9 @@ from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.utils import timezone
 from django.db.models import QuerySet
 from twisted.mail._except import IllegalOperation
+
+from graphql import GraphQLError
+from graphql_relay import from_global_id
 
 from common.models import FeatureFlag
 
@@ -360,3 +365,36 @@ def check_feature_flag(feature_flag_key, fail_silently=False):
 
     if not flag.enabled:
         raise IllegalOperation(f"Feature flag {feature_flag_key} is not enabled")
+
+
+def disambiguate_id(ambiguous_id: Union[int, float, str, uuid.UUID]):
+    """
+    disambiguate_id takes an id which may either be an integer-parsable
+    variable, either as a string or a number; or it might be a base64 encoded
+    global relay value; or UUID.
+    The method then attempts to extract from this token the actual id.
+    :return:
+    """
+
+    if isinstance(ambiguous_id, (type(None), int, uuid.UUID)):
+        return ambiguous_id
+
+    try:
+        return int(ambiguous_id)
+    except (ValueError, TypeError):
+        pass
+
+    if isinstance(ambiguous_id, str):
+        try:
+            return from_global_id(ambiguous_id)[1]
+        except (ValueError, TypeError, binascii.Error):
+            pass
+
+        try:
+            return uuid.UUID(ambiguous_id)
+        except (ValueError, TypeError, AttributeError):
+            pass
+
+        return ambiguous_id
+
+    return None

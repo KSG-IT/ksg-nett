@@ -1,6 +1,6 @@
 import pytz
 from django.db import models
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from organization.models import InternalGroup, InternalGroupPosition
 from users.models import User
 from django.utils import timezone

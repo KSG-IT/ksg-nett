@@ -4,7 +4,6 @@ import stripe
 from django.conf import settings
 from django.db import transaction
 from django.shortcuts import render
-from graphene_django_cud.util import disambiguate_id, disambiguate_ids
 
 from common.decorators import view_feature_flag_required
 from economy.models import SociProduct, Deposit, SociBankAccount, ExternalCharge
@@ -34,6 +33,8 @@ def generate_pdf_response_from_template(context, file_name, template_name):
     return response
 
 
+"""
+
 def download_soci_session_list_pdf(request):
     if request.method == "GET":
         return HttpResponse(status=status.HTTP_405_METHOD_NOT_ALLOWED)
@@ -58,6 +59,7 @@ def download_soci_session_list_pdf(request):
         ctx, "Krysselist.pdf", "economy/soci_session_list.html"
     )
     return res
+"""
 
 
 def stripe_webhook(request):
