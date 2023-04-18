@@ -554,7 +554,7 @@ class PlaceProductOrderMutation(graphene.Mutation):
         """
 
         request_user = info.context.user
-        if overcharge and not request_user.has_perm("economy.overcharge_product_order"):
+        if overcharge and not request_user.has_perm("economy.can_overcharge"):
             # Check this early to simplify rest of business logic
             raise PermissionDenied("You do not have permission to overcharge")
 
@@ -586,7 +586,7 @@ class PlaceProductOrderMutation(graphene.Mutation):
             return PlaceProductOrderMutation(product_order=product_order)
 
         # Cannot afford it and overcharge is not allowed
-        if not overcharge:
+        if not overcharge and not account.is_gold:
             raise InsufficientFundsException("Insufficient funds")
 
         account.remove_funds(cost)
