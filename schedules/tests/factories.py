@@ -1,10 +1,11 @@
 import random
-from datetime import timedelta, datetime, date
+from datetime import timedelta, datetime
 
 import pytz
 from django.utils import timezone
 from factory import Faker, SubFactory, RelatedFactory, LazyAttribute, SelfAttribute
 from factory.django import DjangoModelFactory
+from django.utils.timezone import make_aware
 
 from ksg_nett import settings
 from schedules.models import (
@@ -14,8 +15,9 @@ from schedules.models import (
     ScheduleTemplate,
     ShiftTemplate,
     ShiftSlotTemplate,
-    ShiftTrade,
+    ShiftTrade, ShiftInterest, ScheduleRoster, RoleOption,
 )
+from users.tests.factories import UserFactory
 
 
 class ScheduleFactory(DjangoModelFactory):
@@ -31,6 +33,34 @@ class ScheduleTemplateFactory(DjangoModelFactory):
 
     name = Faker("name")
     schedule = SubFactory(ScheduleFactory)
+
+
+class ShiftFactory(DjangoModelFactory):
+    class Meta:
+        model = Shift
+
+    name = Faker("name")
+    location = "Edgar"
+    schedule = SubFactory(ScheduleFactory)
+    datetime_start = Faker("datetime_start")
+    datetime_end = Faker("datetime_end")
+
+
+class ShiftSlotFactory(DjangoModelFactory):
+    class Meta:
+        model = ShiftSlot
+
+    user = SubFactory(UserFactory)
+    role = Faker("role")
+    shift = SubFactory(ShiftFactory)
+
+
+class ShiftInterestFactory(DjangoModelFactory):
+    class Meta:
+        model = ShiftInterest
+
+    shift = SubFactory(ShiftFactory)
+    user = SubFactory(UserFactory)
 
 
 """
@@ -97,6 +127,17 @@ class ShiftSlotTemplateFactory(DjangoModelFactory):
 
     shift_template = SubFactory(ShiftTemplateFactory)
     role = LazyAttribute(
-        lambda o: random.choice([x[0] for x in ShiftSlot.RoleOption.choices])
+        lambda o: random.choice([x[0] for x in RoleOption.choices])
     )
     count = LazyAttribute(lambda o: random.randint(1, 5))
+
+
+class ScheduleRosterFactory(DjangoModelFactory):
+    class Meta:
+        model = ScheduleRoster
+
+    schedule = SubFactory(ScheduleFactory)
+    user = SubFactory(UserFactory)
+    autofill_as = LazyAttribute(
+        lambda o: random.choice([x[0] for x in RoleOption.choices])
+    )
