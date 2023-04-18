@@ -5,7 +5,11 @@ import calendar
 
 import pytz
 from django.conf import settings
-from django.core.exceptions import SuspiciousOperation, PermissionDenied
+from django.core.exceptions import (
+    SuspiciousOperation,
+    PermissionDenied,
+    ValidationError,
+)
 from django.db import transaction
 from graphene import Node
 from django.db.models import Q, Sum
@@ -606,6 +610,11 @@ class CreateSociSessionMutation(DjangoCreateMutation):
         permissions = ("economy.add_socisession",)
         auto_context_fields = {"created_by": "user"}
 
+    def validate_minimum_remaining_balance(root, info, value, input, **kwargs):
+        if value < 0:
+            raise ValidationError("Minimum remaining balance cannot be negative")
+        return value
+
 
 class PatchSociSessionMutation(DjangoPatchMutation):
     class Meta:
@@ -628,6 +637,11 @@ class CloseSociSessionMutation(graphene.Mutation):
             raise SuspiciousOperation(
                 f"Cannot close a session of type {SociSession.Type.SOCIETETEN}"
             )
+
+        if soci_session.product_orders.count() == 0:
+            soci_session.delete()
+            return CloseSociSessionMutation(soci_session=None)
+
         soci_session.closed_at = timezone.now()
         soci_session.save()
         if soci_session.type == SociSession.Type.STILLETIME:
