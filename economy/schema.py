@@ -571,7 +571,8 @@ class PlaceProductOrderMutation(graphene.Mutation):
         account = user.bank_account
         cost = product.price * order_size
 
-        can_afford = cost <= account.balance
+        remaining_balance = account.balance - cost
+        can_afford = session.minimum_remaining_balance <= remaining_balance
 
         if can_afford:
             account.remove_funds(cost)

@@ -175,6 +175,10 @@ class SociSession(models.Model):
     creation_date = models.DateField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)
     closed_at = models.DateTimeField(blank=True, null=True)
+    minimum_remaining_balance = models.IntegerField(
+        default=0,
+        help_text="The required remaining balance for an account after a purchase",
+    )
 
     @property
     def closed(self):
