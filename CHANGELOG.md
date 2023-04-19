@@ -7,6 +7,9 @@
   - `minimum_remaining_balance` field to SociSession
   - Change PlaceProductOrderMutation to check for `minimum_remaining_balance`
     against SociSession
+- Schedules
+  - autofill method based on shift interest
+  - WIP shift interest and roster models/methods
 
 ### Fixed
 - Economy
