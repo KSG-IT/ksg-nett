@@ -220,7 +220,7 @@ class TestInterviewGenerationEdgeCases(TestCase):
         self.bodegaen = InterviewLocation.objects.create(name="Bodegaen")
 
         # Initialize the start of the interview period to 12:00
-        self.start = datetime.date.today()
+        self.start = timezone.datetime.today()
         self.datetime_start = date_time_combiner(self.start, datetime.time(hour=12))
 
         # End of interview period is two days later giving us a three day interview period
@@ -232,11 +232,13 @@ class TestInterviewGenerationEdgeCases(TestCase):
             default_interview_day_start=datetime.time(hour=12),
             default_interview_day_end=datetime.time(hour=20),
         )
+
         InterviewLocationAvailability.objects.create(
             interview_location=self.knaus,
             datetime_from=self.datetime_start,
             datetime_to=self.datetime_start + timezone.timedelta(hours=8),
         )
+
         InterviewLocationAvailability.objects.create(
             interview_location=self.bodegaen,
             datetime_from=self.datetime_start + timezone.timedelta(hours=4),
