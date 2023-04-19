@@ -1,4 +1,20 @@
 # CHANGELOG
+
+## [2023.4.1] - 2023-04-18
+
+### Added
+- Economy
+  - `minimum_remaining_balance` field to SociSession
+  - Change PlaceProductOrderMutation to check for `minimum_remaining_balance`
+    against SociSession
+- Schedules
+  - autofill method based on shift interest
+  - WIP shift interest and roster models/methods
+
+### Fixed
+- Economy
+    - Incorrect overcharge permission check in PlaceProductOrderMutation
+
 ## [2023.3.2] - 2023-03-10
 
 ### Added
