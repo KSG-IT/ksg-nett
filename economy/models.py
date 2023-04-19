@@ -177,7 +177,7 @@ class SociSession(models.Model):
     closed_at = models.DateTimeField(blank=True, null=True)
     minimum_remaining_balance = models.IntegerField(
         default=0,
-        help_text="The required remaining balance for an account after a purchase",
+        help_text="Required remaining balance after placing a product order on a 'KRYSSELISTE'",
     )
 
     @property
