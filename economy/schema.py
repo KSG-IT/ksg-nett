@@ -5,7 +5,11 @@ import calendar
 
 import pytz
 from django.conf import settings
-from django.core.exceptions import SuspiciousOperation, PermissionDenied
+from django.core.exceptions import (
+    SuspiciousOperation,
+    PermissionDenied,
+    ValidationError,
+)
 from django.db import transaction
 from graphene import Node
 from django.db.models import Q, Sum
@@ -554,7 +558,7 @@ class PlaceProductOrderMutation(graphene.Mutation):
         """
 
         request_user = info.context.user
-        if overcharge and not request_user.has_perm("economy.overcharge_product_order"):
+        if overcharge and not request_user.has_perm("economy.can_overcharge"):
             # Check this early to simplify rest of business logic
             raise PermissionDenied("You do not have permission to overcharge")
 
@@ -571,7 +575,8 @@ class PlaceProductOrderMutation(graphene.Mutation):
         account = user.bank_account
         cost = product.price * order_size
 
-        can_afford = cost <= account.balance
+        remaining_balance = account.balance - cost
+        can_afford = session.minimum_remaining_balance <= remaining_balance
 
         if can_afford:
             account.remove_funds(cost)
@@ -585,7 +590,7 @@ class PlaceProductOrderMutation(graphene.Mutation):
             return PlaceProductOrderMutation(product_order=product_order)
 
         # Cannot afford it and overcharge is not allowed
-        if not overcharge:
+        if not overcharge and not account.is_gold:
             raise InsufficientFundsException("Insufficient funds")
 
         account.remove_funds(cost)
@@ -604,6 +609,11 @@ class CreateSociSessionMutation(DjangoCreateMutation):
         model = SociSession
         permissions = ("economy.add_socisession",)
         auto_context_fields = {"created_by": "user"}
+
+    def validate_minimum_remaining_balance(root, info, value, input, **kwargs):
+        if value < 0:
+            raise ValidationError("Minimum remaining balance cannot be negative")
+        return value
 
 
 class PatchSociSessionMutation(DjangoPatchMutation):
@@ -627,6 +637,11 @@ class CloseSociSessionMutation(graphene.Mutation):
             raise SuspiciousOperation(
                 f"Cannot close a session of type {SociSession.Type.SOCIETETEN}"
             )
+
+        if soci_session.product_orders.count() == 0:
+            soci_session.delete()
+            return CloseSociSessionMutation(soci_session=None)
+
         soci_session.closed_at = timezone.now()
         soci_session.save()
         if soci_session.type == SociSession.Type.STILLETIME:
