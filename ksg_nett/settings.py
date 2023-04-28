@@ -66,6 +66,7 @@ INSTALLED_APPS = [
     "economy",
     "external",
     "internal",
+    "internalcontrol",
     "legacy",
     "login",
     "organization",
