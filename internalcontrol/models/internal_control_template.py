@@ -1,5 +1,7 @@
 from django.db import models
 
+from schedules.models import ShiftSlot, RoleOption
+
 
 class InternalControlDocumentTemplate(models.Model):
     """
@@ -49,8 +51,22 @@ class InternalControlDocumentTemplateItem(models.Model):
         verbose_name = "Internal Control Document Template Item"
         verbose_name_plural = "Internal Control Document Template Items"
 
+    # Renaming to consider
+    # - content -> title
+    # - content -> description
+    # - content -> action
+    #
+    # In some cases it looks like they want to explain the actions.
     content = models.TextField()
     order = models.IntegerField()
+    role = models.CharField(
+        max_length=255,
+        choices=RoleOption.choices,
+        default=None,
+        null=True,
+        blank=True,
+        help_text="Imposes a restriction on what role a user has to have on a shift in order to mark this item as done",
+    )
     item_collection_template = models.ForeignKey(
         "internalcontrol.InternalControlDocumentItemCollectionTemplate",
         related_name="template_items",
