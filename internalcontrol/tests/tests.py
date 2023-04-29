@@ -4,10 +4,6 @@ from .factories import (
     InternalControlDocumentItemCollectionTemplateFactory,
     InternalControlDocumentTemplateItemFactory,
 )
-from internalcontrol.string_utils import (
-    pretty_print_internal_control_document_template,
-    pretty_print_internal_control_document,
-)
 from internalcontrol.document_generation import (
     create_internal_control_document_from_template,
 )
@@ -15,118 +11,112 @@ from internalcontrol.document_generation import (
 
 class TestInternalControlDocument(TestCase):
     def setUp(self) -> None:
+        self.template_structure_dict = {
+            "name": "Edgar søndag",
+            "template_item_collections": [
+                {
+                    "name": "Før åpning",
+                    "order": 1,
+                    "template_items": [
+                        {
+                            "content": "Sjekk at det er renolit i beholderen under vasken og vaskemiddel under klitten",
+                            "order": 1,
+                        },
+                        {
+                            "content": "Skru på klitten og vask gårsdagens bestikk en siste gang på langt program. "
+                            "Skru også på Karen!",
+                            "order": 2,
+                        },
+                        {
+                            "content": "Ta bakepapir på Ine, skru henne på og prepp toast",
+                            "order": 3,
+                        },
+                    ],
+                },
+                {
+                    "name": "Under åpningstid",
+                    "order": 2,
+                    "template_items": [
+                        {
+                            "content": "Rengjør sigrid nøye, og sjekk at oppskriftsmappen ikke har søl på seg",
+                            "order": 1,
+                        },
+                        {
+                            "content": "Puss Mina og seksjonen med Copper Shine Special",
+                            "order": 2,
+                        },
+                        {
+                            "content": "Vask hyllene for ølglass over ren og skitten sone",
+                            "order": 3,
+                        },
+                    ],
+                },
+                {
+                    "name": "Etter stengt kjøkken",
+                    "order": 3,
+                    "template_items": [
+                        {
+                            "content": "Vask filterbeholderen til Håvard i Klitten",
+                            "order": 1,
+                        },
+                        {
+                            "content": "Rensk Oskar, bruk hansker!",
+                            "order": 2,
+                        },
+                        {
+                            "content": "Vask all oppvask",
+                            "order": 3,
+                        },
+                    ],
+                },
+            ],
+        }
 
         self.document_template = InternalControlDocumentTemplateFactory.create(
-            name="Edgar søndag"
-        )
-        before_opening = (
-            self.internal_control_document_item_collection_template
-        ) = InternalControlDocumentItemCollectionTemplateFactory.create(
-            document_template=self.document_template,
-            name="Før åpning",
-            order=1,
-        )
-        under_opening = (
-            self.internal_control_document_item_collection_template
-        ) = InternalControlDocumentItemCollectionTemplateFactory.create(
-            document_template=self.document_template,
-            name="Under åpningstid",
-            order=2,
-        )
-        closing = (
-            self.internal_control_document_item_collection_template
-        ) = InternalControlDocumentItemCollectionTemplateFactory.create(
-            document_template=self.document_template,
-            name="Etter stengt kjøkken",
-            order=3,
+            name=self.template_structure_dict["name"]
         )
 
-        # Before opening
-        InternalControlDocumentTemplateItemFactory.create(
-            item_collection_template=before_opening,
-            content="Sjekk at det er renolit i beholderen under vasken og vaskemiddel under klitten",
-            order=1,
-        )
-        InternalControlDocumentTemplateItemFactory.create(
-            item_collection_template=before_opening,
-            content="Skru på klitten og vask gårsdagens bestikk en siste gang på langt program. Skru også på Karen!",
-            order=2,
-        )
-        InternalControlDocumentTemplateItemFactory.create(
-            item_collection_template=before_opening,
-            content="Ta bakepapir på Ine, skru henne på og prepp toast",
-            order=3,
-        )
+        for collection_template in self.template_structure_dict[
+            "template_item_collections"
+        ]:
+            item_collection_template = (
+                InternalControlDocumentItemCollectionTemplateFactory.create(
+                    document_template=self.document_template,
+                    name=collection_template["name"],
+                    order=collection_template["order"],
+                )
+            )
 
-        # Under opening
-        InternalControlDocumentTemplateItemFactory.create(
-            item_collection_template=under_opening,
-            content="Rengjør sigrid nøye, og sjekk at oppskriftsmappen ikke har søl på seg",
-            order=1,
-        )
-        InternalControlDocumentTemplateItemFactory.create(
-            item_collection_template=under_opening,
-            content="Puss Mina og seksjonen med Copper Shine Special",
-            order=2,
-        )
-        InternalControlDocumentTemplateItemFactory.create(
-            item_collection_template=under_opening,
-            content="Vask hyllene for ølglass over ren og skitten sone",
-            order=3,
-        )
+            for item_template in collection_template["template_items"]:
+                InternalControlDocumentTemplateItemFactory.create(
+                    item_collection_template=item_collection_template,
+                    content=item_template["content"],
+                    order=item_template["order"],
+                )
 
-        # During closing
-        InternalControlDocumentTemplateItemFactory.create(
-            item_collection_template=closing,
-            content="Vask filterbeholderen til Håvard i Klitten",
-            order=1,
-        )
-        InternalControlDocumentTemplateItemFactory.create(
-            item_collection_template=closing,
-            content="Rensk Oskar, bruk hansker!",
-            order=2,
-        )
-        InternalControlDocumentTemplateItemFactory.create(
-            item_collection_template=closing, content="Vask all oppvask", order=3
-        )
-
-    def test__template_generation__generates_documents_properly(self):
+    def test__template_generation__generates_documents_properly_v2(self):
         document = create_internal_control_document_from_template(
             self.document_template
         )
 
         document_collections = document.item_collections.all()
-        document_collection_templates = (
-            self.document_template.template_item_collections.all()
-        )
-        self.assertEqual(document_collections.count(), 3)
+        document_collection_templates = self.template_structure_dict[
+            "template_item_collections"
+        ]
         self.assertEqual(
-            document_collections[0].name, document_collection_templates[0].name
-        )
-        self.assertEqual(
-            document_collections[1].name, document_collection_templates[1].name
-        )
-        self.assertEqual(
-            document_collections[2].name, document_collection_templates[2].name
+            document_collections.count(), len(document_collection_templates)
         )
 
-        document_items = document_collections[0].items.all()
-        document_item_templates = document_collection_templates[0].template_items.all()
-        self.assertEqual(document_items.count(), 3)
-        self.assertEqual(document_items[0].content, document_item_templates[0].content)
-        self.assertEqual(document_items[1].content, document_item_templates[1].content)
-        self.assertEqual(document_items[2].content, document_item_templates[2].content)
+        for i, document_collection in enumerate(document_collections):
+            self.assertEqual(
+                document_collection.name, document_collection_templates[i]["name"]
+            )
 
-        document_items = document_collections[1].items.all()
-        document_item_templates = document_collection_templates[1].template_items.all()
-        self.assertEqual(document_items.count(), 3)
-        self.assertEqual(document_items[0].content, document_item_templates[0].content)
-        self.assertEqual(document_items[1].content, document_item_templates[1].content)
-        self.assertEqual(document_items[2].content, document_item_templates[2].content)
+            document_items = document_collection.items.all()
+            document_item_templates = document_collection_templates[i]["template_items"]
+            self.assertEqual(document_items.count(), len(document_item_templates))
 
-        document_items = document_collections[2].items.all()
-        document_item_templates = document_collection_templates[2].template_items.all()
-        self.assertEqual(document_items.count(), 3)
-        self.assertEqual(document_items[0].content, document_item_templates[0].content)
-        self.assertEqual(document_items[1].content, document_item_templates[1].content)
-        self.assertEqual(document_items[2].content, document_item_templates[2].content)
+            for j, document_item in enumerate(document_items):
+                self.assertEqual(
+                    document_item.content, document_item_templates[j]["content"]
+                )
