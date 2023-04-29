@@ -90,9 +90,6 @@ class TestInternalControlDocument(TestCase):
             item_collection_template=closing, content="Vask all oppvask", order=3
         )
 
-    def test__internal_control_document_template__model_relationship_structure(self):
-        pretty_print_internal_control_document_template(self.document_template)
-
     def test__template_generation__generates_documents_properly(self):
         document = create_internal_control_document_from_template(
             self.document_template
