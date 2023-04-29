@@ -26,14 +26,14 @@ class InternalControlDocumentItemCollectionTemplate(models.Model):
 
     name = models.CharField(max_length=255)
     order = models.IntegerField()
-    internal_control_document_template = models.ForeignKey(
+    document_template = models.ForeignKey(
         "internalcontrol.InternalControlDocumentTemplate",
         related_name="template_item_collections",
         on_delete=models.CASCADE,
     )
 
     def __str__(self):
-        return f"{self.internal_control_document_template.name} - {self.name}"
+        return f"{self.document_template.name} - {self.name}"
 
 
 class InternalControlDocumentTemplateItem(models.Model):
@@ -51,11 +51,11 @@ class InternalControlDocumentTemplateItem(models.Model):
 
     content = models.TextField()
     order = models.IntegerField()
-    internal_control_document_item_collection_template = models.ForeignKey(
+    item_collection_template = models.ForeignKey(
         "internalcontrol.InternalControlDocumentItemCollectionTemplate",
         related_name="template_items",
         on_delete=models.CASCADE,
     )
 
     def __str__(self):
-        return f"{self.internal_control_document_item_collection_template.name} - {self.content}"
+        return f"{self.item_collection_template.name} - {self.content}"

@@ -23,14 +23,14 @@ class InternalControlDocumentItemCollection(models.Model):
 
     name = models.CharField(max_length=255)
     order = models.IntegerField()
-    internal_control_document = models.ForeignKey(  # Consider renaming to document
+    document = models.ForeignKey(  # Consider renaming to document
         "internalcontrol.InternalControlDocument",
         related_name="item_collections",
         on_delete=models.CASCADE,
     )
 
     def __str__(self):
-        return f"{self.internal_control_document.name} - {self.name}"
+        return f"{self.document.name} - {self.name}"
 
 
 class InternalControlDocumentItem(models.Model):
@@ -55,13 +55,11 @@ class InternalControlDocumentItem(models.Model):
         related_name="internal_control_document_items_done",
         on_delete=models.CASCADE,
     )
-    internal_control_document_item_collection = (
-        models.ForeignKey(  # Consider renaming to item_collection
-            "internalcontrol.InternalControlDocumentItemCollection",
-            related_name="items",
-            on_delete=models.CASCADE,
-        )
+    item_collection = models.ForeignKey(  # Consider renaming to item_collection
+        "internalcontrol.InternalControlDocumentItemCollection",
+        related_name="items",
+        on_delete=models.CASCADE,
     )
 
     def __str__(self):
-        return f"{self.internal_control_document_item_collection.name} - {self.content}"
+        return f"{self.item_collection.name} - {self.content}"
