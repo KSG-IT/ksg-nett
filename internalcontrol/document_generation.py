@@ -13,13 +13,13 @@ def create_internal_control_document_from_template(template):
         item_collection = InternalControlDocumentItemCollection.objects.create(
             name=collection.name,
             order=collection.order,
-            internal_control_document=document,
+            document=document,
         )
         for item in collection.template_items.all().order_by("order"):
             InternalControlDocumentItem.objects.create(
                 content=item.content,
                 order=item.order,
-                internal_control_document_item_collection=item_collection,
+                item_collection=item_collection,
             )
 
     return document

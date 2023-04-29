@@ -21,9 +21,7 @@ class InternalControlDocumentItemCollectionTemplateFactory(
 
     name = factory.Faker("name")
     order = factory.Faker("pyint")
-    internal_control_document_template = factory.SubFactory(
-        InternalControlDocumentTemplateFactory
-    )
+    document_template = factory.SubFactory(InternalControlDocumentTemplateFactory)
 
 
 class InternalControlDocumentTemplateItemFactory(factory.django.DjangoModelFactory):
@@ -32,6 +30,6 @@ class InternalControlDocumentTemplateItemFactory(factory.django.DjangoModelFacto
 
     content = factory.Faker("text")
     order = factory.Faker("pyint")
-    internal_control_document_item_collection_template = factory.SubFactory(
+    item_collection_template = factory.SubFactory(
         InternalControlDocumentItemCollectionTemplateFactory
     )
