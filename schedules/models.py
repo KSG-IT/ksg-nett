@@ -184,6 +184,13 @@ class Shift(models.Model):
         blank=True,
         related_name="shifts_generated",
     )
+    internal_control_document = models.ForeignKey(
+        "internalcontrol.InternalControlDocument",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="shifts",
+    )
 
     @property
     def is_filled(self):
@@ -308,6 +315,13 @@ class ShiftTemplate(models.Model):
         choices=Day.choices,
         max_length=32,
         help_text="Day of the week this shift occurs",
+    )
+    internal_control_document_template = models.ForeignKey(
+        "internalcontrol.InternalControlDocumentTemplate",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="shift_templates",
     )
 
     # time_end < time_start means that the shift is over midnight
