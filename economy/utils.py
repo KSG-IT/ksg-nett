@@ -311,7 +311,7 @@ def send_external_charge_webhook(url, payload):
     pass
 
 
-def get_indebted_users(all_users=False):
+def get_users_with_balance_less_than(balance_limit, all_users=False):
     from users.models import User
 
     users = User.objects.all()
@@ -319,6 +319,4 @@ def get_indebted_users(all_users=False):
     if not all_users:
         users = users.filter(is_active=True)
 
-    return users.filter(
-        bank_account__balance__lt=settings.DEBT_COLLECTION_EMAIL_THRESHOLD
-    )
+    return users.filter(bank_account__balance__lt=balance_limit)

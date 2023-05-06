@@ -3,7 +3,7 @@ from django.core.management.base import BaseCommand, CommandError
 from django.utils import timezone
 
 from economy.emails import send_debt_collection_email
-from economy.utils import get_indebted_users
+from economy.utils import get_users_with_balance_less_than
 from login.util import create_jwt_token_for_user
 
 
@@ -27,12 +27,18 @@ class Command(BaseCommand):
     def debt_collection(self, *args, **options):
         self.stdout.write(
             self.style.SUCCESS(
-                f"{timezone.now().strftime('%Y-%d-%m, %H:%M:%S')} Sending debt collection emails"
+                f"{timezone.now().strftime('%Y-%d-%m, %H:%M:%S')} Starting debt analysis"
             )
         )
-
         all_users = options["all_users"]
-        users = get_indebted_users(all_users=all_users)
+        self.stdout.write(
+            self.style.SUCCESS(
+                f"Finding users with balance less than {settings.OWES_MONEY_THRESHOLD}"
+            )
+        )
+        users = get_users_with_balance_less_than(
+            settings.OWES_MONEY_THRESHOLD, all_users=all_users
+        )
 
         if not users:
             self.stdout.write(self.style.SUCCESS("No users found. Exiting"))
