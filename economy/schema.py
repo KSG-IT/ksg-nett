@@ -1046,18 +1046,21 @@ class CreateDepositMutation(graphene.Mutation):
         )
 
         if deposit_method == Deposit.DepositMethod.STRIPE:
-            from economy.utils import stripe_create_Payment_intent
+            from economy.utils import stripe_create_payment_intent
 
             check_feature_flag(settings.STRIPE_INTEGRATION_FEATURE_FLAG)
             with transaction.atomic():
-                intent, resolved_amount_in_nok = stripe_create_Payment_intent(
+                intent, amount_with_fee_in_nok = stripe_create_payment_intent(
                     amount, customer=info.context.user
                 )
                 deposit.stripe_payment_id = intent.id
                 deposit.stripe_payment_intent_status = (
                     Deposit.StripePaymentIntentStatusOptions.CREATED
                 )
-                deposit.resolved_amount = resolved_amount_in_nok
+                deposit.amount = amount_with_fee_in_nok
+                deposit.resolved_amount = (
+                    amount  # historically used for what is deposited into the account
+                )
 
         elif deposit_method == DepositMethodEnum.BANK_TRANSFER:
             check_feature_flag(settings.BANK_TRANSFER_DEPOSIT_FEATURE_FLAG)
