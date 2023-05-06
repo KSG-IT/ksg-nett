@@ -311,16 +311,14 @@ def send_external_charge_webhook(url, payload):
     pass
 
 
-def get_indebted_users(active_users_only=True):
+def get_indebted_users(all_users=False):
     from users.models import User
 
     users = User.objects.all()
 
-    if active_users_only:
+    if not all_users:
         users = users.filter(is_active=True)
 
-    users = users.filter(
+    return users.filter(
         bank_account__balance__lt=settings.DEBT_COLLECTION_EMAIL_THRESHOLD
     )
-
-    return users

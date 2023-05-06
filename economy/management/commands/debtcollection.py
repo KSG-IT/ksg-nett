@@ -10,7 +10,7 @@ from login.util import create_jwt_token_for_user
 class Command(BaseCommand):
     def handle(self, *args, **options):
         try:
-            self.send_debt_collection_email(*args, **options)
+            self.debt_collection(*args, **options)
 
         except Exception as e:
             self.stdout.write(self.style.ERROR(f"{e}"))
@@ -24,7 +24,7 @@ class Command(BaseCommand):
             help="Send debt collection emails to all users, not just active users",
         )
 
-    def send_debt_collection_email(self, *args, **options):
+    def debt_collection(self, *args, **options):
         self.stdout.write(
             self.style.SUCCESS(
                 f"{timezone.now().strftime('%Y-%d-%m, %H:%M:%S')} Sending debt collection emails"
@@ -32,7 +32,7 @@ class Command(BaseCommand):
         )
 
         all_users = options["all_users"]
-        users = get_indebted_users(active_users_only=not all_users)
+        users = get_indebted_users(all_users=all_users)
 
         if not users:
             self.stdout.write(self.style.SUCCESS("No users found. Exiting"))
