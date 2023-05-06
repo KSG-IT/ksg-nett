@@ -34,35 +34,38 @@ def send_debt_collection_email(user_info):
     content = f"""
         Hei {user_info["name"]}!
         
-        Du har en utestående gjeld på KSG-nett. 
+        Du mottar denne eposten fordi du har en utestående gjeld til Societeten på KSG-nett. 
         Du kan betale ved å trykke på lenken under:
         {user_info['frontend_url']}
         
-        Gjerne si ifra om dette ikke stemmer, så skal vi få ordnet opp i det. 
-        Helst ikke svar, eller videresend denne eposten, da den inneholder lenke for å logge inn på din bruker.
+        Vi godtar kortbetaling og bankoverføringer. Kortbetaling innebærer et behandlingsgebyr som blir lagt til
+        på beløpet du skriver inn. 
         
-        Om du skulle ha noen spørsmål, så kan du sende en epost til ksg-soci-okonomi@samfundet.no.
+        Gjerne si ifra om dette ikke stemmer, så skal vi få ordnet opp i det. 
+        Helst ikke svar, eller videresend denne eposten, da den inneholder lenke for å logge inn på din bruker. Om du skulle ha noen spørsmål, så kan du sende en epost til ksg-soci-okonomi@samfundet.no.
         """
 
     html_content = f"""
         Hei {user_info["name"]}!
         <br>
         <br>
-        Du har en utestående gjeld på KSG-nett.
+        Du mottar denne eposten fordi du har en utestående gjeld til Societeten på KSG-nett. 
         <br>
         Du kan betale ved å trykke på lenken under:
         <br>
         <span>{user_info['frontend_url']}</span>
-        
+        <br>
+        <br>
+        Vi godtar kortbetaling og bankoverføringer. Kortbetaling innebærer et behandlingsgebyr som blir lagt til
+        på beløpet du skriver inn.
         <br>
         <br>
         Gjerne si ifra om dette ikke stemmer, så skal vi få ordnet opp i det.
         <br>
         <br>
-        Helst ikke svar, eller videresend denne eposten, da den inneholder lenke for å logge inn på din bruker.
-        <br>
-        <br>
-        Om du skulle ha noen spørsmål, så kan du sende en epost til <a href="mailto:ksg-soci-okonomi@samfundet.no">ksg-soci-okonomi@samfundet.no</a>
+        Helst ikke svar, eller videresend denne eposten, da den inneholder lenke for å logge inn på din bruker. Om du 
+        skulle ha noen spørsmål, så kan du sende en epost til 
+        <a href="mailto:ksg-soci-okonomi@samfundet.no">ksg-soci-okonomi@samfundet.no</a>
                
         
         
