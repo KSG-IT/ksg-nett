@@ -67,13 +67,11 @@ def send_debt_collection_email(user_info):
         skulle ha noen spørsmål, så kan du sende en epost til 
         <a href="mailto:ksg-soci-okonomi@samfundet.no">ksg-soci-okonomi@samfundet.no</a>
                
-        
-        
     """
 
     send_email(
         recipients=[user_info["email"]],
-        subject="KSG-nett - Utestående gjeld",
+        subject="KSG - Utestående gjeld",
         message=content,
         html_message=html_content,
     )

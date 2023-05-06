@@ -68,13 +68,14 @@ class Command(BaseCommand):
                 f"{timezone.now().strftime('%Y-%d-%m, %H:%M:%S')} Sending debt collection emails"
             )
         )
+        base_url = settings.APP_URL + "/login?token="
         for user in users:
             token = create_jwt_token_for_user(user)
             user_dict = {
                 "name": user.get_full_name(),
                 "email": user.email,
                 "token": token,
-                "frontend_url": settings.APP_URL + "/authenticate?token=" + token,
+                "frontend_url": base_url + token,
             }
             send_debt_collection_email(user_dict)
             self.stdout.write(
