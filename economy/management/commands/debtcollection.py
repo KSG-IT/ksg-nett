@@ -42,10 +42,14 @@ class Command(BaseCommand):
 
         yes = ["yes", "y"]
         if list_users.lower() in yes:
+            total_debt = 0
             for user in users:
+                total_debt += user.balance
                 self.stdout.write(
-                    f"{user.get_full_name()}: {user.bank_account.balance}\n"
+                    self.style.SUCCESS(f"{user.get_full_name():<30} {user.balance:<10}")
                 )
+            self.stdout.write(self.style.SUCCESS(f"{'='*40}"))
+            self.stdout.write(self.style.SUCCESS(f"{'Total':<30} {total_debt:<10}"))
 
         send_email = input("Send emails? [y/n]")
 
