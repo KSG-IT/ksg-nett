@@ -309,3 +309,37 @@ def create_new_stripe_customer(customer):
 
 def send_external_charge_webhook(url, payload):
     pass
+
+
+def debt_collection(active_users_only=True, dry_run=False):
+    """
+    Should retrieve a list of users whose balance is below the debt collection limit
+    """
+    from users.models import User
+    from login.util import create_jwt_token_for_user
+    from .emails import send_debt_collection_email
+
+    users = User.objects.all()
+
+    if active_users_only:
+        users = users.filter(is_active=True)
+
+    users = users.filter(
+        bank_account__balance__lt=settings.DEBT_COLLECTION_EMAIL_THRESHOLD
+    )
+
+    # In order to make it easy we generate a JWT token for each user and send them a link to the debt collection page
+    for user in users:
+        token = create_jwt_token_for_user(user)
+        user_dict = {
+            "name": user.get_full_name(),
+            "email": user.email,
+            "token": token,
+            "frontend_url": settings.APP_URL + "/authenticate?token=" + token,
+        }
+        if not dry_run:
+            send_debt_collection_email(user_dict)
+        else:
+            print(user)
+
+    return users.count()
