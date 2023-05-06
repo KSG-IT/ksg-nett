@@ -1,5 +1,13 @@
 # CHANGELOG
 
+## [2023.5.1] - 2023-05-16
+
+### Changed
+
+- Economy
+  - Refactor deposit fee to be added to charge instead of
+  subtracted
+
 ## [2023.4.1] - 2023-04-18
 
 ### Added
