@@ -1031,8 +1031,8 @@ class CreateDepositMutation(graphene.Mutation):
                     "Deposits are only allowed between 08:00 and 20:00"
                 )
 
-        if amount < 50:
-            raise IllegalOperation("Minimum deposit amount is 50 kr")
+        if amount < 1:
+            raise IllegalOperation("Minimum deposit amount is 1 kr")
 
         if amount > 30_000:
             raise IllegalOperation("Maximum deposit amount is 30 000 kr")
