@@ -326,6 +326,7 @@ class ProductOrderQuery(graphene.ObjectType):
     def resolve_all_product_orders(self, info, *args, **kwargs):
         return ProductOrder.objects.all().order_by("-purchased_at")
 
+    @gql_has_permissions("economy.view_productorder")
     def resolve_product_orders_by_item_and_date(
         self, info, product_id, date_from, date_to, *args, **kwargs
     ):
