@@ -36,7 +36,7 @@ qrcode = {extras = ["pil"], version = "^7.4.2"}
 cryptography = "^39.0.1"
 
 [tool.poetry.dev-dependencies]
-pytest = "^5.3"
+pytest = "^7.3"
 pytest-django = "^3.7"
 pytest-cov = "^2.8"
 pre-commit = "^2.10.0"
