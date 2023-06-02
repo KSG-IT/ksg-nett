@@ -33,7 +33,7 @@ bleach = "^5.0.1"
 stripe = "^5.1.1"
 scipy = "1.10.0"
 qrcode = {extras = ["pil"], version = "^7.4.2"}
-cryptography = "^39.0.1"
+cryptography = "^41.0.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.3"
