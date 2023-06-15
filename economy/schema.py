@@ -7,8 +7,9 @@ import pytz
 from django.conf import settings
 from django.core.exceptions import SuspiciousOperation, PermissionDenied
 from django.db import transaction
+from django.forms import FloatField
 from graphene import Node
-from django.db.models import Q, Sum
+from django.db.models import Q, Sum, Count, F, Avg
 from django.db.models.functions import Coalesce, TruncDay, TruncDate
 from graphene_django import DjangoObjectType
 from django.utils import timezone
@@ -50,6 +51,13 @@ class ExpenditureDay(graphene.ObjectType):
 class TotalExpenditure(graphene.ObjectType):
     data = graphene.List(ExpenditureDay)
     total = graphene.Int()
+
+class TotalExpenditureItem(graphene.ObjectType):
+    name = graphene.String()
+    total = graphene.Int()
+    quantity = graphene.Int()
+    average = graphene.Int()
+    data = graphene.List(ExpenditureDay)
 
 
 class TotalExpenditureDateRange(graphene.Enum):
@@ -317,8 +325,14 @@ class ProductOrderQuery(graphene.ObjectType):
     product_order = Node.Field(ProductOrderNode)
     all_product_orders = DjangoConnectionField(ProductOrderNode)
     product_orders_by_item_and_date = graphene.Field(
-        TotalExpenditure,
+        TotalExpenditureItem,
         product_id=graphene.ID(),
+        date_from=graphene.Date(),
+        date_to=graphene.Date(),
+    )
+    product_orders_by_item_and_date_list = graphene.List(
+        TotalExpenditureItem,
+        product_ids=graphene.List(graphene.ID),
         date_from=graphene.Date(),
         date_to=graphene.Date(),
     )
@@ -326,7 +340,6 @@ class ProductOrderQuery(graphene.ObjectType):
     def resolve_all_product_orders(self, info, *args, **kwargs):
         return ProductOrder.objects.all().order_by("-purchased_at")
 
-    @gql_has_permissions("economy.view_productorder")
     def resolve_product_orders_by_item_and_date(
         self, info, product_id, date_from, date_to, *args, **kwargs
     ):
@@ -340,6 +353,8 @@ class ProductOrderQuery(graphene.ObjectType):
             datetime.datetime.combine(date_to, datetime.time.max)
         )
 
+        product = SociProduct.objects.get(id=soci_item)
+
         product_orders = (
             ProductOrder.objects.filter(
                 product_id=soci_item, purchased_at__range=(date_from, date_to)
@@ -349,8 +364,11 @@ class ProductOrderQuery(graphene.ObjectType):
             .annotate(sum=Sum("cost"))
             .order_by("date")
         )
+        avg = product_orders.aggregate(Avg("sum"))["sum__avg"]
+        qty = product_orders.aggregate(sum__qty=Sum("sum") / product.price)["sum__qty"]
+        total_expenditure = product_orders.aggregate(Sum("sum"))["sum__sum"]
 
-        return TotalExpenditure(
+        return TotalExpenditureItem(
             data=[
                 ExpenditureDay(
                     day=product_order["date"],
@@ -358,8 +376,21 @@ class ProductOrderQuery(graphene.ObjectType):
                 )
                 for product_order in product_orders
             ],
-            total=sum([product_order["sum"] for product_order in product_orders]),
+            name=product.name,
+            average=avg,
+            quantity=qty,
+            total=total_expenditure,
         )
+    def resolve_product_orders_by_item_and_date_list(
+            self, info, product_ids, date_from, date_to, *args, **kwargs
+    ):
+        total_expenditures = []
+        for product_id in product_ids:
+            total_expenditure = ProductOrderQuery.resolve_product_orders_by_item_and_date(
+                self, info, product_id=product_id, date_from=date_from, date_to=date_to)
+            total_expenditures.append(total_expenditure)
+        return total_expenditures
+
 
 
 class SociSessionQuery(graphene.ObjectType):
