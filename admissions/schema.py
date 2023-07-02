@@ -911,6 +911,7 @@ class InterviewTemplate(graphene.ObjectType):
     interview_additional_evaluation_statements = graphene.List(
         InterviewAdditionalEvaluationStatementNode
     )
+    default_interview_notes = graphene.NonNull(graphene.String)
 
 
 class InterviewSlot(graphene.ObjectType):
@@ -979,15 +980,21 @@ class InterviewQuery(graphene.ObjectType):
 
     @gql_has_permissions("admissions.view_interviewscheduletemplate")
     def resolve_interview_template(self, info, *args, **kwargs):
+        schedule = InterviewScheduleTemplate.objects.first()
+
         all_boolean_evaluation_statements = (
             InterviewBooleanEvaluation.objects.all().order_by("order")
         )
         all_additional_evaluation_statements = (
             InterviewAdditionalEvaluationStatement.objects.all().order_by("order")
         )
+        cleaned_default_notes = bleach.clean(
+            schedule.default_interview_notes, tags=BLEACH_ALLOWED_TAGS
+        )
         return InterviewTemplate(
             interview_boolean_evaluation_statements=all_boolean_evaluation_statements,
             interview_additional_evaluation_statements=all_additional_evaluation_statements,
+            default_interview_notes=cleaned_default_notes,
         )
 
     @gql_has_permissions("admissions.view_interview")

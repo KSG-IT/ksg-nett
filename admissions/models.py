@@ -515,6 +515,11 @@ class InterviewScheduleTemplate(models.Model):
     )
     default_pause_duration = models.DurationField(default=timezone.timedelta(hours=1))
 
+    default_interview_notes = models.TextField(
+        default="",
+        help_text="Outlines questions to be used for each interview",
+    )
+
     def __str__(self):
         return f"Interview schedule template. Generates {self.default_block_size * 2} interviews per location per day"
 
