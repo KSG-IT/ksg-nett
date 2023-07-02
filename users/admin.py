@@ -63,6 +63,16 @@ class MyUserAdmin(UserAdmin):
             },
         ),
         (
+            "Notifications",
+            {
+                "fields": (
+                    "notify_on_deposit",
+                    "notify_on_quote",
+                    "notify_on_shift",
+                )
+            },
+        ),
+        (
             "Contact",
             {
                 "fields": (
