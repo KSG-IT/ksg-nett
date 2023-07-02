@@ -554,7 +554,9 @@ class ApplicantQuery(graphene.ObjectType):
     )
     all_internal_group_applicant_data = graphene.List(InternalGroupApplicantsData)
     internal_group_discussion_data = graphene.Field(
-        InternalGroupDiscussionData, internal_group_id=graphene.ID(required=True)
+        InternalGroupDiscussionData,
+        internal_group_id=graphene.ID(required=True),
+        ordering_key=graphene.String(required=False),
     )
     all_applicants_available_for_rebooking = graphene.List(ApplicantNode)
     applicant_notices = graphene.List(ApplicantNode)
@@ -646,7 +648,7 @@ class ApplicantQuery(graphene.ObjectType):
 
     @gql_has_permissions("admissions.view_applicant")
     def resolve_internal_group_discussion_data(
-        self, info, internal_group_id, *args, **kwargs
+        self, info, internal_group_id, ordering_key="priorities", *args, **kwargs
     ):
         """
         Resolves data for the discussion view for a given internal group. This includes fields
@@ -662,22 +664,23 @@ class ApplicantQuery(graphene.ObjectType):
         all_applicants = Applicant.objects.filter(admission=active_admission)
 
         # All applicants that have applied to this internal group and finished their interview
-        applicants = (
-            all_applicants.filter(
-                priorities__internal_group_position__internal_group=internal_group,
-                status=ApplicantStatus.INTERVIEW_FINISHED,
-            )
-            .distinct()
-            .order_by(
+        applicants = all_applicants.filter(
+            priorities__internal_group_position__internal_group=internal_group,
+            status=ApplicantStatus.INTERVIEW_FINISHED,
+        ).distinct()
+
+        if ordering_key == "interview_time":
+            applicants = applicants.order_by("-interview__interview_start")
+        else:
+            applicants = applicants.order_by(
                 Case(
                     When(priorities__applicant_priority=Priority.FIRST, then=Value(2)),
                     When(priorities__applicant_priority=Priority.SECOND, then=Value(1)),
                     When(priorities__applicant_priority=Priority.THIRD, then=Value(0)),
                 ),
-            )
-            # I don't know why this has to be here, even when the case above is flipped
-            # it still gives it in the order of Third to First priority
-        ).reverse()
+                # I don't know why this has to be here, even when the case above is flipped
+                # it still gives it in the order of Third to First priority
+            ).reverse()
 
         # Also throw in applicants open for other positions.
         applicants_open_for_other_positions = (
