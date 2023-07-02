@@ -62,7 +62,7 @@ class Admission(models.Model):
     )
     interview_booking_override_enabled = models.BooleanField(default=False)
     interview_booking_override_delta = models.DurationField(
-        default=datetime.timedelta(hours=6),
+        default=datetime.timedelta(hours=3),
     )
     closed_at = models.DateTimeField(null=True, blank=True)
 
