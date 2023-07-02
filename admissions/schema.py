@@ -1541,6 +1541,10 @@ class ApplicantUpdateInternalGroupPositionPriorityOrderMutation(graphene.Mutatio
     )
 
     def mutate(self, info, priority_order, token, *args, **kwargs):
+        admission = Admission.get_active_admission()
+        if not admission or not admission.status == AdmissionStatus.OPEN:
+            raise Exception("Admission is in session or not open")
+
         applicant = Applicant.objects.get(token=token)
         applicant.last_activity = timezone.now()
         constructed_priorities = construct_new_priority_list(priority_order)
