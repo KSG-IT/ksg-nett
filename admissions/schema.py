@@ -1062,17 +1062,18 @@ class InterviewQuery(graphene.ObjectType):
         )
 
         cursor_offset = cursor + timezone.timedelta(days=1)
-        available_interviews = Interview.objects.filter(
-            applicant__isnull=True,
-        )
 
-        # Interviews for a specific date
-        available_interviews_this_day = available_interviews.filter(
+        available_interviews_this_day = Interview.objects.filter(
+            applicant__isnull=True,
             interview_start__gte=cursor,
             interview_start__lte=cursor_offset,
         )
 
+        # At this point available interviews are all interviews within 24 hours of the date.
+        # Further filtration is based on different settings
         if admission.interview_booking_override_enabled:
+            # Booking override that interviews can be booked on the same day, as long as its less than
+            # the override delta
             override_diff = timezone.now() + admission.interview_booking_override_delta
             available_interviews_this_day = available_interviews_this_day.filter(
                 interview_start__gte=override_diff
@@ -1082,6 +1083,8 @@ class InterviewQuery(graphene.ObjectType):
             admission.interview_booking_late_batch_enabled
             and date_selected > timezone.now().date()
         ):
+            # Late batch tries to force someone to book an interview after a specific time on a given day. This is
+            # typically 15:00 or 16:00. This is mostly, so they don't crash with lectures if possible
             late_batch_diff = timezone.make_aware(
                 timezone.datetime(
                     year=date_selected.year,
@@ -1095,6 +1098,9 @@ class InterviewQuery(graphene.ObjectType):
             late_batch_interviews = available_interviews_this_day.filter(
                 interview_start__gte=late_batch_diff
             )
+            # After filtering for late batch interviews, we want to check if there are any interviews.
+            # If not we allow the applicant to book earlier in the day, meaning we do not overwrite the
+            # available interviews for the day
             if late_batch_interviews.exists():
                 available_interviews_this_day = late_batch_interviews
 
