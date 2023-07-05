@@ -445,6 +445,26 @@ class ApplicantComment(models.Model):
         return f"{self.user} comment on {self.applicant}"
 
 
+class ApplicantRecommendation(models.Model):
+    class Meta:
+        verbose_name = "Applicant recommendation"
+        verbose_name_plural = "Applicant recommendations"
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    recommended_by = models.ForeignKey(
+        "users.User", on_delete=models.CASCADE, related_name="applicant_recommendations"
+    )
+    applicant = models.ForeignKey(
+        Applicant, on_delete=models.CASCADE, related_name="recommendations"
+    )
+    reasoning = models.TextField()
+    position = models.ForeignKey(
+        "organization.InternalGroupPosition",
+        on_delete=models.CASCADE,
+        related_name="recommendations",
+    )
+
+
 class InternalGroupPositionPriority(models.Model):
     class Meta:
         verbose_name = "Internal group position priority"
