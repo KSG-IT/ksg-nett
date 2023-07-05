@@ -458,10 +458,10 @@ class ApplicantRecommendation(models.Model):
         Applicant, on_delete=models.CASCADE, related_name="recommendations"
     )
     reasoning = models.TextField()
-    position = models.ForeignKey(
-        "organization.InternalGroupPosition",
+    internal_group = models.ForeignKey(
+        InternalGroup,
         on_delete=models.CASCADE,
-        related_name="recommendations",
+        related_name="applicant_recommendations",
     )
 
 
