@@ -700,6 +700,7 @@ class ApplicantQuery(graphene.ObjectType):
             applicants=applicants,
         )
 
+    @gql_has_permissions("admissions.view_applicant")
     def resolve_applicant_notices(self, info, *args, **kwargs):
         admission = Admission.get_active_admission()
         return Applicant.objects.filter(
