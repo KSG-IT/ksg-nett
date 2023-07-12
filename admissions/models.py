@@ -464,6 +464,9 @@ class ApplicantRecommendation(models.Model):
         related_name="applicant_recommendations",
     )
 
+    def __str__(self):
+        return f'"{self.reasoning}" for {self.internal_group.name} by {self.recommended_by} for {self.applicant}'
+
 
 class InternalGroupPositionPriority(models.Model):
     class Meta:
