@@ -671,7 +671,7 @@ class ApplicantQuery(graphene.ObjectType):
 
         if ordering_key == "interview_time":
             applicants = applicants.order_by("-interview__interview_start")
-        else:
+        elif ordering_key == "priorities":
             applicants = applicants.order_by(
                 Case(
                     When(priorities__applicant_priority=Priority.FIRST, then=Value(2)),
@@ -681,6 +681,8 @@ class ApplicantQuery(graphene.ObjectType):
                 # I don't know why this has to be here, even when the case above is flipped
                 # it still gives it in the order of Third to First priority
             ).reverse()
+        else:
+            raise ValueError(f"Unknown ordering key: {ordering_key}")
 
         # Also throw in applicants open for other positions.
         applicants_open_for_other_positions = (
