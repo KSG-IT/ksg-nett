@@ -70,14 +70,12 @@ class QuoteQuery(graphene.ObjectType):
     def resolve_popular_quotes_all_time(self, info, *args, **kwargs):
         return Quote.get_popular_quotes_all_time()
 
-    def resolve_all_quotes(self, info, *args, **kwargs):
-        return Quote.objects.all().order_by("created_at")
-
+    @gql_has_permissions("quotes.approve_quote")
     def resolve_pending_quotes(self, info, *args, **kwargs):
         return Quote.get_pending_quotes()
 
     def resolve_approved_quotes(self, info, *args, **kwargs):
-        return Quote.get_approved_quotes()
+        return Quote.get_approved_quotes().prefetch_related("tagged")
 
 
 class CreateQuoteMutation(DjangoCreateMutation):
