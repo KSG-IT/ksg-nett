@@ -3,7 +3,6 @@ from secrets import token_urlsafe
 
 import bleach
 import graphene
-from django.conf import settings
 from graphene import Node
 from graphql_relay import to_global_id
 from graphene_django import DjangoObjectType
@@ -52,6 +51,7 @@ from admissions.models import (
     Applicant,
     ApplicantComment,
     ApplicantInterest,
+    ApplicantRecommendation,
     Admission,
     AdmissionAvailableInternalGroupPositionData,
     InternalGroupPositionPriority,
@@ -141,6 +141,17 @@ class ApplicantCommentNode(DjangoObjectType):
     @gql_has_permissions("admissions.view_applicantcomment")
     def get_node(cls, info, id):
         return ApplicantComment.objects.get(pk=id)
+
+
+class ApplicantRecommendationNode(DjangoObjectType):
+    class Meta:
+        model = ApplicantRecommendation
+        interfaces = (Node,)
+
+    @classmethod
+    @gql_has_permissions("admissions.view_applicantrecommendation")
+    def get_node(cls, info, id):
+        return ApplicantRecommendation.objects.get(pk=id)
 
 
 class ApplicantNode(DjangoObjectType):
@@ -454,6 +465,7 @@ class InternalGroupApplicantsData(graphene.ObjectType):
 class InternalGroupDiscussionData(graphene.ObjectType):
     internal_group = graphene.Field(InternalGroupNode)
     applicants_open_for_other_positions = graphene.List(ApplicantNode)
+    applicant_recommendations = graphene.List(ApplicantRecommendationNode)
     applicants = graphene.List(ApplicantNode)
 
 
@@ -694,10 +706,20 @@ class ApplicantQuery(graphene.ObjectType):
             .distinct()
         )
 
+        recommendations = (
+            ApplicantRecommendation.objects.filter(
+                internal_group=internal_group,
+                applicant__status=ApplicantStatus.INTERVIEW_FINISHED,
+            )
+            .order_by("applicant__first_name")
+            .prefetch_related("applicant__priorities", "recommended_by")
+        )
+
         return InternalGroupDiscussionData(
             internal_group=internal_group,
             applicants_open_for_other_positions=applicants_open_for_other_positions,
             applicants=applicants,
+            applicant_recommendations=recommendations,
         )
 
     @gql_has_permissions("admissions.view_applicant")
@@ -1336,6 +1358,27 @@ class PatchApplicantMutation(DjangoPatchMutation):
             return obj
 
 
+class ApplicantInput(graphene.InputObjectType):
+    first_name = graphene.String()
+
+
+class PatchApplicantByTokenMutation(graphene.Mutation):
+    class Arguments:
+        token = graphene.String(required=True)
+        input = ApplicantInput(required=True)
+
+    applicant = graphene.Field(ApplicantNode)
+
+    @gql_has_permissions("admissions.change_applicant")
+    def mutate(self, info, token, input):
+        raise NotImplementedError("This mutation is not implemented fully yet")
+        applicant = Applicant.objects.get(token=token)
+        applicant = PatchApplicantMutation.mutate(
+            self, info, applicant.id, input, applicant
+        )
+        return PatchApplicantByTokenMutation(applicant=applicant)
+
+
 class DeleteApplicantMutation(DjangoDeleteMutation):
     class Meta:
         model = Applicant
@@ -1458,6 +1501,15 @@ class ResetApplicantInternalGroupPositionOfferMutation(graphene.Mutation):
         applicant_interest.position_to_be_offered = None
         applicant_interest.save()
         return applicant_interest
+
+
+# === ApplicantRecommendation ===
+class CreateApplicantRecommendationMutation(DjangoCreateMutation):
+    class Meta:
+        model = ApplicantRecommendation
+        permissions = ("admissions.add_applicantrecommendation",)
+        auto_context_fields = {"recommended_by": "user"}
+        exclude_fields = ("recommended_by",)
 
 
 # === InternalGroupPositionPriority ===
@@ -1733,12 +1785,15 @@ class CloseAdmissionMutation(graphene.Mutation):
 
         # Step 4)
         # User generation is done. Now we want to remove all identifying information
+        # As of now "05-07-2023" this doesn't really do anything since we nuke everything
         obfuscate_admission(admission)
 
         # Step 5)
-        # Delete all applicant comments and interviews
+        # Delete all applicant related data
         ApplicantComment.objects.all().delete()
         Interview.objects.all().delete()
+        ApplicantRecommendation.objects.all().delete()
+        ApplicantInterest.objects.all().delete()
 
         # Step 6)
         # It's a wrap folks
@@ -1769,8 +1824,6 @@ class CreateInterviewMutation(DjangoCreateMutation):
         model = Interview
         permissions = ("admissions.add_interview",)
         exclude_fields = ("additional_evaluations", "boolean_evaluations")
-
-    # Need to generaste nterview questions after creaation
 
     @classmethod
     def after_mutate(cls, root, info, input, obj, return_data):
@@ -1888,7 +1941,6 @@ class BookInterviewMutation(graphene.Mutation):
                 interview.save()
                 applicant.status = ApplicantStatus.SCHEDULED_INTERVIEW.value
                 applicant.save()
-                # I want to send an email here to the applicant with a confirmation, using the function
                 send_interview_confirmation_email(interview)
                 return BookInterviewMutation(ok=True)
 
@@ -2085,6 +2137,7 @@ class DeleteAdmissionAvailableInternalGroupPositionData(DjangoDeleteMutation):
 class AdmissionsMutations(graphene.ObjectType):
     create_applicant = CreateApplicantMutation.Field()
     patch_applicant = PatchApplicantMutation.Field()
+    patch_appicant_by_token = PatchApplicantByTokenMutation.Field()
     delete_applicant = DeleteApplicantMutation.Field()
     upload_applicants_csv = UploadApplicantsCSVMutation.Field()
     create_applicants_from_csv_data = CreateApplicantsFromCSVDataMutation.Field()
@@ -2097,6 +2150,7 @@ class AdmissionsMutations(graphene.ObjectType):
     send_applicant_notice = SendApplicantNoticeEmailMutation.Field()
 
     create_applicant_comment = CreateApplicantCommentMutation.Field()
+    create_applicant_recommendation = CreateApplicantRecommendationMutation.Field()
 
     create_applicant_interest = CreateApplicantInterestMutation.Field()
     delete_applicant_interest = DeleteApplicantInterestMutation.Field()

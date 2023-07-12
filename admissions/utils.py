@@ -1112,6 +1112,10 @@ def add_evaluations_to_interview(interview):
         app_label="admissions", model_name="InterviewAdditionalEvaluationAnswer"
     )
 
+    InterviewScheduleTemplate = apps.get_model(
+        app_label="admissions", model_name="InterviewScheduleTemplate"
+    )
+
     boolean_evaluation_statements = InterviewBooleanEvaluation.objects.all()
     additional_evaluation_statements = (
         InterviewAdditionalEvaluationStatement.objects.all()
@@ -1125,6 +1129,12 @@ def add_evaluations_to_interview(interview):
             interview=interview, statement=statement, answer=None
         )
 
+    schedule = InterviewScheduleTemplate.objects.all().first()
+
+    if not schedule:
+        raise Exception("No interview schedule template found")
+
+    interview.notes = schedule.default_interview_notes
     interview.save()
 
 
