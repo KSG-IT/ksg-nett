@@ -101,6 +101,7 @@ class PatchQuoteMutation(DjangoPatchMutation):
 class DeleteQuoteMutation(DjangoDeleteMutation):
     class Meta:
         model = Quote
+        permissions = ("quotes.delete_quote",)
 
 
 class CreateQuoteVoteMutation(DjangoCreateMutation):
