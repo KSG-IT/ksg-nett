@@ -1,7 +1,7 @@
 from functools import wraps
 from typing import Callable
 from django.core.exceptions import PermissionDenied
-from twisted.mail._except import IllegalOperation
+from common.exceptions import IllegalOperation
 
 from .models import FeatureFlag
 

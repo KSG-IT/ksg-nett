@@ -23,7 +23,7 @@ from graphene_django_cud.mutations import (
 )
 from graphene_django import DjangoConnectionField
 from graphene_django_cud.util import disambiguate_id
-from twisted.mail._except import IllegalOperation
+from common.exceptions import IllegalOperation
 
 from api.exceptions import InsufficientFundsException
 from common.decorators import (
