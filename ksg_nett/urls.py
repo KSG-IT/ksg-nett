@@ -20,7 +20,6 @@ from django.contrib import admin
 from django.http import HttpResponse
 from django.urls import path
 
-from api.api_docs import SchemaView
 from graphene_file_upload.django import FileUploadGraphQLView
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import RedirectView
@@ -59,11 +58,6 @@ urlpatterns = [
             (
                 [
                     path("", include("api.urls")),
-                    path(
-                        "docs/",
-                        SchemaView.with_ui("redoc", cache_timeout=None),
-                        name="schema-redoc",
-                    ),
                 ],
                 "api",
             ),

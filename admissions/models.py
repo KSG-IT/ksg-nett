@@ -10,7 +10,7 @@ from admissions.consts import (
     InternalGroupStatus,
     AdmissionStatus,
 )
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from secrets import token_urlsafe
 from os.path import join as osjoin
 
