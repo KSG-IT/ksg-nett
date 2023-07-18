@@ -16,6 +16,7 @@ from admissions.models import (
     ApplicantUnavailability,
     ApplicantInterest,
     AdmissionAvailableInternalGroupPositionData,
+    ApplicantRecommendation,
 )
 
 
@@ -122,4 +123,9 @@ class AdmissionAvailableInternalGroupPositionDataAdmin(admin.ModelAdmin):
 
 @admin.register(ApplicantComment)
 class ApplicantCommentAdmin(admin.ModelAdmin):
+    pass
+
+
+@admin.register(ApplicantRecommendation)
+class ApplicantRecommendationAdmin(admin.ModelAdmin):
     pass

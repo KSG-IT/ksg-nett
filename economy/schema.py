@@ -272,10 +272,14 @@ class DepositQuery(graphene.ObjectType):
     @gql_has_permissions("economy.approve_deposit")
     def resolve_all_deposits(self, info, q, unverified_only, *args, **kwargs):
         # ToDo implement user fullname search filtering
-        return Deposit.objects.filter(
-            account__user__first_name__contains=q,
-            approved=not unverified_only,
-        ).order_by("-created_at")
+        return (
+            Deposit.objects.filter(
+                account__user__first_name__contains=q,
+                approved=not unverified_only,
+            )
+            .order_by("-created_at")
+            .prefetch_related("account__user", "approved_by")
+        )
 
     @gql_has_permissions("economy.approve_deposit")
     def resolve_all_pending_deposits(self, info, *args, **kwargs):
@@ -1031,8 +1035,8 @@ class CreateDepositMutation(graphene.Mutation):
                     "Deposits are only allowed between 08:00 and 20:00"
                 )
 
-        if amount < 50:
-            raise IllegalOperation("Minimum deposit amount is 50 kr")
+        if amount < 1:
+            raise IllegalOperation("Minimum deposit amount is 1 kr")
 
         if amount > 30_000:
             raise IllegalOperation("Maximum deposit amount is 30 000 kr")
@@ -1046,18 +1050,21 @@ class CreateDepositMutation(graphene.Mutation):
         )
 
         if deposit_method == Deposit.DepositMethod.STRIPE:
-            from economy.utils import stripe_create_Payment_intent
+            from economy.utils import stripe_create_payment_intent
 
             check_feature_flag(settings.STRIPE_INTEGRATION_FEATURE_FLAG)
             with transaction.atomic():
-                intent, resolved_amount_in_nok = stripe_create_Payment_intent(
+                intent, amount_with_fee_in_nok = stripe_create_payment_intent(
                     amount, customer=info.context.user
                 )
                 deposit.stripe_payment_id = intent.id
                 deposit.stripe_payment_intent_status = (
                     Deposit.StripePaymentIntentStatusOptions.CREATED
                 )
-                deposit.resolved_amount = resolved_amount_in_nok
+                deposit.amount = amount_with_fee_in_nok
+                deposit.resolved_amount = (
+                    amount  # historically used for what is deposited into the account
+                )
 
         elif deposit_method == DepositMethodEnum.BANK_TRANSFER:
             check_feature_flag(settings.BANK_TRANSFER_DEPOSIT_FEATURE_FLAG)

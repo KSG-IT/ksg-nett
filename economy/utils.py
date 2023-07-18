@@ -224,11 +224,10 @@ def send_external_charge_email(user, amount, bar_tab_customer):
     )
 
 
-def stripe_create_Payment_intent(amount, customer=None, charge_saved_card=False):
+def stripe_create_payment_intent(amount, customer=None, charge_saved_card=False):
     import stripe
     import math
 
-    amount_in_smallest_currency = amount * 100
     STRIPE_API_KEY = settings.STRIPE_SECRET_KEY
 
     if not STRIPE_API_KEY:
@@ -237,13 +236,12 @@ def stripe_create_Payment_intent(amount, customer=None, charge_saved_card=False)
     STRIPE_FLAT_FEE = settings.STRIPE_FLAT_FEE * 100
     STRIPE_PERCENTAGE_FEE = settings.STRIPE_PERCENTAGE_FEE / 100.0
 
-    percentage_applied = amount_in_smallest_currency * STRIPE_PERCENTAGE_FEE
-    total_fee_in_smallest_currency = percentage_applied + STRIPE_FLAT_FEE
-
-    resolved_amount_in_smallest_currency = math.floor(
-        amount_in_smallest_currency - total_fee_in_smallest_currency
+    # Calculate the total amount to be charged, including Stripe fees
+    total_fee_multiplier = 1 / (1 - STRIPE_PERCENTAGE_FEE)
+    amount_including_fees_in_nok = math.ceil(
+        amount * total_fee_multiplier + STRIPE_FLAT_FEE / 100.0
     )
-    resolved_amount_in_nok = math.floor(resolved_amount_in_smallest_currency / 100.0)
+    amount_including_fees_in_smallest_currency = amount_including_fees_in_nok * 100
 
     stripe.api_key = STRIPE_API_KEY
 
@@ -263,29 +261,23 @@ def stripe_create_Payment_intent(amount, customer=None, charge_saved_card=False)
             default_payment_method = None
 
         intent = stripe.PaymentIntent.create(
-            amount=amount_in_smallest_currency,
+            amount=amount_including_fees_in_smallest_currency,
             currency="nok",
             automatic_payment_methods={"enabled": True},
             customer=customer_id,
-            # payment_method=default_payment_method,
-            # off_session=bool(default_payment_method),
-            # confirm=bool(default_payment_method),
-            # return_url=settings.APP_URL + "/economy/me",
             payment_method_options={
                 "card": {
-                    # Stripe recommends automatic but since European regulations require
-                    # 3D Secure for all transactions, we use any.
                     "request_three_d_secure": "any",
                 }
             },
         )
     else:
         intent = stripe.PaymentIntent.create(
-            amount=amount_in_smallest_currency,
+            amount=amount_including_fees_in_smallest_currency,
             currency="nok",
             automatic_payment_methods={"enabled": True},
         )
-    return intent, resolved_amount_in_nok
+    return intent, amount_including_fees_in_nok
 
 
 def stripe_search_customer(query_string):
@@ -317,3 +309,14 @@ def create_new_stripe_customer(customer):
 
 def send_external_charge_webhook(url, payload):
     pass
+
+
+def get_users_with_balance_less_than(balance_limit, all_users=False):
+    from users.models import User
+
+    users = User.objects.all()
+
+    if not all_users:
+        users = users.filter(is_active=True)
+
+    return users.filter(bank_account__balance__lt=balance_limit)

@@ -1,5 +1,22 @@
 # CHANGELOG
 
+## [Unreleased]
+
+### Added
+
+- Economy
+  - Debt collection utility. Retrieve all users with a balance lower than debt collection threshold
+  and option to send collections email. Email includes frontend url with an auth token which should
+  immediately load the deposit form in /torpedo
+
+## [2023.5.1] - 2023-05-16
+
+### Changed
+
+- Economy
+  - Refactor deposit fee to be added to charge instead of
+  subtracted
+
 ## [2023.4.1] - 2023-04-18
 
 ### Added
