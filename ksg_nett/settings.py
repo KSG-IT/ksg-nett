@@ -278,6 +278,7 @@ STRIPE_FLAT_FEE = 2  # in NOK
 STRIPE_PERCENTAGE_FEE = 2.4
 
 DEPOSIT_TIME_RESTRICTION_HOUR = os.environ.get("DEPOSIT_TIME_RESTRICTION_HOUR", 20)
+LANGUAGE_SESSION_KEY = "language"
 
 VERSION = "2023.5.1"
 
@@ -292,7 +293,7 @@ EXTERNAL_CHARGE_MAX_AMOUNT = os.environ.get("EXTERNAL_CHARGE_MAX_AMOUNT", 300)
 
 # Channels
 ASGI_APPLICATION = "ksg_nett.routing.application"
-
+# ASGI_APPLICATION = "ksg_nett.asgi.application"
 CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_redis.core.RedisChannelLayer",

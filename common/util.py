@@ -13,7 +13,7 @@ from django.conf import settings
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.utils import timezone
 from django.db.models import QuerySet
-from twisted.mail._except import IllegalOperation
+from common.exceptions import IllegalOperation
 
 from common.models import FeatureFlag
 
