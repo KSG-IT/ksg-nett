@@ -1685,7 +1685,7 @@ class ApplicantDeleteInternalGroupPositionPriority(graphene.Mutation):
 class CreateAdmissionMutation(DjangoCreateMutation):
     class Meta:
         model = Admission
-        permissions = ("admissions.create_admission",)
+        permissions = ("admissions.add_admission",)
 
 
 class PatchAdmissionMutation(DjangoPatchMutation):
