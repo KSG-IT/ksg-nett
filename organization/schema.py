@@ -137,7 +137,9 @@ class InternalGroupQuery(graphene.ObjectType):
         return InternalGroup.objects.all().order_by("name")
 
     def resolve_all_internal_groups_by_type(self, info, internal_group_type, **kwargs):
-        return InternalGroup.objects.filter(type=internal_group_type).order_by("name")
+        return InternalGroup.objects.filter(type=internal_group_type.value).order_by(
+            "name"
+        )
 
 
 class InternalGroupPositionQuery(graphene.ObjectType):
