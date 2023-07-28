@@ -1046,7 +1046,7 @@ class CreateDepositMutation(graphene.Mutation):
             amount=amount,
             created_at=timezone.now(),
             description=description,
-            deposit_method=deposit_method,
+            deposit_method=deposit_method.value,
         )
 
         if deposit_method == Deposit.DepositMethod.STRIPE:
