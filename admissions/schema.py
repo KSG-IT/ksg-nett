@@ -649,7 +649,9 @@ class ApplicantQuery(graphene.ObjectType):
         if admission.status != AdmissionStatus.IN_SESSION:
             return None
         positions = admission.available_internal_group_positions.all()
-        internal_groups = InternalGroup.objects.filter(positions__in=positions)
+        internal_groups = InternalGroup.objects.filter(
+            positions__in=positions
+        ).distinct()
 
         internal_group_data = []
         for internal_group in internal_groups:
