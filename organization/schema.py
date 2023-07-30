@@ -263,7 +263,7 @@ class AssignNewInternalGroupPositionMembership(graphene.Mutation):
         new_internal_group_position_membership = (
             InternalGroupPositionMembership.objects.create(
                 user=user,
-                type=internal_group_position_type,
+                type=internal_group_position_type.value,
                 position=internal_group_position,
                 date_joined=datetime.date.today(),
             )
