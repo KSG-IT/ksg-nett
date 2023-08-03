@@ -1,6 +1,6 @@
-from drf_yasg2.inspectors import SwaggerAutoSchema
-from drf_yasg2.openapi import Info, Contact
-from drf_yasg2.views import get_schema_view
+from drf_yasg.inspectors import SwaggerAutoSchema
+from drf_yasg.openapi import Info, Contact
+from drf_yasg.views import get_schema_view
 from rest_framework.permissions import AllowAny
 
 from ksg_nett import settings

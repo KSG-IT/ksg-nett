@@ -23,7 +23,7 @@ from graphene_django_cud.mutations import (
 )
 from graphene_django import DjangoConnectionField
 from graphene_django_cud.util import disambiguate_id
-from twisted.mail._except import IllegalOperation
+from common.exceptions import IllegalOperation
 
 from api.exceptions import InsufficientFundsException
 from common.decorators import (
@@ -272,10 +272,14 @@ class DepositQuery(graphene.ObjectType):
     @gql_has_permissions("economy.approve_deposit")
     def resolve_all_deposits(self, info, q, unverified_only, *args, **kwargs):
         # ToDo implement user fullname search filtering
-        return Deposit.objects.filter(
-            account__user__first_name__contains=q,
-            approved=not unverified_only,
-        ).order_by("-created_at")
+        return (
+            Deposit.objects.filter(
+                account__user__first_name__contains=q,
+                approved=not unverified_only,
+            )
+            .order_by("-created_at")
+            .prefetch_related("account__user", "approved_by")
+        )
 
     @gql_has_permissions("economy.approve_deposit")
     def resolve_all_pending_deposits(self, info, *args, **kwargs):
@@ -1031,8 +1035,8 @@ class CreateDepositMutation(graphene.Mutation):
                     "Deposits are only allowed between 08:00 and 20:00"
                 )
 
-        if amount < 50:
-            raise IllegalOperation("Minimum deposit amount is 50 kr")
+        if amount < 1:
+            raise IllegalOperation("Minimum deposit amount is 1 kr")
 
         if amount > 30_000:
             raise IllegalOperation("Maximum deposit amount is 30 000 kr")
@@ -1042,7 +1046,7 @@ class CreateDepositMutation(graphene.Mutation):
             amount=amount,
             created_at=timezone.now(),
             description=description,
-            deposit_method=deposit_method,
+            deposit_method=deposit_method.value,
         )
 
         if deposit_method == Deposit.DepositMethod.STRIPE:

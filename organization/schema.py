@@ -137,7 +137,9 @@ class InternalGroupQuery(graphene.ObjectType):
         return InternalGroup.objects.all().order_by("name")
 
     def resolve_all_internal_groups_by_type(self, info, internal_group_type, **kwargs):
-        return InternalGroup.objects.filter(type=internal_group_type).order_by("name")
+        return InternalGroup.objects.filter(type=internal_group_type.value).order_by(
+            "name"
+        )
 
 
 class InternalGroupPositionQuery(graphene.ObjectType):
@@ -261,7 +263,7 @@ class AssignNewInternalGroupPositionMembership(graphene.Mutation):
         new_internal_group_position_membership = (
             InternalGroupPositionMembership.objects.create(
                 user=user,
-                type=internal_group_position_type,
+                type=internal_group_position_type.value,
                 position=internal_group_position,
                 date_joined=datetime.date.today(),
             )

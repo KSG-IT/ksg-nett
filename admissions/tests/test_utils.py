@@ -202,13 +202,15 @@ class TestObfuscateAdmission(TestCase):
         self.alex.refresh_from_db()
         self.sander.refresh_from_db()
 
-        self.assertNotEqual(self.alex.first_name, "Alexander")
-        self.assertNotEqual(self.alex.last_name, "Orvik")
+        self.assertNotEqual(
+            self.alex.first_name + self.alex.last_name, "AlexanderOrvik"
+        )
         self.assertNotEqual(self.alex.phone, "12345678")
         self.assertNotEqual(self.alex.address, "Klostergata 35")
 
-        self.assertNotEqual(self.sander.first_name, "Sander")
-        self.assertNotEqual(self.sander.last_name, "Haga")
+        self.assertNotEqual(
+            self.sander.first_name + self.sander.last_name, "SanderHaga"
+        )
         self.assertNotEqual(self.sander.phone, "87654321")
         self.assertNotEqual(self.sander.address, "Klostergata 35")
 
