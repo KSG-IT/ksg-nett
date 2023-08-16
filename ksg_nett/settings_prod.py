@@ -30,6 +30,8 @@ BASE_URL = "https://ksg-nett.samfundet.no"
 ADMISSION_BOOK_INTERVIEWS_NOW = False
 OWES_MONEY_THRESHOLD = -500
 
+ADMINS = [("Alex", "alexao1111@gmail.com")]
+
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",

@@ -13,7 +13,7 @@ from django.conf import settings
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.utils import timezone
 from django.db.models import QuerySet
-from twisted.mail._except import IllegalOperation
+from common.exceptions import IllegalOperation
 
 from common.models import FeatureFlag
 
@@ -276,14 +276,16 @@ def send_email(
 
 
 def date_time_combiner(date: datetime.date, time: datetime.time):
-    return timezone.datetime(
-        year=date.year,
-        month=date.month,
-        day=date.day,
-        hour=time.hour,
-        minute=time.minute,
-        second=time.second,
-        tzinfo=pytz.timezone(settings.TIME_ZONE),
+    return timezone.make_aware(
+        timezone.datetime(
+            year=date.year,
+            month=date.month,
+            day=date.day,
+            hour=time.hour,
+            minute=time.minute,
+            second=time.second,
+        ),
+        timezone=pytz.timezone(settings.TIME_ZONE),
     )
 
 

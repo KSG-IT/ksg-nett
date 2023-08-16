@@ -5,7 +5,11 @@ import calendar
 
 import pytz
 from django.conf import settings
-from django.core.exceptions import SuspiciousOperation, PermissionDenied
+from django.core.exceptions import (
+    SuspiciousOperation,
+    PermissionDenied,
+    ValidationError,
+)
 from django.db import transaction
 from django.forms import FloatField
 from graphene import Node
@@ -20,7 +24,7 @@ from graphene_django_cud.mutations import (
 )
 from graphene_django import DjangoConnectionField
 from graphene_django_cud.util import disambiguate_id
-from twisted.mail._except import IllegalOperation
+from common.exceptions import IllegalOperation
 
 from api.exceptions import InsufficientFundsException
 from common.decorators import (
@@ -293,10 +297,14 @@ class DepositQuery(graphene.ObjectType):
     @gql_has_permissions("economy.approve_deposit")
     def resolve_all_deposits(self, info, q, unverified_only, *args, **kwargs):
         # ToDo implement user fullname search filtering
-        return Deposit.objects.filter(
-            account__user__first_name__contains=q,
-            approved=not unverified_only,
-        ).order_by("-created_at")
+        return (
+            Deposit.objects.filter(
+                account__user__first_name__contains=q,
+                approved=not unverified_only,
+            )
+            .order_by("-created_at")
+            .prefetch_related("account__user", "approved_by")
+        )
 
     @gql_has_permissions("economy.approve_deposit")
     def resolve_all_pending_deposits(self, info, *args, **kwargs):
@@ -626,7 +634,7 @@ class PlaceProductOrderMutation(graphene.Mutation):
         """
 
         request_user = info.context.user
-        if overcharge and not request_user.has_perm("economy.overcharge_product_order"):
+        if overcharge and not request_user.has_perm("economy.can_overcharge"):
             # Check this early to simplify rest of business logic
             raise PermissionDenied("You do not have permission to overcharge")
 
@@ -643,7 +651,8 @@ class PlaceProductOrderMutation(graphene.Mutation):
         account = user.bank_account
         cost = product.price * order_size
 
-        can_afford = cost <= account.balance
+        remaining_balance = account.balance - cost
+        can_afford = session.minimum_remaining_balance <= remaining_balance
 
         if can_afford:
             account.remove_funds(cost)
@@ -657,7 +666,7 @@ class PlaceProductOrderMutation(graphene.Mutation):
             return PlaceProductOrderMutation(product_order=product_order)
 
         # Cannot afford it and overcharge is not allowed
-        if not overcharge:
+        if not overcharge and not account.is_gold:
             raise InsufficientFundsException("Insufficient funds")
 
         account.remove_funds(cost)
@@ -676,6 +685,11 @@ class CreateSociSessionMutation(DjangoCreateMutation):
         model = SociSession
         permissions = ("economy.add_socisession",)
         auto_context_fields = {"created_by": "user"}
+
+    def validate_minimum_remaining_balance(root, info, value, input, **kwargs):
+        if value < 0:
+            raise ValidationError("Minimum remaining balance cannot be negative")
+        return value
 
 
 class PatchSociSessionMutation(DjangoPatchMutation):
@@ -699,6 +713,11 @@ class CloseSociSessionMutation(graphene.Mutation):
             raise SuspiciousOperation(
                 f"Cannot close a session of type {SociSession.Type.SOCIETETEN}"
             )
+
+        if soci_session.product_orders.count() == 0:
+            soci_session.delete()
+            return CloseSociSessionMutation(soci_session=None)
+
         soci_session.closed_at = timezone.now()
         soci_session.save()
         if soci_session.type == SociSession.Type.STILLETIME:
@@ -1088,8 +1107,8 @@ class CreateDepositMutation(graphene.Mutation):
                     "Deposits are only allowed between 08:00 and 20:00"
                 )
 
-        if amount < 50:
-            raise IllegalOperation("Minimum deposit amount is 50 kr")
+        if amount < 1:
+            raise IllegalOperation("Minimum deposit amount is 1 kr")
 
         if amount > 30_000:
             raise IllegalOperation("Maximum deposit amount is 30 000 kr")
@@ -1099,22 +1118,25 @@ class CreateDepositMutation(graphene.Mutation):
             amount=amount,
             created_at=timezone.now(),
             description=description,
-            deposit_method=deposit_method,
+            deposit_method=deposit_method.value,
         )
 
         if deposit_method == Deposit.DepositMethod.STRIPE:
-            from economy.utils import stripe_create_Payment_intent
+            from economy.utils import stripe_create_payment_intent
 
             check_feature_flag(settings.STRIPE_INTEGRATION_FEATURE_FLAG)
             with transaction.atomic():
-                intent, resolved_amount_in_nok = stripe_create_Payment_intent(
+                intent, amount_with_fee_in_nok = stripe_create_payment_intent(
                     amount, customer=info.context.user
                 )
                 deposit.stripe_payment_id = intent.id
                 deposit.stripe_payment_intent_status = (
                     Deposit.StripePaymentIntentStatusOptions.CREATED
                 )
-                deposit.resolved_amount = resolved_amount_in_nok
+                deposit.amount = amount_with_fee_in_nok
+                deposit.resolved_amount = (
+                    amount  # historically used for what is deposited into the account
+                )
 
         elif deposit_method == DepositMethodEnum.BANK_TRANSFER:
             check_feature_flag(settings.BANK_TRANSFER_DEPOSIT_FEATURE_FLAG)

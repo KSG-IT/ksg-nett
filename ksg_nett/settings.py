@@ -54,7 +54,7 @@ INSTALLED_APPS = [
     "channels",
     "rest_framework",
     "rest_framework.authtoken",
-    "drf_yasg2",
+    "drf_yasg",
     "graphene_django",
     "corsheaders",
     "django_filters",
@@ -230,7 +230,6 @@ PNG_COMPRESSION_LOW_QUALITY = 1200
 PNG_COMPRESSION_MEDIUM_QUALITY = 2000
 PNG_COMPRESSION_HIGH_QUALITY = 2800
 
-
 ADMISSION_BOOK_INTERVIEWS_NOW = False
 # The late batch is used as a soft limit for what interviews are bookable first
 ADMISSION_LATE_BATCH_TIMESTAMP = timedelta(hours=15)
@@ -277,8 +276,9 @@ STRIPE_FLAT_FEE = 2  # in NOK
 STRIPE_PERCENTAGE_FEE = 2.4
 
 DEPOSIT_TIME_RESTRICTION_HOUR = os.environ.get("DEPOSIT_TIME_RESTRICTION_HOUR", 20)
+LANGUAGE_SESSION_KEY = "language"
 
-VERSION = "2023.3.2"
+VERSION = "2023.8.1"
 
 # Feature flag keys
 STRIPE_INTEGRATION_FEATURE_FLAG = "stripe_integration"
@@ -286,12 +286,11 @@ BANK_TRANSFER_DEPOSIT_FEATURE_FLAG = "bank_transfer_deposit"
 DEPOSIT_TIME_RESTRICTIONS_FEATURE_FLAG = "deposit_time_restrictions"
 EXTERNAL_CHARGING_FEATURE_FLAG = "external_charging"
 
-
 EXTERNAL_CHARGE_MAX_AMOUNT = os.environ.get("EXTERNAL_CHARGE_MAX_AMOUNT", 300)
 
 # Channels
 ASGI_APPLICATION = "ksg_nett.routing.application"
-
+# ASGI_APPLICATION = "ksg_nett.asgi.application"
 CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
@@ -318,7 +317,6 @@ if DEVELOPMENT:
         from .settings_development import *
     except ImportError:
         pass
-
 
 PRODUCTION = os.getenv("PRODUCTION", "False") == "True"
 if PRODUCTION:

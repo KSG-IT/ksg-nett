@@ -10,7 +10,7 @@ from admissions.consts import (
     InternalGroupStatus,
     AdmissionStatus,
 )
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from secrets import token_urlsafe
 from os.path import join as osjoin
 
@@ -62,7 +62,7 @@ class Admission(models.Model):
     )
     interview_booking_override_enabled = models.BooleanField(default=False)
     interview_booking_override_delta = models.DurationField(
-        default=datetime.timedelta(hours=6),
+        default=datetime.timedelta(hours=3),
     )
     closed_at = models.DateTimeField(null=True, blank=True)
 
@@ -445,6 +445,29 @@ class ApplicantComment(models.Model):
         return f"{self.user} comment on {self.applicant}"
 
 
+class ApplicantRecommendation(models.Model):
+    class Meta:
+        verbose_name = "Applicant recommendation"
+        verbose_name_plural = "Applicant recommendations"
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    recommended_by = models.ForeignKey(
+        "users.User", on_delete=models.CASCADE, related_name="applicant_recommendations"
+    )
+    applicant = models.ForeignKey(
+        Applicant, on_delete=models.CASCADE, related_name="recommendations"
+    )
+    reasoning = models.TextField()
+    internal_group = models.ForeignKey(
+        InternalGroup,
+        on_delete=models.CASCADE,
+        related_name="applicant_recommendations",
+    )
+
+    def __str__(self):
+        return f'"{self.reasoning}" for {self.internal_group.name} by {self.recommended_by} for {self.applicant}'
+
+
 class InternalGroupPositionPriority(models.Model):
     class Meta:
         verbose_name = "Internal group position priority"
@@ -514,6 +537,11 @@ class InterviewScheduleTemplate(models.Model):
         help_text="Number of interviews happening back to back before a break",
     )
     default_pause_duration = models.DurationField(default=timezone.timedelta(hours=1))
+
+    default_interview_notes = models.TextField(
+        default="",
+        help_text="Outlines questions to be used for each interview",
+    )
 
     def __str__(self):
         return f"Interview schedule template. Generates {self.default_block_size * 2} interviews per location per day"

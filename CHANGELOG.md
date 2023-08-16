@@ -1,4 +1,58 @@
 # CHANGELOG
+
+[Unreleased]
+
+## [2023.8.1] - 2023-08-03
+
+### Added
+
+- Economy
+  - Debt collection utility. Retrieve all users with a balance lower than debt collection threshold
+  and option to send collections email. Email includes frontend url with an auth token which should
+  immediately load the deposit form in /torpedo
+- Admissions
+  - Applicant recommendation model
+  - Ordering key to internal group applicant data query
+  - Default interview notes
+
+### Changed
+- Dependencies
+  - Upgrade Django to 4.2
+  - Upgrade graphene-django to v3
+  - Upgrade graphene-django-cud
+  - Change drf-yasg2 to drf-yasg which is maintaned again
+
+
+### Fixed
+- Admissions
+  - Change priorities when admission is in session
+  - Incorrect CreateAdmission mutation permission
+- Common
+  - Breaking use of Exception (IllegalOperation)
+
+## [2023.5.1] - 2023-05-16
+
+### Changed
+
+- Economy
+  - Refactor deposit fee to be added to charge instead of
+  subtracted
+
+## [2023.4.1] - 2023-04-18
+
+### Added
+- Economy
+  - `minimum_remaining_balance` field to SociSession
+  - Change PlaceProductOrderMutation to check for `minimum_remaining_balance`
+    against SociSession
+- Schedules
+  - autofill method based on shift interest
+  - WIP shift interest and roster models/methods
+
+### Fixed
+- Economy
+    - Incorrect overcharge permission check in PlaceProductOrderMutation
+
 ## [2023.3.2] - 2023-03-10
 
 ### Added

@@ -3,7 +3,6 @@ from secrets import token_urlsafe
 
 import bleach
 import graphene
-from django.conf import settings
 from graphene import Node
 from graphql_relay import to_global_id
 from graphene_django import DjangoObjectType
@@ -52,6 +51,7 @@ from admissions.models import (
     Applicant,
     ApplicantComment,
     ApplicantInterest,
+    ApplicantRecommendation,
     Admission,
     AdmissionAvailableInternalGroupPositionData,
     InternalGroupPositionPriority,
@@ -141,6 +141,17 @@ class ApplicantCommentNode(DjangoObjectType):
     @gql_has_permissions("admissions.view_applicantcomment")
     def get_node(cls, info, id):
         return ApplicantComment.objects.get(pk=id)
+
+
+class ApplicantRecommendationNode(DjangoObjectType):
+    class Meta:
+        model = ApplicantRecommendation
+        interfaces = (Node,)
+
+    @classmethod
+    @gql_has_permissions("admissions.view_applicantrecommendation")
+    def get_node(cls, info, id):
+        return ApplicantRecommendation.objects.get(pk=id)
 
 
 class ApplicantNode(DjangoObjectType):
@@ -454,6 +465,7 @@ class InternalGroupApplicantsData(graphene.ObjectType):
 class InternalGroupDiscussionData(graphene.ObjectType):
     internal_group = graphene.Field(InternalGroupNode)
     applicants_open_for_other_positions = graphene.List(ApplicantNode)
+    applicant_recommendations = graphene.List(ApplicantRecommendationNode)
     applicants = graphene.List(ApplicantNode)
 
 
@@ -554,7 +566,9 @@ class ApplicantQuery(graphene.ObjectType):
     )
     all_internal_group_applicant_data = graphene.List(InternalGroupApplicantsData)
     internal_group_discussion_data = graphene.Field(
-        InternalGroupDiscussionData, internal_group_id=graphene.ID(required=True)
+        InternalGroupDiscussionData,
+        internal_group_id=graphene.ID(required=True),
+        ordering_key=graphene.String(required=False),
     )
     all_applicants_available_for_rebooking = graphene.List(ApplicantNode)
     applicant_notices = graphene.List(ApplicantNode)
@@ -635,7 +649,9 @@ class ApplicantQuery(graphene.ObjectType):
         if admission.status != AdmissionStatus.IN_SESSION:
             return None
         positions = admission.available_internal_group_positions.all()
-        internal_groups = InternalGroup.objects.filter(positions__in=positions)
+        internal_groups = InternalGroup.objects.filter(
+            positions__in=positions
+        ).distinct()
 
         internal_group_data = []
         for internal_group in internal_groups:
@@ -646,7 +662,7 @@ class ApplicantQuery(graphene.ObjectType):
 
     @gql_has_permissions("admissions.view_applicant")
     def resolve_internal_group_discussion_data(
-        self, info, internal_group_id, *args, **kwargs
+        self, info, internal_group_id, ordering_key="priorities", *args, **kwargs
     ):
         """
         Resolves data for the discussion view for a given internal group. This includes fields
@@ -662,22 +678,25 @@ class ApplicantQuery(graphene.ObjectType):
         all_applicants = Applicant.objects.filter(admission=active_admission)
 
         # All applicants that have applied to this internal group and finished their interview
-        applicants = (
-            all_applicants.filter(
-                priorities__internal_group_position__internal_group=internal_group,
-                status=ApplicantStatus.INTERVIEW_FINISHED,
-            )
-            .distinct()
-            .order_by(
+        applicants = all_applicants.filter(
+            priorities__internal_group_position__internal_group=internal_group,
+            status=ApplicantStatus.INTERVIEW_FINISHED,
+        ).distinct()
+
+        if ordering_key == "interview_time":
+            applicants = applicants.order_by("-interview__interview_start")
+        elif ordering_key == "priorities":
+            applicants = applicants.order_by(
                 Case(
                     When(priorities__applicant_priority=Priority.FIRST, then=Value(2)),
                     When(priorities__applicant_priority=Priority.SECOND, then=Value(1)),
                     When(priorities__applicant_priority=Priority.THIRD, then=Value(0)),
                 ),
-            )
-            # I don't know why this has to be here, even when the case above is flipped
-            # it still gives it in the order of Third to First priority
-        ).reverse()
+                # I don't know why this has to be here, even when the case above is flipped
+                # it still gives it in the order of Third to First priority
+            ).reverse()
+        else:
+            raise ValueError(f"Unknown ordering key: {ordering_key}")
 
         # Also throw in applicants open for other positions.
         applicants_open_for_other_positions = (
@@ -689,12 +708,23 @@ class ApplicantQuery(graphene.ObjectType):
             .distinct()
         )
 
+        recommendations = (
+            ApplicantRecommendation.objects.filter(
+                internal_group=internal_group,
+                applicant__status=ApplicantStatus.INTERVIEW_FINISHED,
+            )
+            .order_by("applicant__first_name")
+            .prefetch_related("applicant__priorities", "recommended_by")
+        )
+
         return InternalGroupDiscussionData(
             internal_group=internal_group,
             applicants_open_for_other_positions=applicants_open_for_other_positions,
             applicants=applicants,
+            applicant_recommendations=recommendations,
         )
 
+    @gql_has_permissions("admissions.view_applicant")
     def resolve_applicant_notices(self, info, *args, **kwargs):
         admission = Admission.get_active_admission()
         return Applicant.objects.filter(
@@ -911,6 +941,7 @@ class InterviewTemplate(graphene.ObjectType):
     interview_additional_evaluation_statements = graphene.List(
         InterviewAdditionalEvaluationStatementNode
     )
+    default_interview_notes = graphene.NonNull(graphene.String)
 
 
 class InterviewSlot(graphene.ObjectType):
@@ -979,15 +1010,21 @@ class InterviewQuery(graphene.ObjectType):
 
     @gql_has_permissions("admissions.view_interviewscheduletemplate")
     def resolve_interview_template(self, info, *args, **kwargs):
+        schedule = InterviewScheduleTemplate.objects.first()
+
         all_boolean_evaluation_statements = (
             InterviewBooleanEvaluation.objects.all().order_by("order")
         )
         all_additional_evaluation_statements = (
             InterviewAdditionalEvaluationStatement.objects.all().order_by("order")
         )
+        cleaned_default_notes = bleach.clean(
+            schedule.default_interview_notes, tags=BLEACH_ALLOWED_TAGS
+        )
         return InterviewTemplate(
             interview_boolean_evaluation_statements=all_boolean_evaluation_statements,
             interview_additional_evaluation_statements=all_additional_evaluation_statements,
+            default_interview_notes=cleaned_default_notes,
         )
 
     @gql_has_permissions("admissions.view_interview")
@@ -1052,17 +1089,18 @@ class InterviewQuery(graphene.ObjectType):
         )
 
         cursor_offset = cursor + timezone.timedelta(days=1)
-        available_interviews = Interview.objects.filter(
-            applicant__isnull=True,
-        )
 
-        # Interviews for a specific date
-        available_interviews_this_day = available_interviews.filter(
+        available_interviews_this_day = Interview.objects.filter(
+            applicant__isnull=True,
             interview_start__gte=cursor,
             interview_start__lte=cursor_offset,
         )
 
+        # At this point available interviews are all interviews within 24 hours of the date.
+        # Further filtration is based on different settings
         if admission.interview_booking_override_enabled:
+            # Booking override that interviews can be booked on the same day, as long as its less than
+            # the override delta
             override_diff = timezone.now() + admission.interview_booking_override_delta
             available_interviews_this_day = available_interviews_this_day.filter(
                 interview_start__gte=override_diff
@@ -1072,6 +1110,8 @@ class InterviewQuery(graphene.ObjectType):
             admission.interview_booking_late_batch_enabled
             and date_selected > timezone.now().date()
         ):
+            # Late batch tries to force someone to book an interview after a specific time on a given day. This is
+            # typically 15:00 or 16:00. This is mostly, so they don't crash with lectures if possible
             late_batch_diff = timezone.make_aware(
                 timezone.datetime(
                     year=date_selected.year,
@@ -1085,6 +1125,9 @@ class InterviewQuery(graphene.ObjectType):
             late_batch_interviews = available_interviews_this_day.filter(
                 interview_start__gte=late_batch_diff
             )
+            # After filtering for late batch interviews, we want to check if there are any interviews.
+            # If not we allow the applicant to book earlier in the day, meaning we do not overwrite the
+            # available interviews for the day
             if late_batch_interviews.exists():
                 available_interviews_this_day = late_batch_interviews
 
@@ -1317,6 +1360,27 @@ class PatchApplicantMutation(DjangoPatchMutation):
             return obj
 
 
+class ApplicantInput(graphene.InputObjectType):
+    first_name = graphene.String()
+
+
+class PatchApplicantByTokenMutation(graphene.Mutation):
+    class Arguments:
+        token = graphene.String(required=True)
+        input = ApplicantInput(required=True)
+
+    applicant = graphene.Field(ApplicantNode)
+
+    @gql_has_permissions("admissions.change_applicant")
+    def mutate(self, info, token, input):
+        raise NotImplementedError("This mutation is not implemented fully yet")
+        applicant = Applicant.objects.get(token=token)
+        applicant = PatchApplicantMutation.mutate(
+            self, info, applicant.id, input, applicant
+        )
+        return PatchApplicantByTokenMutation(applicant=applicant)
+
+
 class DeleteApplicantMutation(DjangoDeleteMutation):
     class Meta:
         model = Applicant
@@ -1441,6 +1505,15 @@ class ResetApplicantInternalGroupPositionOfferMutation(graphene.Mutation):
         return applicant_interest
 
 
+# === ApplicantRecommendation ===
+class CreateApplicantRecommendationMutation(DjangoCreateMutation):
+    class Meta:
+        model = ApplicantRecommendation
+        permissions = ("admissions.add_applicantrecommendation",)
+        auto_context_fields = {"recommended_by": "user"}
+        exclude_fields = ("recommended_by",)
+
+
 # === InternalGroupPositionPriority ===
 class AddInternalGroupPositionPriorityMutation(graphene.Mutation):
     class Arguments:
@@ -1534,6 +1607,10 @@ class ApplicantUpdateInternalGroupPositionPriorityOrderMutation(graphene.Mutatio
     )
 
     def mutate(self, info, priority_order, token, *args, **kwargs):
+        admission = Admission.get_active_admission()
+        if not admission or not admission.status == AdmissionStatus.OPEN:
+            raise Exception("Admission is in session or not open")
+
         applicant = Applicant.objects.get(token=token)
         applicant.last_activity = timezone.now()
         constructed_priorities = construct_new_priority_list(priority_order)
@@ -1610,7 +1687,7 @@ class ApplicantDeleteInternalGroupPositionPriority(graphene.Mutation):
 class CreateAdmissionMutation(DjangoCreateMutation):
     class Meta:
         model = Admission
-        permissions = ("admissions.create_admission",)
+        permissions = ("admissions.add_admission",)
 
 
 class PatchAdmissionMutation(DjangoPatchMutation):
@@ -1710,12 +1787,15 @@ class CloseAdmissionMutation(graphene.Mutation):
 
         # Step 4)
         # User generation is done. Now we want to remove all identifying information
+        # As of now "05-07-2023" this doesn't really do anything since we nuke everything
         obfuscate_admission(admission)
 
         # Step 5)
-        # Delete all applicant comments and interviews
+        # Delete all applicant related data
         ApplicantComment.objects.all().delete()
         Interview.objects.all().delete()
+        ApplicantRecommendation.objects.all().delete()
+        ApplicantInterest.objects.all().delete()
 
         # Step 6)
         # It's a wrap folks
@@ -1746,8 +1826,6 @@ class CreateInterviewMutation(DjangoCreateMutation):
         model = Interview
         permissions = ("admissions.add_interview",)
         exclude_fields = ("additional_evaluations", "boolean_evaluations")
-
-    # Need to generaste nterview questions after creaation
 
     @classmethod
     def after_mutate(cls, root, info, input, obj, return_data):
@@ -1865,7 +1943,6 @@ class BookInterviewMutation(graphene.Mutation):
                 interview.save()
                 applicant.status = ApplicantStatus.SCHEDULED_INTERVIEW.value
                 applicant.save()
-                # I want to send an email here to the applicant with a confirmation, using the function
                 send_interview_confirmation_email(interview)
                 return BookInterviewMutation(ok=True)
 
@@ -2062,6 +2139,7 @@ class DeleteAdmissionAvailableInternalGroupPositionData(DjangoDeleteMutation):
 class AdmissionsMutations(graphene.ObjectType):
     create_applicant = CreateApplicantMutation.Field()
     patch_applicant = PatchApplicantMutation.Field()
+    patch_appicant_by_token = PatchApplicantByTokenMutation.Field()
     delete_applicant = DeleteApplicantMutation.Field()
     upload_applicants_csv = UploadApplicantsCSVMutation.Field()
     create_applicants_from_csv_data = CreateApplicantsFromCSVDataMutation.Field()
@@ -2074,6 +2152,7 @@ class AdmissionsMutations(graphene.ObjectType):
     send_applicant_notice = SendApplicantNoticeEmailMutation.Field()
 
     create_applicant_comment = CreateApplicantCommentMutation.Field()
+    create_applicant_recommendation = CreateApplicantRecommendationMutation.Field()
 
     create_applicant_interest = CreateApplicantInterestMutation.Field()
     delete_applicant_interest = DeleteApplicantInterestMutation.Field()

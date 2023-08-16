@@ -17,12 +17,24 @@ from schedules.models import (
     Shift,
     ShiftTrade,
     ShiftSlot,
+    RoleOption,
+    ShiftInterest,
 )
 from schedules.utils.schedules import normalize_shifts, send_given_shift_email
 from schedules.utils.templates import apply_schedule_template
 from users.models import User
 from django.utils import timezone
 from django.conf import settings
+
+
+class ShiftInterestNode(DjangoObjectType):
+    class Meta:
+        model = ShiftInterest
+        interfaces = (Node,)
+
+    @classmethod
+    def get_node(cls, info, id):
+        return ShiftInterest.objects.get(pk=id)
 
 
 class ShiftSlotNode(DjangoObjectType):
@@ -358,24 +370,24 @@ class DeleteShiftSlotMutation(DjangoDeleteMutation):
 
 
 class ShiftSlotRoleEnum(graphene.Enum):
-    BARISTA = ShiftSlot.RoleOption.BARISTA
-    KAFEANSVARLIG = ShiftSlot.RoleOption.KAFEANSVARLIG
-    BARSERVITOR = ShiftSlot.RoleOption.BARSERVITOR
-    HOVMESTER = ShiftSlot.RoleOption.HOVMESTER
-    KOKK = ShiftSlot.RoleOption.KOKK
-    SOUSCHEF = ShiftSlot.RoleOption.SOUSCHEF
-    ARRANGEMENTBARTENDER = ShiftSlot.RoleOption.ARRANGEMENTBARTENDER
-    ARRANGEMENTANSVARLIG = ShiftSlot.RoleOption.ARRANGEMENTANSVARLIG
-    BRYGGER = ShiftSlot.RoleOption.BRYGGER
-    BARTENDER = ShiftSlot.RoleOption.BARTENDER
-    BARSJEF = ShiftSlot.RoleOption.BARSJEF
-    SPRITBARTENDER = ShiftSlot.RoleOption.SPRITBARTENDER
-    SPRITBARSJEF = ShiftSlot.RoleOption.SPRITBARSJEF
-    UGLE = ShiftSlot.RoleOption.UGLE
-    BRANNVAKT = ShiftSlot.RoleOption.BRANNVAKT
-    RYDDEVAKT = ShiftSlot.RoleOption.RYDDEVAKT
-    BAEREVAKT = ShiftSlot.RoleOption.BAEREVAKT
-    SOCIVAKT = ShiftSlot.RoleOption.SOCIVAKT
+    BARISTA = RoleOption.BARISTA
+    KAFEANSVARLIG = RoleOption.KAFEANSVARLIG
+    BARSERVITOR = RoleOption.BARSERVITOR
+    HOVMESTER = RoleOption.HOVMESTER
+    KOKK = RoleOption.KOKK
+    SOUSCHEF = RoleOption.SOUSCHEF
+    ARRANGEMENTBARTENDER = RoleOption.ARRANGEMENTBARTENDER
+    ARRANGEMENTANSVARLIG = RoleOption.ARRANGEMENTANSVARLIG
+    BRYGGER = RoleOption.BRYGGER
+    BARTENDER = RoleOption.BARTENDER
+    BARSJEF = RoleOption.BARSJEF
+    SPRITBARTENDER = RoleOption.SPRITBARTENDER
+    SPRITBARSJEF = RoleOption.SPRITBARSJEF
+    UGLE = RoleOption.UGLE
+    BRANNVAKT = RoleOption.BRANNVAKT
+    RYDDEVAKT = RoleOption.RYDDEVAKT
+    BAEREVAKT = RoleOption.BAEREVAKT
+    SOCIVAKT = RoleOption.SOCIVAKT
 
 
 class AddSlotToShiftInput(graphene.InputObjectType):
@@ -396,8 +408,51 @@ class AddSlotsToShiftMutation(graphene.Mutation):
         shift = Shift.objects.get(pk=shift_id)
         for slot in slots:
             for i in range(slot.count):
-                ShiftSlot.objects.create(shift=shift, role=slot.shift_slot_role)
+                ShiftSlot.objects.create(shift=shift, role=slot.shift_slot_role.value)
         return AddSlotsToShiftMutation(shift=shift)
+
+
+class AutofillShiftSlotsMutation(graphene.Mutation):
+    class Arguments:
+        schedule_id = graphene.ID(required=True)
+        from_date = graphene.Date(required=True)
+        to_date = graphene.Date(required=True)
+
+    success = graphene.Boolean()
+
+    @gql_has_permissions("schedules.change_shiftslot")
+    def mutate(self, info, schedule_id, from_date, to_date):
+        today = timezone.now().date()
+
+        if from_date < today:
+            raise ValueError("From date must be in the future")
+
+        if to_date < today:
+            raise ValueError("To date must be in the future")
+
+        if to_date < from_date:
+            raise ValueError("To date must be after from date")
+
+        schedule_id = disambiguate_id(schedule_id)
+        schedule = Schedule.objects.get(pk=schedule_id)
+        schedule.autofill_slots(from_date, to_date)
+        return AutofillShiftSlotsMutation(success=True)
+
+
+class CreateShiftInterestMutation(DjangoCreateMutation):
+    class Meta:
+        model = ShiftInterest
+        auto_context_field = {"user": "user"}
+
+
+class DeleteShiftInterestMutation(DjangoDeleteMutation):
+    class Meta:
+        model = ShiftInterest
+
+
+class MyShiftAvailabilityObject(graphene.ObjectType):
+    shift = graphene.NonNull(graphene.Field(ShiftNode))
+    shift_interest = graphene.Field(ShiftInterestNode)
 
 
 class SchedulesMutations(graphene.ObjectType):
@@ -415,3 +470,6 @@ class SchedulesMutations(graphene.ObjectType):
     create_shift_slot = CreateShiftSlotMutation.Field()
     delete_shift_slot = DeleteShiftSlotMutation.Field()
     add_slots_to_shift = AddSlotsToShiftMutation.Field()
+
+    create_shift_interest = CreateShiftInterestMutation.Field()
+    autofill_shift_slots = AutofillShiftSlotsMutation.Field()

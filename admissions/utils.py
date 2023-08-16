@@ -6,7 +6,7 @@ from django.db import transaction
 from graphene_django_cud.util import disambiguate_id
 
 from common.util import send_email
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from django.conf import settings
 from django.apps import apps
 
@@ -53,7 +53,7 @@ def get_available_interview_locations(datetime_from=None, datetime_to=None):
 
 def generate_interviews_from_schedule(schedule):
     # Double check if this thing does what its supposed to do
-    def generate_interview_and_evaluations_for_location(location):
+    def generate_interview_and_default_content_with_evaluations_for_location(location):
         with transaction.atomic():
             interview = Interview.objects.create(
                 location=location,
@@ -69,6 +69,12 @@ def generate_interviews_from_schedule(schedule):
                 InterviewAdditionalEvaluationAnswer.objects.create(
                     interview=interview, statement=statement, answer=None
                 )
+
+            interview.notes = schedule.default_interview_notes
+            interview.discussion = (
+                "For oppsummerte notater fra diskusjon til bruk under fordelingsmøtet"
+            )
+            interview.save()
 
     interview_duration = schedule.default_interview_duration
     default_pause_duration = schedule.default_pause_duration
@@ -127,7 +133,9 @@ def generate_interviews_from_schedule(schedule):
                 datetime_to=datetime_cursor + interview_duration,
             )
             for location in available_locations:
-                generate_interview_and_evaluations_for_location(location)
+                generate_interview_and_default_content_with_evaluations_for_location(
+                    location
+                )
             datetime_cursor += interview_duration
 
         # First session is over. We give the interviewers a break
@@ -140,7 +148,9 @@ def generate_interviews_from_schedule(schedule):
                 datetime_to=datetime_cursor + interview_duration,
             )
             for location in available_locations:
-                generate_interview_and_evaluations_for_location(location)
+                generate_interview_and_default_content_with_evaluations_for_location(
+                    location
+                )
 
             datetime_cursor += interview_duration
 
@@ -1102,6 +1112,10 @@ def add_evaluations_to_interview(interview):
         app_label="admissions", model_name="InterviewAdditionalEvaluationAnswer"
     )
 
+    InterviewScheduleTemplate = apps.get_model(
+        app_label="admissions", model_name="InterviewScheduleTemplate"
+    )
+
     boolean_evaluation_statements = InterviewBooleanEvaluation.objects.all()
     additional_evaluation_statements = (
         InterviewAdditionalEvaluationStatement.objects.all()
@@ -1115,6 +1129,12 @@ def add_evaluations_to_interview(interview):
             interview=interview, statement=statement, answer=None
         )
 
+    schedule = InterviewScheduleTemplate.objects.all().first()
+
+    if not schedule:
+        raise Exception("No interview schedule template found")
+
+    interview.notes = schedule.default_interview_notes
     interview.save()
 
 

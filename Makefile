@@ -58,3 +58,12 @@ activeadmission:
 .PHONY: nukeadmission
 nukeadmission:
 	poetry run python manage.py nuke_admission_data
+
+
+.PHONY: debt
+debt:
+	poetry run python manage.py debtcollection
+
+.PHONY: alldebt
+alldebt:
+	poetry run python manage.py debtcollection --all-users
