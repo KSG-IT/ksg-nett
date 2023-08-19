@@ -56,6 +56,7 @@ class TotalExpenditure(graphene.ObjectType):
     data = graphene.List(ExpenditureDay)
     total = graphene.Int()
 
+
 class TotalExpenditureItem(graphene.ObjectType):
     name = graphene.String()
     total = graphene.Int()
@@ -389,16 +390,23 @@ class ProductOrderQuery(graphene.ObjectType):
             quantity=qty,
             total=total_expenditure,
         )
+
     def resolve_product_orders_by_item_and_date_list(
-            self, info, product_ids, date_from, date_to, *args, **kwargs
+        self, info, product_ids, date_from, date_to, *args, **kwargs
     ):
         total_expenditures = []
         for product_id in product_ids:
-            total_expenditure = ProductOrderQuery.resolve_product_orders_by_item_and_date(
-                self, info, product_id=product_id, date_from=date_from, date_to=date_to)
+            total_expenditure = (
+                ProductOrderQuery.resolve_product_orders_by_item_and_date(
+                    self,
+                    info,
+                    product_id=product_id,
+                    date_from=date_from,
+                    date_to=date_to,
+                )
+            )
             total_expenditures.append(total_expenditure)
         return total_expenditures
-
 
 
 class SociSessionQuery(graphene.ObjectType):
@@ -857,16 +865,12 @@ class CreateSociOrderSessionMutation(graphene.Mutation):
 
         active_session = SociOrderSession.get_active_session()
         if active_session:
-            most_recent_purchase = active_session.orders.all().order_by("-ordered_at").first()
-
-            if not most_recent_purchase:
-                # No purchases, try not to ruin a recently created list.
-                raise IllegalOperation(
-                    f"Cannot create a new session while another is active."
-                )
+            most_recent_purchase = (
+                active_session.orders.all().order_by("-ordered_at").first()
+            )
 
             now = timezone.now()
-            purchase_time_delta = now - most_recent_purchase.ordered_at
+            purchase_time_delta = now - getattr(most_recent_purchase, "ordered_at", now)
 
             # If most recent order is more than 6 hours ago we can assume they forgot to close the session
             if purchase_time_delta.seconds // 3600 > 6:
@@ -1001,14 +1005,14 @@ class PlaceSociOrderSessionOrderMutation(graphene.Mutation):
         product = SociProduct.objects.get(id=disambiguate_id(product_id))
 
         if (
-                active_session.status != SociOrderSession.Status.FOOD_ORDERING
-                and product.type == SociProduct.Type.FOOD
+            active_session.status != SociOrderSession.Status.FOOD_ORDERING
+            and product.type == SociProduct.Type.FOOD
         ):
             raise IllegalOperation("The session is not open for food ordering")
 
         if (
-                active_session.status != SociOrderSession.Status.DRINK_ORDERING
-                and product.type == SociProduct.Type.DRINK
+            active_session.status != SociOrderSession.Status.DRINK_ORDERING
+            and product.type == SociProduct.Type.DRINK
         ):
             raise IllegalOperation("The session is not open for drink ordering")
 
