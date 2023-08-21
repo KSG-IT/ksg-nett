@@ -34,7 +34,9 @@ class AdmissionAvailableInternalGroupPositionData(models.Model):
         related_name="available_internal_group_positions_data",
     )
     internal_group_position = models.ForeignKey(
-        "organization.InternalGroupPosition", on_delete=models.CASCADE
+        "organization.InternalGroupPosition",
+        on_delete=models.CASCADE,
+        related_name="admission_data_instances",
     )
     membership_type = models.CharField(
         max_length=32,

@@ -2,6 +2,13 @@
 
 [Unreleased]
 
+## [2023.8.2] - 2023-08-21
+
+### Added
+
+- Organization
+  - Admission membership type resolver on InternalGroupPositionNode
+
 ## [2023.8.1] - 2023-08-03
 
 ### Added
