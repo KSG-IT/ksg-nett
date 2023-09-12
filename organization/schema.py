@@ -90,6 +90,27 @@ class InternalGroupPositionNode(DjangoObjectType):
         model = InternalGroupPosition
         interfaces = (Node,)
 
+    admission_membership_type = graphene.String()
+
+    def resolve_admission_membership_type(
+        self: InternalGroupPosition, info, *args, **kwargs
+    ):
+        # This rarely changes ever
+        from admissions.models import Admission
+
+        active_admission = Admission.get_active_admission()
+
+        data_instance = self.admission_data_instances.filter(
+            admission=active_admission
+        ).first()
+
+        if not data_instance:
+            raise RuntimeError(
+                "`data_instance` is None. Cannot determing membership type"
+            )
+
+        return data_instance.membership_type
+
     @classmethod
     @gql_has_permissions("organization.view_internalgroupposition")
     def get_node(cls, info, id):
@@ -137,7 +158,9 @@ class InternalGroupQuery(graphene.ObjectType):
         return InternalGroup.objects.all().order_by("name")
 
     def resolve_all_internal_groups_by_type(self, info, internal_group_type, **kwargs):
-        return InternalGroup.objects.filter(type=internal_group_type).order_by("name")
+        return InternalGroup.objects.filter(type=internal_group_type.value).order_by(
+            "name"
+        )
 
 
 class InternalGroupPositionQuery(graphene.ObjectType):
@@ -261,7 +284,7 @@ class AssignNewInternalGroupPositionMembership(graphene.Mutation):
         new_internal_group_position_membership = (
             InternalGroupPositionMembership.objects.create(
                 user=user,
-                type=internal_group_position_type,
+                type=internal_group_position_type.value,
                 position=internal_group_position,
                 date_joined=datetime.date.today(),
             )

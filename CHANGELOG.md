@@ -1,6 +1,21 @@
 # CHANGELOG
 
-## [Unreleased]
+[Unreleased]
+
+## [2023.9.1] - 2023-09-12
+
+- Economy
+  - Automatically close stale soci order sessions when attempting to create a new one.
+  - Add resolvers for sales statistics on products
+
+## [2023.8.2] - 2023-08-21
+
+### Added
+
+- Organization
+  - Admission membership type resolver on InternalGroupPositionNode
+
+## [2023.8.1] - 2023-08-03
 
 ### Added
 
@@ -8,6 +23,25 @@
   - Debt collection utility. Retrieve all users with a balance lower than debt collection threshold
   and option to send collections email. Email includes frontend url with an auth token which should
   immediately load the deposit form in /torpedo
+- Admissions
+  - Applicant recommendation model
+  - Ordering key to internal group applicant data query
+  - Default interview notes
+
+### Changed
+- Dependencies
+  - Upgrade Django to 4.2
+  - Upgrade graphene-django to v3
+  - Upgrade graphene-django-cud
+  - Change drf-yasg2 to drf-yasg which is maintaned again
+
+
+### Fixed
+- Admissions
+  - Change priorities when admission is in session
+  - Incorrect CreateAdmission mutation permission
+- Common
+  - Breaking use of Exception (IllegalOperation)
 
 ## [2023.5.1] - 2023-05-16
 

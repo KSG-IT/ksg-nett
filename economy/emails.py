@@ -42,7 +42,7 @@ def send_debt_collection_email(user_info):
         på beløpet du skriver inn. 
         
         Gjerne si ifra om dette ikke stemmer, så skal vi få ordnet opp i det. 
-        Helst ikke svar, eller videresend denne eposten, da den inneholder lenke for å logge inn på din bruker. Om du skulle ha noen spørsmål, så kan du sende en epost til ksg-soci-okonomi@samfundet.no.
+        Helst ikke svar, eller videresend denne eposten, da den inneholder lenke for å logge inn på din bruker. Om du skulle ha noen spørsmål, så kan du sende en epost til ksg-webmaster@samfundet.no.
         """
 
     html_content = f"""
@@ -65,7 +65,7 @@ def send_debt_collection_email(user_info):
         <br>
         Helst ikke svar, eller videresend denne eposten, da den inneholder lenke for å logge inn på din bruker. Om du 
         skulle ha noen spørsmål, så kan du sende en epost til 
-        <a href="mailto:ksg-soci-okonomi@samfundet.no">ksg-soci-okonomi@samfundet.no</a>
+        <a href="mailto:ksg-webmaster@samfundet.no">ksg-webmaster@samfundet.no</a>
                
     """
 

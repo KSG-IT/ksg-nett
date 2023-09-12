@@ -62,10 +62,11 @@ class DashboardQuery(graphene.ObjectType):
         admission = Admission.get_last_closed_admission()
         if not admission:
             show_newbies = False
+        elif not admission.closed_at:
+            show_newbies = False
         else:
             delta_since_closed = timezone.now() - admission.closed_at
             show_newbies = delta_since_closed.days < 30
-
         return DashboardData(
             last_quotes=quotes,
             last_summaries=summaries,

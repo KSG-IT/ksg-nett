@@ -408,7 +408,7 @@ class AddSlotsToShiftMutation(graphene.Mutation):
         shift = Shift.objects.get(pk=shift_id)
         for slot in slots:
             for i in range(slot.count):
-                ShiftSlot.objects.create(shift=shift, role=slot.shift_slot_role)
+                ShiftSlot.objects.create(shift=shift, role=slot.shift_slot_role.value)
         return AddSlotsToShiftMutation(shift=shift)
 
 

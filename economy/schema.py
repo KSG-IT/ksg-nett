@@ -11,9 +11,22 @@ from django.core.exceptions import (
     ValidationError,
 )
 from django.db import transaction
+from django.forms import FloatField
 from graphene import Node
-from django.db.models import Q, Sum
-from django.db.models.functions import Coalesce
+from django.db.models import (
+    Q,
+    Sum,
+    Count,
+    F,
+    Avg,
+    Subquery,
+    OuterRef,
+    Value,
+    Case,
+    When,
+    BooleanField,
+)
+from django.db.models.functions import Coalesce, TruncDay, TruncDate
 from graphene_django import DjangoObjectType
 from django.utils import timezone
 from graphene_django_cud.mutations import (
@@ -46,6 +59,31 @@ from schedules.models import Schedule
 from users.models import User
 
 
+class ExpenditureDay(graphene.ObjectType):
+    day = graphene.Date()
+    sum = graphene.Int()
+
+
+class TotalExpenditure(graphene.ObjectType):
+    data = graphene.List(ExpenditureDay)
+    total = graphene.Int()
+
+
+class TotalExpenditureItem(graphene.ObjectType):
+    name = graphene.String()
+    total = graphene.Int()
+    quantity = graphene.Int()
+    average = graphene.Float()
+    data = graphene.List(ExpenditureDay)
+
+
+class TotalExpenditureDateRange(graphene.Enum):
+    THIS_MONTH = "this-month"
+    THIS_SEMESTER = "this-semester"
+    ALL_SEMESTERS = "all-semesters"
+    ALL_TIME = "all-time"
+
+
 class BankAccountActivity(graphene.ObjectType):
     # Either name of product, 'Transfer' or 'Deposit' (Should we have a pending deposit status)
     name = graphene.NonNull(graphene.String)
@@ -58,6 +96,11 @@ class SociProductNode(DjangoObjectType):
     class Meta:
         model = SociProduct
         interfaces = (Node,)
+
+    is_default = graphene.Boolean()
+
+    def resolve_is_default(self: SociProduct, info, *args, **kwargs):
+        return self.default_stilletime_product
 
     @classmethod
     def get_node(cls, info, id):
@@ -221,11 +264,26 @@ class SociProductQuery(graphene.ObjectType):
     soci_product = Node.Field(SociProductNode)
     all_active_soci_products = DjangoConnectionField(SociProductNode)
     all_soci_products = graphene.List(SociProductNode)
+    all_soci_products_with_default = graphene.List(SociProductNode)
     all_soci_sessions = DjangoConnectionField(SociSessionNode)
     default_soci_products = graphene.List(SociProductNode)
 
     default_soci_order_session_food_products = graphene.List(SociProductNode)
     default_soci_order_session_drink_products = graphene.List(SociProductNode)
+
+    @gql_login_required()
+    def resolve_all_soci_products_with_default(self, info, *args, **kwargs):
+        return (
+            SociProduct.objects.all()
+            .order_by("type", "name")
+            .annotate(
+                is_default=Case(
+                    When(default_stilletime_product=True, then=Value(True)),
+                    default=Value(False),
+                    output_field=BooleanField(),
+                )
+            )
+        )
 
     @gql_login_required()
     def resolve_default_soci_order_session_food_products(self, info, *args, **kwargs):
@@ -307,9 +365,79 @@ class DepositQuery(graphene.ObjectType):
 class ProductOrderQuery(graphene.ObjectType):
     product_order = Node.Field(ProductOrderNode)
     all_product_orders = DjangoConnectionField(ProductOrderNode)
+    product_orders_by_item_and_date = graphene.Field(
+        TotalExpenditureItem,
+        product_id=graphene.ID(),
+        date_from=graphene.Date(),
+        date_to=graphene.Date(),
+    )
+    product_orders_by_item_and_date_list = graphene.List(
+        TotalExpenditureItem,
+        product_ids=graphene.List(graphene.ID),
+        date_from=graphene.Date(),
+        date_to=graphene.Date(),
+    )
 
     def resolve_all_product_orders(self, info, *args, **kwargs):
         return ProductOrder.objects.all().order_by("-purchased_at")
+
+    def resolve_product_orders_by_item_and_date(
+        self, info, product_id, date_from, date_to, *args, **kwargs
+    ):
+        soci_item = disambiguate_id(product_id)
+
+        date_from = timezone.make_aware(
+            datetime.datetime.combine(date_from, datetime.time.min)
+        )
+        date_to = timezone.make_aware(
+            datetime.datetime.combine(date_to, datetime.time.max)
+        )
+
+        product = SociProduct.objects.get(id=soci_item)
+
+        product_orders = (
+            ProductOrder.objects.filter(
+                product_id=soci_item, purchased_at__range=(date_from, date_to)
+            )
+            .annotate(date=TruncDate("purchased_at"))
+            .values("date")
+            .annotate(sum=Sum("cost"))
+            .order_by("date")
+        )
+        avg = round(product_orders.aggregate(Avg("sum"))["sum__avg"], 2)
+        qty = product_orders.aggregate(sum__qty=Sum("sum") / product.price)["sum__qty"]
+        total_expenditure = product_orders.aggregate(Sum("sum"))["sum__sum"]
+
+        return TotalExpenditureItem(
+            data=[
+                ExpenditureDay(
+                    day=product_order["date"],
+                    sum=product_order["sum"],
+                )
+                for product_order in product_orders
+            ],
+            name=product.name,
+            average=avg,
+            quantity=qty,
+            total=total_expenditure,
+        )
+
+    def resolve_product_orders_by_item_and_date_list(
+        self, info, product_ids, date_from, date_to, *args, **kwargs
+    ):
+        total_expenditures = []
+        for product_id in product_ids:
+            total_expenditure = (
+                ProductOrderQuery.resolve_product_orders_by_item_and_date(
+                    self,
+                    info,
+                    product_id=product_id,
+                    date_from=date_from,
+                    date_to=date_to,
+                )
+            )
+            total_expenditures.append(total_expenditure)
+        return total_expenditures
 
 
 class SociSessionQuery(graphene.ObjectType):
@@ -319,23 +447,6 @@ class SociSessionQuery(graphene.ObjectType):
     def resolve_all_soci_sessions(self, info, *args, **kwargs):
         SociSession.objects.all().delete()
         return SociSession.objects.all().order_by("created_at")
-
-
-class ExpenditureDay(graphene.ObjectType):
-    day = graphene.Date()
-    sum = graphene.Int()
-
-
-class TotalExpenditure(graphene.ObjectType):
-    data = graphene.List(ExpenditureDay)
-    total = graphene.Int()
-
-
-class TotalExpenditureDateRange(graphene.Enum):
-    THIS_MONTH = "this-month"
-    THIS_SEMESTER = "this-semester"
-    ALL_SEMESTERS = "all-semesters"
-    ALL_TIME = "all-time"
 
 
 class SociBankAccountQuery(graphene.ObjectType):
@@ -437,7 +548,6 @@ class SociOrderSessionQuery(graphene.ObjectType):
         status = SociOrderSession.get_active_session().status
 
         if status == SociOrderSession.Status.FOOD_ORDERING:
-
             return SociOrderSession.get_active_session().orders.filter(
                 user=info.context.user, product__type=SociProduct.Type.FOOD
             )
@@ -785,9 +895,23 @@ class CreateSociOrderSessionMutation(graphene.Mutation):
 
         active_session = SociOrderSession.get_active_session()
         if active_session:
-            raise SuspiciousOperation(
-                "Cannot create a new session while another is active"
+            most_recent_purchase = (
+                active_session.orders.all().order_by("-ordered_at").first()
             )
+
+            now = timezone.now()
+            purchase_time_delta = now - getattr(most_recent_purchase, "ordered_at", now)
+
+            # If most recent order is more than 6 hours ago we can assume they forgot to close the session
+            if purchase_time_delta.seconds // 3600 > 6:
+                active_session.closed_at = now
+                active_session.closed_by = active_session.created_by
+                active_session.status = SociOrderSession.Status.CLOSED
+                active_session.save()
+            else:
+                raise IllegalOperation(
+                    f"Cannot create a new session while another is active."
+                )
         with transaction.atomic():
             soci_session = SociOrderSession.objects.create(
                 status=SociOrderSession.Status.FOOD_ORDERING,
@@ -808,7 +932,6 @@ class SociOrderSessionNextStatusMutation(graphene.Mutation):
 
     @gql_has_permissions("economy.change_sociordersession")
     def mutate(self, info, *args, **kwargs):
-
         soci_order_session = SociOrderSession.get_active_session()
 
         if not soci_order_session:
@@ -1020,7 +1143,6 @@ class CreateDepositMutation(graphene.Mutation):
 
     @gql_login_required()
     def mutate(self, info, amount, deposit_method, description, *args, **kwargs):
-
         # Deposits are only allowed before 20:00 localtime
         local_time = timezone.localtime(
             timezone.now(), pytz.timezone(settings.TIME_ZONE)
@@ -1046,7 +1168,7 @@ class CreateDepositMutation(graphene.Mutation):
             amount=amount,
             created_at=timezone.now(),
             description=description,
-            deposit_method=deposit_method,
+            deposit_method=deposit_method.value,
         )
 
         if deposit_method == Deposit.DepositMethod.STRIPE:
