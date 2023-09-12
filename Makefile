@@ -67,7 +67,3 @@ debt:
 .PHONY: alldebt
 alldebt:
 	poetry run python manage.py debtcollection --all-users
-
-.PHONY: stripe
-stripe:
-	stripe listen --forward-to localhost:8000/economy/stripe-webhook
