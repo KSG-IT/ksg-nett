@@ -899,9 +899,23 @@ class CreateSociOrderSessionMutation(graphene.Mutation):
 
         active_session = SociOrderSession.get_active_session()
         if active_session:
-            raise SuspiciousOperation(
-                "Cannot create a new session while another is active"
+            most_recent_purchase = (
+                active_session.orders.all().order_by("-ordered_at").first()
             )
+
+            now = timezone.now()
+            purchase_time_delta = now - getattr(most_recent_purchase, "ordered_at", now)
+
+            # If most recent order is more than 6 hours ago we can assume they forgot to close the session
+            if purchase_time_delta.seconds // 3600 > 6:
+                active_session.closed_at = now
+                active_session.closed_by = active_session.created_by
+                active_session.status = SociOrderSession.Status.CLOSED
+                active_session.save()
+            else:
+                raise IllegalOperation(
+                    f"Cannot create a new session while another is active."
+                )
         with transaction.atomic():
             soci_session = SociOrderSession.objects.create(
                 status=SociOrderSession.Status.FOOD_ORDERING,
