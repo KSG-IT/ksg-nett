@@ -73,7 +73,7 @@ class TotalExpenditureItem(graphene.ObjectType):
     name = graphene.String()
     total = graphene.Int()
     quantity = graphene.Int()
-    average = graphene.Int()
+    average = graphene.Float()
     data = graphene.List(ExpenditureDay)
 
 
@@ -408,7 +408,7 @@ class ProductOrderQuery(graphene.ObjectType):
             .annotate(sum=Sum("cost"))
             .order_by("date")
         )
-        avg = product_orders.aggregate(Avg("sum"))["sum__avg"]
+        avg = round(product_orders.aggregate(Avg("sum"))["sum__avg"], 2)
         qty = product_orders.aggregate(sum__qty=Sum("sum") / product.price)["sum__qty"]
         total_expenditure = product_orders.aggregate(Sum("sum"))["sum__sum"]
 
