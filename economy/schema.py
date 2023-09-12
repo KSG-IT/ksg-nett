@@ -273,17 +273,9 @@ class SociProductQuery(graphene.ObjectType):
 
     @gql_login_required()
     def resolve_all_soci_products_with_default(self, info, *args, **kwargs):
-        return (
-            SociProduct.objects.all()
-            .order_by("type", "name")
-            .annotate(
-                is_default=Case(
-                    When(default_stilletime_product=True, then=Value(True)),
-                    default=Value(False),
-                    output_field=BooleanField(),
-                )
-            )
-        )
+        return SociProduct.objects.filter(
+            default_stilletime_product=True, type=SociProduct.Type.DRINK
+        ).order_by("type", "name")
 
     @gql_login_required()
     def resolve_default_soci_order_session_food_products(self, info, *args, **kwargs):
@@ -404,7 +396,7 @@ class ProductOrderQuery(graphene.ObjectType):
             .annotate(sum=Sum("cost"))
             .order_by("date")
         )
-        avg = round(product_orders.aggregate(Avg("sum"))["sum__avg"], 2)
+        avg = round(getattr(product_orders.aggregate(Avg("sum")), "sum__avg", 0), 2)
         qty = product_orders.aggregate(sum__qty=Sum("sum") / product.price)["sum__qty"]
         total_expenditure = product_orders.aggregate(Sum("sum"))["sum__sum"]
 
