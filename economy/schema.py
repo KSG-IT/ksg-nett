@@ -97,6 +97,11 @@ class SociProductNode(DjangoObjectType):
         model = SociProduct
         interfaces = (Node,)
 
+    is_default = graphene.Boolean()
+
+    def resolve_is_default(self: SociProduct, info, *args, **kwargs):
+        return self.default_stilletime_product
+
     @classmethod
     def get_node(cls, info, id):
         return SociProduct.objects.get(pk=id)
@@ -255,20 +260,11 @@ class SociOrderSessionNode(DjangoObjectType):
         return SociOrderSession.objects.get(pk=id)
 
 
-class SociProductNodeWithDefault(DjangoObjectType):
-    class Meta:
-        model = SociProduct
-        interfaces = (Node,)
-        include_fields = ("is_default",)
-
-    is_default = graphene.Boolean()
-
-
 class SociProductQuery(graphene.ObjectType):
     soci_product = Node.Field(SociProductNode)
     all_active_soci_products = DjangoConnectionField(SociProductNode)
     all_soci_products = graphene.List(SociProductNode)
-    all_soci_products_with_default = graphene.List(SociProductNodeWithDefault)
+    all_soci_products_with_default = graphene.List(SociProductNode)
     all_soci_sessions = DjangoConnectionField(SociSessionNode)
     default_soci_products = graphene.List(SociProductNode)
 
