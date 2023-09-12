@@ -90,6 +90,27 @@ class InternalGroupPositionNode(DjangoObjectType):
         model = InternalGroupPosition
         interfaces = (Node,)
 
+    admission_membership_type = graphene.String()
+
+    def resolve_admission_membership_type(
+        self: InternalGroupPosition, info, *args, **kwargs
+    ):
+        # This rarely changes ever
+        from admissions.models import Admission
+
+        active_admission = Admission.get_active_admission()
+
+        data_instance = self.admission_data_instances.filter(
+            admission=active_admission
+        ).first()
+
+        if not data_instance:
+            raise RuntimeError(
+                "`data_instance` is None. Cannot determing membership type"
+            )
+
+        return data_instance.membership_type
+
     @classmethod
     @gql_has_permissions("organization.view_internalgroupposition")
     def get_node(cls, info, id):

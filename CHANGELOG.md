@@ -8,6 +8,12 @@
   - Automatically close stale soci order sessions when attempting to create a new one.
   - Add resolvers for sales statistics on products
 
+## [2023.8.2] - 2023-08-21
+
+### Added
+
+- Organization
+  - Admission membership type resolver on InternalGroupPositionNode
 
 ## [2023.8.1] - 2023-08-03
 
