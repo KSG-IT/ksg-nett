@@ -2,6 +2,13 @@
 
 [Unreleased]
 
+## [2023.9.1] - 2023-09-12
+
+- Economy
+  - Automatically close stale soci order sessions when attempting to create a new one.
+  - Add resolvers for sales statistics on products
+
+
 ## [2023.8.1] - 2023-08-03
 
 ### Added
