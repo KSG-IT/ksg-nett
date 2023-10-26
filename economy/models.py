@@ -116,6 +116,11 @@ class SociProduct(models.Model):
     )
     name = models.CharField(max_length=50)
     price = models.IntegerField()
+    purchase_price = models.IntegerField(
+        null=True,
+        blank=True,
+        help_text="What the product is valued when purchasing it for inventory",
+    )
     description = models.TextField(blank=True, null=True, default=None, max_length=200)
     icon = models.CharField(max_length=2, blank=True, null=True)
     default_stilletime_product = models.BooleanField(default=False)

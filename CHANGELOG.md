@@ -1,9 +1,21 @@
 # CHANGELOG
 
-[Unreleased]
+## [Unreleased]
+### Added
+- API
+  - Introduce feature flag based alternate charge flow for stock market mode
+
+### Fixed
+- Economy
+  - Broken statiscts query
+
+### Removed
+- Economy
+  - Redundant is_default field annotation in product resolver 
 
 ## [2023.9.1] - 2023-09-12
 
+### Changed
 - Economy
   - Automatically close stale soci order sessions when attempting to create a new one.
   - Add resolvers for sales statistics on products

@@ -29,6 +29,7 @@ from api.serializers import (
     CustomTokenObtainSlidingSerializer,
     BlacklistedSongSerializer,
 )
+from economy.price_strategies import calculate_stock_price_for_product
 
 from sensors.consts import MEASUREMENT_TYPE_TEMPERATURE, MEASUREMENT_TYPE_CHOICES
 from sensors.models import SensorMeasurement
@@ -36,6 +37,7 @@ from api.view_mixins import CustomCreateAPIView
 from economy.models import SociBankAccount, SociProduct, SociSession, ProductOrder
 from ksg_nett.custom_authentication import CardNumberAuthentication
 from django.conf import settings
+from common.util import check_feature_flag
 
 
 class CustomTokenObtainSlidingView(TokenObtainSlidingView):
@@ -249,17 +251,30 @@ class ChargeBankAccountView(APIView):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
             order_size = product_order["order_size"]
+
+            if (
+                check_feature_flag(settings.X_APP_AUCTION_MODE, fail_silently=True)
+                and product.purchase_price
+            ):  # Stock mode is enabled and the product has a registered purchase price
+                product_price = calculate_stock_price_for_product(product.id)
+            else:
+                product_price = product.price
+
             orders.append(
                 ProductOrder(
                     product=product,
                     order_size=product_order["order_size"],
-                    cost=order_size * product.price,
+                    cost=order_size * product_price,
                     source=account,
                     session=session,
                 )
             )
 
         total_cost = sum([order.cost for order in orders])
+
+        if not total_cost:
+            raise RuntimeError("Could not determine purchase cost")
+
         if account.balance < total_cost and not account.is_gold:
             return Response(
                 {"message": "Insufficient funds"}, status=status.HTTP_400_BAD_REQUEST

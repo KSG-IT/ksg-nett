@@ -275,6 +275,9 @@ STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET", None)
 STRIPE_FLAT_FEE = 2  # in NOK
 STRIPE_PERCENTAGE_FEE = 2.4
 
+STOCK_MODE_PRICE_MULTIPLIER = 1.0  # multiplies with sales volume to get new prices
+STOCK_MODE_PRICE_WINDOW = timedelta(minutes=30)
+
 DEPOSIT_TIME_RESTRICTION_HOUR = os.environ.get("DEPOSIT_TIME_RESTRICTION_HOUR", 20)
 LANGUAGE_SESSION_KEY = "language"
 
@@ -285,6 +288,7 @@ STRIPE_INTEGRATION_FEATURE_FLAG = "stripe_integration"
 BANK_TRANSFER_DEPOSIT_FEATURE_FLAG = "bank_transfer_deposit"
 DEPOSIT_TIME_RESTRICTIONS_FEATURE_FLAG = "deposit_time_restrictions"
 EXTERNAL_CHARGING_FEATURE_FLAG = "external_charging"
+X_APP_AUCTION_MODE = "x-app-auction-mode"
 
 EXTERNAL_CHARGE_MAX_AMOUNT = os.environ.get("EXTERNAL_CHARGE_MAX_AMOUNT", 300)
 
