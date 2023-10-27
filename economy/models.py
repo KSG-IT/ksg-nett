@@ -541,3 +541,18 @@ class ExternalCharge(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     webhook_attempts = models.IntegerField(default=0)
     webhook_success = models.BooleanField(default=False)
+
+
+class ProductGhostOrder(models.Model):
+    """
+    This is a 'ghost order' meant to track sales made using Bong/Lists. Mainly intended
+    to be used together with X-App stock market mode so product prices can be correctly calculated
+    """
+
+    product = models.ForeignKey(
+        SociProduct, on_delete=models.CASCADE, related_name="ghost_purchases"
+    )
+    timestamp = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Ghost order for {self.product.name}"

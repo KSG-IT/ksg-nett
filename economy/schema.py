@@ -55,6 +55,7 @@ from economy.models import (
     SociOrderSession,
     SociOrderSessionOrder,
 )
+from economy.price_strategies import calculate_stock_price_for_product
 from schedules.models import Schedule
 from users.models import User
 
@@ -580,6 +581,29 @@ class StripeQuery(graphene.ObjectType):
         intent = stripe.PaymentIntent.retrieve(deposit.stripe_payment_id)
 
         return intent.client_secret
+
+
+class StockMarketProduct(graphene.ObjectType):
+    name = graphene.String()
+    price = graphene.Int()
+
+
+class StockMarketQuery(graphene.ObjectType):
+    stock_market_products = graphene.List(StockMarketProduct)
+
+    @gql_login_required()
+    def resolve_stock_market_products(self, info, *args, **kwargs):
+        products = SociProduct.objects.filter(
+            purchase_price__isnull=False, hide_from_api=False
+        ).order_by("name")
+
+        data = []
+        for product in products:
+            price = calculate_stock_price_for_product(product.id)
+            name = product.name
+            data.append(StockMarketProduct(name=name, price=price))
+
+        return data
 
 
 class CreateSociProductMutation(DjangoCreateMutation):

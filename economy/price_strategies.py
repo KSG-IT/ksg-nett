@@ -3,7 +3,7 @@ import math
 from django.db.models.functions import Coalesce
 from django.db.models import Sum
 from django.utils import timezone
-from economy.models import ProductOrder, SociProduct
+from economy.models import ProductOrder, SociProduct, ProductGhostOrder
 from django.conf import settings
 
 
@@ -24,7 +24,13 @@ def calculate_stock_price_for_product(product_id):
         volume=Coalesce(Sum("order_size"), 0)
     )["volume"]
 
-    popularity_tax = purchase_volume * settings.STOCK_MODE_PRICE_MULTIPLIER
+    ghost_volume = ProductGhostOrder.objects.filter(
+        product=product, timestamp__gte=purchase_window
+    ).count()
+
+    total_sales_volume = ghost_volume + purchase_volume
+
+    popularity_tax = total_sales_volume * settings.STOCK_MODE_PRICE_MULTIPLIER
     product = SociProduct.objects.get(id=product_id)
 
     calculated_price = math.floor(product.purchase_price + popularity_tax)
