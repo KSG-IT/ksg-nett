@@ -22,6 +22,7 @@ from economy.schema import (
     SociOrderSessionQuery,
     EconomyMutations,
     SociSessionQuery,
+    StockMarketQueries,
     StripeQuery,
 )
 from bar_tab.schema import (
@@ -64,6 +65,7 @@ class Query(
     SociProductQuery,
     SociSessionQuery,
     SociOrderSessionQuery,
+    StockMarketQueries,
     StripeQuery,
     UserQuery,
     InternalGroupQuery,
