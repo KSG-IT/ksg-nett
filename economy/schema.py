@@ -588,7 +588,7 @@ class StockMarketProduct(graphene.ObjectType):
     price = graphene.Int()
 
 
-class StockMarketQueries(graphene.ObjectType):
+class StockMarketQuery(graphene.ObjectType):
     stock_market_products = graphene.List(StockMarketProduct)
 
     @gql_login_required()
