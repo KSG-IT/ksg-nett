@@ -11,22 +11,13 @@ from django.core.exceptions import (
     ValidationError,
 )
 from django.db import transaction
-from django.forms import FloatField
 from graphene import Node
 from django.db.models import (
     Q,
     Sum,
-    Count,
-    F,
     Avg,
-    Subquery,
-    OuterRef,
-    Value,
-    Case,
-    When,
-    BooleanField,
 )
-from django.db.models.functions import Coalesce, TruncDay, TruncDate
+from django.db.models.functions import Coalesce, TruncDate
 from graphene_django import DjangoObjectType
 from django.utils import timezone
 from graphene_django_cud.mutations import (
@@ -54,6 +45,7 @@ from economy.models import (
     ProductOrder,
     SociOrderSession,
     SociOrderSessionOrder,
+    ProductGhostOrder,
 )
 from economy.price_strategies import calculate_stock_price_for_product
 from schedules.models import Schedule
@@ -604,36 +596,6 @@ class StockMarketQuery(graphene.ObjectType):
             data.append(StockMarketProduct(name=name, price=price))
 
         return data
-
-
-class CreateSociProductMutation(DjangoCreateMutation):
-    class Meta:
-        model = SociProduct
-
-
-class PatchSociProductMutation(DjangoPatchMutation):
-    class Meta:
-        model = SociProduct
-
-
-class DeleteSociProductMutation(DjangoDeleteMutation):
-    class Meta:
-        model = SociProduct
-
-
-class CreateProductOrderMutation(DjangoCreateMutation):
-    class Meta:
-        model = ProductOrder
-
-
-class PatchProductOrderMutation(DjangoPatchMutation):
-    class Meta:
-        model = ProductOrder
-
-
-class DeleteProductOrderMutation(DjangoDeleteMutation):
-    class Meta:
-        model = ProductOrder
 
 
 class UndoProductOrderMutation(graphene.Mutation):
@@ -1214,11 +1176,24 @@ class CreateDepositMutation(graphene.Mutation):
         return CreateDepositMutation(deposit=deposit)
 
 
-class EconomyMutations(graphene.ObjectType):
-    create_soci_product = CreateSociProductMutation.Field()
-    patch_soci_product = PatchSociProductMutation.Field()
-    delete_soci_product = DeleteSociProductMutation.Field()
+class IncrementProductGhostOrderMutation(graphene.Mutation):
+    class Arguments:
+        product_id = graphene.ID()
 
+    success = graphene.Boolean()
+
+    @gql_has_permissions("economy.add_productghostorder")
+    def mutate(self, info, product_id, *args, **kwargs):
+        product_id = disambiguate_id(product_id)
+
+        product = SociProduct.objects.get(id=product_id)
+
+        ProductGhostOrder.objects.create(product=product)
+
+        return IncrementProductGhostOrderMutation(success=True)
+
+
+class EconomyMutations(graphene.ObjectType):
     place_product_order = PlaceProductOrderMutation.Field()
     undo_product_order = UndoProductOrderMutation.Field()
 
@@ -1241,3 +1216,5 @@ class EconomyMutations(graphene.ObjectType):
     )
     soci_order_session_next_status = SociOrderSessionNextStatusMutation.Field()
     invite_users_to_order_session = InviteUsersToSociOrderSessionMutation.Field()
+
+    increment_product_ghost_order = IncrementProductGhostOrderMutation.Field()

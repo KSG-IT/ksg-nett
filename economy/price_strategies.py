@@ -7,13 +7,19 @@ from economy.models import ProductOrder, SociProduct, ProductGhostOrder
 from django.conf import settings
 
 
-def calculate_stock_price_for_product(product_id):
+def calculate_stock_price_for_product(product_id: int, fail_silently=True):
+    """
+    Calculates the price of a product provided a specific product id.
+    """
     product = SociProduct.objects.get(id=product_id)
 
     if not product.purchase_price:
-        raise RuntimeError(
-            "product has no purchase price. Cannot calculate stock price"
-        )
+        if fail_silently:
+            return product.price
+        else:
+            raise RuntimeError(
+                f"Cannot calculate stock price for product without purchase price: {product}"
+            )
 
     purchase_window = timezone.now() - settings.STOCK_MODE_PRICE_WINDOW
     purchases_made_in_window = ProductOrder.objects.filter(
