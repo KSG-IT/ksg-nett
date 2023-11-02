@@ -253,7 +253,7 @@ class ChargeBankAccountView(APIView):
             order_size = product_order["order_size"]
 
             if (
-                check_feature_flag(settings.X_APP_AUCTION_MODE, fail_silently=True)
+                check_feature_flag(settings.X_APP_STOCK_MARKET_MODE, fail_silently=True)
                 and product.purchase_price
             ):  # Stock mode is enabled and the product has a registered purchase price
                 product_price = calculate_stock_price_for_product(product.id)
