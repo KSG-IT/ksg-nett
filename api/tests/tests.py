@@ -302,7 +302,7 @@ class ChargeAccountStockMarketEnabled(APITestCase):
         self.initial_funds = 1000
         self.user_account.add_funds(self.initial_funds)
         self.flag = FeatureFlagFactory.create(
-            name=settings.X_APP_AUCTION_MODE, enabled=True
+            name=settings.X_APP_STOCK_MARKET_MODE, enabled=True
         )
 
     def test__no_existing_sales__charge_purchase_price(self):
@@ -377,7 +377,7 @@ class ChargeAccountStockMarketDisabled(APITestCase):
         self.initial_funds = 1000
         self.user_account.add_funds(self.initial_funds)
         self.flag = FeatureFlagFactory.create(
-            name=settings.X_APP_AUCTION_MODE, enabled=False
+            name=settings.X_APP_STOCK_MARKET_MODE, enabled=False
         )
 
     def test__stock_mode_disabled__charge_ordinary_price(self):

@@ -57,14 +57,27 @@ class TestAuctionPriceCalculation(TestCase):
         calculated_price = calculate_stock_price_for_product(self.tuborg.id)
         self.assertEqual(expected, calculated_price)
 
-    def test__product_has_no_purchase_price__raises_error(self):
+    def test__product_has_no_purchase_price_no_silent_fail__raises_error(self):
         no_purchase_price = SociProductFactory.create(
             price=20, purchase_price=None, name="tuborg 2"
         )
 
         self.assertRaises(
-            RuntimeError, calculate_stock_price_for_product, no_purchase_price.id
+            RuntimeError,
+            calculate_stock_price_for_product,
+            no_purchase_price.id,
+            fail_silently=False,
         )
+
+    def test__product_has_no_purchase_price_silent_failing__returns_normal_price(self):
+        no_purchase_price = SociProductFactory.create(
+            price=20, purchase_price=None, name="tuborg 2"
+        )
+
+        result = calculate_stock_price_for_product(
+            no_purchase_price.id, fail_silently=True
+        )
+        self.assertEqual(result, no_purchase_price.price)
 
     def test__product_orders_outside_price_window__not_included_in_calculation(self):
         outside_window = (

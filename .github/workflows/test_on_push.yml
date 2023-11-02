@@ -1,9 +1,6 @@
 name: Run tests on PRs
 
-on:
-  push:
-    branches:
-      - develop
+on: push
 
 jobs:
   test:
