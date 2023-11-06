@@ -7,7 +7,9 @@ from economy.models import ProductOrder, SociProduct, ProductGhostOrder
 from django.conf import settings
 
 
-def calculate_stock_price_for_product(product_id: int, fail_silently=True):
+def calculate_stock_price_for_product(
+    product_id: int, back_in_time_offset=timezone.timedelta(), fail_silently=True
+):
     """
     Calculates the price of a product provided a specific product id.
     """
@@ -20,10 +22,13 @@ def calculate_stock_price_for_product(product_id: int, fail_silently=True):
             raise RuntimeError(
                 f"Cannot calculate stock price for product without purchase price: {product}"
             )
-
-    purchase_window = timezone.now() - settings.STOCK_MODE_PRICE_WINDOW
+    purchase_window_start = timezone.now() - settings.STOCK_MODE_PRICE_WINDOW
+    purchase_window_start -= back_in_time_offset
+    purchase_window_end = timezone.now() - back_in_time_offset
     purchases_made_in_window = ProductOrder.objects.filter(
-        product_id=product_id, purchased_at__gte=purchase_window
+        product_id=product_id,
+        purchased_at__gte=purchase_window_start,
+        purchased_at__lte=purchase_window_end,
     )
 
     purchase_volume = purchases_made_in_window.aggregate(
@@ -31,11 +36,12 @@ def calculate_stock_price_for_product(product_id: int, fail_silently=True):
     )["volume"]
 
     ghost_volume = ProductGhostOrder.objects.filter(
-        product=product, timestamp__gte=purchase_window
+        product=product,
+        timestamp__gte=purchase_window_start,
+        timestamp__lte=purchase_window_end,
     ).count()
 
     total_sales_volume = ghost_volume + purchase_volume
-
     popularity_tax = total_sales_volume * settings.STOCK_MODE_PRICE_MULTIPLIER
     product = SociProduct.objects.get(id=product_id)
 
