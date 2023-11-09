@@ -2,12 +2,17 @@
 
 ## [Unreleased]
 ### Added
-- API
-  - Introduce feature flag based alternate charge flow for stock market mode
+- Stock market mode
+  - Feature flag based mode that triggers a new purchase mode emulating the fluctuations of a stock market
+    - X-APP purchases made through the REST API will calculate a price based on the item purchase price and popularity
+    - Ghost product purchases to track non-digital pucrhases made
+    - Stock market crash model to manually crash the market through am utation
+    - Queries to show stock market item and its price change
+    - A whole lot of tests
 
 ### Fixed
 - Economy
-  - Broken statiscts query
+  - Broken statistics query
 
 ### Removed
 - Economy
