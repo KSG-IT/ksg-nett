@@ -6,6 +6,7 @@ from graphene_django_cud.util import disambiguate_id
 from admissions.models import Admission
 from common.decorators import gql_has_permissions
 from common.models import FeatureFlag
+from common.util import check_feature_flag
 from schedules.schemas.schedules import ShiftSlotNode
 from summaries.schema import SummaryNode
 from summaries.models import Summary
@@ -13,6 +14,7 @@ from quotes.schema import QuoteNode
 from quotes.models import Quote
 from users.schema import UserNode
 from economy.models import SociBankAccount, Deposit
+from django.conf import settings
 
 
 class FeatureFlagNode(DjangoObjectType):
@@ -30,6 +32,7 @@ class DashboardData(graphene.ObjectType):
     )
     soci_order_session = graphene.Field("economy.schema.SociOrderSessionNode")
     show_newbies = graphene.Boolean()
+    show_stock_market_shortcut = graphene.Boolean()
 
 
 class SidebarData(graphene.ObjectType):
@@ -67,6 +70,10 @@ class DashboardQuery(graphene.ObjectType):
         else:
             delta_since_closed = timezone.now() - admission.closed_at
             show_newbies = delta_since_closed.days < 30
+
+        show_stock_market_shortcut = check_feature_flag(
+            settings.X_APP_STOCK_MARKET_MODE, fail_silently=True
+        )
         return DashboardData(
             last_quotes=quotes,
             last_summaries=summaries,
@@ -74,6 +81,7 @@ class DashboardQuery(graphene.ObjectType):
             my_upcoming_shifts=upcoming_shifts,
             soci_order_session=soci_order_session,
             show_newbies=show_newbies,
+            show_stock_market_shortcut=show_stock_market_shortcut,
         )
 
 
