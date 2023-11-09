@@ -575,13 +575,31 @@ class StripeQuery(graphene.ObjectType):
         return intent.client_secret
 
 
+class StockMarketTrendEnum(graphene.Enum):
+    INCREASING = "increasing"
+    DECREASING = "decreasing"
+    STALE = "stale"  # We could consider dropping 'stale' altogether
+
+
 class StockMarketProduct(graphene.ObjectType):
     name = graphene.String()
     price = graphene.Int()
+    trend = StockMarketTrendEnum()
+
+
+class StockMarketProductDataPoint(graphene.ObjectType):
+    price = graphene.Int()
+    timestamp = graphene.DateTime()
+
+
+class StockMarketProductHistory(graphene.ObjectType):
+    data_points = graphene.List(StockMarketProductDataPoint)
+    product_name = graphene.String()
 
 
 class StockMarketQuery(graphene.ObjectType):
     stock_market_products = graphene.List(StockMarketProduct)
+    stock_price_history = graphene.List(StockMarketProductHistory)
 
     @gql_login_required()
     def resolve_stock_market_products(self, info, *args, **kwargs):
@@ -592,8 +610,48 @@ class StockMarketQuery(graphene.ObjectType):
         data = []
         for product in products:
             price = calculate_stock_price_for_product(product.id)
+            prev_price = calculate_stock_price_for_product(
+                product.id, back_in_time_offset=timezone.timedelta(minutes=1)
+            )
+            diff = price - prev_price
+            if diff < 0:
+                trend = StockMarketTrendEnum.DECREASING
+            elif diff > 0:
+                trend = StockMarketTrendEnum.INCREASING
+            else:
+                trend = StockMarketTrendEnum.STALE
             name = product.name
-            data.append(StockMarketProduct(name=name, price=price))
+            data.append(StockMarketProduct(name=name, price=price, trend=trend))
+
+        return data
+
+    @gql_login_required()
+    def resolve_stock_price_history(self, info, *args, **kwargs):
+        products = SociProduct.objects.filter(
+            purchase_price__isnull=False, hide_from_api=False
+        ).order_by("name")
+
+        data = []
+
+        DENSITY = timezone.timedelta(minutes=1)
+        STARTING_POINT = timezone.now() - timezone.timedelta(minutes=30)
+        cursor = STARTING_POINT
+        for product in products:
+            product_data = []
+            for i in range(31):
+                price = calculate_stock_price_for_product(
+                    product.id,
+                    back_in_time_offset=timezone.now() - cursor,  # THIS IS A DELTA
+                )
+                point = StockMarketProductDataPoint(price=price, timestamp=cursor)
+                product_data.append(point)
+                cursor += DENSITY
+
+            history = StockMarketProductHistory(
+                data_points=product_data, product_name=product.name
+            )
+            data.append(history)
+            cursor = STARTING_POINT
 
         return data
 
