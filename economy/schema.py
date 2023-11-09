@@ -585,6 +585,7 @@ class StockMarketProduct(graphene.ObjectType):
     name = graphene.String()
     price = graphene.Int()
     trend = StockMarketTrendEnum()
+    percentage_change = graphene.Float()
 
 
 class StockMarketProductDataPoint(graphene.ObjectType):
@@ -609,11 +610,13 @@ class StockMarketQuery(graphene.ObjectType):
 
         data = []
         for product in products:
+            # Probably some optimization possibilities here instead of hitting the method twice
             price = calculate_stock_price_for_product(product.id)
             prev_price = calculate_stock_price_for_product(
                 product.id, back_in_time_offset=timezone.timedelta(minutes=1)
             )
             diff = price - prev_price
+            percentage_diff = (float(price) - float(prev_price)) / float(price)
             if diff < 0:
                 trend = StockMarketTrendEnum.DECREASING
             elif diff > 0:
@@ -621,7 +624,11 @@ class StockMarketQuery(graphene.ObjectType):
             else:
                 trend = StockMarketTrendEnum.STALE
             name = product.name
-            data.append(StockMarketProduct(name=name, price=price, trend=trend))
+            data.append(
+                StockMarketProduct(
+                    name=name, price=price, trend=trend, percentage_diff=percentage_diff
+                )
+            )
 
         return data
 
