@@ -27,6 +27,8 @@ from graphene_django_cud.mutations import (
 )
 from graphene_django import DjangoConnectionField
 from graphene_django_cud.util import disambiguate_id
+from graphql_relay import to_global_id
+
 from common.exceptions import IllegalOperation
 
 from api.exceptions import InsufficientFundsException
@@ -582,6 +584,7 @@ class StockMarketTrendEnum(graphene.Enum):
 
 
 class StockMarketProduct(graphene.ObjectType):
+    id = graphene.ID()
     name = graphene.String()
     price = graphene.Int()
     trend = StockMarketTrendEnum()
@@ -626,6 +629,7 @@ class StockMarketQuery(graphene.ObjectType):
             name = product.name
             data.append(
                 StockMarketProduct(
+                    id=to_global_id("SociProductNode", product.id),
                     name=name,
                     price=price,
                     trend=trend,
