@@ -556,3 +556,7 @@ class ProductGhostOrder(models.Model):
 
     def __str__(self):
         return f"Ghost order for {self.product.name}"
+
+
+class StockMarketCrash(models.Model):
+    timestamp = models.DateTimeField(auto_now=True)

@@ -48,6 +48,7 @@ from economy.models import (
     SociOrderSession,
     SociOrderSessionOrder,
     ProductGhostOrder,
+    StockMarketCrash,
 )
 from economy.price_strategies import calculate_stock_price_for_product
 from schedules.models import Schedule
@@ -601,9 +602,14 @@ class StockMarketProductHistory(graphene.ObjectType):
     product_name = graphene.String()
 
 
+class LastMarketCrashObject(graphene.ObjectType):
+    timestamp = graphene.DateTime()
+
+
 class StockMarketQuery(graphene.ObjectType):
     stock_market_products = graphene.List(StockMarketProduct)
     stock_price_history = graphene.List(StockMarketProductHistory)
+    last_market_crash = graphene.Field(LastMarketCrashObject)
 
     @gql_login_required()
     def resolve_stock_market_products(self, info, *args, **kwargs):
@@ -670,6 +676,10 @@ class StockMarketQuery(graphene.ObjectType):
             cursor = STARTING_POINT
 
         return data
+
+    @gql_login_required()
+    def resolve_last_market_crash(self, info, *args, **kwargs):
+        return StockMarketCrash.objects.all().order_by("-timestamp").first()
 
 
 class UndoProductOrderMutation(graphene.Mutation):
@@ -1267,6 +1277,16 @@ class IncrementProductGhostOrderMutation(graphene.Mutation):
         return IncrementProductGhostOrderMutation(success=True)
 
 
+class CrashStockMarketMutation(graphene.Mutation):
+
+    success = graphene.Boolean()
+
+    @gql_has_permissions("economy.add_stockmarketcrash")
+    def mutate(self, info, *args, **kwargs):
+        StockMarketCrash.objects.create()
+        return CrashStockMarketMutation(success=True)
+
+
 class EconomyMutations(graphene.ObjectType):
     place_product_order = PlaceProductOrderMutation.Field()
     undo_product_order = UndoProductOrderMutation.Field()
@@ -1292,3 +1312,4 @@ class EconomyMutations(graphene.ObjectType):
     invite_users_to_order_session = InviteUsersToSociOrderSessionMutation.Field()
 
     increment_product_ghost_order = IncrementProductGhostOrderMutation.Field()
+    crash_stock_market = CrashStockMarketMutation.Field()
