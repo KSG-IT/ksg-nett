@@ -626,7 +626,10 @@ class StockMarketQuery(graphene.ObjectType):
             name = product.name
             data.append(
                 StockMarketProduct(
-                    name=name, price=price, trend=trend, percentage_diff=percentage_diff
+                    name=name,
+                    price=price,
+                    trend=trend,
+                    percentage_change=percentage_diff,
                 )
             )
 
