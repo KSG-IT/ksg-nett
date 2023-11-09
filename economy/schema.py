@@ -620,6 +620,8 @@ class StockMarketQuery(graphene.ObjectType):
             )
             diff = price - prev_price
             percentage_diff = (float(price) - float(prev_price)) / float(price)
+            percentage_diff = percentage_diff * 100
+            percentage_diff = round(percentage_diff, 2)
             if diff < 0:
                 trend = StockMarketTrendEnum.DECREASING
             elif diff > 0:
