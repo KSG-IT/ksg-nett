@@ -116,6 +116,11 @@ class SociProduct(models.Model):
     )
     name = models.CharField(max_length=50)
     price = models.IntegerField()
+    purchase_price = models.IntegerField(
+        null=True,
+        blank=True,
+        help_text="What the product is valued when purchasing it for inventory",
+    )
     description = models.TextField(blank=True, null=True, default=None, max_length=200)
     icon = models.CharField(max_length=2, blank=True, null=True)
     default_stilletime_product = models.BooleanField(default=False)
@@ -536,3 +541,22 @@ class ExternalCharge(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     webhook_attempts = models.IntegerField(default=0)
     webhook_success = models.BooleanField(default=False)
+
+
+class ProductGhostOrder(models.Model):
+    """
+    This is a 'ghost order' meant to track sales made using Bong/Lists. Mainly intended
+    to be used together with X-App stock market mode so product prices can be correctly calculated
+    """
+
+    product = models.ForeignKey(
+        SociProduct, on_delete=models.CASCADE, related_name="ghost_purchases"
+    )
+    timestamp = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Ghost order for {self.product.name}"
+
+
+class StockMarketCrash(models.Model):
+    timestamp = models.DateTimeField(auto_now=True)
