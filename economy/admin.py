@@ -10,6 +10,7 @@ from economy.models import (
     SociOrderSession,
     SociOrderSessionOrder,
     ExternalCharge,
+    ProductGhostOrder,
 )
 
 
@@ -84,4 +85,9 @@ class UserSociOrderSessionCollectionAdmin(admin.ModelAdmin):
 
 @admin.register(ExternalCharge)
 class ExternalChargeAdmin(admin.ModelAdmin):
+    pass
+
+
+@admin.register(ProductGhostOrder)
+class ProductGhostOrderAdmin(admin.ModelAdmin):
     pass

@@ -1,9 +1,26 @@
 # CHANGELOG
 
-[Unreleased]
+## [Unreleased]
+### Added
+- Stock market mode
+  - Feature flag based mode that triggers a new purchase mode emulating the fluctuations of a stock market
+    - X-APP purchases made through the REST API will calculate a price based on the item purchase price and popularity
+    - Ghost product purchases to track non-digital pucrhases made
+    - Stock market crash model to manually crash the market through am utation
+    - Queries to show stock market item and its price change
+    - A whole lot of tests
+
+### Fixed
+- Economy
+  - Broken statistics query
+
+### Removed
+- Economy
+  - Redundant is_default field annotation in product resolver 
 
 ## [2023.9.1] - 2023-09-12
 
+### Changed
 - Economy
   - Automatically close stale soci order sessions when attempting to create a new one.
   - Add resolvers for sales statistics on products

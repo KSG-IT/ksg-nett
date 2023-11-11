@@ -135,46 +135,41 @@ class TestGetAvailableInterviewLocations(TestCase):
 
     def test__start_of_interview_time__returns_3_available_locations(self):
         now = timezone.datetime.now()
+        datetime_from = timezone.make_aware(
+            timezone.datetime(now.year, now.month, now.day, hour=12, minute=00),
+            timezone=pytz.timezone(settings.TIME_ZONE),
+        )
+        datetime_to = timezone.make_aware(
+            timezone.datetime(now.year, now.month, now.day, hour=12, minute=45),
+            timezone=pytz.timezone(settings.TIME_ZONE),
+        )
+
         locations = get_available_interview_locations(
-            datetime_from=timezone.datetime(
-                now.year,
-                now.month,
-                now.day,
-                hour=12,
-                minute=00,
-                tzinfo=pytz.timezone(settings.TIME_ZONE),
-            ),
-            datetime_to=timezone.datetime(
-                now.year,
-                now.month,
-                now.day,
-                hour=12,
-                minute=45,
-                tzinfo=pytz.timezone(settings.TIME_ZONE),
-            ),
+            datetime_from=datetime_from, datetime_to=datetime_to
         )
         self.assertEqual(locations.count(), 3)
 
     def test__remove_1_location_availability__returns_2_available_locations(self):
         self.bodegaen_day_2.delete()
-        now = timezone.datetime.now() + timezone.timedelta(days=1)
-        locations = get_available_interview_locations(
-            datetime_from=timezone.datetime(
-                now.year,
-                now.month,
-                now.day,
-                hour=12,
-                minute=00,
-                tzinfo=pytz.timezone(settings.TIME_ZONE),
+        tomorrow = timezone.datetime.now() + timezone.timedelta(days=1)
+        tomorrow_datetime_from = timezone.make_aware(
+            timezone.datetime(
+                tomorrow.year, tomorrow.month, tomorrow.day, hour=12, minute=00
             ),
-            datetime_to=timezone.datetime(
-                now.year,
-                now.month,
-                now.day,
+            timezone=pytz.timezone(settings.TIME_ZONE),
+        )
+        tomorrow_datetime_to = timezone.make_aware(
+            timezone.datetime(
+                tomorrow.year,
+                tomorrow.month,
+                tomorrow.day,
                 hour=12,
                 minute=45,
-                tzinfo=pytz.timezone(settings.TIME_ZONE),
             ),
+            timezone=pytz.timezone(settings.TIME_ZONE),
+        )
+        locations = get_available_interview_locations(
+            datetime_from=tomorrow_datetime_from, datetime_to=tomorrow_datetime_to
         )
         self.assertEqual(locations.count(), 2)
 
