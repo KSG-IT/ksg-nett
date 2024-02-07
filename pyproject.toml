@@ -7,7 +7,7 @@ authors = ["Tormod Haugland <tormod.haugland@gmail.com>", "Alexander Orvik <alex
 [tool.poetry.dependencies]
 python = ">=3.11,<3.12"
 djangorestframework = "^3.14.0"
-django = "^4.2.7"
+django = "^4.2.10"
 pillow = "^10.0.1"
 channels = "^4.0.0"
 redis = "^4.2.0"
