@@ -166,9 +166,20 @@ class InternalGroupQuery(graphene.ObjectType):
 class InternalGroupPositionQuery(graphene.ObjectType):
     internal_group_position = Node.Field(InternalGroupPositionNode)
     all_internal_group_positions = graphene.List(InternalGroupPositionNode)
+    internal_group_positions_by_internal_group = graphene.List(
+        InternalGroupPositionNode, internal_group_id=graphene.ID()
+    )
 
     def resolve_all_internal_group_positions(self, info, *args, **kwargs):
         return InternalGroupPosition.objects.all()
+
+    def resolve_internal_group_positions_by_internal_group(
+        self, info, internal_group_id, **kwargs
+    ):
+        internal_group_id = disambiguate_id(internal_group_id)
+        return InternalGroupPosition.objects.filter(
+            internal_group__id=internal_group_id
+        ).order_by("name")
 
 
 class InternalGroupPositionMembershipQuery(graphene.ObjectType):
@@ -240,6 +251,33 @@ class DeleteInternalGroupPosition(DjangoDeleteMutation):
     class Meta:
         model = InternalGroupPosition
         permissions = ("organization.delete_internalgroupposition",)
+
+
+class PatchInternalGroupPositionMembershipDateMutation(graphene.Mutation):
+    class Arguments:
+        membership_id = graphene.ID()
+        date_ended = graphene.Date()
+        date_joined = graphene.Date()
+
+    internal_group_position_membership = graphene.Field(
+        InternalGroupPositionMembershipNode
+    )
+
+    @gql_has_permissions("organization.change_internalgrouppositionmembership")
+    def mutate(self, info, membership_id, date_ended, date_joined, *args, **kwargs):
+        membership_id = disambiguate_id(membership_id)
+        membership = InternalGroupPositionMembership.objects.get(pk=membership_id)
+
+        if date_ended:
+            membership.date_ended = date_ended
+        if date_joined:
+            membership.date_joined = date_joined
+
+        membership.save()
+        return PatchInternalGroupPositionMembershipDateMutation(
+            internal_group_position_membership=membership
+        )
+    
 
 
 class AssignNewInternalGroupPositionMembership(graphene.Mutation):
@@ -455,6 +493,10 @@ class OrganizationMutations(graphene.ObjectType):
 
     assign_new_internal_group_position_membership = (
         AssignNewInternalGroupPositionMembership.Field()
+    )
+
+    patch_internal_group_position_membership_date = (
+        PatchInternalGroupPositionMembershipDateMutation.Field()
     )
 
     quit_KSG = QuitKSGMutation.Field()
