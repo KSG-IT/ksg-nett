@@ -600,6 +600,7 @@ class StockMarketProductDataPoint(graphene.ObjectType):
 class StockMarketProductHistory(graphene.ObjectType):
     data_points = graphene.List(StockMarketProductDataPoint)
     product_name = graphene.String()
+    product_id = graphene.ID()
 
 
 class LastMarketCrashObject(graphene.ObjectType):
