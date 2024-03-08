@@ -600,6 +600,7 @@ class StockMarketProductDataPoint(graphene.ObjectType):
 class StockMarketProductHistory(graphene.ObjectType):
     data_points = graphene.List(StockMarketProductDataPoint)
     product_name = graphene.String()
+    product_id = graphene.ID()
 
 
 class LastMarketCrashObject(graphene.ObjectType):
@@ -670,7 +671,9 @@ class StockMarketQuery(graphene.ObjectType):
                 cursor += DENSITY
 
             history = StockMarketProductHistory(
-                data_points=product_data, product_name=product.name
+                data_points=product_data,
+                product_name=product.name,
+                product_id=product.id,
             )
             data.append(history)
             cursor = STARTING_POINT

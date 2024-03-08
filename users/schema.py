@@ -279,7 +279,7 @@ class UserQuery(graphene.ObjectType):
         for membership in InternalGroupPositionMembership.objects.filter(
             position__internal_group=internal_group, date_ended__isnull=False
         ).order_by("user__first_name"):
-            date_started = get_semester_year_shorthand(membership.date_ended)
+            date_started = get_semester_year_shorthand(membership.date_joined)
             date_ended = get_semester_year_shorthand(membership.date_ended)
             all_memberships.append(
                 ManageInternalGroupUserObject(
