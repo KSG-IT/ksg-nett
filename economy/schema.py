@@ -670,7 +670,9 @@ class StockMarketQuery(graphene.ObjectType):
                 cursor += DENSITY
 
             history = StockMarketProductHistory(
-                data_points=product_data, product_name=product.name
+                data_points=product_data,
+                product_name=product.name,
+                product_id=product.id,
             )
             data.append(history)
             cursor = STARTING_POINT
