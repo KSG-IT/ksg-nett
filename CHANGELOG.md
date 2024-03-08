@@ -1,6 +1,18 @@
 # CHANGELOG
 
-## [Unreleased]
+## [2024.03.8] - 2024-03-08
+### Added
+- Organization
+  - New mutation for memberships
+
+### Fixed
+- Users
+  - Incorrect user position membership start date (used date_ended)
+- Economy
+  - Add product_id to stock price history resolver returndata
+
+
+## [2023.11.1] - 2023-11-09
 ### Added
 - Stock market mode
   - Feature flag based mode that triggers a new purchase mode emulating the fluctuations of a stock market
