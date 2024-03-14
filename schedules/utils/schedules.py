@@ -156,6 +156,7 @@ def send_given_shift_email(shift_slot):
         
         Vakt: {shift_slot.shift.name}
         Hvor: {shift_slot.shift.location}
+        Når: {shift_slot.shift.datetime_start.strftime('%d.%m kl %H:%M')} - {shift_slot.shift.datetime_end.strftime('%H:%M')}
         
         """
 
@@ -164,8 +165,10 @@ def send_given_shift_email(shift_slot):
         <p>Du har blitt satt opp på vakt!</p>
         <p>Vakt: {shift_slot.shift.name}</p>
         <p>Hvor: {shift_slot.shift.location}</p>
+        <p>Når: {shift_slot.shift.datetime_start.strftime('%d.%m kl %H:%M')} - {shift_slot.shift.datetime_end.strftime('%H:%M')}</p>
+
         
-            """
+        """
 
     send_email(
         recipients=[user.email],
