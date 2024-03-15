@@ -168,7 +168,6 @@ class TestShiftInterest(TestCase):
 
 class TestShiftEmailCorrectFormat(TestCase):
     def setUp(self):
-
         start = make_aware(
             datetime.datetime(2022, 5, 2, 15, 0), timezone=pytz.timezone("Europe/Oslo")
         )
@@ -191,9 +190,6 @@ class TestShiftEmailCorrectFormat(TestCase):
             shift=self.shift, user=user, role=RoleOption.BARISTA
         )
 
-
-        
-
     def test__shift_email__is_correctly_formatted(self):
         send_given_shift_email(self.shift_slot)
         self.assertEqual(len(mail.outbox), 1)
@@ -201,6 +197,6 @@ class TestShiftEmailCorrectFormat(TestCase):
         self.assertIn("Hei!", mail.outbox[0].body)
         self.assertIn("Du har blitt satt opp på vakt!", mail.outbox[0].body)
         self.assertIn("Vakt: Onsdag tidlig", mail.outbox[0].body)
-        self.assertIn("Hvor: Moren din", mail.outbox[0].body)
+        self.assertIn("Hvor: Edgar", mail.outbox[0].body)
         self.assertIn("Når: 02.05 kl 15:00 - 23:00", mail.outbox[0].body)
 
