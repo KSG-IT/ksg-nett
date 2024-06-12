@@ -32,6 +32,27 @@ class Allergy(models.Model):
         verbose_name_plural = "Allergies"
 
 
+class Theme(models.Model):
+    """
+    Model containing themes
+    """
+
+    primaryShade = models.IntegerField()
+    colorScheme = models.CharField(max_length=256)
+    name = models.CharField(max_length=32)
+    label = models.CharField(max_length=32, default="Color Label")
+
+    def __str__(self):
+        return self.name
+
+    def __repr__(self):
+        return self.name
+
+    class Meta:
+        default_related_name = "themes"
+        verbose_name_plural = "Themes"
+
+
 class User(AbstractUser):
     nickname = models.CharField(max_length=64, blank=True, null=True, default=None)
     email = models.EmailField(unique=True)
@@ -59,6 +80,14 @@ class User(AbstractUser):
     requires_migration_wizard = models.BooleanField(default=False)
     first_time_login = models.BooleanField(default=True)
     can_rewrite_about_me = models.BooleanField(default=True)
+    themes = models.ManyToManyField(Theme, blank=True, related_name="users")
+    selected_theme = models.ForeignKey(
+        Theme,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="selected_users",
+    )
 
     ical_token = models.CharField(
         max_length=128, unique=True, null=True, blank=True, default=None
