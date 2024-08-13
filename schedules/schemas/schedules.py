@@ -22,9 +22,12 @@ from schedules.models import (
 )
 from schedules.utils.schedules import normalize_shifts, send_given_shift_email
 from schedules.utils.templates import apply_schedule_template
-from users.models import User
+from users.models import User, Allergy as UserAllergy
 from django.utils import timezone
 from django.conf import settings
+
+from django.db.models import Count
+from django.db.models.functions import TruncDate
 
 
 class ShiftInterestNode(DjangoObjectType):
@@ -83,6 +86,17 @@ class ShiftNode(DjangoObjectType):
         return Shift.objects.get(pk=id)
 
 
+class Allergy(graphene.ObjectType):
+    name = graphene.String()
+    count = graphene.Int()
+
+
+class DayAllergyNode(graphene.ObjectType):
+    date = graphene.Date()
+    allergy_list = graphene.NonNull(graphene.List(graphene.NonNull(Allergy)))
+    total_user_count = graphene.NonNull(graphene.Int)
+
+
 class ScheduleNode(DjangoObjectType):
     class Meta:
         model = Schedule
@@ -113,9 +127,96 @@ class ShiftTradeNode(DjangoObjectType):
 class ScheduleQuery(graphene.ObjectType):
     schedule = Node.Field(ScheduleNode)
     all_schedules = graphene.NonNull(graphene.List(ScheduleNode, required=True))
+    schedule_allergies = graphene.List(DayAllergyNode, shifts_from=graphene.Date())
 
     def resolve_all_schedules(self, info, *args, **kwargs):
         return Schedule.objects.all().order_by("name")
+
+    def resolve_schedule_allergies(self, info, shifts_from, *args, **kwargs):
+        monday = shifts_from - timezone.timedelta(days=shifts_from.weekday())
+        monday = timezone.datetime(
+            year=monday.year,
+            month=monday.month,
+            day=monday.day,
+        )
+        monday = timezone.make_aware(monday, timezone=pytz.timezone(settings.TIME_ZONE))
+        sunday = monday + timezone.timedelta(days=6, hours=23, minutes=59, seconds=59)
+
+        filtered_shifts = Shift.objects.filter(
+            datetime_start__range=(monday, sunday), slots__user__isnull=False
+        )
+        allergy_filtered_shifts = Shift.objects.filter(
+            datetime_start__range=(monday, sunday),
+            slots__user__isnull=False,
+            slots__user__allergies__name__isnull=False,
+        )
+
+        allergy_counts = (
+            allergy_filtered_shifts.annotate(shift_date=TruncDate("datetime_start"))
+            .values("shift_date", "slots__user__allergies__name")
+            .annotate(
+                allergy_count=Count(
+                    "slots__user__allergies",
+                )
+            )
+            .order_by("shift_date", "slots__user__allergies__name")
+        )
+
+        people_at_work_count = filtered_shifts.annotate(
+            shift_date=TruncDate("datetime_start")
+        ).annotate(horse=Count("slots"))
+
+        count_dict = {}
+        for item in people_at_work_count.all():
+            shift_date = item.shift_date
+            shift_date_key = shift_date.strftime("%Y-%m-%d")
+            user_count = count_dict.get(shift_date_key, 0)
+            user_count += item.horse
+            count_dict[shift_date_key] = user_count
+
+        results = [
+            {
+                "shift_date": entry["shift_date"],
+                "allergy": entry["slots__user__allergies__name"],
+                "count": entry["allergy_count"],
+                # "total_users_at_work": entry["total_users_at_work"],
+            }
+            for entry in allergy_counts
+        ]
+
+        result_dict = {}
+        for item in results:
+            shift_date = item["shift_date"]
+            shift_date_key = shift_date.strftime("%Y-%m-%d")
+            allergy_list = result_dict.get(shift_date_key, (shift_date, []))[1]
+            allergy_name = item["allergy"]
+            allergy_count = item["count"]
+
+            allergy_list.append((allergy_name, allergy_count))
+            result_dict[shift_date_key] = (
+                shift_date,
+                allergy_list,
+            )
+
+        final_list = []
+        for key in result_dict.keys():
+            date_obj, allergies = result_dict[key]
+
+            day_list = []
+            for allergu_tuple in allergies:
+                allergy_name, allergy_count = allergu_tuple
+                day_list.append(Allergy(name=allergy_name, count=allergy_count))
+
+            shift_date_key = date_obj.strftime("%Y-%m-%d")
+            total_user_count = count_dict.get(shift_date_key, 0)
+            final_list.append(
+                DayAllergyNode(
+                    date=date_obj,
+                    allergy_list=day_list,
+                    total_user_count=total_user_count,
+                )
+            )
+        return final_list
 
 
 # === Single location grouping types ===
