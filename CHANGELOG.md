@@ -1,5 +1,13 @@
 # CHANGELOG
 
+
+## [unreleased]
+
+## [2024.8.1] - 2024-08-13
+### Added
+- Schedules
+  - Allergy resolver counting allergies per day based on shifts
+
 ## [2024.03.8] - 2024-03-08
 ### Added
 - Organization

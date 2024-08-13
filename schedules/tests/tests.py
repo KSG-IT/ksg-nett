@@ -3,11 +3,13 @@ import datetime
 import pytz
 from django.test import TestCase
 from django.utils.timezone import make_aware
+from django.core import mail
 
 from schedules.utils.templates import (
     apply_schedule_template,
     shift_template_timestamps_to_datetime,
 )
+from schedules.utils.schedules import send_given_shift_email
 from schedules.tests.factories import (
     ScheduleFactory,
     ScheduleTemplateFactory,
@@ -163,3 +165,38 @@ class TestShiftInterest(TestCase):
         )
         end = start + datetime.timedelta(days=3)
         self.schedule.autofill_slots(start, end)
+
+class TestShiftEmailCorrectFormat(TestCase):
+    def setUp(self):
+        start = make_aware(
+            datetime.datetime(2022, 5, 2, 15, 0), timezone=pytz.timezone("Europe/Oslo")
+        )
+        end = start + datetime.timedelta(hours=8)
+
+        self.schedule = ScheduleFactory.create(name="Edgar")
+        self.template = ScheduleTemplateFactory.create(
+            schedule=self.schedule, name="Standarduke"
+        )
+        self.shift = ShiftFactory(
+            name="Onsdag tidlig",
+            schedule=self.schedule,
+            datetime_start=start,
+            datetime_end=end,
+        )
+
+        user = UserFactory.create()
+
+        self.shift_slot = ShiftSlotFactory.create(
+            shift=self.shift, user=user, role=RoleOption.BARISTA
+        )
+
+    def test__shift_email__is_correctly_formatted(self):
+        send_given_shift_email(self.shift_slot)
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, [self.shift_slot.user.email])
+        self.assertIn("Hei!", mail.outbox[0].body)
+        self.assertIn("Du har blitt satt opp på vakt!", mail.outbox[0].body)
+        self.assertIn("Vakt: Onsdag tidlig", mail.outbox[0].body)
+        self.assertIn("Hvor: Edgar", mail.outbox[0].body)
+        self.assertIn("Når: 02.05 kl 15:00 - 23:00", mail.outbox[0].body)
+
