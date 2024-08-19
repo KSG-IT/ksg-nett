@@ -179,7 +179,6 @@ class ScheduleQuery(graphene.ObjectType):
                 "shift_date": entry["shift_date"],
                 "allergy": entry["slots__user__allergies__name"],
                 "count": entry["allergy_count"],
-                # "total_users_at_work": entry["total_users_at_work"],
             }
             for entry in allergy_counts
         ]
@@ -216,6 +215,22 @@ class ScheduleQuery(graphene.ObjectType):
                     total_user_count=total_user_count,
                 )
             )
+
+
+        # There is a special case where 
+        for count_key in count_dict.keys():
+            if count_key in result_dict.keys():
+                continue
+
+            date_object = datetime.datetime.strptime(count_key, '%Y-%m-%d').date()
+            node = DayAllergyNode(
+                date=date_object,
+                allergy_list=[],
+                total_user_count=count_dict.get(count_key, 0),
+            )
+            final_list.append(node)
+
+        final_list = sorted(final_list, key=lambda x: x.date)
         return final_list
 
 
