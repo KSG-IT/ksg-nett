@@ -2022,10 +2022,10 @@ class RemoveApplicantFromInterviewMutation(graphene.Mutation):
             interview.save()
             applicant.status = ApplicantStatus.HAS_SET_PRIORITIES
             applicant.save()
-            interview.interviewers.clear()
             notify_interviewers_applicant_has_been_removed_from_interview_email(
                 applicant, interview
             )
+            interview.interviewers.clear()
 
         return RemoveApplicantFromInterviewMutation(interview=interview)
 
