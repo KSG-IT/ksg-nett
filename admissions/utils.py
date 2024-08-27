@@ -364,6 +364,71 @@ def send_interview_cancelled_email(applicant):
     )
 
 
+def notify_interviewers_applicant_has_been_moved_to_another_interview_email(
+    applicant, interview
+):
+    local_time = timezone.localtime(
+        interview.interview_start, pytz.timezone(settings.TIME_ZONE)
+    )
+    name = applicant.get_full_name
+    interview_location = interview.location.name
+    formatted_local_time = local_time.strftime("%d.%m.%Y kl. %H:%M")
+    content = (
+        _(
+            """
+                Hei!
+                
+                %(name)s sitt intervju har blitt flyttet
+                
+                Du har blitt fjernet fra intervjuet.
+    
+                Gammel Intervjuinformasjon:
+                %(interview_location)s
+                %(interview_time)s
+                
+                """
+        )
+        % {
+            "name": name,
+            "interview_location": interview_location,
+            "interview_time": formatted_local_time,
+        }
+    )
+
+    html_content = (
+        _(
+            """
+                Hei!
+                <br />
+                %(name)s sitt intervju har blitt flyttet
+                <br />
+                Du har blitt fjernet fra intervjuet.
+                <br />
+                Gammel intervjuinformasjon:
+                <br />
+                %(interview_location)s
+                <br />
+                %(interview_time)s
+                <br />
+                
+                """
+        )
+        % {
+            "name": name,
+            "interview_location": interview_location,
+            "interview_time": formatted_local_time,
+        }
+    )
+
+    return send_email(
+        _("Flyttet intervju"),
+        message=content,
+        html_message=html_content,
+        recipients=[],
+        bcc=interview.interviewers.values_list("email", flat=True),
+    )
+
+
 def notify_interviewers_cancelled_interview_email(applicant, interview):
     local_time = timezone.localtime(
         interview.interview_start, pytz.timezone(settings.TIME_ZONE)

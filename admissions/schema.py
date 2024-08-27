@@ -38,6 +38,7 @@ from admissions.utils import (
     send_new_interview_mail,
     send_interview_cancelled_email,
     notify_interviewers_cancelled_interview_email,
+    notify_interviewers_applicant_has_been_moved_to_another_interview_email,
     send_interview_confirmation_email,
     remove_applicant_choice,
     construct_new_priority_list,
@@ -1985,7 +1986,9 @@ class AssignApplicantNewInterviewMutation(graphene.Mutation):
             applicant.save()
 
             send_new_interview_mail(applicant)
-            # TODO send email to interviewers
+            notify_interviewers_applicant_has_been_moved_to_another_interview_email(
+                applicant, interview
+            )
 
             return AssignApplicantNewInterviewMutation(success=True)
 
