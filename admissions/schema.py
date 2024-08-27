@@ -1986,6 +1986,7 @@ class AssignApplicantNewInterviewMutation(graphene.Mutation):
             applicant.save()
 
             send_new_interview_mail(applicant)
+            interview.interviewers.clear()
             notify_interviewers_applicant_has_been_moved_to_another_interview_email(
                 applicant, interview
             )
@@ -2021,6 +2022,7 @@ class RemoveApplicantFromInterviewMutation(graphene.Mutation):
             interview.save()
             applicant.status = ApplicantStatus.HAS_SET_PRIORITIES
             applicant.save()
+            interview.interviewers.clear()
             notify_interviewers_applicant_has_been_removed_from_interview_email(
                 applicant, interview
             )
