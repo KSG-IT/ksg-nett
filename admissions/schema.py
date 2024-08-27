@@ -1986,10 +1986,10 @@ class AssignApplicantNewInterviewMutation(graphene.Mutation):
             applicant.save()
 
             send_new_interview_mail(applicant)
-            interview.interviewers.clear()
             notify_interviewers_applicant_has_been_moved_to_another_interview_email(
                 applicant, interview
             )
+            interview.interviewers.clear()
 
             return AssignApplicantNewInterviewMutation(success=True)
 
