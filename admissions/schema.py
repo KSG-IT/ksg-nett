@@ -1976,8 +1976,19 @@ class AssignApplicantNewInterviewMutation(graphene.Mutation):
 
         with transaction.atomic():
             existing_interview = applicant.interview
+
             if existing_interview:
                 existing_interview.applicant = None
+                existing_interviewers_emails = (
+                    existing_interview.interviewers.values_list("email", flat=True)
+                )
+                notify_interviewers_applicant_has_been_moved_to_another_interview_email(
+                    applicant_fullname=applicant.get_full_name(),
+                    interview_location_name=existing_interview.location.name,
+                    interview_datetime_start=existing_interview.interview_start,
+                    interviewers_emails=existing_interviewers_emails,
+                )
+                interview.interviewers.clear()
                 existing_interview.save()
 
             interview.applicant = applicant
@@ -1986,10 +1997,6 @@ class AssignApplicantNewInterviewMutation(graphene.Mutation):
             applicant.save()
 
             send_new_interview_mail(applicant)
-            notify_interviewers_applicant_has_been_moved_to_another_interview_email(
-                applicant, interview
-            )
-            interview.interviewers.clear()
 
             return AssignApplicantNewInterviewMutation(success=True)
 
