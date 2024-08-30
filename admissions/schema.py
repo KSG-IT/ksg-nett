@@ -1983,7 +1983,7 @@ class AssignApplicantNewInterviewMutation(graphene.Mutation):
                     existing_interview.interviewers.values_list("email", flat=True)
                 )
                 notify_interviewers_applicant_has_been_moved_to_another_interview_email(
-                    applicant_fullname=applicant.get_full_name(),
+                    applicant_fullname=applicant.get_full_name,
                     interview_location_name=existing_interview.location.name,
                     interview_datetime_start=existing_interview.interview_start,
                     interviewers_emails=existing_interviewers_emails,
