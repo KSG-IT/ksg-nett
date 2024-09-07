@@ -609,7 +609,7 @@ class InviteNewUserMutation(graphene.Mutation):
 
     user = graphene.Field(UserNode)
 
-    @gql_has_permissions("users.create_user")
+    @gql_has_permissions("users.add_user")
     def mutate(
         root, info, email, first_name, last_name, send_welcome_email, *args, **kwargs
     ):
