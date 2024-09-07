@@ -1,10 +1,11 @@
 import bleach
+import jwt
 import graphene
 from django.contrib.auth.models import Permission
 from django.core.exceptions import PermissionDenied
 from django.db import transaction
 from django.db.models import Value, Q
-from django.db.models import Value
+from django.conf import settings
 from django.utils import timezone
 from graphene import Node
 from graphene_django import DjangoObjectType
@@ -12,7 +13,6 @@ from graphene_django.filter import DjangoFilterConnectionField
 from graphene_django_cud.mutations import (
     DjangoPatchMutation,
     DjangoDeleteMutation,
-    DjangoCreateMutation,
 )
 
 from admissions.models import Admission
@@ -23,6 +23,7 @@ from common.util import get_semester_year_shorthand
 from django.db.models.functions import Concat
 from economy.utils import parse_transaction_history
 from economy.schema import BankAccountActivity
+from economy.models import SociBankAccount
 from users.filters import UserFilter
 from graphql_relay import to_global_id
 from schedules.schemas.schedules import ShiftSlotNode
@@ -31,6 +32,7 @@ from graphene_django_cud.util import disambiguate_id
 from organization.graphql import InternalGroupPositionTypeEnum
 from users.utils import ical_token_generator
 from django.utils.html import strip_tags
+from .emails import welcome_single_user_email
 
 
 class UserTypeLogEntryNode(DjangoObjectType):
@@ -365,11 +367,6 @@ class AllergyQuery(graphene.ObjectType):
         return Allergy.objects.all().order_by("name")
 
 
-class CreateUserMutation(DjangoCreateMutation):
-    class Meta:
-        model = User
-
-
 class DeleteUserMutation(DjangoDeleteMutation):
     class Meta:
         model = User
@@ -603,8 +600,44 @@ class UpdateAboutMeMutation(graphene.Mutation):
         return UpdateAboutMeMutation(user=user)
 
 
+class InviteNewUserMutation(graphene.Mutation):
+    class Arguments:
+        email = graphene.String()  # Can this be an email field?
+        first_name = graphene.String()
+        last_name = graphene.String()
+        send_welcome_email = graphene.Boolean()
+
+    user = graphene.Field(UserNode)
+
+    @gql_has_permissions("users.create_user")
+    def mutate(
+        root, info, email, first_name, last_name, send_welcome_email, *args, **kwargs
+    ):
+        user = User.objects.create(
+            email=email, username=email, first_name=first_name, last_name=last_name
+        )
+
+        SociBankAccount.objects.create(card_uuid=None, user=user)
+
+        if send_welcome_email:
+            jwt_reset_token = jwt.encode(
+                {
+                    "action": "reset_password",
+                    "user_id": user.id,
+                    "iss": "KSG-nett",
+                    "iat": timezone.now(),
+                    "exp": timezone.now() + timezone.timedelta(hours=24),
+                },
+                settings.AUTH_JWT_SECRET,
+                algorithm=settings.AUTH_JWT_METHOD,
+            )
+            welcome_single_user_email(email, jwt_reset_token)
+
+        return InviteNewUserMutation(user=user)
+
+
 class UserMutations(graphene.ObjectType):
-    create_user = CreateUserMutation.Field()
+    invite_new_user = InviteNewUserMutation.Field()
     patch_user = PatchUserMutation.Field()
     delete_user = DeleteUserMutation.Field()
     update_my_info = UpdateMyInfoMutation.Field()
