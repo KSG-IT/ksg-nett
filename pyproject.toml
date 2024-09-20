@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "ksg-nett"
-version = "2023.11.1"
+version = "2023.9.21"
 description = ""
 authors = ["Tormod Haugland <tormod.haugland@gmail.com>", "Alexander Orvik <alexao1111@gmail.com>", "Christian De Fréne <defrenechr@me.com>"]
 

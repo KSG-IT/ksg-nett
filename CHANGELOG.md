@@ -3,6 +3,11 @@
 
 ## [unreleased]
 
+## [2024.9.21] - 2024-09-21
+
+### Added
+- Organization: internal group position highlight filter on archive status
+
 ## [2024.8.1] - 2024-08-13
 ### Added
 - Schedules

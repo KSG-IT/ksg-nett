@@ -277,7 +277,6 @@ class PatchInternalGroupPositionMembershipDateMutation(graphene.Mutation):
         return PatchInternalGroupPositionMembershipDateMutation(
             internal_group_position_membership=membership
         )
-    
 
 
 class AssignNewInternalGroupPositionMembership(graphene.Mutation):
@@ -447,7 +446,9 @@ class InternalGroupUserHighlightQuery(graphene.ObjectType):
     all_internal_group_user_highlights = graphene.List(InternalGroupUserHighlightNode)
     internal_group_user_highlight = Node.Field(InternalGroupUserHighlightNode)
     internal_group_user_highlights_by_internal_group = graphene.List(
-        InternalGroupUserHighlightNode, internal_group_id=graphene.ID()
+        InternalGroupUserHighlightNode,
+        internal_group_id=graphene.ID(),
+        include_archived=graphene.Boolean(),
     )
 
     @gql_login_required()
@@ -456,12 +457,16 @@ class InternalGroupUserHighlightQuery(graphene.ObjectType):
 
     @gql_login_required()
     def resolve_internal_group_user_highlights_by_internal_group(
-        self, info, internal_group_id, *args, **kwargs
+        self, info, internal_group_id, include_archived, *args, **kwargs
     ):
         internal_group_id = disambiguate_id(internal_group_id)
-        return InternalGroupUserHighlight.objects.filter(
-            internal_group__id=internal_group_id
+        highlights = InternalGroupUserHighlight.objects.filter(
+            internal_group__id=internal_group_id,
         )
+        if not include_archived:
+            highlights = highlights.filter(archived=False)
+
+        return highlights
 
 
 class OrganizationMutations(graphene.ObjectType):
