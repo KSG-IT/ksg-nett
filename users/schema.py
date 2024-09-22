@@ -496,6 +496,17 @@ class UpdateMyAddressSettingsMutation(graphene.Mutation):
 
     def mutate(self, info, study_address):
         user = info.context.user
+
+        study_address = study_address.strip()
+
+        if len(study_address) == 0:
+            raise ValueError("Study address cannot be empty")
+        
+        if len(study_address) > 64:
+            raise ValueError("Study address cannot be longer than 64 characters")
+        
+
+        study_address = strip_tags(study_address)
         user.study_address = study_address
         user.save()
         return UpdateMyAddressSettingsMutation(user=user)
