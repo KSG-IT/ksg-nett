@@ -485,6 +485,30 @@ class UpdateMyEmailSettingsMutation(graphene.Mutation):
         return UpdateMyEmailSettingsMutation(user=user)
 
 
+class UpdateMyAddressSettingsMutation(graphene.Mutation):
+    class Arguments:
+        study_address = graphene.String()
+
+    user = graphene.Field(UserNode)
+
+    def mutate(self, info, study_address):
+        user = info.context.user
+
+        study_address = study_address.strip()
+
+        if len(study_address) == 0:
+            raise ValueError("Study address cannot be empty")
+        
+        if len(study_address) > 64:
+            raise ValueError("Study address cannot be longer than 64 characters")
+        
+
+        study_address = strip_tags(study_address)
+        user.study_address = study_address
+        user.save()
+        return UpdateMyAddressSettingsMutation(user=user)
+
+
 class AddUserToUserTypeMutation(graphene.Mutation):
     class Arguments:
         user_id = graphene.ID()
@@ -644,6 +668,6 @@ class UserMutations(graphene.ObjectType):
     update_about_me = UpdateAboutMeMutation.Field()
     update_my_allergies = UpdateMyAllergies.Field()
     update_my_email_notifications = UpdateMyEmailSettingsMutation.Field()
-
+    update_my_address = UpdateMyAddressSettingsMutation.Field()
     add_user_to_user_type = AddUserToUserTypeMutation.Field()
     remove_user_from_user_type = RemoveUserFromUserTypeMutation.Field()
