@@ -560,3 +560,9 @@ class ProductGhostOrder(models.Model):
 
 class StockMarketCrash(models.Model):
     timestamp = models.DateTimeField(auto_now=True)
+
+
+class SociRankedSeason(models.Model):
+    season_start_date = models.DateField()
+    season_end_date = models.DateField(default=None, blank=True, null=True)
+    participants = models.ManyToManyField(User)

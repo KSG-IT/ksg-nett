@@ -12,12 +12,8 @@ from django.core.exceptions import (
 )
 from django.db import transaction
 from graphene import Node
-from django.db.models import (
-    Q,
-    Sum,
-    Avg,
-)
-from django.db.models.functions import Coalesce, TruncDate
+from django.db.models import Q, Sum, Avg, Window, F
+from django.db.models.functions import Coalesce, TruncDate, Rank
 from graphene_django import DjangoObjectType
 from django.utils import timezone
 from graphene_django_cud.mutations import (
@@ -49,6 +45,7 @@ from economy.models import (
     SociOrderSessionOrder,
     ProductGhostOrder,
     StockMarketCrash,
+    SociRankedSeason,
 )
 from economy.price_strategies import calculate_stock_price_for_product
 from schedules.models import Schedule
@@ -254,6 +251,12 @@ class SociOrderSessionNode(DjangoObjectType):
     @gql_has_permissions("economy.view_sociordersession")
     def get_node(cls, info, id):
         return SociOrderSession.objects.get(pk=id)
+
+
+class SociRankedSeasonNode(DjangoObjectType):
+    class Meta:
+        model = SociRankedSeason
+        interfaces = (Node,)
 
 
 class SociProductQuery(graphene.ObjectType):
@@ -683,6 +686,122 @@ class StockMarketQuery(graphene.ObjectType):
     @gql_login_required()
     def resolve_last_market_crash(self, info, *args, **kwargs):
         return StockMarketCrash.objects.all().order_by("-timestamp").first()
+
+
+class LeaderboardEntry(graphene.ObjectType):
+    name = graphene.String()
+    expenditure = graphene.Int()
+
+
+class CurrentRankSeason(graphene.ObjectType):
+    is_participant = graphene.Boolean()
+    season_expenditure = graphene.Int()
+    placement = graphene.Int()
+    season_start = graphene.Date()
+    season_end = graphene.Date()
+    top_ten = graphene.List(LeaderboardEntry)
+    participant_count = graphene.Int()
+
+
+class SociRankedQuery(graphene.ObjectType):
+    current_ranked_season = graphene.Field(CurrentRankSeason)
+    
+    @gql_login_required()
+    def resolve_current_ranked_season(self, info, *args, **kwargs):
+        current_user = info.context.user
+
+        current_season = (
+            SociRankedSeason.objects.all().order_by("season_start_date").last()
+        )
+
+        if not current_season:
+            return CurrentRankSeason(
+                is_participant=False, season_expenditure=0, placement=None
+            )
+
+        season_start_datetime = timezone.make_aware(
+            timezone.datetime(
+                year=current_season.season_start_date.year,
+                month=current_season.season_start_date.month,
+                day=current_season.season_start_date.day,
+                hour=0,
+                minute=0,
+                second=0,
+            ),
+            timezone=pytz.timezone(settings.TIME_ZONE),
+        )
+        season_filter = Q(
+            bank_account__product_orders__purchased_at__gte=season_start_datetime
+        )
+
+        leaderboard = current_season.participants.annotate(
+            expenditure=Coalesce(
+                Sum("bank_account__product_orders__cost", filter=season_filter), 0
+            ),
+        ).order_by("-expenditure")
+
+
+        is_participant = current_season.participants.filter(id=current_user.id).exists()
+        if not is_participant and not current_user.is_superuser:
+            return CurrentRankSeason(
+                is_participant=False,
+                season_expenditure=0,
+                placement=None,
+                participant_count=leaderboard.count(),
+            )
+
+        placement = 0
+        user_expenditure = 0
+
+        for index, entry in enumerate(leaderboard):
+            # I'm terrible at complex query expressions in Django 
+            # - Alexander Orvik 25-10-2024
+            if entry.id == current_user.id:
+                placement = index + 1
+                user_expenditure = entry.expenditure
+                break
+
+        top_ten = leaderboard[0:10]
+
+        top_ten_data_list = []
+        for entry in top_ten:
+            top_ten_data_list.append(
+                LeaderboardEntry(
+                    name=entry.get_full_name(), expenditure=entry.expenditure
+                )
+            )
+
+        return CurrentRankSeason(
+            is_participant=True,
+            season_expenditure=user_expenditure,
+            placement=placement,
+            top_ten=top_ten_data_list,
+            season_start=current_season.season_start_date,
+            season_end=current_season.season_end_date,
+            participant_count=leaderboard.count(),
+        )
+
+
+class JoinRankedSeasonMutation(graphene.Mutation):
+
+    class Arguments:
+        pass
+
+    success = graphene.Boolean()
+    message = graphene.String()
+
+    @gql_login_required()
+    def mutate(self, info):
+        last_season = SociRankedSeason.objects.order_by("season_start_date").last()
+        if last_season.season_end_date:
+            # logger.error TODO
+            return JoinRankedSeasonMutation(
+                success=False, message="Cannot join finished season"
+            )
+
+        current_user = info.context.user
+        last_season.participants.add(current_user)
+        return JoinRankedSeasonMutation(success=True)
 
 
 class UndoProductOrderMutation(graphene.Mutation):
@@ -1316,3 +1435,5 @@ class EconomyMutations(graphene.ObjectType):
 
     increment_product_ghost_order = IncrementProductGhostOrderMutation.Field()
     crash_stock_market = CrashStockMarketMutation.Field()
+
+    join_ranked_season = JoinRankedSeasonMutation.Field()

@@ -24,6 +24,7 @@ from economy.schema import (
     SociSessionQuery,
     StockMarketQuery,
     StripeQuery,
+    SociRankedQuery
 )
 from bar_tab.schema import (
     BarTabQuery,
@@ -74,6 +75,7 @@ class Query(
     InternalGroupUserHighlightQuery,
     InterviewQuery,
     InterviewLocationQuery,
+    SociRankedQuery,
     ShiftQuery,
     ScheduleQuery,
     ScheduleTemplateQuery,
