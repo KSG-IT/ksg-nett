@@ -11,6 +11,7 @@ from economy.models import (
     SociOrderSessionOrder,
     ExternalCharge,
     ProductGhostOrder,
+    SociRankedSeason,
 )
 
 
@@ -91,3 +92,12 @@ class ExternalChargeAdmin(admin.ModelAdmin):
 @admin.register(ProductGhostOrder)
 class ProductGhostOrderAdmin(admin.ModelAdmin):
     pass
+
+
+@admin.register(SociRankedSeason)
+class SociRankedSeasonAdmin(admin.ModelAdmin):
+    list_display = ["id", "participants", "season_start_date", "season_end_date"]
+
+    @staticmethod
+    def participants(soci_ranked_season: SociRankedSeason):
+        return soci_ranked_season.participants.count()
