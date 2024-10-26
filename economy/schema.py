@@ -32,7 +32,7 @@ from common.decorators import (
     gql_has_permissions,
     gql_login_required,
 )
-from common.util import check_feature_flag
+from common.util import check_feature_flag, midnight_timestamps_from_date
 from economy.emails import send_deposit_invalidated_email
 from economy.models import (
     SociProduct,
@@ -695,6 +695,7 @@ class LeaderboardEntry(graphene.ObjectType):
 
 class CurrentRankSeason(graphene.ObjectType):
     is_participant = graphene.Boolean()
+    ranked_season = graphene.Int()
     season_expenditure = graphene.Int()
     placement = graphene.Int()
     season_start = graphene.Date()
@@ -705,7 +706,7 @@ class CurrentRankSeason(graphene.ObjectType):
 
 class SociRankedQuery(graphene.ObjectType):
     current_ranked_season = graphene.Field(CurrentRankSeason)
-    
+
     @gql_login_required()
     def resolve_current_ranked_season(self, info, *args, **kwargs):
         current_user = info.context.user
@@ -730,16 +731,24 @@ class SociRankedQuery(graphene.ObjectType):
             ),
             timezone=pytz.timezone(settings.TIME_ZONE),
         )
+
         season_filter = Q(
             bank_account__product_orders__purchased_at__gte=season_start_datetime
         )
+
+        if current_season.season_end_date:
+            _, season_end_datetime = midnight_timestamps_from_date(
+                current_season.season_end_date
+            )
+            season_filter = season_filter & Q(
+                bank_account__product_orders__purchased_at__lte=season_end_datetime
+            )
 
         leaderboard = current_season.participants.annotate(
             expenditure=Coalesce(
                 Sum("bank_account__product_orders__cost", filter=season_filter), 0
             ),
         ).order_by("-expenditure")
-
 
         is_participant = current_season.participants.filter(id=current_user.id).exists()
         if not is_participant and not current_user.is_superuser:
@@ -754,7 +763,7 @@ class SociRankedQuery(graphene.ObjectType):
         user_expenditure = 0
 
         for index, entry in enumerate(leaderboard):
-            # I'm terrible at complex query expressions in Django 
+            # I'm terrible at complex query expressions in Django
             # - Alexander Orvik 25-10-2024
             if entry.id == current_user.id:
                 placement = index + 1
@@ -779,6 +788,7 @@ class SociRankedQuery(graphene.ObjectType):
             season_start=current_season.season_start_date,
             season_end=current_season.season_end_date,
             participant_count=leaderboard.count(),
+            ranked_season=SociRankedSeason.objects.all().count(),
         )
 
 
