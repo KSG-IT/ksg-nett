@@ -97,7 +97,9 @@ class ProductGhostOrderAdmin(admin.ModelAdmin):
 @admin.register(SociRankedSeason)
 class SociRankedSeasonAdmin(admin.ModelAdmin):
     list_display = ["id", "participants", "season_start_date", "season_end_date"]
+    
+    filter_horizontal = ("participants",)
 
     @staticmethod
     def participants(soci_ranked_season: SociRankedSeason):
-        return soci_ranked_season.participants.count()
+        return soci_ranked_season.participants.all().count()
