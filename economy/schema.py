@@ -712,13 +712,6 @@ class SociRankedQuery(graphene.ObjectType):
     def resolve_current_ranked_season(self, info, *args, **kwargs):
         current_user = info.context.user
 
-        if current_user.has_revoked_ranked_consent:
-            return CurrentRankSeason(
-                is_participant=False,
-                season_expenditure=0,
-                placement=None,
-                has_revoked_ranked_consent=True,
-            )
 
         current_season = (
             SociRankedSeason.objects.all().order_by("season_start_date").last()
@@ -761,6 +754,15 @@ class SociRankedQuery(graphene.ObjectType):
                 Sum("bank_account__product_orders__cost", filter=season_filter), 0
             ),
         ).order_by("-expenditure")
+        
+        if current_user.has_revoked_ranked_consent:
+            return CurrentRankSeason(
+                is_participant=False,
+                season_expenditure=0,
+                placement=None,
+                has_revoked_ranked_consent=True,
+                participant_count=leaderboard.count(),
+            )
 
         is_participant = current_season.participants.filter(id=current_user.id).exists()
         if not is_participant and not current_user.is_superuser:
