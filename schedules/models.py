@@ -383,6 +383,7 @@ class ShiftInterest(models.Model):
     interest_type = models.CharField(
         default=InterestTypes.INTERESTED, choices=InterestTypes.choices, max_length=12
     )
+    note = models.CharField(default="", blank=True, null=False, max_length=64)
     created_at = models.DateTimeField(auto_now_add=True)
 
 
