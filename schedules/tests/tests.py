@@ -20,7 +20,7 @@ from schedules.tests.factories import (
     ShiftInterestFactory,
     ScheduleRosterFactory,
 )
-from schedules.models import ShiftTemplate, ShiftSlot, RoleOption
+from schedules.models import ShiftTemplate, ShiftSlot, RoleOption, ShiftInterest
 from users.tests.factories import UserFactory
 
 
@@ -128,6 +128,7 @@ class TestShiftInterest(TestCase):
         ka_roster = ScheduleRosterFactory.create(
             user=ka_user, schedule=self.schedule, autofill_as=RoleOption.KAFEANSVARLIG
         )
+        print(ka_roster)
 
         shift = ShiftFactory(
             name="Edgar tidligvakt",
@@ -151,13 +152,41 @@ class TestShiftInterest(TestCase):
             4, shift=shift2, user=None, role=RoleOption.BARISTA
         )
 
-        ShiftInterestFactory.create(shift=shift, user=users[0])
-        ShiftInterestFactory.create(shift=shift, user=users[1])
-        ShiftInterestFactory.create(shift=shift, user=users[2])
-        ShiftInterestFactory.create(shift=shift2, user=users[3])
-        ShiftInterestFactory.create(shift=shift, user=users[4])
-        ShiftInterestFactory.create(shift=shift2, user=users[4])
-        ShiftInterestFactory.create(shift=shift, user=ka_user)
+        ShiftInterestFactory.create(
+            shift=shift,
+            user=users[0],
+            interest_type=ShiftInterest.InterestTypes.INTERESTED,
+        )
+        ShiftInterestFactory.create(
+            shift=shift,
+            user=users[1],
+            interest_type=ShiftInterest.InterestTypes.INTERESTED,
+        )
+        ShiftInterestFactory.create(
+            shift=shift,
+            user=users[2],
+            interest_type=ShiftInterest.InterestTypes.INTERESTED,
+        )
+        ShiftInterestFactory.create(
+            shift=shift2,
+            user=users[3],
+            interest_type=ShiftInterest.InterestTypes.INTERESTED,
+        )
+        ShiftInterestFactory.create(
+            shift=shift,
+            user=users[4],
+            interest_type=ShiftInterest.InterestTypes.INTERESTED,
+        )
+        ShiftInterestFactory.create(
+            shift=shift2,
+            user=users[4],
+            interest_type=ShiftInterest.InterestTypes.INTERESTED,
+        )
+        ShiftInterestFactory.create(
+            shift=shift,
+            user=ka_user,
+            interest_type=ShiftInterest.InterestTypes.INTERESTED,
+        )
 
     def test__hello_world(self):
         start = make_aware(
@@ -165,6 +194,10 @@ class TestShiftInterest(TestCase):
         )
         end = start + datetime.timedelta(days=3)
         self.schedule.autofill_slots(start, end)
+        shifts = ShiftSlot.objects.filter(shift__schedule=self.schedule)
+        for shift in shifts:
+            print(f"{shift.user} is filled as {shift.role}")
+
 
 class TestShiftEmailCorrectFormat(TestCase):
     def setUp(self):
@@ -199,4 +232,3 @@ class TestShiftEmailCorrectFormat(TestCase):
         self.assertIn("Vakt: Onsdag tidlig", mail.outbox[0].body)
         self.assertIn("Hvor: Edgar", mail.outbox[0].body)
         self.assertIn("Når: 02.05 kl 15:00 - 23:00", mail.outbox[0].body)
-
