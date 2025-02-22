@@ -128,7 +128,6 @@ class TestShiftInterest(TestCase):
         ka_roster = ScheduleRosterFactory.create(
             user=ka_user, schedule=self.schedule, autofill_as=RoleOption.KAFEANSVARLIG
         )
-        print(ka_roster)
 
         shift = ShiftFactory(
             name="Edgar tidligvakt",
@@ -193,10 +192,7 @@ class TestShiftInterest(TestCase):
             datetime.datetime(2022, 5, 2, 14, 0), timezone=pytz.timezone("Europe/Oslo")
         )
         end = start + datetime.timedelta(days=3)
-        self.schedule.autofill_slots(start, end)
-        shifts = ShiftSlot.objects.filter(shift__schedule=self.schedule)
-        for shift in shifts:
-            print(f"{shift.user} is filled as {shift.role}")
+        self.schedule.autofill_slots(start, end, ShiftInterest.InterestTypes.AVAILABLE)
 
 
 class TestShiftEmailCorrectFormat(TestCase):

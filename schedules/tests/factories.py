@@ -64,6 +64,10 @@ class ShiftInterestFactory(DjangoModelFactory):
 
     shift = SubFactory(ShiftFactory)
     user = SubFactory(UserFactory)
+    interest_type = LazyAttribute(
+        lambda o: random.choice([x[0] for x in ShiftInterest.InterestTypes.choices])
+    )
+    note = "A note"
 
 
 """
