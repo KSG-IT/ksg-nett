@@ -9,7 +9,6 @@ from schedules.models import (
     ShiftSlotTemplate,
     ShiftTemplate,
     ShiftInterest,
-    ScheduleRoster,
 )
 
 
@@ -63,4 +62,3 @@ admin.site.register(ScheduleTemplate, ScheduleTemplateAdmin)
 admin.site.register(ShiftTemplate, ShiftTemplateAdmin)
 admin.site.register(ShiftSlotTemplate, ShiftSlotTemplateAdmin)
 admin.site.register(ShiftInterest, ShiftInterestAdmin)
-admin.site.register(ScheduleRoster)
