@@ -38,7 +38,8 @@ class RoleOption(models.TextChoices):
 class Schedule(models.Model):
     """
     A schedule is a logical grouping of shifts. They are usually grouped together
-    by internal group like 'Bargjengen' or 'Edgar' and 'Brannvakt'.
+    by either being a shift plan for an internal group or another recurring shift like "brannvakt" and
+    "bærevakt"
     """
 
     class Meta:
@@ -57,6 +58,8 @@ class Schedule(models.Model):
     default_role = models.CharField(
         max_length=64, choices=RoleOption.choices, null=True, blank=False, default=None
     )
+
+    roster = models.ManyToManyField(User, through="ScheduleRosterMembership")
 
     def shifts_from_range(self, shifts_from, number_of_weeks):
         monday = shifts_from - timezone.timedelta(days=shifts_from.weekday())
@@ -157,11 +160,16 @@ class Shift(models.Model):
         LYCHE_KJOKKEN = "LYCHE_KJOKKEN", _("Lyche Kjøkken")
         STORSALEN = "STORSALEN", _("Storsalen")
         SELSKAPSSIDEN = "SELSKAPSSIDEN", _("Selskapssiden")
+
+        # These could probably be renamed some time in the near future
         SERVERING_C = "SERVERING_C", _("Servering C")
         SERVERING_D = "SERVERING_D", _("Servering D")
         SERVERING_K = "SERVERING_K", _("Servering K")
         STROSSA = "STROSSA", _("Strossa")
         DAGLIGHALLEN_BAR = "DAGLIGHALLEN_BAR", _("Daglighallen Bar")
+        BRYGGERIET = "BRYGGERIET", _(
+            "Bryggeriet"
+        )  # TODO: Remember migration for this. And frontend changes
         KONTORET = "KONTORET", _("Kontoret")
 
     name = models.CharField(max_length=69, null=False, blank=False)
@@ -387,7 +395,7 @@ class ShiftInterest(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
 
-class ScheduleRoster(models.Model):
+class ScheduleRosterMembership(models.Model):
     schedule = models.ForeignKey(
         Schedule,
         blank=False,
@@ -395,11 +403,31 @@ class ScheduleRoster(models.Model):
         on_delete=models.CASCADE,
         related_name="roster",
     )
-
     user = models.ForeignKey(
         User, blank=False, null=False, on_delete=models.CASCADE, related_name="rosters"
     )
-
-    autofill_as = models.CharField(
+    default_availability = models.CharField(choices=ShiftInterest.InterestTypes.choices)
+    autofill_role = models.CharField(
         max_length=64, choices=RoleOption.choices, null=True, blank=False, default=None
     )
+
+    # Do we need a link/mapper? This internal_grou-Poistion -> That shift role
+    # This is an issue with the decoupled nature atm
+
+
+# class ScheduleRoster(models.Model):
+#     schedule = models.ForeignKey(
+#         Schedule,
+#         blank=False,
+#         null=False,
+#         on_delete=models.CASCADE,
+#         related_name="roster",
+#     )
+
+#     user = models.ForeignKey(
+#         User, blank=False, null=False, on_delete=models.CASCADE, related_name="rosters"
+#     )
+
+#     autofill_as = models.CharField(
+#         max_length=64, choices=RoleOption.choices, null=True, blank=False, default=None
+#     )
