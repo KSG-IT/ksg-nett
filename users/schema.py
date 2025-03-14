@@ -18,7 +18,7 @@ from graphene_django_cud.mutations import (
 from admissions.models import Admission
 from common.decorators import gql_has_permissions, gql_login_required
 from quotes.schema import QuoteNode
-from users.models import User, UserType, UserTypeLogEntry, Allergy
+from users.models import KnightHood, User, UserType, UserTypeLogEntry, Allergy
 from common.util import get_semester_year_shorthand
 from django.db.models.functions import Concat
 from economy.utils import parse_transaction_history
@@ -54,6 +54,16 @@ class AllergyNode(DjangoObjectType):
     @classmethod
     def get_node(cls, info, id):
         return Allergy.objects.get(pk=id)
+
+
+class KnightHoodNode(DjangoObjectType):
+    class Meta:
+        model = KnightHood
+        interfaces = (Node,)
+
+    @classmethod
+    def get_node(cls, info, id):
+        return KnightHood.objects.get(pk=id)
 
 
 class UserTypeNode(DjangoObjectType):
@@ -223,8 +233,10 @@ class ManageInternalGroupUsersData(graphene.ObjectType):
 class UserQuery(graphene.ObjectType):
     user = Node.Field(UserNode)
     me = graphene.Field(UserNode)
-    all_users = DjangoFilterConnectionField(UserNode, filterset_class=UserFilter)
-    all_active_users = DjangoFilterConnectionField(UserNode, filterset_class=UserFilter)
+    all_users = DjangoFilterConnectionField(
+        UserNode, filterset_class=UserFilter)
+    all_active_users = DjangoFilterConnectionField(
+        UserNode, filterset_class=UserFilter)
     searchbar_users = graphene.List(UserNode, search_string=graphene.String())
     manage_users_data = graphene.Field(
         ManageInternalGroupUsersData,
@@ -367,6 +379,32 @@ class AllergyQuery(graphene.ObjectType):
         return Allergy.objects.all().order_by("name")
 
 
+class KnightHoodQuery(graphene.ObjectType):
+    all_knighthoods = graphene.List(KnightHoodNode)
+
+    def resolve_all_knighthoods(self, info, *args, **kwargs):
+        return KnightHood.objects.all().order_by("knighted_at")
+
+
+class KnightUserMutation(graphene.Mutation):
+    class Arguments:
+        user_id = graphene.ID()
+        knighted_at = graphene.Date(required=False)
+
+    user = graphene.Field(UserNode)
+
+    @staticmethod
+    @gql_has_permissions("users.change_user")
+    def mutate(root, info, user_id, knighted_at=None):
+        user_id = disambiguate_id(user_id)
+        user = User.objects.get(id=user_id)
+        if knighted_at is None:
+            knighted_at = timezone.now().date()
+        print(knighted_at)
+        KnightHood.objects.create(user=user, knighted_at=knighted_at)
+        return KnightUserMutation(user=user)
+
+
 class DeleteUserMutation(DjangoDeleteMutation):
     class Meta:
         model = User
@@ -462,7 +500,8 @@ class UpdateMyAllergies(graphene.Mutation):
 
     def mutate(self, info, allergy_ids):
         user = info.context.user
-        allergy_ids = [disambiguate_id(allergy_id) for allergy_id in allergy_ids]
+        allergy_ids = [disambiguate_id(allergy_id)
+                       for allergy_id in allergy_ids]
         allergies = Allergy.objects.filter(id__in=allergy_ids)
         user.allergies.set(allergies)
         return UpdateMyAllergies(user=user)
@@ -498,10 +537,10 @@ class UpdateMyAddressSettingsMutation(graphene.Mutation):
 
         if len(study_address) == 0:
             raise ValueError("Study address cannot be empty")
-        
+
         if len(study_address) > 64:
-            raise ValueError("Study address cannot be longer than 64 characters")
-        
+            raise ValueError(
+                "Study address cannot be longer than 64 characters")
 
         study_address = strip_tags(study_address)
         user.study_address = study_address
@@ -527,7 +566,8 @@ class AddUserToUserTypeMutation(graphene.Mutation):
         request_user = info.context.user
 
         if user_type.requires_superuser and not request_user.is_superuser:
-            raise PermissionDenied("You do not have permission to add this user type")
+            raise PermissionDenied(
+                "You do not have permission to add this user type")
 
         if user_type.requires_self and not request_user.is_superuser:
             self_check = user_type.users.filter(id=request_user.id).exists()
@@ -671,3 +711,4 @@ class UserMutations(graphene.ObjectType):
     update_my_address = UpdateMyAddressSettingsMutation.Field()
     add_user_to_user_type = AddUserToUserTypeMutation.Field()
     remove_user_from_user_type = RemoveUserFromUserTypeMutation.Field()
+    knight_user = KnightUserMutation.Field()

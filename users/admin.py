@@ -8,7 +8,7 @@ from django.contrib.auth.forms import UserChangeForm, UserCreationForm
 from django.utils.translation import gettext_lazy as _
 
 from economy.models import SociBankAccount
-from users.models import User, Allergy, UsersHaveMadeOut, UserType, UserTypeLogEntry
+from users.models import KnightHood, User, Allergy, UsersHaveMadeOut, UserType, UserTypeLogEntry
 
 
 class MyUserChangeForm(UserChangeForm):
@@ -29,6 +29,12 @@ class MyUserCreationForm(UserCreationForm):
 
 class AllergyAdmin(admin.ModelAdmin):
     list_display = ["pk", "name"]
+
+
+class KnightHoodAdmin(admin.ModelAdmin):
+    model = KnightHood
+    verbose_name = "Knighthood"
+    verbose_name_plural = "Knighthoods"
 
 
 class UserTypeInline(admin.TabularInline):
@@ -141,6 +147,7 @@ class UserTypeLogEntryAdmin(admin.ModelAdmin):
 
 admin.site.register(User, MyUserAdmin)
 admin.site.register(Allergy, AllergyAdmin)
+admin.site.register(KnightHood, KnightHoodAdmin)
 admin.site.register(UsersHaveMadeOut, UsersHaveMadeOutAdmin)
 admin.site.register(UserType, UserTypeAdmin)
 admin.site.register(UserTypeLogEntry, UserTypeLogEntryAdmin)
