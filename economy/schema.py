@@ -695,6 +695,7 @@ class LeaderboardEntry(graphene.ObjectType):
 
 class CurrentRankSeason(graphene.ObjectType):
     is_participant = graphene.Boolean()
+    has_revoked_ranked_consent = graphene.Boolean()
     ranked_season = graphene.Int()
     season_expenditure = graphene.Int()
     placement = graphene.Int()
@@ -711,13 +712,17 @@ class SociRankedQuery(graphene.ObjectType):
     def resolve_current_ranked_season(self, info, *args, **kwargs):
         current_user = info.context.user
 
+
         current_season = (
             SociRankedSeason.objects.all().order_by("season_start_date").last()
         )
 
         if not current_season:
             return CurrentRankSeason(
-                is_participant=False, season_expenditure=0, placement=None
+                is_participant=False,
+                season_expenditure=0,
+                placement=None,
+                has_revoked_ranked_consent=current_user.has_revoked_ranked_consent,
             )
 
         season_start_datetime = timezone.make_aware(
@@ -749,11 +754,21 @@ class SociRankedQuery(graphene.ObjectType):
                 Sum("bank_account__product_orders__cost", filter=season_filter), 0
             ),
         ).order_by("-expenditure")
+        
+        if current_user.has_revoked_ranked_consent:
+            return CurrentRankSeason(
+                is_participant=False,
+                season_expenditure=0,
+                placement=None,
+                has_revoked_ranked_consent=True,
+                participant_count=leaderboard.count(),
+            )
 
         is_participant = current_season.participants.filter(id=current_user.id).exists()
         if not is_participant and not current_user.is_superuser:
             return CurrentRankSeason(
                 is_participant=False,
+                has_revoked_ranked_consent=current_user.has_revoked_ranked_consent,
                 season_expenditure=0,
                 placement=None,
                 participant_count=leaderboard.count(),
@@ -782,6 +797,7 @@ class SociRankedQuery(graphene.ObjectType):
 
         return CurrentRankSeason(
             is_participant=True,
+            has_revoked_ranked_consent=current_user.has_revoked_ranked_consent,
             season_expenditure=user_expenditure,
             placement=placement,
             top_ten=top_ten_data_list,
@@ -810,8 +826,36 @@ class JoinRankedSeasonMutation(graphene.Mutation):
             )
 
         current_user = info.context.user
+
+        if current_user.has_revoked_ranked_consent:
+            return JoinRankedSeasonMutation(
+                success=False,
+                message="Already revoked consent. Cannot join this season",
+            )
         last_season.participants.add(current_user)
         return JoinRankedSeasonMutation(success=True)
+
+
+class RevokeRankedSeasonConsentMutation(graphene.Mutation):
+    class Arguments:
+        pass
+
+    success = graphene.Boolean()
+    message = graphene.String()
+
+    @gql_login_required()
+    def mutate(self, info):
+        last_season = SociRankedSeason.objects.order_by("season_start_date").last()
+        if last_season.season_end_date:
+            return RevokeRankedSeasonConsentMutation(
+                success=False, message="Cannot revoke consent after finished season."
+            )
+
+        current_user = info.context.user
+        last_season.participants.remove(current_user)
+        current_user.has_revoked_ranked_consent = True
+        current_user.save()
+        return RevokeRankedSeasonConsentMutation(success=True)
 
 
 class UndoProductOrderMutation(graphene.Mutation):
@@ -1447,3 +1491,4 @@ class EconomyMutations(graphene.ObjectType):
     crash_stock_market = CrashStockMarketMutation.Field()
 
     join_ranked_season = JoinRankedSeasonMutation.Field()
+    revoke_ranked_consent = RevokeRankedSeasonConsentMutation.Field()
