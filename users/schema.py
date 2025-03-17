@@ -233,10 +233,8 @@ class ManageInternalGroupUsersData(graphene.ObjectType):
 class UserQuery(graphene.ObjectType):
     user = Node.Field(UserNode)
     me = graphene.Field(UserNode)
-    all_users = DjangoFilterConnectionField(
-        UserNode, filterset_class=UserFilter)
-    all_active_users = DjangoFilterConnectionField(
-        UserNode, filterset_class=UserFilter)
+    all_users = DjangoFilterConnectionField(UserNode, filterset_class=UserFilter)
+    all_active_users = DjangoFilterConnectionField(UserNode, filterset_class=UserFilter)
     searchbar_users = graphene.List(UserNode, search_string=graphene.String())
     manage_users_data = graphene.Field(
         ManageInternalGroupUsersData,
@@ -383,7 +381,7 @@ class KnightHoodQuery(graphene.ObjectType):
     all_knighthoods = graphene.List(KnightHoodNode)
 
     def resolve_all_knighthoods(self, info, *args, **kwargs):
-        return KnightHood.objects.all().order_by("knighted_at")
+        return KnightHood.objects.prefetch_related("user").all().order_by("knighted_at")
 
 
 class KnightUserMutation(graphene.Mutation):
@@ -400,7 +398,6 @@ class KnightUserMutation(graphene.Mutation):
         user = User.objects.get(id=user_id)
         if knighted_at is None:
             knighted_at = timezone.now().date()
-        print(knighted_at)
         KnightHood.objects.create(user=user, knighted_at=knighted_at)
         return KnightUserMutation(user=user)
 
@@ -500,8 +497,7 @@ class UpdateMyAllergies(graphene.Mutation):
 
     def mutate(self, info, allergy_ids):
         user = info.context.user
-        allergy_ids = [disambiguate_id(allergy_id)
-                       for allergy_id in allergy_ids]
+        allergy_ids = [disambiguate_id(allergy_id) for allergy_id in allergy_ids]
         allergies = Allergy.objects.filter(id__in=allergy_ids)
         user.allergies.set(allergies)
         return UpdateMyAllergies(user=user)
@@ -539,8 +535,7 @@ class UpdateMyAddressSettingsMutation(graphene.Mutation):
             raise ValueError("Study address cannot be empty")
 
         if len(study_address) > 64:
-            raise ValueError(
-                "Study address cannot be longer than 64 characters")
+            raise ValueError("Study address cannot be longer than 64 characters")
 
         study_address = strip_tags(study_address)
         user.study_address = study_address
@@ -566,8 +561,7 @@ class AddUserToUserTypeMutation(graphene.Mutation):
         request_user = info.context.user
 
         if user_type.requires_superuser and not request_user.is_superuser:
-            raise PermissionDenied(
-                "You do not have permission to add this user type")
+            raise PermissionDenied("You do not have permission to add this user type")
 
         if user_type.requires_self and not request_user.is_superuser:
             self_check = user_type.users.filter(id=request_user.id).exists()

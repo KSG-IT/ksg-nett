@@ -74,22 +74,30 @@ def klinekart(request):
             [
                 {
                     "id": user_one_id,
-                    "name": association.user_one.get_full_name()
-                    if not association.user_one.anonymize_in_made_out_map
-                    else _("Anonymous"),
-                    "img": association.user_one.profile_image.url
-                    if not association.user_one.anonymize_in_made_out_map
-                    else None,
+                    "name": (
+                        association.user_one.get_full_name()
+                        if not association.user_one.anonymize_in_made_out_map
+                        else _("Anonymous")
+                    ),
+                    "img": (
+                        association.user_one.profile_image.url
+                        if not association.user_one.anonymize_in_made_out_map
+                        else None
+                    ),
                     "anonymous": association.user_one.anonymize_in_made_out_map,
                 },
                 {
                     "id": user_two_id,
-                    "name": association.user_two.get_full_name()
-                    if not association.user_two.anonymize_in_made_out_map
-                    else _("Anonymous"),
-                    "img": association.user_two.profile_image.url
-                    if not association.user_two.anonymize_in_made_out_map
-                    else None,
+                    "name": (
+                        association.user_two.get_full_name()
+                        if not association.user_two.anonymize_in_made_out_map
+                        else _("Anonymous")
+                    ),
+                    "img": (
+                        association.user_two.profile_image.url
+                        if not association.user_two.anonymize_in_made_out_map
+                        else None
+                    ),
                     "anonymous": association.user_two.anonymize_in_made_out_map,
                 },
             ]

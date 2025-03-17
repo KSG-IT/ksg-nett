@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
 
-from datetime import date
 import re
 from django.utils import timezone
 from django.contrib.auth.models import AbstractUser, Permission
@@ -41,7 +40,7 @@ class KnightHood(models.Model):
     user = models.OneToOneField(
         "users.User", on_delete=models.CASCADE, related_name="knighthood"
     )
-    knighted_at = models.DateField(default=date.today())
+    knighted_at = models.DateField(default=timezone.now)
     description = models.TextField(blank=True)
 
     def __str__(self):
@@ -52,13 +51,11 @@ class KnightHood(models.Model):
 
 
 class User(AbstractUser):
-    nickname = models.CharField(
-        max_length=64, blank=True, null=True, default=None)
+    nickname = models.CharField(max_length=64, blank=True, null=True, default=None)
     email = models.EmailField(unique=True)
     date_of_birth = models.DateField(blank=True, null=True)
     study = models.CharField(default="", blank=True, max_length=100)
-    profile_image = models.FileField(
-        upload_to="profiles/", null=True, blank=True)
+    profile_image = models.FileField(upload_to="profiles/", null=True, blank=True)
 
     phone = models.CharField(default="", blank=True, max_length=50)
     study_address = models.CharField(default="", blank=True, max_length=100)
@@ -69,8 +66,7 @@ class User(AbstractUser):
     about_me = models.TextField(blank=True, default="", max_length=200)
     in_relationship = models.BooleanField(null=True, default=False)
 
-    allergies = models.ManyToManyField(
-        Allergy, blank=True, related_name="users")
+    allergies = models.ManyToManyField(Allergy, blank=True, related_name="users")
     migrated_from_sg = models.BooleanField(default=False)
 
     have_made_out_with = models.ManyToManyField(
@@ -166,8 +162,7 @@ class User(AbstractUser):
     def ksg_status(self):
         # ToDo Rework this shit. Doesn't make sense
         return (
-            self.internal_group_position_history.filter(
-                date_ended__isnull=True)
+            self.internal_group_position_history.filter(date_ended__isnull=True)
             .first()
             .position
             if self.internal_group_position_history.filter(

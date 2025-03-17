@@ -8,7 +8,14 @@ from django.contrib.auth.forms import UserChangeForm, UserCreationForm
 from django.utils.translation import gettext_lazy as _
 
 from economy.models import SociBankAccount
-from users.models import KnightHood, User, Allergy, UsersHaveMadeOut, UserType, UserTypeLogEntry
+from users.models import (
+    KnightHood,
+    User,
+    Allergy,
+    UsersHaveMadeOut,
+    UserType,
+    UserTypeLogEntry,
+)
 
 
 class MyUserChangeForm(UserChangeForm):
