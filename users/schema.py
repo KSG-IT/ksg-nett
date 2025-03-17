@@ -381,7 +381,9 @@ class KnightHoodQuery(graphene.ObjectType):
     all_knighthoods = graphene.List(KnightHoodNode)
 
     def resolve_all_knighthoods(self, info, *args, **kwargs):
-        return KnightHood.objects.prefetch_related("user").all().order_by("knighted_date")
+        return (
+            KnightHood.objects.prefetch_related("user").all().order_by("knighted_date")
+        )
 
 
 class KnightUserMutation(graphene.Mutation):
@@ -392,7 +394,7 @@ class KnightUserMutation(graphene.Mutation):
     user = graphene.Field(UserNode)
 
     @staticmethod
-    @gql_has_permissions("users.change_user")
+    @gql_has_permissions("users.add_knighthood")
     def mutate(root, info, user_id, knighted_date=None):
         user_id = disambiguate_id(user_id)
         user = User.objects.get(id=user_id)
