@@ -41,7 +41,7 @@ class KnightHood(models.Model):
     user = models.OneToOneField(
         "users.User", on_delete=models.CASCADE, related_name="knighthood"
     )
-    knighted_at = models.DateField(default=date.today)
+    knighted_date = models.DateField(default=date.today)
     description = models.TextField(blank=True)
 
     def __str__(self):

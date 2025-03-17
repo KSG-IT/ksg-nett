@@ -25,7 +25,7 @@ class Migration(migrations.Migration):
                         verbose_name="ID",
                     ),
                 ),
-                ("knighted_at", models.DateField(default=datetime.date.today)),
+                ("knighted_date", models.DateField(default=datetime.date.today)),
                 ("description", models.TextField(blank=True)),
                 (
                     "user",

@@ -381,24 +381,24 @@ class KnightHoodQuery(graphene.ObjectType):
     all_knighthoods = graphene.List(KnightHoodNode)
 
     def resolve_all_knighthoods(self, info, *args, **kwargs):
-        return KnightHood.objects.prefetch_related("user").all().order_by("knighted_at")
+        return KnightHood.objects.prefetch_related("user").all().order_by("knighted_date")
 
 
 class KnightUserMutation(graphene.Mutation):
     class Arguments:
         user_id = graphene.ID()
-        knighted_at = graphene.Date(required=False)
+        knighted_date = graphene.Date(required=False)
 
     user = graphene.Field(UserNode)
 
     @staticmethod
     @gql_has_permissions("users.change_user")
-    def mutate(root, info, user_id, knighted_at=None):
+    def mutate(root, info, user_id, knighted_date=None):
         user_id = disambiguate_id(user_id)
         user = User.objects.get(id=user_id)
-        if knighted_at is None:
-            knighted_at = timezone.now().date()
-        KnightHood.objects.create(user=user, knighted_at=knighted_at)
+        if knighted_date is None:
+            knighted_date = timezone.now().date()
+        KnightHood.objects.create(user=user, knighted_date=knighted_date)
         return KnightUserMutation(user=user)
 
 
