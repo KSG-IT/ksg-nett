@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
 
+from datetime import date
 import re
 from django.utils import timezone
 from django.contrib.auth.models import AbstractUser, Permission
@@ -40,7 +41,7 @@ class KnightHood(models.Model):
     user = models.OneToOneField(
         "users.User", on_delete=models.CASCADE, related_name="knighthood"
     )
-    knighted_at = models.DateField(default=timezone.now)
+    knighted_at = models.DateField(default=date.today)
     description = models.TextField(blank=True)
 
     def __str__(self):

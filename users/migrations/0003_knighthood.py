@@ -3,6 +3,7 @@
 from django.conf import settings
 from django.db import migrations, models
 import django.db.models.deletion
+import datetime
 
 
 class Migration(migrations.Migration):
@@ -24,7 +25,7 @@ class Migration(migrations.Migration):
                         verbose_name="ID",
                     ),
                 ),
-                ("knighted_at", models.DateTimeField(auto_now_add=True)),
+                ("knighted_at", models.DateField(default=datetime.date.today)),
                 ("description", models.TextField(blank=True)),
                 (
                     "user",
