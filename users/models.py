@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
 
+from datetime import date
 import re
 from django.utils import timezone
 from django.contrib.auth.models import AbstractUser, Permission
@@ -30,6 +31,24 @@ class Allergy(models.Model):
     class Meta:
         default_related_name = "allergies"
         verbose_name_plural = "Allergies"
+
+
+class KnightHood(models.Model):
+    """
+    Model for knighthood. A knighthood is a special title given to a user
+    """
+
+    user = models.OneToOneField(
+        "users.User", on_delete=models.CASCADE, related_name="knighthood"
+    )
+    knighted_date = models.DateField(default=date.today)
+    description = models.TextField(blank=True)
+
+    def __str__(self):
+        return f"Knighthood for {self.user}"
+
+    def __repr__(self):
+        return f"Knighthood(user={self.user})"
 
 
 class User(AbstractUser):

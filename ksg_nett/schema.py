@@ -12,7 +12,7 @@ from common.schema import (
     FeatureFlagQuery,
     CommonMutations,
 )
-from users.schema import UserQuery, UserMutations, AllergyQuery
+from users.schema import KnightHoodQuery, UserQuery, UserMutations, AllergyQuery
 from login.schema import LoginMutations, AuthenticationQuery
 from economy.schema import (
     SociProductQuery,
@@ -54,6 +54,7 @@ class Query(
     AdmissionQuery,
     ApplicantQuery,
     AllergyQuery,
+    KnightHoodQuery,
     AuthenticationQuery,
     BarTabQuery,
     DashboardQuery,
