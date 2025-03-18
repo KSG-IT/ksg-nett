@@ -18,7 +18,7 @@ from graphene_django_cud.mutations import (
 from admissions.models import Admission
 from common.decorators import gql_has_permissions, gql_login_required
 from quotes.schema import QuoteNode
-from users.models import User, UserType, UserTypeLogEntry, Allergy
+from users.models import KnightHood, User, UserType, UserTypeLogEntry, Allergy
 from common.util import get_semester_year_shorthand
 from django.db.models.functions import Concat
 from economy.utils import parse_transaction_history
@@ -54,6 +54,16 @@ class AllergyNode(DjangoObjectType):
     @classmethod
     def get_node(cls, info, id):
         return Allergy.objects.get(pk=id)
+
+
+class KnightHoodNode(DjangoObjectType):
+    class Meta:
+        model = KnightHood
+        interfaces = (Node,)
+
+    @classmethod
+    def get_node(cls, info, id):
+        return KnightHood.objects.get(pk=id)
 
 
 class UserTypeNode(DjangoObjectType):
@@ -367,6 +377,33 @@ class AllergyQuery(graphene.ObjectType):
         return Allergy.objects.all().order_by("name")
 
 
+class KnightHoodQuery(graphene.ObjectType):
+    all_knighthoods = graphene.List(KnightHoodNode)
+
+    def resolve_all_knighthoods(self, info, *args, **kwargs):
+        return (
+            KnightHood.objects.prefetch_related("user").all().order_by("knighted_date")
+        )
+
+
+class KnightUserMutation(graphene.Mutation):
+    class Arguments:
+        user_id = graphene.ID()
+        knighted_date = graphene.Date(required=False)
+
+    user = graphene.Field(UserNode)
+
+    @staticmethod
+    @gql_has_permissions("users.add_knighthood")
+    def mutate(root, info, user_id, knighted_date=None):
+        user_id = disambiguate_id(user_id)
+        user = User.objects.get(id=user_id)
+        if knighted_date is None:
+            knighted_date = timezone.now().date()
+        KnightHood.objects.create(user=user, knighted_date=knighted_date)
+        return KnightUserMutation(user=user)
+
+
 class DeleteUserMutation(DjangoDeleteMutation):
     class Meta:
         model = User
@@ -498,10 +535,9 @@ class UpdateMyAddressSettingsMutation(graphene.Mutation):
 
         if len(study_address) == 0:
             raise ValueError("Study address cannot be empty")
-        
+
         if len(study_address) > 64:
             raise ValueError("Study address cannot be longer than 64 characters")
-        
 
         study_address = strip_tags(study_address)
         user.study_address = study_address
@@ -671,3 +707,4 @@ class UserMutations(graphene.ObjectType):
     update_my_address = UpdateMyAddressSettingsMutation.Field()
     add_user_to_user_type = AddUserToUserTypeMutation.Field()
     remove_user_from_user_type = RemoveUserFromUserTypeMutation.Field()
+    knight_user = KnightUserMutation.Field()

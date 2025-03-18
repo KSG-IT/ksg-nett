@@ -98,7 +98,7 @@ class Schedule(models.Model):
         ).distinct()
         return users
 
-    def autofill_slots(self, date_start, date_end):
+    def autofill_slots(self, date_start, date_end, interest_type):
         shifts_to_fill = Shift.objects.filter(
             datetime_start__gte=date_start, datetime_end__lte=date_end, schedule=self
         )
@@ -118,7 +118,7 @@ class Schedule(models.Model):
             for k in range(i):
                 offset += slots_length[k]
 
-            interests = shift.interests.all()
+            interests = shift.interests.filter(interest_type=interest_type)
             for interest in interests:
                 slots = interest.shift.slots.all()
                 if interest.user_id not in data:
@@ -360,6 +360,11 @@ class ShiftSlotTemplate(models.Model):
 
 
 class ShiftInterest(models.Model):
+    class InterestTypes(models.TextChoices):
+        INTERESTED = "interested"
+        AVAILABLE = "available"
+        UNAVAILABLE = "unavailable"
+
     shift = models.ForeignKey(
         Shift,
         blank=False,
@@ -375,6 +380,9 @@ class ShiftInterest(models.Model):
         on_delete=models.CASCADE,
     )
 
+    interest_type = models.CharField(
+        default=InterestTypes.INTERESTED, choices=InterestTypes.choices, max_length=12
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
 
