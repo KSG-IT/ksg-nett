@@ -1,4 +1,4 @@
-import datetime
+import datetime, pytz
 from secrets import token_urlsafe
 
 import bleach
@@ -21,6 +21,7 @@ from common.util import (
     compress_image,
     midnight_timestamps_from_date,
 )
+from django.conf import settings
 from django.db.models import Q, Case, When, Value
 from graphene_django.filter import DjangoFilterConnectionField
 from admissions.utils import (
@@ -494,7 +495,7 @@ class ApplicantCSVDataInput(graphene.InputObjectType):
 
 class UploadApplicantsCSVMutation(graphene.Mutation):
     """
-    Not working yet.
+    A data preparation mutation
     """
 
     class Arguments:
@@ -1060,6 +1061,8 @@ class InterviewQuery(graphene.ObjectType):
             end_date=interview_schedule_template.interview_period_end_date,
         )
 
+    # The logic in here should be extracted into a utility function that we can write tests for
+    # Input: admission object and a selected date
     def resolve_interviews_available_for_booking(
         self, info, date_selected, *args, **kwargs
     ):
@@ -1096,6 +1099,26 @@ class InterviewQuery(graphene.ObjectType):
             interview_start__gte=cursor,
             interview_start__lte=cursor_offset,
         )
+        booking_soft_wall_enabled = admission.booking_soft_wall_enabled
+        soft_wall_timestamp = admission.booking_soft_wall_timestamp
+
+        if booking_soft_wall_enabled and not soft_wall_timestamp:
+            raise Exception("Soft booking enabled but timestamp is None")
+
+        # INTERVIEW DATETIMES ARE STORED AS UTC.
+        soft_wall_timestamp = admission.booking_soft_wall_timestamp
+
+        print(soft_wall_timestamp)
+        now_tz_aware = timezone.datetime.now().replace(tzinfo=pytz.utc)
+        # Should add some UI so that it is easier to see available slots? Also automatically disable
+        if (
+            booking_soft_wall_enabled
+            and soft_wall_timestamp
+            and soft_wall_timestamp > now_tz_aware
+        ):
+            available_interviews_this_day = available_interviews_this_day.filter(
+                interview_start__lte=soft_wall_timestamp
+            )
 
         # At this point available interviews are all interviews within 24 hours of the date.
         # Further filtration is based on different settings
