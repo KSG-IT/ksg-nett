@@ -39,6 +39,11 @@ class InternalGroupPositionAdmin(admin.ModelAdmin):
     )
     inlines = (InternalGroupPositionMembershipInline,)
 
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+
+        return qs.prefetch_related("holders")
+
 
 class InternalGroupUserHightlightAdmin(admin.ModelAdmin):
     list_display = ("user", "internal_group", "occupation", "archived", "image")

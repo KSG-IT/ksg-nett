@@ -8,6 +8,8 @@ from factory.django import DjangoModelFactory
 from django.utils.timezone import make_aware
 
 from ksg_nett import settings
+from organization.models import InternalGroupPosition
+from organization.consts import InternalGroupPositionMembershipType
 from schedules.models import (
     Schedule,
     ShiftSlot,
@@ -17,7 +19,7 @@ from schedules.models import (
     ShiftSlotTemplate,
     ShiftTrade,
     ShiftInterest,
-    ScheduleRoster,
+    ScheduleRosterGrouping,
     RoleOption,
 )
 from users.tests.factories import UserFactory
@@ -137,12 +139,29 @@ class ShiftSlotTemplateFactory(DjangoModelFactory):
     count = LazyAttribute(lambda o: random.randint(1, 5))
 
 
-class ScheduleRosterFactory(DjangoModelFactory):
+# class ScheduleRosterFactory(DjangoModelFactory):
+#     class Meta:
+#         model = ScheduleRoster
+
+#     schedule = SubFactory(ScheduleFactory)
+#     user = SubFactory(UserFactory)
+#     autofill_as = LazyAttribute(
+#         lambda o: random.choice([x[0] for x in RoleOption.choices])
+#     )
+
+
+class ScheduleRosterGroupingFactory(DjangoModelFactory):
     class Meta:
-        model = ScheduleRoster
+        model = ScheduleRosterGrouping
 
     schedule = SubFactory(ScheduleFactory)
-    user = SubFactory(UserFactory)
-    autofill_as = LazyAttribute(
-        lambda o: random.choice([x[0] for x in RoleOption.choices])
+    internal_group_position = SubFactory(InternalGroupPosition)
+    role = LazyAttribute(lambda o: random.choice([x[0] for x in RoleOption.choices]))
+    position_type = LazyAttribute(
+        lambda o: random.choice(
+            [x[0] for x in InternalGroupPositionMembershipType.choices]
+        )
+    )
+    default_availability = LazyAttribute(
+        lambda o: random.choice([x[0] for x in ShiftInterest.InterestTypes.choices])
     )

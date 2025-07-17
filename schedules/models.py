@@ -3,15 +3,10 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 from scipy.sparse import csr_matrix
 from scipy.sparse.csgraph import maximum_bipartite_matching
-
-from organization.models import (
-    InternalGroup,
-    InternalGroupPosition,
-    InternalGroupPositionMembership,
-)
 from users.models import User
 from django.utils import timezone
 from django.conf import settings
+from organization.consts import InternalGroupPositionMembershipType
 
 
 class RoleOption(models.TextChoices):
@@ -59,7 +54,7 @@ class Schedule(models.Model):
         max_length=64, choices=RoleOption.choices, null=True, blank=False, default=None
     )
 
-    roster = models.ManyToManyField(User, through="ScheduleRosterMembership")
+    # roster = models.ManyToManyField(User, through="ScheduleRosterMembership")
 
     def shifts_from_range(self, shifts_from, number_of_weeks):
         monday = shifts_from - timezone.timedelta(days=shifts_from.weekday())
@@ -395,24 +390,24 @@ class ShiftInterest(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
 
-class ScheduleRosterMembership(models.Model):
-    schedule = models.ForeignKey(
-        Schedule,
-        blank=False,
-        null=False,
-        on_delete=models.CASCADE,
-        related_name="roster",
-    )
-    user = models.ForeignKey(
-        User, blank=False, null=False, on_delete=models.CASCADE, related_name="rosters"
-    )
-    default_availability = models.CharField(choices=ShiftInterest.InterestTypes.choices)
-    autofill_role = models.CharField(
-        max_length=64, choices=RoleOption.choices, null=True, blank=False, default=None
-    )
+# class ScheduleRosterMembership(models.Model):
+#     schedule = models.ForeignKey(
+#         Schedule,
+#         blank=False,
+#         null=False,
+#         on_delete=models.CASCADE,
+#         related_name="roster",
+#     )
+#     user = models.ForeignKey(
+#         User, blank=False, null=False, on_delete=models.CASCADE, related_name="rosters"
+#     )
+#     default_availability = models.CharField(choices=ShiftInterest.InterestTypes.choices)
+#     autofill_role = models.CharField(
+#         max_length=64, choices=RoleOption.choices, null=True, blank=False, default=None
+#     )
 
-    # Do we need a link/mapper? This internal_grou-Poistion -> That shift role
-    # This is an issue with the decoupled nature atm
+# Do we need a link/mapper? This internal_grou-Poistion -> That shift role
+# This is an issue with the decoupled nature atm
 
 
 # class ScheduleRoster(models.Model):
@@ -431,3 +426,120 @@ class ScheduleRosterMembership(models.Model):
 #     autofill_as = models.CharField(
 #         max_length=64, choices=RoleOption.choices, null=True, blank=False, default=None
 #     )
+
+
+class ScheduleRosterGrouping(models.Model):
+    """
+    A schedule roster grouping acts as a composition of "filters" that will attempt to
+    translate a combination of internal group positions, roles and internal group position types
+    and group together users that match this filter and assign a default availability to these users.
+
+    The motivatio behind this is that there is no tight coupling between an internal group position
+    and the schedules module. Meaning that we either have to:
+        a) introduce this coupling in the models themselves with FK's between appropriate models
+        b) Create this implicitly with search-style "filters" that group together positions
+           with certain parameters and point them at a certain schedule.
+
+    Ex:
+    ========
+    SchedulesRosterGrouping(1):
+        - schdule (Edgar)
+        - intenral_group_position (Barista)
+        - role (Barista)  # role and internal_group_position.name may differ
+        - position_type (GANG_MEMBER)
+        - default_availability (AVAILABLE)
+
+    SchedulesRosterGrouping(2):
+        - schdule (Edgar)
+        - intenral_group_position (Kaféansvarlig)
+        - role (Kaféansvarlig)  # role and internal_group_position.name may differ
+        - position_type (FUNCTIONARY)
+        - default_availability (AVAILABLE)
+
+    SchedulesRosterGrouping(3):
+        - schdule (Edgar)
+        - intenral_group_position (Barista)
+        - role (Barista)  # role and internal_group_position.name may differ
+        - position_type (ACTIVE_GANG_MEMBER_PANG)
+        - default_availability (UNAVAILABLE)
+
+    SchedulesRosterGrouping(4):
+        - schdule (Edgar)
+        - intenral_group_position (Barista)
+        - role (Barista)  # role and internal_group_position.name may differ
+        - position_type (HANGAROUND)
+        - default_availability (UNAVAILABLE)
+
+    SchedulesRosterGrouping(5):
+        - schdule (Edgar)
+        - intenral_group_position (Barista)
+        - role (Barista)  # role and internal_group_position.name may differ
+        - position_type (HANGAROUND)
+        - default_availability (UNAVAILABLE)
+
+    Client side, however we would have to, for each user query if they are at the receiving end of
+    the grouping? Unless we persist it, then we still are going to need a type of RosterMembership
+    table.
+
+    Given the 5 groupings above, the schedule for Edgar would list these five in a table which also
+    has a button to "sync" the roster. This then has a User together with the role they will be
+    autofilling, as well as a default availability. If you are part of the main workforce your
+    default availability will always be AVAILABLE, i.e Gjengmedlem and Funksjonær. If you are
+    an active retiree or a hangaround your default availability will be UNAVAILABLE and you
+    will have to actively try to do a shift.
+
+    A workforce sync will reset the semester and the shifts counts for a given schedule will
+    always count from that point. It should also be possible to ammend a roster in case of a
+    bad sync. Maybe just have a checkbox with "reset semester" before re-syncing. Can return
+    how many removals and additions there will be when syncing?
+
+
+
+    # Take 2
+    The different types to autofill on will always be constant.
+    -> Active functioanry -> available
+    -> Active gang member -> available
+    -> Hangaround -> unavailable
+    -> Active functionary pang -> unavailable
+    -> Active gang member pang -> unavailable
+
+    InternalGroup.schedule = FK(Schedule, nullable)
+
+    # This adds the membership type
+    Schedule.roster = User.objects.filter(
+        internal_group_position_history__internal_group__schedule=schedule,
+        active_memberships,
+        NOT[temporary leave | old member],
+    )
+
+
+    // This should probably be a `defaultScheduleQuery` in which the
+    // banner component queries itself
+    query MeQuery {
+        me {
+            defaultSchedule {
+                id
+                name
+                nextAvailabilityDeadline
+            }
+        }
+    }
+    """
+
+    class Meta:
+        verbose_name_plural = "Schedule roster groupings"
+
+    schedule = models.ForeignKey(Schedule, on_delete=models.CASCADE, null=False)
+    internal_group_position = models.ForeignKey(
+        "organization.InternalGroupPosition", on_delete=models.CASCADE
+    )
+    role = models.CharField(choices=RoleOption.choices, max_length=24, null=False)
+    position_type = models.CharField(
+        choices=InternalGroupPositionMembershipType.choices, null=False, max_length=24
+    )
+    default_availability = models.CharField(
+        choices=ShiftInterest.InterestTypes.choices, max_length=12, null=False
+    )
+
+    def __str__(self):
+        return f"ScheduleRosterGrouping(schedule={self.schedule.name}, internal_group_position={self.internal_group_position.name}, role={self.role}, position_type={self.position_type}, default_availability={self.default_availability})"
