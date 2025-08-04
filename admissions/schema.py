@@ -1105,12 +1105,10 @@ class InterviewQuery(graphene.ObjectType):
         if booking_soft_wall_enabled and not soft_wall_timestamp:
             raise Exception("Soft booking enabled but timestamp is None")
 
-        # INTERVIEW DATETIMES ARE STORED AS UTC.
+        # the stored timestamp in the model is in UTC.
         soft_wall_timestamp = admission.booking_soft_wall_timestamp
-
-        print(soft_wall_timestamp)
         now_tz_aware = timezone.datetime.now().replace(tzinfo=pytz.utc)
-        # Should add some UI so that it is easier to see available slots? Also automatically disable
+
         if (
             booking_soft_wall_enabled
             and soft_wall_timestamp
