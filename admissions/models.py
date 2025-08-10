@@ -66,6 +66,12 @@ class Admission(models.Model):
     interview_booking_override_delta = models.DurationField(
         default=datetime.timedelta(hours=3),
     )
+
+    booking_soft_wall_enabled = models.BooleanField(
+        default=False,
+        help_text="A booking soft wall enables 'hiding' available interviews after a certain timestamp. This is primarily used to force applicants to book an interview earlier in the admission period",
+    )
+    booking_soft_wall_timestamp = models.DateTimeField(default=None, blank=True, null=True)
     closed_at = models.DateTimeField(null=True, blank=True)
 
     @property
