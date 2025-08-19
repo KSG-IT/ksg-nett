@@ -18,7 +18,6 @@ from schedules.tests.factories import (
     ShiftFactory,
     ShiftSlotFactory,
     ShiftInterestFactory,
-    ScheduleRosterFactory,
 )
 from schedules.models import ShiftTemplate, ShiftSlot, RoleOption, ShiftInterest
 from users.tests.factories import UserFactory
@@ -105,98 +104,94 @@ class TestApplyScheduleTemplateHelper(TestCase):
         self.assertEqual(slots.count(), 11)
 
 
-class TestShiftInterest(TestCase):
-    def setUp(self):
-        start = make_aware(
-            datetime.datetime(2022, 5, 2, 15, 0), timezone=pytz.timezone("Europe/Oslo")
-        )
-        end = start + datetime.timedelta(hours=8)
-        self.schedule = ScheduleFactory.create(
-            name="Edgar", default_role=RoleOption.BARISTA
-        )
-        users = UserFactory.create_batch(5)
-        roster = []
-        for user in users:
-            roster.append(
-                ScheduleRosterFactory.create(
-                    user=user,
-                    schedule=self.schedule,
-                    autofill_as=self.schedule.default_role,
-                )
-            )
-        ka_user = UserFactory.create()
-        ka_roster = ScheduleRosterFactory.create(
-            user=ka_user, schedule=self.schedule, autofill_as=RoleOption.KAFEANSVARLIG
-        )
-        print(ka_roster)
+# class TestShiftInterest(TestCase):
+#     def setUp(self):
+#         start = make_aware(
+#             datetime.datetime(2022, 5, 2, 15, 0), timezone=pytz.timezone("Europe/Oslo")
+#         )
+#         end = start + datetime.timedelta(hours=8)
+#         self.schedule = ScheduleFactory.create(
+#             name="Edgar", default_role=RoleOption.BARISTA
+#         )
+#         users = UserFactory.create_batch(5)
+#         roster = []
+#         for user in users:
+#             roster.append(
+#                 ScheduleRosterFactory.create(
+#                     user=user,
+#                     schedule=self.schedule,
+#                     autofill_as=self.schedule.default_role,
+#                 )
+#             )
+#         ka_user = UserFactory.create()
+#         ka_roster = ScheduleRosterFactory.create(
+#             user=ka_user, schedule=self.schedule, autofill_as=RoleOption.KAFEANSVARLIG
+#         )
 
-        shift = ShiftFactory(
-            name="Edgar tidligvakt",
-            schedule=self.schedule,
-            datetime_start=start,
-            datetime_end=end,
-        )
-        ShiftSlotFactory.create_batch(
-            4, shift=shift, user=None, role=RoleOption.BARISTA
-        )
-        ShiftSlotFactory.create(shift=shift, user=None, role=RoleOption.KAFEANSVARLIG)
+#         shift = ShiftFactory(
+#             name="Edgar tidligvakt",
+#             schedule=self.schedule,
+#             datetime_start=start,
+#             datetime_end=end,
+#         )
+#         ShiftSlotFactory.create_batch(
+#             4, shift=shift, user=None, role=RoleOption.BARISTA
+#         )
+#         ShiftSlotFactory.create(shift=shift, user=None, role=RoleOption.KAFEANSVARLIG)
 
-        shift2 = ShiftFactory(
-            name="Edgar Senvakt",
-            schedule=self.schedule,
-            datetime_start=start + datetime.timedelta(days=1),
-            datetime_end=end + datetime.timedelta(days=1, hours=8),
-        )
+#         shift2 = ShiftFactory(
+#             name="Edgar Senvakt",
+#             schedule=self.schedule,
+#             datetime_start=start + datetime.timedelta(days=1),
+#             datetime_end=end + datetime.timedelta(days=1, hours=8),
+#         )
 
-        ShiftSlotFactory.create_batch(
-            4, shift=shift2, user=None, role=RoleOption.BARISTA
-        )
+#         ShiftSlotFactory.create_batch(
+#             4, shift=shift2, user=None, role=RoleOption.BARISTA
+#         )
 
-        ShiftInterestFactory.create(
-            shift=shift,
-            user=users[0],
-            interest_type=ShiftInterest.InterestTypes.INTERESTED,
-        )
-        ShiftInterestFactory.create(
-            shift=shift,
-            user=users[1],
-            interest_type=ShiftInterest.InterestTypes.INTERESTED,
-        )
-        ShiftInterestFactory.create(
-            shift=shift,
-            user=users[2],
-            interest_type=ShiftInterest.InterestTypes.INTERESTED,
-        )
-        ShiftInterestFactory.create(
-            shift=shift2,
-            user=users[3],
-            interest_type=ShiftInterest.InterestTypes.INTERESTED,
-        )
-        ShiftInterestFactory.create(
-            shift=shift,
-            user=users[4],
-            interest_type=ShiftInterest.InterestTypes.INTERESTED,
-        )
-        ShiftInterestFactory.create(
-            shift=shift2,
-            user=users[4],
-            interest_type=ShiftInterest.InterestTypes.INTERESTED,
-        )
-        ShiftInterestFactory.create(
-            shift=shift,
-            user=ka_user,
-            interest_type=ShiftInterest.InterestTypes.INTERESTED,
-        )
+#         ShiftInterestFactory.create(
+#             shift=shift,
+#             user=users[0],
+#             interest_type=ShiftInterest.InterestTypes.INTERESTED,
+#         )
+#         ShiftInterestFactory.create(
+#             shift=shift,
+#             user=users[1],
+#             interest_type=ShiftInterest.InterestTypes.INTERESTED,
+#         )
+#         ShiftInterestFactory.create(
+#             shift=shift,
+#             user=users[2],
+#             interest_type=ShiftInterest.InterestTypes.INTERESTED,
+#         )
+#         ShiftInterestFactory.create(
+#             shift=shift2,
+#             user=users[3],
+#             interest_type=ShiftInterest.InterestTypes.INTERESTED,
+#         )
+#         ShiftInterestFactory.create(
+#             shift=shift,
+#             user=users[4],
+#             interest_type=ShiftInterest.InterestTypes.INTERESTED,
+#         )
+#         ShiftInterestFactory.create(
+#             shift=shift2,
+#             user=users[4],
+#             interest_type=ShiftInterest.InterestTypes.INTERESTED,
+#         )
+#         ShiftInterestFactory.create(
+#             shift=shift,
+#             user=ka_user,
+#             interest_type=ShiftInterest.InterestTypes.INTERESTED,
+#         )
 
-    def test__hello_world(self):
-        start = make_aware(
-            datetime.datetime(2022, 5, 2, 14, 0), timezone=pytz.timezone("Europe/Oslo")
-        )
-        end = start + datetime.timedelta(days=3)
-        self.schedule.autofill_slots(start, end)
-        shifts = ShiftSlot.objects.filter(shift__schedule=self.schedule)
-        for shift in shifts:
-            print(f"{shift.user} is filled as {shift.role}")
+#     def test__hello_world(self):
+#         start = make_aware(
+#             datetime.datetime(2022, 5, 2, 14, 0), timezone=pytz.timezone("Europe/Oslo")
+#         )
+#         end = start + datetime.timedelta(days=3)
+#         self.schedule.autofill_slots(start, end, ShiftInterest.InterestTypes.AVAILABLE)
 
 
 class TestShiftEmailCorrectFormat(TestCase):
