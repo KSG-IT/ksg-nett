@@ -128,6 +128,7 @@ class ScheduleQuery(graphene.ObjectType):
     schedule = Node.Field(ScheduleNode)
     all_schedules = graphene.NonNull(graphene.List(ScheduleNode, required=True))
     schedule_allergies = graphene.List(DayAllergyNode, shifts_from=graphene.Date())
+    schedules_from_organization_membership = graphene.NonNull(graphene.List(graphene.NonNull(ScheduleNode)))
 
     def resolve_all_schedules(self, info, *args, **kwargs):
         return Schedule.objects.all().order_by("name")
@@ -216,13 +217,12 @@ class ScheduleQuery(graphene.ObjectType):
                 )
             )
 
-
-        # There is a special case where 
+        # There is a special case where
         for count_key in count_dict.keys():
             if count_key in result_dict.keys():
                 continue
 
-            date_object = datetime.datetime.strptime(count_key, '%Y-%m-%d').date()
+            date_object = datetime.datetime.strptime(count_key, "%Y-%m-%d").date()
             node = DayAllergyNode(
                 date=date_object,
                 allergy_list=[],
@@ -232,6 +232,32 @@ class ScheduleQuery(graphene.ObjectType):
 
         final_list = sorted(final_list, key=lambda x: x.date)
         return final_list
+
+    def resolve_schedules_from_organization_membership(self, info, *args, **kwargs):
+        user = info.context.user
+
+        if not user:
+            return None
+
+        active_membership = user.internal_group_position_history.filter(
+            date_ended__isnull=True,
+        ).first()
+
+        # schedules = Schedule.objects.filter(default_role=active_membership.)
+
+
+        # We need a connection between the active membership and the schedules it belongs to
+        # A schedule has a `default_role` field, but this uses its own "role option" object
+        # A roster object might be easier? Connected how?
+
+        # Keep roster objects, add a roster management view. Allow to "Synch roster from organization" button
+        # that fetches current roster based on elevant things. Also add field to roster membership, "default_availability"
+        b = ""
+        for memb in active_membership:
+
+            b += memb.position.name
+            b += " "
+        return b
 
 
 # === Single location grouping types ===
@@ -281,6 +307,13 @@ class ShiftQuery(graphene.ObjectType):
         number_of_weeks=graphene.Int(),
     )
     all_users_working_today = graphene.List("users.schema.UserNode")
+
+    my_shifts_with_interest_status = graphene.List(
+        graphene.String,
+        schedule_id=graphene.ID(),
+        date_from=graphene.Date(),
+        date_to=graphene.Date(),
+    )
 
     def resolve_normalized_shifts_from_range(
         self, info, schedule_id, shifts_from, number_of_weeks
@@ -348,6 +381,47 @@ class ShiftQuery(graphene.ObjectType):
             filled_shifts__shift__datetime_start__gt=datetime_from,
             filled_shifts__shift__datetime_start__lt=datetime_to,
         ).order_by("first_name", "last_name")
+
+    # scedule ID. Fetch my shifts based on that role
+    def resolve_my_shifts_with_interest_status(
+        self, info, schedule_id, date_from, date_to, *args, **kwargs
+    ):
+
+        user = info.context.user
+        if not user:
+            return []
+
+
+        schedule_id = disambiguate_id(schedule_id)
+        schedule = Schedule.objects.get(pk=schedule_id)
+
+        datetime_from = timezone.datetime(
+            date_from.year,
+            date_from.month,
+            date_from.day,
+            0,
+            0,
+            0,
+            tzinfo=pytz.timezone(settings.TIME_ZONE),
+        )
+        datetime_to = timezone.datetime(
+            date_to.year,
+            date_to.month,
+            date_to.day,
+            23,
+            59,
+            59,
+            tzinfo=pytz.timezone(settings.TIME_ZONE),
+        )
+
+
+        # Schedule <- Shift <- shiftslot
+        # 
+
+        # Get shifts in range
+        # Fetch user interest status for those in range
+        # If no status default to available based on status? Active -> available, Pang -> unavailable
+        return ["H", "A"]
 
 
 # === MUTATIONS ===
@@ -551,7 +625,7 @@ class AutofillShiftSlotsMutation(graphene.Mutation):
 
         schedule_id = disambiguate_id(schedule_id)
         schedule = Schedule.objects.get(pk=schedule_id)
-        schedule.autofill_slots(from_date, to_date)
+        schedule.autofill_slots(from_date, to_date)  # Need interest type
         return AutofillShiftSlotsMutation(success=True)
 
 
