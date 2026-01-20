@@ -18,7 +18,7 @@ from common.exceptions import IllegalOperation
 from common.models import FeatureFlag
 
 
-def get_semester_year_shorthand(timestamp: Union[datetime, date]) -> str:
+def get_semester_year_shorthand(timestamp: Union[datetime, date, None]) -> str:
     """
     get_semester_year_shortand renders the `timestamp` attribute into a "semester-year"-representation.
     Examples:
