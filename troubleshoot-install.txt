@@ -1,0 +1,11 @@
+For apple silicon there are some install issues with brew installing 
+font files from `brew install fontconfig` to /opt/homebrew/lib, but
+weasyprint will initiate discovery in /usr/local/lib.
+
+The fix is to simply copy the files to the place they are expected.
+See issue for moore context https://github.com/Kozea/WeasyPrint/issues/1530#issuecomment-1331624718
+
+```bash
+sudo mkdir -p /usr/local/lib
+sudo cp $(brew --prefix fontconfig)/lib/libfontconfig.* /usr/local/lib
+```
