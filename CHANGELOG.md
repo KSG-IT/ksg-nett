@@ -3,6 +3,26 @@
 
 ## [unreleased]
 
+### Fixed
+- CI
+  - Test workflow ran on the retired `ubuntu-20.04` image and never got a runner, so no
+    test has actually executed since mid 2025. Now runs on `ubuntu-24.04`
+  - `Schedule.autofill_slots` test called the method without its `interest_type` argument
+
+### Changed
+- CI
+  - Consolidated the three workflow files into a single `test.yml` (no more duplicate runs
+    per branch), bumped the deprecated `actions/checkout@v2`/`setup-python@v2`, added
+    dependency caching, a concurrency group, a job timeout and a missing-migration check
+  - Removed Travis configuration; GitHub Actions is the only CI
+
+## [2026.3.1] - 2026-03-03
+
+### Changed
+- Frontend
+  - Migrated UI library (Mantine) from v6 to v8
+  - Fixed active navbar item being invisible after migration
+
 ## [2024.9.21] - 2024-09-21
 
 ### Added

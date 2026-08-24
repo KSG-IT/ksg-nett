@@ -193,7 +193,9 @@ class TestShiftInterest(TestCase):
             datetime.datetime(2022, 5, 2, 14, 0), timezone=pytz.timezone("Europe/Oslo")
         )
         end = start + datetime.timedelta(days=3)
-        self.schedule.autofill_slots(start, end)
+        self.schedule.autofill_slots(
+            start, end, ShiftInterest.InterestTypes.INTERESTED
+        )
         shifts = ShiftSlot.objects.filter(shift__schedule=self.schedule)
         for shift in shifts:
             print(f"{shift.user} is filled as {shift.role}")

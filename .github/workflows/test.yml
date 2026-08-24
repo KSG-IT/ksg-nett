@@ -1,25 +1,53 @@
 name: Run tests
 
-on: [workflow_call]
+on:
+  push:
+    branches:
+      - master
+      - develop
+  pull_request:
+    branches:
+      - master
+      - develop
+
+# Only keep the newest run per branch/PR alive. Stale runs are cancelled
+# instead of piling up in the queue.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
 
 jobs:
   test:
-    runs-on: ubuntu-20.04
-    strategy:
-      matrix:
-        python-version: [3.11.0]
-        poetry-version: [1.4.2]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      POETRY_VERSION: "2.3.2"
     steps:
-    - uses: actions/checkout@v2
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
-      with:
-        python-version: ${{ matrix.python-version }}
-    - name: Run image
-      uses: abatilo/actions-poetry@v2.0.0
-      with:
-        poetry-version: ${{ matrix.poetry-version }}
-    - name: Install dependencies
-      run: poetry install
-    - name: Test using py.test
-      run: poetry run py.test
+      - uses: actions/checkout@v4
+
+      - name: Install poetry
+        run: pipx install poetry==${{ env.POETRY_VERSION }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: poetry
+
+      - name: Install Weasyprint system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y \
+            libpango-1.0-0 libpangoft2-1.0-0 libharfbuzz-subset0
+
+      - name: Install dependencies
+        run: poetry install --no-interaction
+
+      - name: Check for missing migrations
+        run: poetry run python manage.py makemigrations --check --dry-run
+
+      - name: Run tests
+        run: poetry run pytest
