@@ -879,32 +879,28 @@ def internal_group_applicant_data(internal_group):
         app_label="admissions", model_name="InternalGroupPositionPriority"
     )
     active_admission = Admission.get_active_admission()
-    all_applicants = Applicant.objects.filter(admission=active_admission)
+    all_applicants = Applicant.objects.filter(admission=active_admission).order_by(
+        "interview__interview_start"
+    )
 
     # Is it possible to sort by and append all that are null
     first_priorities = prefetch_applicant_list_data(
         all_applicants.filter(
             priorities__applicant_priority=Priority.FIRST,
             priorities__internal_group_position__internal_group=internal_group,
-        )
-        .exclude(status=ApplicantStatus.RETRACTED_APPLICATION)
-        .order_by("first_name")
+        ).exclude(status=ApplicantStatus.RETRACTED_APPLICATION)
     )
     second_priorities = prefetch_applicant_list_data(
         all_applicants.filter(
             priorities__applicant_priority=Priority.SECOND,
             priorities__internal_group_position__internal_group=internal_group,
-        )
-        .exclude(status=ApplicantStatus.RETRACTED_APPLICATION)
-        .order_by("first_name")
+        ).exclude(status=ApplicantStatus.RETRACTED_APPLICATION)
     )
     third_priorities = prefetch_applicant_list_data(
         all_applicants.filter(
             priorities__applicant_priority=Priority.THIRD,
             priorities__internal_group_position__internal_group=internal_group,
-        )
-        .exclude(status=ApplicantStatus.RETRACTED_APPLICATION)
-        .order_by("first_name")
+        ).exclude(status=ApplicantStatus.RETRACTED_APPLICATION)
     )
 
     all_priorities = InternalGroupPositionPriority.objects.filter(
