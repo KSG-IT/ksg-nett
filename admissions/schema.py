@@ -25,6 +25,8 @@ from django.conf import settings
 from django.db.models import Q, Case, When, Value
 from graphene_django.filter import DjangoFilterConnectionField
 from admissions.utils import (
+    get_interviewers_from_internal_group,
+    prefetch_applicant_list_data,
     generate_interviews_from_schedule,
     resend_auth_token_email,
     obfuscate_admission,
@@ -180,38 +182,32 @@ class ApplicantNode(DjangoObjectType):
         if not interview:
             return False
 
-        interviewers = interview.interviewers
-        return interviewers.filter(pk=user.id).exists()
+        # Iterate instead of .filter().exists() so prefetched interviewers are reused
+        return any(
+            interviewer.id == user.id for interviewer in interview.interviewers.all()
+        )
 
     def resolve_interview_is_covered(
         self: Applicant, info, internal_group_id, *args, **kwargs
     ):
         internal_group_id = disambiguate_id(internal_group_id)
-        internal_group = InternalGroup.objects.get(id=internal_group_id)
-
         interview = self.interview
 
         if not interview:
             return False
 
         interviewers = interview.interviewers.all()
-        interviewers_from_internal_group = interviewers.filter(
-            internal_group_position_history__date_ended__isnull=True,
-            internal_group_position_history__position__internal_group=internal_group,
+        interviewers_from_internal_group = get_interviewers_from_internal_group(
+            interview, internal_group_id
         )
 
-        applicant = interview.get_applicant
-        # Should never happen
-        if not applicant:
-            return False
-
-        priorities = applicant.get_priorities
+        priorities = self.get_priorities
         # filter none values
         priorities = [priority for priority in priorities if priority]
 
         if interviewers_from_internal_group:
             # Edge case where we do not want to mark it as covered.
-            if len(priorities) == 1 and interviewers.count() < 2:
+            if len(priorities) == 1 and len(interviewers) < 2:
                 return False
             return True
 
@@ -235,17 +231,17 @@ class ApplicantNode(DjangoObjectType):
             > If ID it is covered but we want to render differently based on who is logged in
         """
         internal_group_id = disambiguate_id(internal_group_id)
-        internal_group = InternalGroup.objects.filter(id=internal_group_id).first()
         interview = self.interview
 
-        if not internal_group or not interview:
+        if not interview:
             return None
 
-        interviewers = interview.interviewers.all()
-        interviewer_from_internal_group = interviewers.filter(
-            internal_group_position_history__date_ended__isnull=True,
-            internal_group_position_history__position__internal_group=internal_group,
-        ).first()  # We assume that we have constraint that only allows interviewer from one internal group
+        # We assume that we have constraint that only allows interviewer from one
+        # internal group
+        interviewer_from_internal_group = next(
+            iter(get_interviewers_from_internal_group(interview, internal_group_id)),
+            None,
+        )
 
         if not interviewer_from_internal_group:
             return None
@@ -253,16 +249,7 @@ class ApplicantNode(DjangoObjectType):
         return to_global_id("UserNode", interviewer_from_internal_group.id)
 
     def resolve_priorities(self: Applicant, info, *args, **kwargs):
-        first_priority = self.priorities.filter(
-            applicant_priority=Priority.FIRST
-        ).first()
-        second_priority = self.priorities.filter(
-            applicant_priority=Priority.SECOND
-        ).first()
-        third_priority = self.priorities.filter(
-            applicant_priority=Priority.THIRD
-        ).first()
-        return [first_priority, second_priority, third_priority]
+        return self.get_priorities
 
     def resolve_image(self: Applicant, info, **kwargs):
         if self.image:
@@ -716,14 +703,18 @@ class ApplicantQuery(graphene.ObjectType):
                 applicant__status=ApplicantStatus.INTERVIEW_FINISHED,
             )
             .order_by("applicant__first_name")
-            .prefetch_related("applicant__priorities", "recommended_by")
+            .select_related("recommended_by")
         )
 
         return InternalGroupDiscussionData(
             internal_group=internal_group,
-            applicants_open_for_other_positions=applicants_open_for_other_positions,
-            applicants=applicants,
-            applicant_recommendations=recommendations,
+            applicants_open_for_other_positions=prefetch_applicant_list_data(
+                applicants_open_for_other_positions
+            ),
+            applicants=prefetch_applicant_list_data(applicants),
+            applicant_recommendations=prefetch_applicant_list_data(
+                recommendations, prefix="applicant__"
+            ),
         )
 
     @gql_has_permissions("admissions.view_applicant")
@@ -1201,7 +1192,7 @@ class InterviewQuery(graphene.ObjectType):
         interviews = Interview.objects.filter(
             interview_start__gte=datetime_early,
             interview_start__lte=datetime_late,
-        )
+        ).select_related("applicant")
         interview_rows, locations = interview_overview_parser(interviews)
         location_names = locations.values_list("name", flat=True)
 
