@@ -4,6 +4,7 @@ from typing import List
 import pytz
 from django.utils import timezone
 from django.db import transaction
+from django.db.models import Prefetch
 from graphene_django_cud.util import disambiguate_id
 
 from common.util import send_email
@@ -24,7 +25,61 @@ from admissions.models import (
     Applicant,
     InternalGroupPositionPriority,
 )
-from organization.models import InternalGroupPosition
+from organization.models import InternalGroupPosition, InternalGroupPositionMembership
+from users.models import User
+
+
+def prefetch_applicant_list_data(queryset, prefix=""):
+    """
+    Prefetches the relations ApplicantNode resolves for each row in an applicant list,
+    so the list costs a fixed number of queries instead of several queries per
+    applicant. Use `prefix` for querysets of other models, e.g. "applicant__" for
+    recommendations.
+
+    Interviewers get their active memberships as `active_memberships`, which
+    `get_interviewers_from_internal_group` reads.
+    """
+    active_memberships = InternalGroupPositionMembership.objects.filter(
+        date_ended__isnull=True
+    ).select_related("position")
+    interviewers = User.objects.prefetch_related(
+        Prefetch(
+            "internal_group_position_history",
+            queryset=active_memberships,
+            to_attr="active_memberships",
+        )
+    )
+    priorities = InternalGroupPositionPriority.objects.select_related(
+        "internal_group_position__internal_group"
+    )
+
+    return queryset.select_related(f"{prefix}interview").prefetch_related(
+        Prefetch(f"{prefix}priorities", queryset=priorities),
+        Prefetch(f"{prefix}interview__interviewers", queryset=interviewers),
+        f"{prefix}internal_group_interests__internal_group",
+    )
+
+
+def get_interviewers_from_internal_group(interview, internal_group_id):
+    """
+    Returns the interviewers of the interview who are active members of the internal
+    group, ordered by id. Reuses `active_memberships` from
+    `prefetch_applicant_list_data` if present.
+    """
+    internal_group_id = int(internal_group_id)
+    interviewers_from_internal_group = []
+    for interviewer in interview.interviewers.all():
+        memberships = getattr(interviewer, "active_memberships", None)
+        if memberships is None:
+            memberships = interviewer.internal_group_position_history.filter(
+                date_ended__isnull=True
+            ).select_related("position")
+        if any(
+            membership.position.internal_group_id == internal_group_id
+            for membership in memberships
+        ):
+            interviewers_from_internal_group.append(interviewer)
+    return sorted(interviewers_from_internal_group, key=lambda user: user.id)
 
 
 def get_available_interview_locations(datetime_from=None, datetime_to=None):
@@ -827,7 +882,7 @@ def internal_group_applicant_data(internal_group):
     all_applicants = Applicant.objects.filter(admission=active_admission)
 
     # Is it possible to sort by and append all that are null
-    first_priorities = (
+    first_priorities = prefetch_applicant_list_data(
         all_applicants.filter(
             priorities__applicant_priority=Priority.FIRST,
             priorities__internal_group_position__internal_group=internal_group,
@@ -835,7 +890,7 @@ def internal_group_applicant_data(internal_group):
         .exclude(status=ApplicantStatus.RETRACTED_APPLICATION)
         .order_by("first_name")
     )
-    second_priorities = (
+    second_priorities = prefetch_applicant_list_data(
         all_applicants.filter(
             priorities__applicant_priority=Priority.SECOND,
             priorities__internal_group_position__internal_group=internal_group,
@@ -843,7 +898,7 @@ def internal_group_applicant_data(internal_group):
         .exclude(status=ApplicantStatus.RETRACTED_APPLICATION)
         .order_by("first_name")
     )
-    third_priorities = (
+    third_priorities = prefetch_applicant_list_data(
         all_applicants.filter(
             priorities__applicant_priority=Priority.THIRD,
             priorities__internal_group_position__internal_group=internal_group,

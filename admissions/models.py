@@ -381,16 +381,17 @@ class Applicant(models.Model):
     @property
     def get_priorities(self):
         # get_ pre-pending to avoid name conflicts
-        first_priority = self.priorities.filter(
-            applicant_priority=Priority.FIRST
-        ).first()
-        second_priority = self.priorities.filter(
-            applicant_priority=Priority.SECOND
-        ).first()
-        third_priority = self.priorities.filter(
-            applicant_priority=Priority.THIRD
-        ).first()
-        return [first_priority, second_priority, third_priority]
+        # Iterating .all() reuses a prefetch of "priorities" instead of one query per
+        # priority. (applicant, applicant_priority) is unique, so each priority has at
+        # most one row.
+        by_priority = {
+            priority.applicant_priority: priority for priority in self.priorities.all()
+        }
+        return [
+            by_priority.get(Priority.FIRST),
+            by_priority.get(Priority.SECOND),
+            by_priority.get(Priority.THIRD),
+        ]
 
     @property
     def get_full_name(self):
