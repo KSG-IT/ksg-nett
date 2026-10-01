@@ -58,6 +58,13 @@ class TestGenerateActiveAdmission(TestCase):
             self.assertFalse(past.filter(interview__interview_end__gt=now).exists())
 
         finished = applicants.filter(status=ApplicantStatus.INTERVIEW_FINISHED)
+        self.assertTrue(finished.filter(open_for_other_positions=True).exists())
+        self.assertTrue(finished.filter(open_for_other_positions=False).exists())
+        self.assertFalse(
+            applicants.exclude(status=ApplicantStatus.INTERVIEW_FINISHED)
+            .filter(open_for_other_positions=True)
+            .exists()
+        )
         self.assertFalse(finished.filter(interview__total_evaluation=None).exists())
         self.assertFalse(finished.filter(interview__interviewers=None).exists())
         self.assertFalse(
