@@ -349,6 +349,9 @@ class Command(BaseCommand):
                 applicant.hometown = self.fake.city()[:100]
                 applicant.gdpr_consent = True
                 applicant.wants_digital_interview = random.random() < 0.1
+            if status == ApplicantStatus.INTERVIEW_FINISHED:
+                # Set by interviewers during the interview
+                applicant.open_for_other_positions = random.random() < 0.5
             applicants.append(applicant)
 
         applicants = Applicant.objects.bulk_create(applicants)
