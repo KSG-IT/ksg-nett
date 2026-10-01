@@ -1091,11 +1091,55 @@ class InterviewQuery(graphene.ObjectType):
 
         cursor_offset = cursor + timezone.timedelta(days=1)
 
+        perform_backup_check = (
+            admission.backup_interviews_timestamp
+            and admission.backup_interviews_timestamp < cursor
+        )
+
+        if perform_backup_check:
+            today = datetime.date.today()
+
+            midnight_tonight = timezone.make_aware(
+                timezone.datetime(
+                    year=today.year,
+                    month=today.month,
+                    day=today.day,
+                    hour=0,
+                    minute=0,
+                    second=0,
+                )
+            ) + timezone.timedelta(days=1)
+            # Selected date is after backup timestamp. If available interviews before breakoff we return empty
+            # list in order to encourage earlier booking forcibly
+            available_interviews_before_backup = Interview.objects.filter(
+                applicant__isnull=True,
+                interview_start__gt=midnight_tonight,  # This should be moved to closest midnight of given date
+                interview_start__lt=admission.backup_interviews_timestamp,
+            )
+
+            if available_interviews_before_backup.exists():
+                return []
+
         available_interviews_this_day = Interview.objects.filter(
             applicant__isnull=True,
             interview_start__gte=cursor,
             interview_start__lte=cursor_offset,
         )
+
+        # In the initial phase of an admissions process we want to prevent applicants from
+        # filling up the later interviews in the interview period. This is such that we
+        # leave room for late applicants.
+        if admission.backup_interviews_timestamp:
+            available_after_reserving = available_interviews_this_day.filter(
+                interview_start__lt=admission.backup_interviews_timestamp
+            ).exists()
+
+            # This doesn't make sense since we are here looking at a specific date. We have
+            # to perform a separate query to
+            if available_after_reserving:
+                available_interviews_this_day = available_interviews_this_day.filter(
+                    interview_start__lt=admission.backup_interviews_timestamp
+                )
 
         # At this point available interviews are all interviews within 24 hours of the date.
         # Further filtration is based on different settings

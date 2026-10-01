@@ -60,12 +60,22 @@ class Admission(models.Model):
     )
     interview_booking_late_batch_enabled = models.BooleanField(default=False)
     interview_booking_late_batch_time = models.TimeField(
-        default=datetime.time(15, 00, 00)
+        default=datetime.time(15, 00, 00),
+        help_text="If enabled, will use this timestamp to fill up interviews after the timestamp before making earlier interview available",
     )
     interview_booking_override_enabled = models.BooleanField(default=False)
     interview_booking_override_delta = models.DurationField(
         default=datetime.timedelta(hours=3),
+        help_text="If override enabled, minimum time required before allow booking for an interview the same day.",
     )
+
+    backup_interviews_timestamp = models.DateTimeField(
+        null=True,
+        blank=True,
+        default=None,
+        help_text="Timestamp used to reserve interviews after a given timestamp from first wave of applicants"
+    )
+
     closed_at = models.DateTimeField(null=True, blank=True)
 
     @property
