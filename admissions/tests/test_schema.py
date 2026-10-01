@@ -340,3 +340,38 @@ class TestInternalGroupDiscussionDataQuery(AdmissionsListQueryTestCase):
             ],
             ["Group 0", "Group 1", "Group 2"],
         )
+
+
+# Same selection as CURRENT_APPLICANTS_QUERY in the frontend applicants overview
+CURRENT_APPLICANTS_QUERY = """
+    query CurrentApplicantsQuery {
+      currentApplicants {
+        id
+        fullName
+        email
+        status
+        phone
+        priorities {
+          id
+          internalGroupPosition {
+            name
+            id
+          }
+        }
+      }
+    }
+"""
+
+
+class TestCurrentApplicantsQuery(AdmissionsListQueryTestCase):
+    def test__more_applicants__same_query_count(self):
+        self.assert_query_count_does_not_grow(CURRENT_APPLICANTS_QUERY, {})
+
+    def test__returns_priorities_in_order(self):
+        self.create_applicant(self.positions[:2], [])
+        data, _ = self.execute(CURRENT_APPLICANTS_QUERY, {})
+        names = [
+            priority and priority.internalGroupPosition.name
+            for priority in data.currentApplicants[0].priorities
+        ]
+        self.assertEqual(names, ["Position 0", "Position 1", None])

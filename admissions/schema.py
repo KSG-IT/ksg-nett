@@ -568,8 +568,8 @@ class ApplicantQuery(graphene.ObjectType):
     @gql_has_permissions("admissions.view_admission")
     def resolve_current_applicants(self, info, *args, **kwargs):
         active_admission = Admission.get_active_admission()
-        return Applicant.objects.filter(admission=active_admission).order_by(
-            "first_name"
+        return prefetch_applicant_list_data(
+            Applicant.objects.filter(admission=active_admission).order_by("first_name")
         )
 
     @gql_has_permissions("admissions.view_admission")
