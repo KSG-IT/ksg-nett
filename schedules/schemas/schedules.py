@@ -75,10 +75,11 @@ class ShiftNode(DjangoObjectType):
         return users
 
     def resolve_slots(self: Shift, info):
-        return self.slots.all()
+        # Without an explicit order Postgres returns updated rows last
+        return self.slots.all().order_by("id")
 
     def resolve_filled_slots(self: Shift, info):
-        return self.slots.filter(user__isnull=False)
+        return self.slots.filter(user__isnull=False).order_by("id")
 
     @classmethod
     @gql_login_required()
