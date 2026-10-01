@@ -28,4 +28,5 @@ BLEACH_ALLOWED_TAGS = [
     "sup",
     "del",
     "strike",
+    "u",
 ]
