@@ -36,3 +36,22 @@ def random_datetime(interval_start, interval_end):
     int_delta = (delta.days * 24 * 60 * 60) + delta.seconds
     random_second = random.randrange(int_delta)
     return interval_start + timezone.timedelta(seconds=random_second)
+
+
+class TestBleachAllowedTags(TestCase):
+    def test__rich_text_editor_marks__are_not_escaped(self):
+        import bleach
+        from common.consts import BLEACH_ALLOWED_TAGS
+
+        # Marks the frontend editor (tiptap StarterKit) can produce
+        html = "<p><strong>b</strong> <em>i</em> <u>u</u> <s>s</s></p>"
+        self.assertEqual(bleach.clean(html, tags=BLEACH_ALLOWED_TAGS), html)
+
+    def test__attributes_on_underline__are_stripped(self):
+        import bleach
+        from common.consts import BLEACH_ALLOWED_TAGS
+
+        self.assertEqual(
+            bleach.clean('<u onclick="x()">u</u>', tags=BLEACH_ALLOWED_TAGS),
+            "<u>u</u>",
+        )
