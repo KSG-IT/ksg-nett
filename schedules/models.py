@@ -227,6 +227,16 @@ class ShiftSlot(models.Model):
         max_length=64, choices=RoleOption.choices, null=False, blank=False
     )
 
+    # TODO: Should we bother with this?
+    autofilled_by = models.ForeignKey(
+        "schedules.ScheduleAutofillAction",
+        null=True,
+        blank=True,
+        default=None,
+        on_delete=models.CASCADE,
+        help_text="Identifier to group together",
+    )
+
 
 class ShiftTrade(models.Model):
     shift = models.ForeignKey(Shift, on_delete=models.CASCADE, related_name="trades")
@@ -434,6 +444,11 @@ class ShiftInterest(models.Model):
 #     autofill_as = models.CharField(
 #         max_length=64, choices=RoleOption.choices, null=True, blank=False, default=None
 #     )
+
+
+class ScheduleAutofillAction(models.Model):
+    schedule = models.ForeignKey(Schedule, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now=True)
 
 
 class ScheduleRosterGrouping(models.Model):
