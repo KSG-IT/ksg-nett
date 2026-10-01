@@ -30,6 +30,13 @@ BASE_URL = "https://ksg-nett-dev.samfundet.no"
 # When true can book interviews the same day
 ADMISSION_BOOK_INTERVIEWS_NOW = True
 
+# fields.W161 ("Fixed default value") is a false positive for the TimeField
+# defaults in admissions (12:00, 15:00, 18:00). Django flags them when a check
+# runs within 10 seconds of those times.
+SILENCED_SYSTEM_CHECKS = ["fields.W161"]
+
+STRIPE_PERCENTAGE_FEE = 3.4
+
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
