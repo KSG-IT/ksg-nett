@@ -124,12 +124,55 @@ class ShiftTradeNode(DjangoObjectType):
         return ShiftTrade.objects.get(pk=id)
 
 
+class UserAllergyCollection(graphene.ObjectType):
+    name = graphene.String()
+    allergies = graphene.List(graphene.Boolean)
+
+
+class UserAlleryData(graphene.ObjectType):
+    allergy_users = graphene.List(UserAllergyCollection)
+    allergy_counts = graphene.List(graphene.Int)
+    people_at_work = graphene.Int()
+
+
 class ScheduleQuery(graphene.ObjectType):
     schedule = Node.Field(ScheduleNode)
     all_schedules = graphene.NonNull(graphene.List(ScheduleNode, required=True))
     schedule_allergies = graphene.List(DayAllergyNode, shifts_from=graphene.Date())
+    schedule_allergies_v2 = graphene.Field(UserAlleryData, shifts_from=graphene.Date())
+
+
+    def resolve_schedule_allergies_v2(self, info, shifts_from, *args, **kwargs):
+        monday = shifts_from - timezone.timedelta(days=shifts_from.weekday())
+        monday = timezone.datetime(
+            year=monday.year,
+            month=monday.month,
+            day=monday.day,
+        )
+        monday = timezone.make_aware(monday, timezone=pytz.timezone(settings.TIME_ZONE))
+        sunday = monday + timezone.timedelta(days=6, hours=23, minutes=59, seconds=59)
+
+        filtered_shifts = Shift.objects.filter(
+            datetime_start__range=(monday, sunday), slots__user__isnull=False
+        )
+
+        allergies_alphabetical = Allergy.objects.all().order_by("name")
+        allergy_filtered_shifts = Shift.objects.filter(
+            datetime_start__range=(monday, sunday),
+            slots__user__isnull=False,
+            slots__user__allergies__name__isnull=False,
+        )
+
+        people_at_work_count = filtered_shifts.annotate(
+            shift_date=TruncDate("datetime_start")
+        ).annotate(horse=Count("slots"))
+
+        return UserAlleryData(
+            allergy_users=[], allergy_counts=[], people_at_work=people_at_work_count
+        )
 
     def resolve_all_schedules(self, info, *args, **kwargs):
+
         return Schedule.objects.all().order_by("name")
 
     def resolve_schedule_allergies(self, info, shifts_from, *args, **kwargs):
@@ -216,13 +259,12 @@ class ScheduleQuery(graphene.ObjectType):
                 )
             )
 
-
-        # There is a special case where 
+        # There is a special case where
         for count_key in count_dict.keys():
             if count_key in result_dict.keys():
                 continue
 
-            date_object = datetime.datetime.strptime(count_key, '%Y-%m-%d').date()
+            date_object = datetime.datetime.strptime(count_key, "%Y-%m-%d").date()
             node = DayAllergyNode(
                 date=date_object,
                 allergy_list=[],
