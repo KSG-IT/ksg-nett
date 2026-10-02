@@ -374,10 +374,13 @@ def validate_image_upload(image) -> str:
     """
     Checks the size and the real file type of an uploaded image.
     Returns the Pillow format of the image, "JPEG" or "PNG".
+
+    TODO: Translate the error messages with gettext when the backend gets
+    translation files. LOCALE_PATHS points to a folder that does not exist.
     """
     max_size = settings.MAX_IMAGE_UPLOAD_SIZE
     if image.size > max_size:
-        raise ValidationError(f"Bildet er for stort. Maks {max_size // 1024**2} MB.")
+        raise ValidationError(f"Image is too large. Max {max_size // 1024**2} MB.")
 
     try:
         with Image.open(image) as temp_image:
@@ -385,14 +388,14 @@ def validate_image_upload(image) -> str:
             image_format = temp_image.format
             width, height = temp_image.size
     except (UnidentifiedImageError, Image.DecompressionBombError, OSError, SyntaxError):
-        raise ValidationError("Filen er ikke et gyldig bilde.")
+        raise ValidationError("File is not a valid image.")
     finally:
         image.seek(0)
 
     if image_format not in IMAGE_FORMAT_EXTENSIONS:
-        raise ValidationError("Bildet må være JPEG eller PNG.")
+        raise ValidationError("Image must be JPEG or PNG.")
     if width * height > settings.MAX_IMAGE_PIXELS:
-        raise ValidationError("Bildet har for høy oppløsning.")
+        raise ValidationError("Image resolution is too high.")
     return image_format
 
 
