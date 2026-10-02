@@ -10,6 +10,7 @@ from graphene_django_cud.mutations import (
     DjangoCreateMutation,
 )
 from graphene_django_cud.util import disambiguate_id
+from graphql_relay import to_global_id
 
 from common.decorators import gql_has_permissions, gql_login_required
 from schedules.models import (
@@ -125,14 +126,115 @@ class ShiftTradeNode(DjangoObjectType):
         return ShiftTrade.objects.get(pk=id)
 
 
+class AllergyUserRow(graphene.ObjectType):
+    user_id = graphene.NonNull(graphene.ID)
+    name = graphene.NonNull(graphene.String)
+    # One value per name in ScheduleAllergiesWeek.allergies
+    allergies = graphene.NonNull(graphene.List(graphene.NonNull(graphene.Boolean)))
+    # The days of the week with a filled slot for this user
+    days = graphene.NonNull(graphene.List(graphene.NonNull(graphene.Date)))
+
+
+class AllergyWorkDay(graphene.ObjectType):
+    date = graphene.NonNull(graphene.Date)
+    people_at_work = graphene.NonNull(graphene.Int)
+
+
+class ScheduleAllergiesWeek(graphene.ObjectType):
+    # Allergy names of the people at work, sorted by name
+    allergies = graphene.NonNull(graphene.List(graphene.NonNull(graphene.String)))
+    # People at work with at least one allergy, sorted by name
+    users = graphene.NonNull(graphene.List(graphene.NonNull(AllergyUserRow)))
+    # People at work in the week with each allergy
+    allergy_counts = graphene.NonNull(graphene.List(graphene.NonNull(graphene.Int)))
+    # Distinct people with a filled slot in the week, and per day
+    people_at_work = graphene.NonNull(graphene.Int)
+    days = graphene.NonNull(graphene.List(graphene.NonNull(AllergyWorkDay)))
+
+
+def schedule_allergies_for_week(shifts_from):
+    """Allergies of everyone with a filled slot in the week of shifts_from."""
+    monday = shifts_from - datetime.timedelta(days=shifts_from.weekday())
+    start = timezone.make_aware(datetime.datetime.combine(monday, datetime.time.min))
+    end = timezone.make_aware(
+        datetime.datetime.combine(
+            monday + datetime.timedelta(days=6), datetime.time.max
+        )
+    )
+    slots = (
+        ShiftSlot.objects.filter(
+            shift__datetime_start__range=(start, end), user__isnull=False
+        )
+        .select_related("user", "shift")
+        .prefetch_related("user__allergies")
+    )
+
+    users = {}
+    days_by_user = {}
+    for slot in slots:
+        day = timezone.localtime(slot.shift.datetime_start).date()
+        users[slot.user_id] = slot.user
+        days_by_user.setdefault(slot.user_id, set()).add(day)
+
+    allergies_by_user = {
+        user_id: {allergy.name for allergy in user.allergies.all()}
+        for user_id, user in users.items()
+    }
+    allergy_names = sorted(
+        set().union(*allergies_by_user.values()), key=lambda name: name.lower()
+    )
+    allergic_ids = sorted(
+        (user_id for user_id, names in allergies_by_user.items() if names),
+        key=lambda user_id: users[user_id].get_clean_full_name().lower(),
+    )
+
+    people_per_day = {}
+    for user_days in days_by_user.values():
+        for day in user_days:
+            people_per_day[day] = people_per_day.get(day, 0) + 1
+
+    return ScheduleAllergiesWeek(
+        allergies=allergy_names,
+        users=[
+            AllergyUserRow(
+                user_id=to_global_id("UserNode", user_id),
+                name=users[user_id].get_clean_full_name(),
+                allergies=[
+                    name in allergies_by_user[user_id] for name in allergy_names
+                ],
+                days=sorted(days_by_user[user_id]),
+            )
+            for user_id in allergic_ids
+        ],
+        allergy_counts=[
+            sum(name in names for names in allergies_by_user.values())
+            for name in allergy_names
+        ],
+        people_at_work=len(users),
+        days=[
+            AllergyWorkDay(date=day, people_at_work=count)
+            for day, count in sorted(people_per_day.items())
+        ],
+    )
+
+
 class ScheduleQuery(graphene.ObjectType):
     schedule = Node.Field(ScheduleNode)
     all_schedules = graphene.NonNull(graphene.List(ScheduleNode, required=True))
     schedule_allergies = graphene.List(DayAllergyNode, shifts_from=graphene.Date())
+    schedule_allergies_v2 = graphene.Field(
+        graphene.NonNull(ScheduleAllergiesWeek),
+        shifts_from=graphene.Date(required=True),
+    )
+
+    @gql_has_permissions("schedules.change_schedule")
+    def resolve_schedule_allergies_v2(self, info, shifts_from, *args, **kwargs):
+        return schedule_allergies_for_week(shifts_from)
 
     def resolve_all_schedules(self, info, *args, **kwargs):
         return Schedule.objects.all().order_by("name")
 
+    @gql_has_permissions("schedules.change_schedule")
     def resolve_schedule_allergies(self, info, shifts_from, *args, **kwargs):
         monday = shifts_from - timezone.timedelta(days=shifts_from.weekday())
         monday = timezone.datetime(
@@ -217,13 +319,12 @@ class ScheduleQuery(graphene.ObjectType):
                 )
             )
 
-
-        # There is a special case where 
+        # There is a special case where
         for count_key in count_dict.keys():
             if count_key in result_dict.keys():
                 continue
 
-            date_object = datetime.datetime.strptime(count_key, '%Y-%m-%d').date()
+            date_object = datetime.datetime.strptime(count_key, "%Y-%m-%d").date()
             node = DayAllergyNode(
                 date=date_object,
                 allergy_list=[],
