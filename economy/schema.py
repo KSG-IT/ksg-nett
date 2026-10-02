@@ -358,14 +358,19 @@ class SalesGranularity(graphene.Enum):
     DAY = "day"
     WEEK = "week"
     MONTH = "month"
+    # Autumn from 1 August, spring from 1 January, as in
+    # InternalGroupPositionMembership.get_semester_of_membership
+    SEMESTER = "semester"
 
 
 def period_start(day, granularity):
-    """The first day of the day, ISO week or month that day is in."""
+    """The first day of the day, ISO week, month or semester that day is in."""
     if granularity == SalesGranularity.WEEK.value:
         return day - datetime.timedelta(days=day.weekday())
     if granularity == SalesGranularity.MONTH.value:
         return day.replace(day=1)
+    if granularity == SalesGranularity.SEMESTER.value:
+        return day.replace(month=8 if day.month >= 8 else 1, day=1)
     return day
 
 
@@ -374,6 +379,10 @@ def next_period(day, granularity):
         return day + datetime.timedelta(weeks=1)
     if granularity == SalesGranularity.MONTH.value:
         return (day.replace(day=28) + datetime.timedelta(days=4)).replace(day=1)
+    if granularity == SalesGranularity.SEMESTER.value:
+        if day.month >= 8:
+            return datetime.date(day.year + 1, 1, 1)
+        return datetime.date(day.year, 8, 1)
     return day + datetime.timedelta(days=1)
 
 
@@ -382,7 +391,8 @@ def product_sales_by_period(
 ):
     """
     Sales per product and period between date_from and date_to, both
-    included. A period is a day, an ISO week (from Monday) or a month, and is
+    included. A period is a day, an ISO week (from Monday), a month or a
+    semester (from 1 January or 1 August), and is
     named by its first day. Periods without sales are in the list with sum 0,
     so charts get a full axis. Without date_from, the range starts at the
     first sale of the products. Without product_ids, the products are the
