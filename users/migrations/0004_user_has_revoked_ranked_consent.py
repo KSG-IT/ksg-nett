@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('users', '0002_user_can_rewrite_about_me'),
+        ("users", "0003_knighthood"),
     ]
 
     operations = [
