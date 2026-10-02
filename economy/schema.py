@@ -385,14 +385,18 @@ def product_sales_by_period(
     included. A period is a day, an ISO week (from Monday) or a month, and is
     named by its first day. Periods without sales are in the list with sum 0,
     so charts get a full axis. Without date_from, the range starts at the
-    first sale of the products. quantity counts the items sold. average is
-    the revenue per day with sales.
+    first sale of the products. Without product_ids, the products are the
+    ones with sales in the range, sorted by name. quantity counts the items
+    sold. average is the revenue per day with sales.
     """
     # Graphene passes an enum member, Python callers pass the value
     granularity = getattr(granularity, "value", granularity)
-    ids = [int(disambiguate_id(product_id)) for product_id in product_ids]
-    products = SociProduct.objects.in_bulk(ids)
-    orders = ProductOrder.objects.filter(product_id__in=ids)
+    if product_ids:
+        ids = [int(disambiguate_id(product_id)) for product_id in product_ids]
+        orders = ProductOrder.objects.filter(product_id__in=ids)
+    else:
+        ids = None
+        orders = ProductOrder.objects.all()
 
     if date_from is None:
         first = orders.order_by("purchased_at").values_list("purchased_at", flat=True)
@@ -404,12 +408,20 @@ def product_sales_by_period(
 
     # Group by day in the database. There are few days with sales, so the
     # weeks and months are summed here.
-    rows = (
+    rows = list(
         orders.filter(purchased_at__range=(start, end))
         .annotate(date=TruncDate("purchased_at"))
         .values("product_id", "date")
         .annotate(revenue=Sum("cost"), items=Sum("order_size"))
     )
+    if ids is None:
+        ids = list({row["product_id"] for row in rows})
+    products = SociProduct.objects.in_bulk(ids)
+    if not product_ids:
+        ids = sorted(
+            (pk for pk in ids if pk in products),
+            key=lambda pk: products[pk].name.lower(),
+        )
     by_product = {}
     for row in rows:
         product_sales = by_product.setdefault(
@@ -463,7 +475,8 @@ class ProductOrderQuery(graphene.ObjectType):
     )
     product_orders_by_item_and_date_list = graphene.List(
         TotalExpenditureItem,
-        product_ids=graphene.List(graphene.NonNull(graphene.ID), required=True),
+        # Empty or left out: the products with sales in the range
+        product_ids=graphene.List(graphene.NonNull(graphene.ID)),
         date_from=graphene.Date(),
         date_to=graphene.Date(required=True),
         granularity=SalesGranularity(default_value=SalesGranularity.DAY.value),
@@ -491,8 +504,8 @@ class ProductOrderQuery(graphene.ObjectType):
     def resolve_product_orders_by_item_and_date_list(
         self,
         info,
-        product_ids,
         date_to,
+        product_ids=None,
         date_from=None,
         granularity=SalesGranularity.DAY.value,
         *args,
