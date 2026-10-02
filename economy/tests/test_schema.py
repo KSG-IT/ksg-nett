@@ -218,3 +218,87 @@ class TestProductOrdersByItemAndDateListQuery(TestCase):
             context=Dict(user=UserFactory.create()),
         )
         self.assertIn("errors", executed)
+
+
+class TestMyPurchasesQueries(TestCase):
+    def setUp(self) -> None:
+        from economy.tests.factories import SociBankAccountFactory
+
+        self.graphql_client = Client(schema)
+        self.user = UserFactory.create()
+        self.account = SociBankAccountFactory.create(user=self.user)
+        other_account = SociBankAccountFactory.create()
+        self.beer = SociProductFactory.create(name="Dahls", price=30)
+        self.fries = SociProductFactory.create(name="Fries", price=30)
+        today = timezone.localdate()
+        self.today = today
+        self.order(self.account, self.beer, today, 2, 60)
+        self.order(self.account, self.fries, today, 1, 30)
+        # Someone else's purchase must not count
+        self.order(other_account, self.beer, today, 5, 150)
+
+    def order(self, account, product, day, order_size, cost):
+        order = ProductOrderFactory.create(
+            source=account, product=product, order_size=order_size, cost=cost
+        )
+        purchased_at = timezone.make_aware(
+            datetime.datetime.combine(day, datetime.time(20, 0))
+        )
+        ProductOrder.objects.filter(pk=order.pk).update(purchased_at=purchased_at)
+
+    def execute(self, query, variables=None, user=None):
+        return self.graphql_client.execute(
+            query,
+            variables=variables or {},
+            context=Dict(user=user or self.user),
+        )
+
+    def test__my_purchases__only_counts_my_account(self):
+        executed = self.execute(
+            """
+            query($to: Date!) {
+              myPurchasesByPeriod(dateTo: $to, granularity: MONTH) {
+                name total quantity
+              }
+            }
+            """,
+            {"to": self.today.isoformat()},
+        )
+        self.assertNotIn("errors", executed)
+        self.assertEqual(
+            executed["data"]["myPurchasesByPeriod"],
+            [
+                {"name": "Dahls", "total": 60, "quantity": 2},
+                {"name": "Fries", "total": 30, "quantity": 1},
+            ],
+        )
+
+    def test__my_expenditures__this_month_has_every_day(self):
+        executed = self.execute(
+            "{ myExpenditures(dateRange: THIS_MONTH) { total data { day sum } } }"
+        )
+        self.assertNotIn("errors", executed)
+        result = executed["data"]["myExpenditures"]
+        self.assertEqual(result["total"], 90)
+        self.assertEqual(result["data"][0]["day"][-2:], "01")
+        self.assertIn({"day": self.today.isoformat(), "sum": 90}, result["data"])
+
+    def test__my_expenditures__all_semesters_groups_per_semester(self):
+        executed = self.execute(
+            "{ myExpenditures(dateRange: ALL_SEMESTERS) { total data { day sum } } }"
+        )
+        self.assertNotIn("errors", executed)
+        data = executed["data"]["myExpenditures"]["data"]
+        self.assertEqual(len(data), 1)
+        self.assertIn(data[0]["day"][5:], ("01-01", "08-01"))
+        self.assertEqual(data[0]["sum"], 90)
+
+    def test__anonymous__gets_an_error(self):
+        from django.contrib.auth.models import AnonymousUser
+
+        for query in (
+            "{ myExpenditures(dateRange: THIS_MONTH) { total } }",
+            '{ myPurchasesByPeriod(dateTo: "2026-01-01") { total } }',
+        ):
+            executed = self.execute(query, user=AnonymousUser())
+            self.assertIn("errors", executed)
