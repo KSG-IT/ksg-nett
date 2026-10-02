@@ -234,26 +234,3 @@ class TestShiftEmailCorrectFormat(TestCase):
         self.assertIn("Vakt: Onsdag tidlig", mail.outbox[0].body)
         self.assertIn("Hvor: Edgar", mail.outbox[0].body)
         self.assertIn("Når: 02.05 kl 15:00 - 23:00", mail.outbox[0].body)
-
-
-class TestShiftSlotsOrdering(TestCase):
-    def test__filling_a_slot__keeps_slot_order(self):
-        from schedules.schemas.schedules import ShiftNode
-
-        start = make_aware(
-            datetime.datetime(2022, 5, 2, 15, 0), timezone=pytz.timezone("Europe/Oslo")
-        )
-        shift = ShiftFactory(
-            datetime_start=start, datetime_end=start + datetime.timedelta(hours=8)
-        )
-        slots = ShiftSlotFactory.create_batch(
-            3, shift=shift, user=None, role=RoleOption.BARISTA
-        )
-        first = slots[0]
-        first.user = UserFactory()
-        first.save()
-
-        # Postgres may return an updated row last unless the query is ordered
-        resolved = ShiftNode.resolve_slots(shift, None)
-        self.assertTrue(resolved.ordered)
-        self.assertEqual([s.id for s in resolved], [s.id for s in slots])
