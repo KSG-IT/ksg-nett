@@ -1,6 +1,5 @@
 import datetime
 
-import pytz
 from django.test import TestCase
 from django.utils.timezone import make_aware
 from django.core import mail
