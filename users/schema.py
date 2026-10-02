@@ -26,7 +26,11 @@ from common.util import (
 )
 from django.db.models.functions import Concat
 from economy.utils import parse_transaction_history
-from economy.schema import BankAccountActivity
+from economy.schema import (
+    BankAccountActivity,
+    can_view_balance,
+    can_view_bank_account,
+)
 from economy.models import SociBankAccount
 from users.filters import UserFilter
 from graphql_relay import to_global_id
@@ -103,7 +107,8 @@ class UserNode(DjangoObjectType):
     get_full_with_nick_name = graphene.NonNull(graphene.String)
 
     profile_image = graphene.String()
-    balance = graphene.NonNull(graphene.Int)
+    # null for other users, except on the Wanted list (see can_view_balance)
+    balance = graphene.Int()
     ksg_status = graphene.String()
     bank_account_activity = graphene.NonNull(
         graphene.List(graphene.NonNull(BankAccountActivity))
@@ -164,6 +169,8 @@ class UserNode(DjangoObjectType):
             return None
 
     def resolve_balance(self: User, info, **kwargs):
+        if not can_view_balance(info, self.bank_account):
+            return None
         return self.balance
 
     def resolve_all_permissions(self: User, info, **kwargs):
@@ -180,12 +187,18 @@ class UserNode(DjangoObjectType):
         return all_permissions
 
     def resolve_bank_account_activity(self: User, info, **kwargs):
+        if not can_view_bank_account(info, self.bank_account):
+            return []
         return parse_transaction_history(self.bank_account)
 
     def resolve_last_transactions(self: User, info, **kwargs):
+        if not can_view_bank_account(info, self.bank_account):
+            return []
         return parse_transaction_history(self.bank_account, 10)
 
     def resolve_money_spent(self: User, info, **kwargs):
+        if not can_view_bank_account(info, self.bank_account):
+            return None
         return self.bank_account.money_spent
 
     def resolve_get_clean_full_name(self: User, info, **kwargs):

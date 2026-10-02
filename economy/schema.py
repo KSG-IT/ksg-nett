@@ -160,6 +160,24 @@ def can_view_bank_account(info, account: SociBankAccount) -> bool:
     return account.user_id == user.id or user.has_perm("economy.view_socibankaccount")
 
 
+def can_view_balance(info, account: SociBankAccount) -> bool:
+    """
+    Like can_view_bank_account, but balances on the dashboard Wanted list
+    are visible to every logged-in user, as the list shows them by design.
+    """
+    if can_view_bank_account(info, account):
+        return True
+    user = getattr(info.context, "user", None)
+    if user is None or not user.is_authenticated:
+        return False
+    owner = account.user
+    return (
+        account.balance <= settings.WANTED_LIST_THRESHOLD
+        and owner.is_active
+        and owner.username not in settings.SOCI_GOLD
+    )
+
+
 class SociBankAccountNode(DjangoObjectType):
     class Meta:
         model = SociBankAccount
@@ -167,8 +185,12 @@ class SociBankAccountNode(DjangoObjectType):
         # Only myExternalChargeQrCodeUrl uses the secret, for the own account
         exclude = ("external_charge_secret",)
 
+    balance = graphene.Int()
     deposits = graphene.NonNull(graphene.List(graphene.NonNull(DepositNode)))
     last_deposits = graphene.NonNull(graphene.List(graphene.NonNull(DepositNode)))
+
+    def resolve_balance(self: SociBankAccount, info, **kwargs):
+        return self.balance if can_view_balance(info, self) else None
 
     def resolve_card_uuid(self: SociBankAccount, info, **kwargs):
         return self.card_uuid if can_view_bank_account(info, self) else None

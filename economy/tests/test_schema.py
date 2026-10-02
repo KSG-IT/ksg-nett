@@ -373,3 +373,55 @@ class TestBankAccountFieldAccess(TestCase):
         self.assertIn("errors", self.execute(query, self.other))
         executed = self.execute(query, self.admin)
         self.assertNotIn("errors", executed)
+
+    def balances(self, user):
+        executed = self.execute(
+            """
+            query($id: ID!) {
+              user(id: $id) {
+                balance moneySpent lastTransactions { name }
+                bankAccount { balance }
+              }
+            }
+            """,
+            user,
+            {"id": Node.to_global_id("UserNode", self.owner.pk)},
+        )
+        self.assertNotIn("errors", executed)
+        return executed["data"]["user"]
+
+    def test__other_user__cannot_see_balance_or_transactions(self):
+        from economy.models import SociBankAccount
+
+        SociBankAccount.objects.filter(pk=self.account.pk).update(balance=150)
+        data = self.balances(self.other)
+        self.assertIsNone(data["balance"])
+        self.assertIsNone(data["bankAccount"]["balance"])
+        self.assertIsNone(data["moneySpent"])
+        self.assertEqual(data["lastTransactions"], [])
+        for user in (self.owner, self.admin):
+            self.assertEqual(self.balances(user)["balance"], 150)
+
+    def test__balance_on_the_wanted_list__is_visible(self):
+        from django.conf import settings
+        from economy.models import SociBankAccount
+
+        debt = settings.WANTED_LIST_THRESHOLD - 100
+        SociBankAccount.objects.filter(pk=self.account.pk).update(balance=debt)
+        data = self.balances(self.other)
+        self.assertEqual(data["balance"], debt)
+        self.assertEqual(data["bankAccount"]["balance"], debt)
+        # Only the balance; the rest stays private
+        self.assertEqual(data["lastTransactions"], [])
+
+        executed = self.execute(
+            "{ dashboardData { wantedList { id balance } } }", self.other
+        )
+        self.assertNotIn("errors", executed)
+        self.assertIn(
+            debt,
+            [
+                entry["balance"]
+                for entry in executed["data"]["dashboardData"]["wantedList"]
+            ],
+        )
