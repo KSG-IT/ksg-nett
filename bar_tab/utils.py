@@ -1,12 +1,17 @@
 from common.util import send_email
 from django.db.models import Sum
 from bar_tab.models import BarTab, BarTabOrder
+from pathlib import Path
 from tempfile import NamedTemporaryFile
 
 from django.conf import settings
 from django.template.loader import render_to_string
 from weasyprint import CSS, HTML
 from weasyprint.text.fonts import FontConfiguration
+
+INVOICE_LOGO_PATH = (
+    Path(__file__).resolve().parent / "static" / "bar_tab" / "ksg_logo.jpg"
+)
 
 
 def normalize_customer_orders(orders):
@@ -116,6 +121,7 @@ def create_pdf_file(invoice):
         "away_orders_summarized_by_name": away_orders_summarized_by_name,
         "home_orders_summarized_by_name": home_orders_summarized_by_name,
         "home_sum": sum([order.cost for order in home]),
+        "logo_url": INVOICE_LOGO_PATH.as_uri(),
     }
 
     html_content = render_to_string(

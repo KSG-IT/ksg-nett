@@ -7,7 +7,7 @@ from bar_tab.models import (
     BarTabOrder,
     BarTabProduct,
 )
-from bar_tab.utils import create_pdf_file
+from bar_tab.utils import INVOICE_LOGO_PATH, create_pdf_file
 from users.tests.factories import UserFactory
 
 
@@ -61,3 +61,6 @@ class TestCreatePdfFile(TestCase):
         file.seek(0)
 
         self.assertTrue(file.read().startswith(b"%PDF-"))
+
+    def test__invoice_logo__exists(self):
+        self.assertTrue(INVOICE_LOGO_PATH.is_file())
