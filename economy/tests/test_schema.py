@@ -166,6 +166,37 @@ class TestProductOrdersByItemAndDateListQuery(TestCase):
             [("2026-08-31", 170), ("2026-09-07", 0)],
         )
 
+    def test__without_product_ids__returns_the_products_with_sales(self):
+        executed = self.graphql_client.execute(
+            """
+            query Stats($from: Date, $to: Date!) {
+              productOrdersByItemAndDateList(dateFrom: $from, dateTo: $to) {
+                name total
+              }
+            }
+            """,
+            variables={"from": "2026-09-01", "to": "2026-09-03"},
+            context=Dict(user=self.user),
+        )
+        self.assertNotIn("errors", executed)
+        # The cider has no sales, so only the beer is in the list
+        self.assertEqual(
+            executed["data"]["productOrdersByItemAndDateList"],
+            [{"name": "Dahls", "total": 140}],
+        )
+
+    def test__without_product_ids_and_no_sales__returns_empty_list(self):
+        executed = self.graphql_client.execute(
+            """
+            query { productOrdersByItemAndDateList(
+              dateFrom: "2020-01-01", dateTo: "2020-01-31", productIds: []
+            ) { name } }
+            """,
+            context=Dict(user=self.user),
+        )
+        self.assertNotIn("errors", executed)
+        self.assertEqual(executed["data"]["productOrdersByItemAndDateList"], [])
+
     def test__without_date_from__starts_at_the_first_sale(self):
         beer = self.grouped("DAY", date_from=None, date_to="2026-09-03")
         self.assertEqual(beer["data"][0]["day"], "2026-09-01")
