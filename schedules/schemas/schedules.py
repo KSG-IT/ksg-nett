@@ -293,14 +293,20 @@ class ShiftQuery(graphene.ObjectType):
 
     def resolve_my_upcoming_shifts(self, info, *args, **kwargs):
         me = info.context.user
-        return Shift.objects.filter(
-            datetime_end__gt=timezone.now(),
-            slots__user=me,
-        ).order_by("-datetime_start")
+        return (
+            Shift.objects.filter(
+                datetime_end__gt=timezone.now(),
+                slots__user=me,
+            )
+            .distinct()
+            .order_by("-datetime_start")
+        )
 
     def resolve_all_my_shifts(self, info, *args, **kwargs):
         me = info.context.user
-        return Shift.objects.filter(slots__user=me).order_by("-datetime_start")
+        return (
+            Shift.objects.filter(slots__user=me).distinct().order_by("-datetime_start")
+        )
 
     def resolve_all_shifts(self, info, date, *args, **kwargs):
         datetime_from = timezone.datetime(
