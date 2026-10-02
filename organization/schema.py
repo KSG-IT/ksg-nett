@@ -253,29 +253,153 @@ class DeleteInternalGroupPosition(DjangoDeleteMutation):
         permissions = ("organization.delete_internalgroupposition",)
 
 
-class PatchInternalGroupPositionMembershipDateMutation(graphene.Mutation):
+class MembershipHistoryInput(graphene.InputObjectType):
+    id = graphene.ID()
+    position_id = graphene.ID(required=True)
+    type = InternalGroupPositionTypeEnum(required=True)
+    date_joined = graphene.Date(required=True)
+    date_ended = graphene.Date()
+
+
+class MembershipHistoryError(graphene.ObjectType):
+    index = graphene.Int()
+    message = graphene.String()
+
+
+def validate_membership_history(rows):
+    """
+    Returns a list of (index, message) for rows that break a timeline rule.
+    Each row is a dict with "position", "date_joined" and "date_ended".
+    Only memberships in internal groups count for overlaps and the open
+    membership, the same as User.current_internal_group_position_membership.
+    """
+    errors = []
+    for index, row in enumerate(rows):
+        if row["date_ended"] and row["date_ended"] < row["date_joined"]:
+            errors.append((index, "The end date is before the start date"))
+
+    internal_rows = [
+        (index, row)
+        for index, row in enumerate(rows)
+        if row["position"].internal_group.type == InternalGroup.Type.INTERNAL_GROUP
+    ]
+
+    open_rows = [index for index, row in internal_rows if not row["date_ended"]]
+    for index in open_rows[1:]:
+        errors.append(
+            (index, "Only one membership in an internal group can be current")
+        )
+
+    # A membership may start on the day the previous one ended, which is what
+    # AssignNewInternalGroupPositionMembership does.
+    for a, (index_a, row_a) in enumerate(internal_rows):
+        for index_b, row_b in internal_rows[a + 1 :]:
+            a_starts_before_b_ends = (
+                row_b["date_ended"] is None
+                or row_a["date_joined"] < row_b["date_ended"]
+            )
+            b_starts_before_a_ends = (
+                row_a["date_ended"] is None
+                or row_b["date_joined"] < row_a["date_ended"]
+            )
+            if a_starts_before_b_ends and b_starts_before_a_ends:
+                errors.append(
+                    (index_b, f"Overlaps with membership number {index_a + 1}")
+                )
+
+    return errors
+
+
+class SetUserMembershipHistoryMutation(graphene.Mutation):
+    """
+    Replaces the whole membership history of a user. Rows with an id are
+    updated, rows without an id are created, and memberships that are not in
+    the input are deleted. Nothing is saved when a row breaks a rule. The
+    Funksjonær user type is not changed, because a correction is not a new
+    position.
+    """
+
     class Arguments:
-        membership_id = graphene.ID()
-        date_ended = graphene.Date()
-        date_joined = graphene.Date()
+        user_id = graphene.ID(required=True)
+        memberships = graphene.List(
+            graphene.NonNull(MembershipHistoryInput), required=True
+        )
 
-    internal_group_position_membership = graphene.Field(
-        InternalGroupPositionMembershipNode
+    memberships = graphene.List(InternalGroupPositionMembershipNode)
+    errors = graphene.List(graphene.NonNull(MembershipHistoryError))
+
+    @gql_has_permissions(
+        "organization.add_internalgrouppositionmembership",
+        "organization.change_internalgrouppositionmembership",
+        "organization.delete_internalgrouppositionmembership",
     )
+    def mutate(self, info, user_id, memberships, *args, **kwargs):
+        user = User.objects.get(pk=disambiguate_id(user_id))
+        existing = {
+            membership.pk: membership
+            for membership in user.internal_group_position_history.all()
+        }
 
-    @gql_has_permissions("organization.change_internalgrouppositionmembership")
-    def mutate(self, info, membership_id, date_ended, date_joined, *args, **kwargs):
-        membership_id = disambiguate_id(membership_id)
-        membership = InternalGroupPositionMembership.objects.get(pk=membership_id)
+        rows = []
+        input_errors = []
+        for index, membership in enumerate(memberships):
+            membership_id = (
+                int(disambiguate_id(membership.id)) if membership.id else None
+            )
+            if membership_id is not None and membership_id not in existing:
+                input_errors.append((index, "The membership is not on this user"))
+            position = (
+                InternalGroupPosition.objects.select_related("internal_group")
+                .filter(pk=disambiguate_id(membership.position_id))
+                .first()
+            )
+            if position is None:
+                input_errors.append((index, "The position does not exist"))
+                continue
+            rows.append(
+                {
+                    "index": index,
+                    "id": membership_id,
+                    "position": position,
+                    "type": membership.type.value,
+                    "date_joined": membership.date_joined,
+                    "date_ended": membership.date_ended,
+                }
+            )
 
-        if date_ended:
-            membership.date_ended = date_ended
-        if date_joined:
-            membership.date_joined = date_joined
+        errors = input_errors
+        if not errors:
+            errors = [
+                (rows[row_index]["index"], message)
+                for row_index, message in validate_membership_history(rows)
+            ]
+        if errors:
+            return SetUserMembershipHistoryMutation(
+                memberships=None,
+                errors=[
+                    MembershipHistoryError(index=index, message=message)
+                    for index, message in sorted(errors)
+                ],
+            )
 
-        membership.save()
-        return PatchInternalGroupPositionMembershipDateMutation(
-            internal_group_position_membership=membership
+        kept_ids = {row["id"] for row in rows if row["id"] is not None}
+        with transaction.atomic():
+            InternalGroupPositionMembership.objects.filter(user=user).exclude(
+                pk__in=kept_ids
+            ).delete()
+            for row in rows:
+                membership = existing.get(
+                    row["id"], InternalGroupPositionMembership(user=user)
+                )
+                membership.position = row["position"]
+                membership.type = row["type"]
+                membership.date_joined = row["date_joined"]
+                membership.date_ended = row["date_ended"]
+                membership.save()
+
+        return SetUserMembershipHistoryMutation(
+            memberships=user.internal_group_position_history.order_by("-date_joined"),
+            errors=[],
         )
 
 
@@ -500,8 +624,6 @@ class OrganizationMutations(graphene.ObjectType):
         AssignNewInternalGroupPositionMembership.Field()
     )
 
-    patch_internal_group_position_membership_date = (
-        PatchInternalGroupPositionMembershipDateMutation.Field()
-    )
+    set_user_membership_history = SetUserMembershipHistoryMutation.Field()
 
     quit_KSG = QuitKSGMutation.Field()

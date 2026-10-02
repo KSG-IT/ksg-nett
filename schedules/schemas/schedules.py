@@ -75,10 +75,11 @@ class ShiftNode(DjangoObjectType):
         return users
 
     def resolve_slots(self: Shift, info):
-        return self.slots.all()
+        # Without an explicit order Postgres returns updated rows last
+        return self.slots.all().order_by("id")
 
     def resolve_filled_slots(self: Shift, info):
-        return self.slots.filter(user__isnull=False)
+        return self.slots.filter(user__isnull=False).order_by("id")
 
     @classmethod
     @gql_login_required()
@@ -336,14 +337,20 @@ class ShiftQuery(graphene.ObjectType):
 
     def resolve_my_upcoming_shifts(self, info, *args, **kwargs):
         me = info.context.user
-        return Shift.objects.filter(
-            datetime_end__gt=timezone.now(),
-            slots__user=me,
-        ).order_by("-datetime_start")
+        return (
+            Shift.objects.filter(
+                datetime_end__gt=timezone.now(),
+                slots__user=me,
+            )
+            .distinct()
+            .order_by("-datetime_start")
+        )
 
     def resolve_all_my_shifts(self, info, *args, **kwargs):
         me = info.context.user
-        return Shift.objects.filter(slots__user=me).order_by("-datetime_start")
+        return (
+            Shift.objects.filter(slots__user=me).distinct().order_by("-datetime_start")
+        )
 
     def resolve_all_shifts(self, info, date, *args, **kwargs):
         datetime_from = timezone.datetime(
