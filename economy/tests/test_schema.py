@@ -157,6 +157,16 @@ class TestProductOrdersByItemAndDateListQuery(TestCase):
         # Still per day with sales: 3 days
         self.assertEqual(beer["average"], round(170 / 3, 2))
 
+    def test__semester_granularity__splits_at_august(self):
+        self.order(self.beer, datetime.date(2026, 7, 31), 1, cost=10)
+        beer = self.grouped("SEMESTER", date_from="2025-12-01", date_to="2026-09-10")
+        # 2025-12 is in the autumn 2025 semester; 07-31 in spring 2026;
+        # the September orders in autumn 2026
+        self.assertEqual(
+            [(day["day"], day["sum"]) for day in beer["data"]],
+            [("2025-08-01", 0), ("2026-01-01", 10), ("2026-08-01", 170)],
+        )
+
     def test__week_granularity__starts_on_monday(self):
         beer = self.grouped("WEEK", date_from="2026-09-01", date_to="2026-09-07")
         # 2026-09-01 is a Tuesday, 2026-09-07 a Monday. The week from
