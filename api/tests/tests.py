@@ -401,3 +401,17 @@ class ChargeAccountStockMarketDisabled(APITestCase):
         expected_total_cost = expected_tuborg_cost + expected_ice_cost
 
         self.assertEqual(account_charge, expected_total_cost)
+
+
+class ApiDocsTest(APITestCase):
+    def test__redoc_page__renders(self):
+        response = self.client.get(reverse("api:schema-redoc"))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("redoc", response.content.decode().lower())
+
+    def test__openapi_schema__lists_the_api(self):
+        response = self.client.get(reverse("api:schema-redoc"), {"format": "openapi"})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        schema = json.loads(response.content)
+        self.assertEqual(schema["info"]["title"], "KSG X-API")
+        self.assertIn("/economy/charge", " ".join(schema["paths"]))
