@@ -13,7 +13,10 @@ from PIL import Image
 from admissions.consts import AdmissionStatus
 from admissions.schema import PatchApplicantMutation
 from admissions.tests.factories import AdmissionFactory, ApplicantFactory
-from admissions.utils import copy_applicant_image_to_user, delete_applicant_images
+from admissions.utils import (
+    copy_applicant_image_to_user,
+    delete_applicant_images,
+)
 from common.util import validate_image_upload
 from users.schema import PatchUserMutation
 from users.tests.factories import UserFactory
@@ -205,3 +208,4 @@ class TestDeleteClosedAdmissionImagesCommand(MediaRootTestCase):
         self.assertFalse(default_storage.exists(self.orphan))
         self.assertTrue(default_storage.exists(self.shared.image.name))
         self.assertTrue(default_storage.exists(self.active.image.name))
+

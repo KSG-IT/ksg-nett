@@ -766,7 +766,8 @@ def read_admission_csv(file):
 def obfuscate_admission(admission):
     """
     Obfuscates all applications for a given admission process. Meaning removing any identifying information.
-    Randomizes name, phone number and email. Other details we can use to track statistics.
+    Randomizes name, phone number and email, and removes the date of birth.
+    Other details we can use to track statistics.
     """
     # Lazy load it due to circular import issues
     from admissions.tests.factories import ApplicantFactory
@@ -780,6 +781,7 @@ def obfuscate_admission(admission):
         applicant.address = fake_data.address[:20]
         applicant.hometown = fake_data.hometown[:20]
         applicant.phone = fake_data.phone[:10]
+        applicant.date_of_birth = None
         applicant.save()
 
 

@@ -192,6 +192,13 @@ class TestObfuscateAdmission(TestCase):
             admission=self.admission,
         )
 
+    def test__obfuscate_admission__removes_date_of_birth(self):
+        self.alex.date_of_birth = datetime.date(2000, 1, 1)
+        self.alex.save()
+        obfuscate_admission(self.admission)
+        self.alex.refresh_from_db()
+        self.assertIsNone(self.alex.date_of_birth)
+
     def test__obfuscate_admission__changes__identifying_information(self):
         obfuscate_admission(self.admission)
         self.alex.refresh_from_db()
@@ -257,3 +264,4 @@ class TestCloseAdmission(TestCase):
         self,
     ):
         pass
+
