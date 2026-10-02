@@ -1,4 +1,7 @@
-from django.test import TestCase
+import tempfile
+
+from django.core import mail
+from django.test import TestCase, override_settings
 
 from bar_tab.models import (
     BarTab,
@@ -7,11 +10,16 @@ from bar_tab.models import (
     BarTabOrder,
     BarTabProduct,
 )
-from bar_tab.utils import INVOICE_LOGO_PATH, create_pdf_file
+from bar_tab.utils import (
+    INVOICE_LOGO_PATH,
+    create_pdf_file,
+    create_pdfs_from_invoices,
+    send_invoice_email,
+)
 from users.tests.factories import UserFactory
 
 
-class TestCreatePdfFile(TestCase):
+class InvoiceTestCase(TestCase):
     def setUp(self) -> None:
         user = UserFactory.create()
         self.customer = BarTabCustomer.objects.create(
@@ -46,6 +54,8 @@ class TestCreatePdfFile(TestCase):
             amount=200,
         )
 
+
+class TestCreatePdfFile(InvoiceTestCase):
     def test__create_pdf_file__returns_pdf(self):
         file = create_pdf_file(self.invoice)
         file.seek(0)
@@ -64,3 +74,19 @@ class TestCreatePdfFile(TestCase):
 
     def test__invoice_logo__exists(self):
         self.assertTrue(INVOICE_LOGO_PATH.is_file())
+
+
+class TestSendInvoiceEmail(InvoiceTestCase):
+    @override_settings(MEDIA_ROOT=tempfile.mkdtemp())
+    def test__send_invoice_email__sends_pdf_with_valid_reply_to(self):
+        user = UserFactory.create()
+        create_pdfs_from_invoices([self.invoice])
+
+        send_invoice_email(self.invoice, user)
+
+        self.assertEqual(1, len(mail.outbox))
+        email = mail.outbox[0]
+        self.assertEqual(["ksg-soci-okonomi@samfundet.no"], email.reply_to)
+        self.assertEqual([self.customer.email], email.to)
+        self.assertEqual([user.email], email.cc)
+        self.assertEqual(1, len(email.attachments))
