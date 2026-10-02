@@ -433,11 +433,6 @@ class ProductOrderQuery(graphene.ObjectType):
 
 class SociSessionQuery(graphene.ObjectType):
     soci_session = Node.Field(SociSessionNode)
-    all_soci_sessions = DjangoConnectionField(SociSessionNode)
-
-    def resolve_all_soci_sessions(self, info, *args, **kwargs):
-        SociSession.objects.all().delete()
-        return SociSession.objects.all().order_by("created_at")
 
 
 class SociBankAccountQuery(graphene.ObjectType):
