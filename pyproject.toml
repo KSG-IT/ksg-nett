@@ -29,7 +29,6 @@ openpyxl = "^3.0.10"
 icalendar = "^5.0.1"
 bleach = "^5.0.1"
 stripe = "^5.1.1"
-scipy = "^1.14"
 qrcode = {extras = ["pil"], version = "^7.4.2"}
 cryptography = "^41.0.4"
 drf-yasg = "^1.21.7"

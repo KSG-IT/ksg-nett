@@ -1,8 +1,7 @@
 from zoneinfo import ZoneInfo
 from django.db import models
 from django.utils.translation import gettext_lazy as _
-from scipy.sparse import csr_matrix
-from scipy.sparse.csgraph import maximum_bipartite_matching
+from schedules.utils.matching import maximum_bipartite_matching
 
 from organization.models import (
     InternalGroup,
@@ -131,8 +130,11 @@ class Schedule(models.Model):
                     ):
                         data[interest.user_id][j + offset] = 1
 
-        graph = csr_matrix(list(data.values()))
-        result = maximum_bipartite_matching(graph, perm_type="row")
+        adjacency = [
+            [slot for slot, can_fill in enumerate(row) if can_fill]
+            for row in data.values()
+        ]
+        result = maximum_bipartite_matching(adjacency, SLOTS_AVAILABLE)
         users = list(data.keys())
         slots = shifts_to_fill.values_list("slots")
         for i, match in enumerate(result):
