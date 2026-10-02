@@ -126,6 +126,51 @@ class TestProductOrdersByItemAndDateListQuery(TestCase):
         executed = self.execute(UserFactory.create())
         self.assertIn("errors", executed)
 
+    def grouped(self, granularity, date_from="2026-08-25", date_to="2026-09-10"):
+        executed = self.graphql_client.execute(
+            """
+            query Stats($ids: [ID!]!, $from: Date, $to: Date!, $g: SalesGranularity) {
+              productOrdersByItemAndDateList(
+                productIds: $ids, dateFrom: $from, dateTo: $to, granularity: $g
+              ) { total quantity average data { day sum } }
+            }
+            """,
+            variables={
+                "ids": [Node.to_global_id("SociProductNode", self.beer.pk)],
+                "from": date_from,
+                "to": date_to,
+                "g": granularity,
+            },
+            context=Dict(user=self.user),
+        )
+        self.assertNotIn("errors", executed)
+        return executed["data"]["productOrdersByItemAndDateList"][0]
+
+    def test__month_granularity__sums_per_month(self):
+        beer = self.grouped("MONTH")
+        self.assertEqual(
+            [(day["day"], day["sum"]) for day in beer["data"]],
+            [("2026-08-01", 0), ("2026-09-01", 170)],
+        )
+        self.assertEqual(beer["total"], 170)
+        self.assertEqual(beer["quantity"], 5)
+        # Still per day with sales: 3 days
+        self.assertEqual(beer["average"], round(170 / 3, 2))
+
+    def test__week_granularity__starts_on_monday(self):
+        beer = self.grouped("WEEK", date_from="2026-09-01", date_to="2026-09-07")
+        # 2026-09-01 is a Tuesday, 2026-09-07 a Monday. The week from
+        # 2026-08-31 has the sales on 09-01, 09-03 and 09-06.
+        self.assertEqual(
+            [(day["day"], day["sum"]) for day in beer["data"]],
+            [("2026-08-31", 170), ("2026-09-07", 0)],
+        )
+
+    def test__without_date_from__starts_at_the_first_sale(self):
+        beer = self.grouped("DAY", date_from=None, date_to="2026-09-03")
+        self.assertEqual(beer["data"][0]["day"], "2026-09-01")
+        self.assertEqual(len(beer["data"]), 3)
+
     def test__all_product_orders_without_permission__returns_error(self):
         executed = self.graphql_client.execute(
             "{ allProductOrders { edges { node { id } } } }",

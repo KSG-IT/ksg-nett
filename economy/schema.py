@@ -354,54 +354,97 @@ class DepositQuery(graphene.ObjectType):
         return ongoing_deposit_intent
 
 
-def product_sales_by_day(product_ids, date_from, date_to):
+class SalesGranularity(graphene.Enum):
+    DAY = "day"
+    WEEK = "week"
+    MONTH = "month"
+
+
+def period_start(day, granularity):
+    """The first day of the day, ISO week or month that day is in."""
+    if granularity == SalesGranularity.WEEK.value:
+        return day - datetime.timedelta(days=day.weekday())
+    if granularity == SalesGranularity.MONTH.value:
+        return day.replace(day=1)
+    return day
+
+
+def next_period(day, granularity):
+    if granularity == SalesGranularity.WEEK.value:
+        return day + datetime.timedelta(weeks=1)
+    if granularity == SalesGranularity.MONTH.value:
+        return (day.replace(day=28) + datetime.timedelta(days=4)).replace(day=1)
+    return day + datetime.timedelta(days=1)
+
+
+def product_sales_by_period(
+    product_ids, date_from, date_to, granularity=SalesGranularity.DAY.value
+):
     """
-    Sales per product and day between date_from and date_to, both included.
-    Days without sales are in the list with sum 0, so charts get a full axis.
-    quantity counts the items sold. average is the revenue per day with sales.
+    Sales per product and period between date_from and date_to, both
+    included. A period is a day, an ISO week (from Monday) or a month, and is
+    named by its first day. Periods without sales are in the list with sum 0,
+    so charts get a full axis. Without date_from, the range starts at the
+    first sale of the products. quantity counts the items sold. average is
+    the revenue per day with sales.
     """
+    # Graphene passes an enum member, Python callers pass the value
+    granularity = getattr(granularity, "value", granularity)
     ids = [int(disambiguate_id(product_id)) for product_id in product_ids]
     products = SociProduct.objects.in_bulk(ids)
+    orders = ProductOrder.objects.filter(product_id__in=ids)
+
+    if date_from is None:
+        first = orders.order_by("purchased_at").values_list("purchased_at", flat=True)
+        first = first.first()
+        date_from = timezone.localtime(first).date() if first else date_to
+
     start = timezone.make_aware(datetime.datetime.combine(date_from, datetime.time.min))
     end = timezone.make_aware(datetime.datetime.combine(date_to, datetime.time.max))
 
+    # Group by day in the database. There are few days with sales, so the
+    # weeks and months are summed here.
     rows = (
-        ProductOrder.objects.filter(
-            product_id__in=ids, purchased_at__range=(start, end)
-        )
+        orders.filter(purchased_at__range=(start, end))
         .annotate(date=TruncDate("purchased_at"))
         .values("product_id", "date")
         .annotate(revenue=Sum("cost"), items=Sum("order_size"))
     )
     by_product = {}
     for row in rows:
-        by_product.setdefault(row["product_id"], {})[row["date"]] = row
+        product_sales = by_product.setdefault(
+            row["product_id"], {"days": set(), "items": 0, "periods": {}}
+        )
+        product_sales["days"].add(row["date"])
+        product_sales["items"] += row["items"]
+        period = period_start(row["date"], granularity)
+        product_sales["periods"][period] = (
+            product_sales["periods"].get(period, 0) + row["revenue"]
+        )
 
-    days = [
-        date_from + datetime.timedelta(days=offset)
-        for offset in range((date_to - date_from).days + 1)
-    ]
+    periods = []
+    period = period_start(date_from, granularity)
+    while period <= date_to:
+        periods.append(period)
+        period = next_period(period, granularity)
 
     result = []
     for product_id in ids:
         product = products.get(product_id)
         if product is None:
             continue
-        sales = by_product.get(product_id, {})
-        total = sum(row["revenue"] for row in sales.values())
+        sales = by_product.get(product_id, {"days": set(), "items": 0, "periods": {}})
+        total = sum(sales["periods"].values())
         result.append(
             TotalExpenditureItem(
                 product_id=to_global_id("SociProductNode", product_id),
                 name=product.name,
                 total=total,
-                quantity=sum(row["items"] for row in sales.values()),
-                average=round(total / len(sales), 2) if sales else 0,
+                quantity=sales["items"],
+                average=round(total / len(sales["days"]), 2) if sales["days"] else 0,
                 data=[
-                    ExpenditureDay(
-                        day=day,
-                        sum=sales[day]["revenue"] if day in sales else 0,
-                    )
-                    for day in days
+                    ExpenditureDay(day=period, sum=sales["periods"].get(period, 0))
+                    for period in periods
                 ],
             )
         )
@@ -414,14 +457,16 @@ class ProductOrderQuery(graphene.ObjectType):
     product_orders_by_item_and_date = graphene.Field(
         TotalExpenditureItem,
         product_id=graphene.ID(required=True),
-        date_from=graphene.Date(required=True),
+        date_from=graphene.Date(),
         date_to=graphene.Date(required=True),
+        granularity=SalesGranularity(default_value=SalesGranularity.DAY.value),
     )
     product_orders_by_item_and_date_list = graphene.List(
         TotalExpenditureItem,
         product_ids=graphene.List(graphene.NonNull(graphene.ID), required=True),
-        date_from=graphene.Date(required=True),
+        date_from=graphene.Date(),
         date_to=graphene.Date(required=True),
+        granularity=SalesGranularity(default_value=SalesGranularity.DAY.value),
     )
 
     @gql_has_permissions("economy.view_productorder")
@@ -430,16 +475,30 @@ class ProductOrderQuery(graphene.ObjectType):
 
     @gql_has_permissions("economy.view_productorder")
     def resolve_product_orders_by_item_and_date(
-        self, info, product_id, date_from, date_to, *args, **kwargs
+        self,
+        info,
+        product_id,
+        date_to,
+        date_from=None,
+        granularity=SalesGranularity.DAY.value,
+        *args,
+        **kwargs,
     ):
-        sales = product_sales_by_day([product_id], date_from, date_to)
+        sales = product_sales_by_period([product_id], date_from, date_to, granularity)
         return sales[0] if sales else None
 
     @gql_has_permissions("economy.view_productorder")
     def resolve_product_orders_by_item_and_date_list(
-        self, info, product_ids, date_from, date_to, *args, **kwargs
+        self,
+        info,
+        product_ids,
+        date_to,
+        date_from=None,
+        granularity=SalesGranularity.DAY.value,
+        *args,
+        **kwargs,
     ):
-        return product_sales_by_day(product_ids, date_from, date_to)
+        return product_sales_by_period(product_ids, date_from, date_to, granularity)
 
 
 class SociSessionQuery(graphene.ObjectType):
