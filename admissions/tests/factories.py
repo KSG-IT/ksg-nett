@@ -1,4 +1,3 @@
-import pytz
 import factory
 import factory.fuzzy
 from django.utils import timezone

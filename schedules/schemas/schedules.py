@@ -1,5 +1,5 @@
 import graphene
-import pytz
+from zoneinfo import ZoneInfo
 from django.db import transaction
 from graphene import Node
 from graphene_django import DjangoObjectType
@@ -140,7 +140,7 @@ class ScheduleQuery(graphene.ObjectType):
             month=monday.month,
             day=monday.day,
         )
-        monday = timezone.make_aware(monday, timezone=pytz.timezone(settings.TIME_ZONE))
+        monday = timezone.make_aware(monday, timezone=ZoneInfo(settings.TIME_ZONE))
         sunday = monday + timezone.timedelta(days=6, hours=23, minutes=59, seconds=59)
 
         filtered_shifts = Shift.objects.filter(
@@ -310,7 +310,7 @@ class ShiftQuery(graphene.ObjectType):
             0,
             0,
             0,
-            tzinfo=pytz.timezone(settings.TIME_ZONE),
+            tzinfo=ZoneInfo(settings.TIME_ZONE),
         )
         datetime_to = timezone.datetime(
             date.year,
@@ -319,7 +319,7 @@ class ShiftQuery(graphene.ObjectType):
             23,
             59,
             59,
-            tzinfo=pytz.timezone(settings.TIME_ZONE),
+            tzinfo=ZoneInfo(settings.TIME_ZONE),
         )
         return Shift.objects.filter(
             datetime_start__gt=datetime_from, datetime_start__lt=datetime_to
@@ -334,7 +334,7 @@ class ShiftQuery(graphene.ObjectType):
             0,
             0,
             0,
-            tzinfo=pytz.timezone(settings.TIME_ZONE),
+            tzinfo=ZoneInfo(settings.TIME_ZONE),
         )
         datetime_to = timezone.datetime(
             date.year,
@@ -343,7 +343,7 @@ class ShiftQuery(graphene.ObjectType):
             23,
             59,
             59,
-            tzinfo=pytz.timezone(settings.TIME_ZONE),
+            tzinfo=ZoneInfo(settings.TIME_ZONE),
         )
         return User.objects.filter(
             filled_shifts__shift__datetime_start__gt=datetime_from,

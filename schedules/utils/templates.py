@@ -1,8 +1,7 @@
 import datetime
-import pytz
+from zoneinfo import ZoneInfo
 from django.conf import settings
 from django.utils import timezone
-from pytz.exceptions import AmbiguousTimeError
 
 from schedules.models import ShiftTemplate, Shift, ShiftSlot, ScheduleTemplate
 
@@ -21,7 +20,7 @@ def apply_shift_template(shift_template: ShiftTemplate, monday_of_week: datetime
         hour=0,
         minute=0,
         second=0,
-        tzinfo=pytz.timezone(settings.TIME_ZONE),
+        tzinfo=ZoneInfo(settings.TIME_ZONE),
     )
     datetime_start, datetime_end = shift_template_timestamps_to_datetime(
         shift_date, shift_template
@@ -74,7 +73,7 @@ def apply_schedule_template(
             hour=0,
             minute=0,
             second=0,
-            tzinfo=pytz.timezone(settings.TIME_ZONE),
+            tzinfo=ZoneInfo(settings.TIME_ZONE),
         )
         Shift.objects.filter(
             datetime_start__gte=aware, generated_from=template
@@ -110,7 +109,7 @@ def shift_template_timestamps_to_datetime(
             minute=time_start.minute,
             second=0,
         ),
-        timezone=pytz.timezone("Europe/Belgrade"),
+        timezone=ZoneInfo("Europe/Belgrade"),
     )
     if time_end < time_start:
         # Shift happens over midnight. We combine the next day with this time
@@ -176,22 +175,15 @@ def shift_template_timestamps_to_datetime(
     This day is daylight savings where the mutation just returns null with an error returning
     the timestamp 2022 30th october 2022 02:00:00 
     Daylight savings is night to 30th -> 29th is a saturday meaning the shift in bargjengen goes over midnight
-    raise AmbiguousTimeError(dt)
+    pytz raised AmbiguousTimeError(dt) for this time:
         graphql.error.located_error.GraphQLLocatedError: 2022-10-30 02:00:00
     """
-    try:
-        datetime_end = timezone.make_aware(
-            datetime_end,
-            timezone=pytz.timezone(settings.TIME_ZONE),  # is_dst=False
-        )
-    except AmbiguousTimeError:
-        # Check if we need some custom logic for what the 'is_dst' flag should be
-        #
-        datetime_end = timezone.make_aware(
-            datetime_end,
-            timezone=pytz.timezone(settings.TIME_ZONE),
-            is_dst=False,
-        )
+    # When daylight saving time ends, 02:00-03:00 happens two times. fold=1
+    # picks the second time (standard time), the same as is_dst=False did with
+    # pytz. fold has no effect on other times.
+    datetime_end = timezone.make_aware(
+        datetime_end.replace(fold=1), timezone=ZoneInfo(settings.TIME_ZONE)
+    )
 
     return datetime_start, datetime_end
 

@@ -1,5 +1,11 @@
 from django.test import TestCase
-from common.util import compress_image
+import datetime
+
+from common.util import (
+    compress_image,
+    date_time_combiner,
+    midnight_timestamps_from_date,
+)
 from PIL import Image
 from django.core.files.base import File
 import random
@@ -55,3 +61,18 @@ class TestBleachAllowedTags(TestCase):
             bleach.clean('<u onclick="x()">u</u>', tags=BLEACH_ALLOWED_TAGS),
             "<u>u</u>",
         )
+
+
+class TestLocalTimeHelpers(TestCase):
+    def test__date_time_combiner__uses_local_offset(self):
+        winter = date_time_combiner(datetime.date(2026, 1, 15), datetime.time(12, 0))
+        summer = date_time_combiner(datetime.date(2026, 7, 15), datetime.time(12, 0))
+        self.assertEqual(winter.utcoffset(), datetime.timedelta(hours=1))
+        self.assertEqual(summer.utcoffset(), datetime.timedelta(hours=2))
+        self.assertEqual((winter.hour, winter.minute), (12, 0))
+
+    def test__midnight_timestamps_from_date__spans_the_local_day(self):
+        early, late = midnight_timestamps_from_date(datetime.date(2026, 7, 15))
+        self.assertEqual(early.utcoffset(), datetime.timedelta(hours=2))
+        self.assertEqual((early.hour, early.minute), (0, 0))
+        self.assertEqual((late.hour, late.minute, late.second), (23, 59, 59))

@@ -1,4 +1,4 @@
-import pytz
+from zoneinfo import ZoneInfo
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 from scipy.sparse import csr_matrix
@@ -65,7 +65,7 @@ class Schedule(models.Model):
             month=monday.month,
             day=monday.day,
         )
-        monday = timezone.make_aware(monday, timezone=pytz.timezone(settings.TIME_ZONE))
+        monday = timezone.make_aware(monday, timezone=ZoneInfo(settings.TIME_ZONE))
         sunday = (
             monday
             + timezone.timedelta(days=6, hours=23, minutes=59, seconds=59)

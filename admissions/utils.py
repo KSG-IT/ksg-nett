@@ -3,7 +3,7 @@ import os
 import uuid
 from typing import List
 
-import pytz
+from zoneinfo import ZoneInfo
 from django.utils import timezone
 from django.db import transaction
 from django.db.models import Prefetch
@@ -151,7 +151,7 @@ def generate_interviews_from_schedule(schedule):
             minute=default_interview_day_start.minute,
             second=0,
         ),
-        timezone=pytz.timezone(settings.TIME_ZONE),
+        timezone=ZoneInfo(settings.TIME_ZONE),
     )
     datetime_interview_period_end = timezone.make_aware(
         timezone.datetime(
@@ -162,7 +162,7 @@ def generate_interviews_from_schedule(schedule):
             minute=default_interview_day_end.minute,
             second=0,
         ),
-        timezone=pytz.timezone(settings.TIME_ZONE),
+        timezone=ZoneInfo(settings.TIME_ZONE),
     )
 
     # Lazy load models due to circular import errors
@@ -431,7 +431,7 @@ def notify_interviewers_applicant_has_been_moved_to_another_interview_email(
     interviewers_emails: List[str] = None,
 ):
     local_time = timezone.localtime(
-        interview_datetime_start, pytz.timezone(settings.TIME_ZONE)
+        interview_datetime_start, ZoneInfo(settings.TIME_ZONE)
     )
     formatted_local_time = local_time.strftime("%d.%m.%Y kl. %H:%M")
     content = (
@@ -492,7 +492,7 @@ def notify_interviewers_applicant_has_been_moved_to_another_interview_email(
 
 def notify_interviewers_cancelled_interview_email(applicant, interview):
     local_time = timezone.localtime(
-        interview.interview_start, pytz.timezone(settings.TIME_ZONE)
+        interview.interview_start, ZoneInfo(settings.TIME_ZONE)
     )
     name = applicant.get_full_name
     interview_location = interview.location.name
@@ -557,7 +557,7 @@ def notify_interviewers_applicant_has_been_removed_from_interview_email(
     applicant, interview
 ):
     local_time = timezone.localtime(
-        interview.interview_start, pytz.timezone(settings.TIME_ZONE)
+        interview.interview_start, ZoneInfo(settings.TIME_ZONE)
     )
     name = applicant.get_full_name
     interview_location = interview.location.name
@@ -622,7 +622,7 @@ def send_interview_confirmation_email(interview):
     applicant = interview.applicant
 
     local_time = timezone.localtime(
-        interview.interview_start, pytz.timezone(settings.TIME_ZONE)
+        interview.interview_start, ZoneInfo(settings.TIME_ZONE)
     )
     name = applicant.get_full_name
     interview_location = interview.location.name
@@ -1211,7 +1211,7 @@ def interview_overview_parser(interviews):
                 applicant_id = to_global_id("ApplicantNode", interview.applicant.id)
 
             local_time = timezone.localtime(
-                interview.interview_start, pytz.timezone(settings.TIME_ZONE)
+                interview.interview_start, ZoneInfo(settings.TIME_ZONE)
             )
 
             minute = str(local_time.minute)

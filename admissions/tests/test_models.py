@@ -1,4 +1,4 @@
-import pytz
+from zoneinfo import ZoneInfo
 from django.test import TestCase
 from django.conf import settings
 from admissions.models import (
@@ -20,7 +20,7 @@ class TestInterviewModel(TestCase):
                 minute=0,
                 second=0,
             ),
-            timezone=pytz.timezone(settings.TIME_ZONE),
+            timezone=ZoneInfo(settings.TIME_ZONE),
         )
         self.interview_location = InterviewLocation.objects.create(name="Knaus")
         Interview.objects.create(
