@@ -1,4 +1,6 @@
 import math
+import os
+import uuid
 from typing import List
 
 import pytz
@@ -12,8 +14,10 @@ from django.utils.translation import gettext_lazy as _
 from django.conf import settings
 from django.apps import apps
 
+from django.core.files.base import ContentFile
 from common.util import (
     date_time_combiner,
+    delete_unused_media_file,
     get_date_from_datetime,
     parse_datetime_to_midnight,
     validate_qs,
@@ -762,7 +766,8 @@ def read_admission_csv(file):
 def obfuscate_admission(admission):
     """
     Obfuscates all applications for a given admission process. Meaning removing any identifying information.
-    Randomizes name, phone number and email. Other details we can use to track statistics.
+    Randomizes name, phone number and email, and removes the date of birth.
+    Other details we can use to track statistics.
     """
     # Lazy load it due to circular import issues
     from admissions.tests.factories import ApplicantFactory
@@ -776,7 +781,30 @@ def obfuscate_admission(admission):
         applicant.address = fake_data.address[:20]
         applicant.hometown = fake_data.hometown[:20]
         applicant.phone = fake_data.phone[:10]
+        applicant.date_of_birth = None
         applicant.save()
+
+
+def copy_applicant_image_to_user(applicant: Applicant, user: User):
+    """
+    Copies the applicant image to a new file for the user, so the applicant
+    images can be deleted when the admission closes.
+    """
+    if not applicant.image:
+        return
+    extension = os.path.splitext(applicant.image.name)[1]
+    with applicant.image.open("rb") as image:
+        user.profile_image.save(
+            f"{uuid.uuid4().hex}{extension}", ContentFile(image.read()), save=True
+        )
+
+
+def delete_applicant_images(admission):
+    """Deletes the image files of all applicants in the admission"""
+    applicants = admission.applicants.exclude(image__isnull=True).exclude(image="")
+    for name in applicants.values_list("image", flat=True):
+        delete_unused_media_file(name)
+    applicants.update(image=None)
 
 
 def group_interviews_by_date(interviews):

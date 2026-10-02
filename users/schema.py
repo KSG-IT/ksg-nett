@@ -19,7 +19,11 @@ from admissions.models import Admission
 from common.decorators import gql_has_permissions, gql_login_required
 from quotes.schema import QuoteNode
 from users.models import KnightHood, User, UserType, UserTypeLogEntry, Allergy
-from common.util import get_semester_year_shorthand
+from common.util import (
+    get_semester_year_shorthand,
+    random_image_name,
+    validate_image_upload,
+)
 from django.db.models.functions import Concat
 from economy.utils import parse_transaction_history
 from economy.schema import BankAccountActivity
@@ -414,6 +418,14 @@ class PatchUserMutation(DjangoPatchMutation):
         model = User
         exclude_fields = ("password", "about_me")
         permissions = ("users.change_user",)
+
+    @staticmethod
+    def handle_profile_image(profile_image, name, info):
+        if not profile_image:
+            return profile_image
+        image_format = validate_image_upload(profile_image)
+        profile_image.name = random_image_name(image_format)
+        return profile_image
 
     @staticmethod
     def handle_first_name(first_name: str, name, info):
