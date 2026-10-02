@@ -38,7 +38,6 @@ def health_check(request):
 
 urlpatterns = [
     # Website
-    path("", include("common.urls")),
     path("health-check", health_check),
     path("external/", include("external.urls")),
     path("users/", include("users.urls")),
