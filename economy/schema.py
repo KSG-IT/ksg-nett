@@ -152,23 +152,58 @@ class DepositNode(DjangoObjectType):
         return Deposit.objects.get(pk=id)
 
 
+def can_view_bank_account(info, account: SociBankAccount) -> bool:
+    """The owner, or a user with economy.view_socibankaccount."""
+    user = getattr(info.context, "user", None)
+    if user is None or not user.is_authenticated:
+        return False
+    return account.user_id == user.id or user.has_perm("economy.view_socibankaccount")
+
+
 class SociBankAccountNode(DjangoObjectType):
     class Meta:
         model = SociBankAccount
         interfaces = (Node,)
+        # Only myExternalChargeQrCodeUrl uses the secret, for the own account
+        exclude = ("external_charge_secret",)
 
     deposits = graphene.NonNull(graphene.List(graphene.NonNull(DepositNode)))
     last_deposits = graphene.NonNull(graphene.List(graphene.NonNull(DepositNode)))
 
+    def resolve_card_uuid(self: SociBankAccount, info, **kwargs):
+        return self.card_uuid if can_view_bank_account(info, self) else None
+
+    def resolve_product_orders(self: SociBankAccount, info, **kwargs):
+        if not can_view_bank_account(info, self):
+            return self.product_orders.none()
+        return self.product_orders.all()
+
+    def resolve_source_transfers(self: SociBankAccount, info, **kwargs):
+        if not can_view_bank_account(info, self):
+            return self.source_transfers.none()
+        return self.source_transfers.all()
+
+    def resolve_destination_transfers(self: SociBankAccount, info, **kwargs):
+        if not can_view_bank_account(info, self):
+            return self.destination_transfers.none()
+        return self.destination_transfers.all()
+
     def resolve_deposits(self: SociBankAccount, info, **kwargs):
+        if not can_view_bank_account(info, self):
+            return []
         return self.deposits.all().order_by("-created_at")
 
     def resolve_last_deposits(self: SociBankAccount, info, **kwargs):
+        if not can_view_bank_account(info, self):
+            return []
         return self.deposits.all().order_by("-created_at")[:10]
 
     @classmethod
     def get_node(cls, info, id):
-        return SociBankAccount.objects.get(pk=id)
+        account = SociBankAccount.objects.filter(pk=id).first()
+        if account is None or not can_view_bank_account(info, account):
+            return None
+        return account
 
 
 class ProductOrderNode(DjangoObjectType):
@@ -561,6 +596,7 @@ class SociBankAccountQuery(graphene.ObjectType):
             return None
         return info.context.user.bank_account
 
+    @gql_has_permissions("economy.view_socibankaccount")
     def resolve_all_soci_bank_accounts(self, info, *args, **kwargs):
         return SociBankAccount.objects.all()
 

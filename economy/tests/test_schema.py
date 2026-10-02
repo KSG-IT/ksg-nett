@@ -302,3 +302,74 @@ class TestMyPurchasesQueries(TestCase):
         ):
             executed = self.execute(query, user=AnonymousUser())
             self.assertIn("errors", executed)
+
+
+class TestBankAccountFieldAccess(TestCase):
+    def setUp(self) -> None:
+        from economy.tests.factories import SociBankAccountFactory
+
+        self.graphql_client = Client(schema)
+        self.owner = UserFactory.create()
+        self.account = SociBankAccountFactory.create(
+            user=self.owner, card_uuid="1234567890"
+        )
+        self.account.regenerate_external_charge_secret()
+        ProductOrderFactory.create(source=self.account)
+        self.other = UserFactory.create()
+        SociBankAccountFactory.create(user=self.other)
+        self.admin = UserWithPermissionsFactory.create(
+            permissions="economy.view_socibankaccount"
+        )
+
+    def execute(self, query, user, variables=None):
+        return self.graphql_client.execute(
+            query, variables=variables or {}, context=Dict(user=user)
+        )
+
+    def account_of_owner(self, user):
+        executed = self.execute(
+            """
+            query($id: ID!) {
+              user(id: $id) {
+                bankAccount { cardUuid productOrders { edges { node { id } } } }
+              }
+            }
+            """,
+            user,
+            {"id": Node.to_global_id("UserNode", self.owner.pk)},
+        )
+        self.assertNotIn("errors", executed)
+        return executed["data"]["user"]["bankAccount"]
+
+    def test__external_charge_secret__is_not_in_the_schema(self):
+        executed = self.execute(
+            "{ myBankAccount { externalChargeSecret } }", self.owner
+        )
+        self.assertIn("errors", executed)
+
+    def test__other_user__cannot_see_card_or_purchases(self):
+        account = self.account_of_owner(self.other)
+        self.assertIsNone(account["cardUuid"])
+        self.assertEqual(account["productOrders"]["edges"], [])
+
+    def test__owner_and_admin__can_see_card_and_purchases(self):
+        for user in (self.owner, self.admin):
+            account = self.account_of_owner(user)
+            self.assertEqual(account["cardUuid"], "1234567890")
+            self.assertEqual(len(account["productOrders"]["edges"]), 1)
+
+    def test__soci_bank_account_node__only_for_owner_or_admin(self):
+        query = "query($id: ID!) { sociBankAccount(id: $id) { id } }"
+        variables = {"id": Node.to_global_id("SociBankAccountNode", self.account.pk)}
+        self.assertIsNone(
+            self.execute(query, self.other, variables)["data"]["sociBankAccount"]
+        )
+        for user in (self.owner, self.admin):
+            data = self.execute(query, user, variables)["data"]
+            self.assertIsNotNone(data["sociBankAccount"])
+
+    def test__all_soci_bank_accounts__needs_permission(self):
+        query = "{ allSociBankAccounts { edges { node { id } } } }"
+        self.assertIn("errors", self.execute(query, self.other))
+        executed = self.execute(query, self.admin)
+        self.assertNotIn("errors", executed)
