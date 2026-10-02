@@ -62,6 +62,62 @@ class TestBleachAllowedTags(TestCase):
             "<u>u</u>",
         )
 
+    def test__every_allowed_tag__is_kept(self):
+        import bleach
+        from common.consts import BLEACH_ALLOWED_TAGS
+
+        for tag in sorted(BLEACH_ALLOWED_TAGS):
+            with self.subTest(tag=tag):
+                html = f"<{tag}>" if tag in ("br", "hr") else f"<{tag}>x</{tag}>"
+                # The HTML parser drops a <th> outside a <table>, and <table>
+                # is not allowed.
+                expected = "x" if tag == "th" else html
+                self.assertEqual(bleach.clean(html, tags=BLEACH_ALLOWED_TAGS), expected)
+
+    def test__disallowed_tags__are_escaped(self):
+        import bleach
+        from common.consts import BLEACH_ALLOWED_TAGS
+
+        for html in [
+            "<script>alert(1)</script>",
+            '<img src="x" onerror="alert(1)">',
+            '<iframe src="https://example.com"></iframe>',
+        ]:
+            with self.subTest(html=html):
+                cleaned = bleach.clean(html, tags=BLEACH_ALLOWED_TAGS)
+                self.assertNotIn("<", cleaned)
+                self.assertIn("&lt;", cleaned)
+
+    def test__safe_link__is_kept(self):
+        import bleach
+        from common.consts import BLEACH_ALLOWED_TAGS
+
+        html = '<a href="https://ksg-nett.no" title="KSG">KSG</a>'
+        self.assertEqual(bleach.clean(html, tags=BLEACH_ALLOWED_TAGS), html)
+
+    def test__javascript_link__loses_href(self):
+        import bleach
+        from common.consts import BLEACH_ALLOWED_TAGS
+
+        self.assertEqual(
+            bleach.clean(
+                '<a href="javascript:alert(1)">x</a>', tags=BLEACH_ALLOWED_TAGS
+            ),
+            "<a>x</a>",
+        )
+
+    def test__style_and_event_attributes__are_stripped(self):
+        import bleach
+        from common.consts import BLEACH_ALLOWED_TAGS
+
+        self.assertEqual(
+            bleach.clean(
+                '<span style="color: red" onmouseover="x()">s</span>',
+                tags=BLEACH_ALLOWED_TAGS,
+            ),
+            "<span>s</span>",
+        )
+
 
 class TestLocalTimeHelpers(TestCase):
     def test__date_time_combiner__uses_local_offset(self):
