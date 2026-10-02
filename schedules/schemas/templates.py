@@ -1,7 +1,6 @@
 import datetime
 
 import graphene
-import pytz
 from django.db.models import Case, When, Value
 from graphene import Node
 from graphene_django import DjangoObjectType

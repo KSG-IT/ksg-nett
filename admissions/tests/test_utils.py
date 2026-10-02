@@ -1,4 +1,4 @@
-import pytz
+from zoneinfo import ZoneInfo
 from django.conf import settings
 from django.test import TestCase
 
@@ -120,7 +120,7 @@ class TestGetAvailableInterviewLocations(TestCase):
                 now.day,
                 hour=9,
                 minute=00,
-                tzinfo=pytz.timezone(settings.TIME_ZONE),
+                tzinfo=ZoneInfo(settings.TIME_ZONE),
             ),
             datetime_to=timezone.datetime(
                 now.year,
@@ -128,7 +128,7 @@ class TestGetAvailableInterviewLocations(TestCase):
                 now.day,
                 hour=9,
                 minute=45,
-                tzinfo=pytz.timezone(settings.TIME_ZONE),
+                tzinfo=ZoneInfo(settings.TIME_ZONE),
             ),
         )
         self.assertEqual(locations.count(), 0)
@@ -137,11 +137,11 @@ class TestGetAvailableInterviewLocations(TestCase):
         now = timezone.datetime.now()
         datetime_from = timezone.make_aware(
             timezone.datetime(now.year, now.month, now.day, hour=12, minute=00),
-            timezone=pytz.timezone(settings.TIME_ZONE),
+            timezone=ZoneInfo(settings.TIME_ZONE),
         )
         datetime_to = timezone.make_aware(
             timezone.datetime(now.year, now.month, now.day, hour=12, minute=45),
-            timezone=pytz.timezone(settings.TIME_ZONE),
+            timezone=ZoneInfo(settings.TIME_ZONE),
         )
 
         locations = get_available_interview_locations(
@@ -156,7 +156,7 @@ class TestGetAvailableInterviewLocations(TestCase):
             timezone.datetime(
                 tomorrow.year, tomorrow.month, tomorrow.day, hour=12, minute=00
             ),
-            timezone=pytz.timezone(settings.TIME_ZONE),
+            timezone=ZoneInfo(settings.TIME_ZONE),
         )
         tomorrow_datetime_to = timezone.make_aware(
             timezone.datetime(
@@ -166,7 +166,7 @@ class TestGetAvailableInterviewLocations(TestCase):
                 hour=12,
                 minute=45,
             ),
-            timezone=pytz.timezone(settings.TIME_ZONE),
+            timezone=ZoneInfo(settings.TIME_ZONE),
         )
         locations = get_available_interview_locations(
             datetime_from=tomorrow_datetime_from, datetime_to=tomorrow_datetime_to

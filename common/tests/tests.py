@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone as dt_timezone
 from django.template import Template, Context
 from django.test import TestCase
 from django.utils import timezone
@@ -130,9 +130,9 @@ class TestGetSemesterYearShorthandsByDate(TestCase):
         # method itself in the test
         with patch(
             "django.utils.timezone.now",
-            return_value=datetime(2018, 1, 1, tzinfo=timezone.utc),
+            return_value=datetime(2018, 1, 1, tzinfo=dt_timezone.utc),
         ):
-            date = timezone.datetime(2018, 1, 1, tzinfo=timezone.utc)
+            date = timezone.datetime(2018, 1, 1, tzinfo=dt_timezone.utc)
             results = get_semester_year_shorthands_by_date(date)
             self.assertListEqual(results, ["V18"])
 
@@ -141,9 +141,9 @@ class TestGetSemesterYearShorthandsByDate(TestCase):
     ):
         with patch(
             "django.utils.timezone.now",
-            return_value=datetime(2018, 1, 1, tzinfo=timezone.utc),
+            return_value=datetime(2018, 1, 1, tzinfo=dt_timezone.utc),
         ):
-            date = timezone.datetime(2016, 1, 1, tzinfo=timezone.utc)
+            date = timezone.datetime(2016, 1, 1, tzinfo=dt_timezone.utc)
             results = get_semester_year_shorthands_by_date(date)
             self.assertListEqual(results, ["V18", "H17", "V17", "H16", "V16"])
 
@@ -152,9 +152,9 @@ class TestGetSemesterYearShorthandsByDate(TestCase):
     ):
         with patch(
             "django.utils.timezone.now",
-            return_value=datetime(2018, 1, 1, tzinfo=timezone.utc),
+            return_value=datetime(2018, 1, 1, tzinfo=dt_timezone.utc),
         ):
-            date = timezone.datetime(2019, 1, 1, tzinfo=timezone.utc)
+            date = timezone.datetime(2019, 1, 1, tzinfo=dt_timezone.utc)
             results = get_semester_year_shorthands_by_date(date)
             self.assertListEqual(results, [])
 
@@ -163,9 +163,9 @@ class TestGetSemesterYearShorthandsByDate(TestCase):
     ):
         with patch(
             "django.utils.timezone.now",
-            return_value=datetime(2001, 1, 1, tzinfo=timezone.utc),
+            return_value=datetime(2001, 1, 1, tzinfo=dt_timezone.utc),
         ):
-            date = timezone.datetime(1999, 1, 1, tzinfo=timezone.utc)
+            date = timezone.datetime(1999, 1, 1, tzinfo=dt_timezone.utc)
             results = get_semester_year_shorthands_by_date(date)
             self.assertListEqual(results, ["V01", "H00", "V00", "H99", "V99"])
 
@@ -178,7 +178,7 @@ class TestGetSemesterYearShorthandsByCount(TestCase):
         # method itself in the test
         with patch(
             "django.utils.timezone.now",
-            return_value=datetime(2018, 1, 1, tzinfo=timezone.utc),
+            return_value=datetime(2018, 1, 1, tzinfo=dt_timezone.utc),
         ):
             results = get_semester_year_shorthands_by_count(1)
             self.assertListEqual(results, ["V18"])
@@ -188,7 +188,7 @@ class TestGetSemesterYearShorthandsByCount(TestCase):
     ):
         with patch(
             "django.utils.timezone.now",
-            return_value=datetime(2018, 1, 1, tzinfo=timezone.utc),
+            return_value=datetime(2018, 1, 1, tzinfo=dt_timezone.utc),
         ):
             results = get_semester_year_shorthands_by_count(5)
             self.assertListEqual(results, ["V18", "H17", "V17", "H16", "V16"])
@@ -207,7 +207,7 @@ class TestGetSemesterYearShorthandsByCount(TestCase):
 
         with patch(
             "django.utils.timezone.now",
-            return_value=datetime(2001, 1, 1, tzinfo=timezone.utc),
+            return_value=datetime(2001, 1, 1, tzinfo=dt_timezone.utc),
         ):
             results = get_semester_year_shorthands_by_count(5)
             self.assertListEqual(results, ["V01", "H00", "V00", "H99", "V99"])

@@ -6,7 +6,7 @@ from io import BytesIO
 from datetime import datetime, date
 from typing import Union, List, Tuple
 
-import pytz
+from zoneinfo import ZoneInfo
 from PIL import Image, UnidentifiedImageError
 from pydash import strip_tags
 from django.core.mail import EmailMultiAlternatives
@@ -288,7 +288,7 @@ def date_time_combiner(date: datetime.date, time: datetime.time):
             minute=time.minute,
             second=time.second,
         ),
-        timezone=pytz.timezone(settings.TIME_ZONE),
+        timezone=ZoneInfo(settings.TIME_ZONE),
     )
 
 
@@ -341,7 +341,7 @@ def midnight_timestamps_from_date(date):
             minute=0,
             second=0,
         ),
-        timezone=pytz.timezone(settings.TIME_ZONE),
+        timezone=ZoneInfo(settings.TIME_ZONE),
     )
     datetime_late = timezone.make_aware(
         timezone.datetime(
@@ -352,7 +352,7 @@ def midnight_timestamps_from_date(date):
             minute=59,
             second=59,
         ),
-        timezone=pytz.timezone(settings.TIME_ZONE),
+        timezone=ZoneInfo(settings.TIME_ZONE),
     )
     return datetime_early, datetime_late
 

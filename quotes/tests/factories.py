@@ -1,5 +1,5 @@
 import random
-import pytz
+from zoneinfo import ZoneInfo
 from users.tests.factories import UserFactory
 from ksg_nett import settings
 from factory import Faker, SubFactory
@@ -31,7 +31,7 @@ class QuoteFactory(DjangoModelFactory):
         else:
             self.tagged.set(UserFactory.create_batch(2))
 
-    created_at = Faker("past_datetime", tzinfo=pytz.timezone(settings.TIME_ZONE))
+    created_at = Faker("past_datetime", tzinfo=ZoneInfo(settings.TIME_ZONE))
 
 
 class QuoteVoteFactory(DjangoModelFactory):

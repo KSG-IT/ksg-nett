@@ -1,4 +1,4 @@
-import datetime, pytz
+import datetime
 from secrets import token_urlsafe
 
 import bleach
@@ -1102,7 +1102,7 @@ class InterviewQuery(graphene.ObjectType):
 
         # the stored timestamp in the model is in UTC.
         soft_wall_timestamp = admission.booking_soft_wall_timestamp
-        now_tz_aware = timezone.datetime.now().replace(tzinfo=pytz.utc)
+        now_tz_aware = timezone.now()
 
         if (
             booking_soft_wall_enabled

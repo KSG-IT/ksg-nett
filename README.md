@@ -7,7 +7,7 @@ This repository contains the source code for [KSG](https://www.samfundet.no/kafe
 ## Quickstart
 Dependencies are managed with `poetry`. To run the code do the following
 
-1. Make sure you have python 3.8 available on the computer
+1. Make sure you have python 3.11 available on the computer
 2. [install](https://python-poetry.org/docs/#installation) poetry on your computer
 3. [Install](https://doc.courtbouillon.org/weasyprint/stable/first_steps.html#installation) Weasyprint (make sure to follow instructions thoroughly before going on to the next step) 
 4. Clone and Navigate to this folder

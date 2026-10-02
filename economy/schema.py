@@ -2,7 +2,7 @@ import datetime
 
 import graphene
 
-import pytz
+from zoneinfo import ZoneInfo
 from django.conf import settings
 from django.core.exceptions import (
     SuspiciousOperation,
@@ -920,7 +920,7 @@ class SociRankedQuery(graphene.ObjectType):
                 minute=0,
                 second=0,
             ),
-            timezone=pytz.timezone(settings.TIME_ZONE),
+            timezone=ZoneInfo(settings.TIME_ZONE),
         )
 
         season_filter = Q(
@@ -1529,9 +1529,7 @@ class CreateDepositMutation(graphene.Mutation):
     @gql_login_required()
     def mutate(self, info, amount, deposit_method, description, *args, **kwargs):
         # Deposits are only allowed before 20:00 localtime
-        local_time = timezone.localtime(
-            timezone.now(), pytz.timezone(settings.TIME_ZONE)
-        )
+        local_time = timezone.localtime(timezone.now(), ZoneInfo(settings.TIME_ZONE))
 
         time_restrictions = check_feature_flag(
             settings.DEPOSIT_TIME_RESTRICTIONS_FEATURE_FLAG, fail_silently=True
