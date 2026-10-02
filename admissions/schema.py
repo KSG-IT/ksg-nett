@@ -20,6 +20,8 @@ from common.util import (
     date_time_combiner,
     compress_image,
     midnight_timestamps_from_date,
+    random_image_name,
+    validate_image_upload,
 )
 from django.conf import settings
 from django.db.models import Q, Case, When, Value
@@ -30,6 +32,8 @@ from admissions.utils import (
     generate_interviews_from_schedule,
     resend_auth_token_email,
     obfuscate_admission,
+    copy_applicant_image_to_user,
+    delete_applicant_images,
     group_interviews_by_date,
     create_interview_slots,
     internal_group_applicant_data,
@@ -1351,8 +1355,8 @@ class PatchApplicantMutation(DjangoPatchMutation):
     def handle_image(image, name, info):
         if not image:
             return image
-        file_type = image.name.split(".")[-1]
-        return compress_image(image, image.name, file_type)
+        image_format = validate_image_upload(image)
+        return compress_image(image, random_image_name(image_format), image_format)
 
     @classmethod
     def after_mutate(cls, root, info, id, input, obj, return_data):
@@ -1748,6 +1752,8 @@ class CloseAdmissionMutation(graphene.Mutation):
         4. obfuscate identifying applicant information
         5. Delete all applicant comments and interviews
         6. Close the admission
+        7. Delete the applicant images. Admitted applicants have a copy as user
+           profile image.
         """
         # Step 1)
         admission = Admission.get_active_admission()
@@ -1765,7 +1771,6 @@ class CloseAdmissionMutation(graphene.Mutation):
                     first_name=applicant.first_name,
                     last_name=applicant.last_name,
                     email=applicant.email,
-                    profile_image=applicant.image,
                     phone=applicant.phone,
                     start_ksg=datetime.datetime.today(),
                     study_address=applicant.address,
@@ -1774,6 +1779,7 @@ class CloseAdmissionMutation(graphene.Mutation):
                     date_of_birth=applicant.date_of_birth,
                     admission=admission,
                 )
+                copy_applicant_image_to_user(applicant, applicant_user_profile)
 
                 # Step 3)
                 # We give the applicant the internal group position they have been accepted into
@@ -1816,6 +1822,9 @@ class CloseAdmissionMutation(graphene.Mutation):
         admission.closed_at = timezone.now()
         admission.save()
         admitted_applicants.update(will_be_admitted=False)
+
+        # Step 7)
+        delete_applicant_images(admission)
         return CloseAdmissionMutation(failed_user_generation=failed_user_generation)
 
 
