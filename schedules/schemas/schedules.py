@@ -142,6 +142,7 @@ class ScheduleQuery(graphene.ObjectType):
     schedule_allergies_v2 = graphene.Field(UserAlleryData, shifts_from=graphene.Date())
 
 
+    @gql_has_permissions("schedules.change_schedule")
     def resolve_schedule_allergies_v2(self, info, shifts_from, *args, **kwargs):
         monday = shifts_from - timezone.timedelta(days=shifts_from.weekday())
         monday = timezone.datetime(
@@ -175,6 +176,7 @@ class ScheduleQuery(graphene.ObjectType):
 
         return Schedule.objects.all().order_by("name")
 
+    @gql_has_permissions("schedules.change_schedule")
     def resolve_schedule_allergies(self, info, shifts_from, *args, **kwargs):
         monday = shifts_from - timezone.timedelta(days=shifts_from.weekday())
         monday = timezone.datetime(
