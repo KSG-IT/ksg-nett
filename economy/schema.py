@@ -63,6 +63,7 @@ class TotalExpenditure(graphene.ObjectType):
 
 
 class TotalExpenditureItem(graphene.ObjectType):
+    product_id = graphene.ID()
     name = graphene.String()
     total = graphene.Int()
     quantity = graphene.Int()
@@ -353,82 +354,92 @@ class DepositQuery(graphene.ObjectType):
         return ongoing_deposit_intent
 
 
+def product_sales_by_day(product_ids, date_from, date_to):
+    """
+    Sales per product and day between date_from and date_to, both included.
+    Days without sales are in the list with sum 0, so charts get a full axis.
+    quantity counts the items sold. average is the revenue per day with sales.
+    """
+    ids = [int(disambiguate_id(product_id)) for product_id in product_ids]
+    products = SociProduct.objects.in_bulk(ids)
+    start = timezone.make_aware(datetime.datetime.combine(date_from, datetime.time.min))
+    end = timezone.make_aware(datetime.datetime.combine(date_to, datetime.time.max))
+
+    rows = (
+        ProductOrder.objects.filter(
+            product_id__in=ids, purchased_at__range=(start, end)
+        )
+        .annotate(date=TruncDate("purchased_at"))
+        .values("product_id", "date")
+        .annotate(revenue=Sum("cost"), items=Sum("order_size"))
+    )
+    by_product = {}
+    for row in rows:
+        by_product.setdefault(row["product_id"], {})[row["date"]] = row
+
+    days = [
+        date_from + datetime.timedelta(days=offset)
+        for offset in range((date_to - date_from).days + 1)
+    ]
+
+    result = []
+    for product_id in ids:
+        product = products.get(product_id)
+        if product is None:
+            continue
+        sales = by_product.get(product_id, {})
+        total = sum(row["revenue"] for row in sales.values())
+        result.append(
+            TotalExpenditureItem(
+                product_id=to_global_id("SociProductNode", product_id),
+                name=product.name,
+                total=total,
+                quantity=sum(row["items"] for row in sales.values()),
+                average=round(total / len(sales), 2) if sales else 0,
+                data=[
+                    ExpenditureDay(
+                        day=day,
+                        sum=sales[day]["revenue"] if day in sales else 0,
+                    )
+                    for day in days
+                ],
+            )
+        )
+    return result
+
+
 class ProductOrderQuery(graphene.ObjectType):
     product_order = Node.Field(ProductOrderNode)
     all_product_orders = DjangoConnectionField(ProductOrderNode)
     product_orders_by_item_and_date = graphene.Field(
         TotalExpenditureItem,
-        product_id=graphene.ID(),
-        date_from=graphene.Date(),
-        date_to=graphene.Date(),
+        product_id=graphene.ID(required=True),
+        date_from=graphene.Date(required=True),
+        date_to=graphene.Date(required=True),
     )
     product_orders_by_item_and_date_list = graphene.List(
         TotalExpenditureItem,
-        product_ids=graphene.List(graphene.ID),
-        date_from=graphene.Date(),
-        date_to=graphene.Date(),
+        product_ids=graphene.List(graphene.NonNull(graphene.ID), required=True),
+        date_from=graphene.Date(required=True),
+        date_to=graphene.Date(required=True),
     )
 
+    @gql_has_permissions("economy.view_productorder")
     def resolve_all_product_orders(self, info, *args, **kwargs):
         return ProductOrder.objects.all().order_by("-purchased_at")
 
+    @gql_has_permissions("economy.view_productorder")
     def resolve_product_orders_by_item_and_date(
         self, info, product_id, date_from, date_to, *args, **kwargs
     ):
-        soci_item = disambiguate_id(product_id)
+        sales = product_sales_by_day([product_id], date_from, date_to)
+        return sales[0] if sales else None
 
-        date_from = timezone.make_aware(
-            datetime.datetime.combine(date_from, datetime.time.min)
-        )
-        date_to = timezone.make_aware(
-            datetime.datetime.combine(date_to, datetime.time.max)
-        )
-
-        product = SociProduct.objects.get(id=soci_item)
-
-        product_orders = (
-            ProductOrder.objects.filter(
-                product_id=soci_item, purchased_at__range=(date_from, date_to)
-            )
-            .annotate(date=TruncDate("purchased_at"))
-            .values("date")
-            .annotate(sum=Sum("cost"))
-            .order_by("date")
-        )
-        avg = round(getattr(product_orders.aggregate(Avg("sum")), "sum__avg", 0), 2)
-        qty = product_orders.aggregate(sum__qty=Sum("sum") / product.price)["sum__qty"]
-        total_expenditure = product_orders.aggregate(Sum("sum"))["sum__sum"]
-
-        return TotalExpenditureItem(
-            data=[
-                ExpenditureDay(
-                    day=product_order["date"],
-                    sum=product_order["sum"],
-                )
-                for product_order in product_orders
-            ],
-            name=product.name,
-            average=avg,
-            quantity=qty,
-            total=total_expenditure,
-        )
-
+    @gql_has_permissions("economy.view_productorder")
     def resolve_product_orders_by_item_and_date_list(
         self, info, product_ids, date_from, date_to, *args, **kwargs
     ):
-        total_expenditures = []
-        for product_id in product_ids:
-            total_expenditure = (
-                ProductOrderQuery.resolve_product_orders_by_item_and_date(
-                    self,
-                    info,
-                    product_id=product_id,
-                    date_from=date_from,
-                    date_to=date_to,
-                )
-            )
-            total_expenditures.append(total_expenditure)
-        return total_expenditures
+        return product_sales_by_day(product_ids, date_from, date_to)
 
 
 class SociSessionQuery(graphene.ObjectType):
