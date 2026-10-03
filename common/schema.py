@@ -4,9 +4,11 @@ from graphene_django import DjangoObjectType
 from graphene_django_cud.util import disambiguate_id
 
 from admissions.models import Admission
-from common.decorators import gql_has_permissions
+from common.decorators import gql_has_permissions, gql_login_required
+from common.exceptions import IllegalOperation
 from common.models import FeatureFlag
-from common.util import check_feature_flag
+from common.util import check_feature_flag, send_email
+from django.core.cache import cache
 from schedules.schemas.schedules import ShiftSlotNode
 from summaries.schema import SummaryNode
 from summaries.models import Summary
@@ -115,5 +117,62 @@ class ToggleFeatureFlagMutation(graphene.Mutation):
         return ToggleFeatureFlagMutation(feature_flag=feature_flag)
 
 
+FEEDBACK_MAX_LENGTH = 500
+FEEDBACK_PER_HOUR = 5
+
+
+class SendFeedbackMutation(graphene.Mutation):
+    """
+    Sends feedback from the dashboard as an email to settings.FEEDBACK_EMAIL.
+    Without `anonymous`, the email has the name and email of the user, and a
+    Reply-To header, so KSG-IT can answer. The request log still has the user
+    id (common.middleware.RequestLogMiddleware).
+    """
+
+    class Arguments:
+        message = graphene.String(required=True)
+        anonymous = graphene.Boolean(required=True)
+
+    ok = graphene.Boolean()
+
+    @gql_login_required()
+    def mutate(self, info, message, anonymous):
+        user = info.context.user
+        message = message.strip()
+        if not message:
+            raise IllegalOperation("Tilbakemeldingen er tom")
+        if len(message) > FEEDBACK_MAX_LENGTH:
+            raise IllegalOperation(
+                f"Tilbakemeldingen kan ha maks {FEEDBACK_MAX_LENGTH} tegn"
+            )
+
+        # The default cache is per process, so the limit is per uWSGI worker.
+        # It stops a loop or a spammer, not a careful attacker.
+        key = f"feedback:{user.pk}"
+        sent = cache.get(key, 0)
+        if sent >= FEEDBACK_PER_HOUR:
+            raise IllegalOperation(
+                "Du har sendt mange tilbakemeldinger. Prøv igjen senere."
+            )
+
+        if anonymous:
+            sender = "Anonym"
+            reply_to = []
+        else:
+            sender = f"{user.get_full_name()} <{user.email}>"
+            reply_to = [user.email]
+
+        sent_ok = send_email(
+            subject="Tilbakemelding fra KSG-nett",
+            message=f"Fra: {sender}\n\n{message}\n",
+            recipients=[settings.FEEDBACK_EMAIL],
+            reply_to=reply_to,
+            fail_silently=False,
+        )
+        cache.set(key, sent + 1, timeout=60 * 60)
+        return SendFeedbackMutation(ok=bool(sent_ok))
+
+
 class CommonMutations(graphene.ObjectType):
     toggle_feature_flag = ToggleFeatureFlagMutation.Field()
+    send_feedback = SendFeedbackMutation.Field()
