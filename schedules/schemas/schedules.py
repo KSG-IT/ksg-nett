@@ -116,8 +116,8 @@ class ScheduleNode(DjangoObjectType):
     def resolve_shifts_from_range(self: Schedule, info, shifts_from, number_of_weeks):
         return self.shifts_from_range(shifts_from, number_of_weeks)
 
-    # Fields for the schedules overview. Each one is a small query per
-    # schedule; there are only a few schedules.
+    # Fields for the schedules overview, for schedule managers only. Each one
+    # is a small query per schedule; there are only a few schedules.
     planned_until = graphene.DateTime(
         description="Start of the last shift that has not started yet"
     )
@@ -131,6 +131,7 @@ class ScheduleNode(DjangoObjectType):
         description="Locations of shifts from the last weeks on, most used first",
     )
 
+    @gql_has_permissions("schedules.change_schedule")
     def resolve_planned_until(self: Schedule, info):
         return (
             self.shifts.filter(datetime_start__gte=timezone.now())
@@ -138,6 +139,7 @@ class ScheduleNode(DjangoObjectType):
             .get("last")
         )
 
+    @gql_has_permissions("schedules.change_schedule")
     def resolve_upcoming_slots(self: Schedule, info, days):
         now = timezone.now()
         slots = ShiftSlot.objects.filter(
@@ -149,6 +151,7 @@ class ScheduleNode(DjangoObjectType):
             filled=slots.filter(user__isnull=False).count(), total=slots.count()
         )
 
+    @gql_has_permissions("schedules.change_schedule")
     def resolve_recent_locations(self: Schedule, info, weeks):
         since = timezone.now() - timezone.timedelta(weeks=weeks)
         rows = (

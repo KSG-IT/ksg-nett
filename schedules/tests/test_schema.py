@@ -129,8 +129,12 @@ class TestScheduleOverviewFields(TestCase):
         from schedules.models import Shift
         from schedules.tests.factories import ScheduleFactory
 
+        from users.tests.factories import UserWithPermissionsFactory
+
         self.graphql_client = Client(schema)
-        self.user = UserFactory.create()
+        self.user = UserWithPermissionsFactory.create(
+            permissions="schedules.change_schedule"
+        )
         self.schedule = ScheduleFactory.create(name="Edgar")
         self.empty = ScheduleFactory.create(name="Arrangement")
         now = timezone.now()
@@ -162,6 +166,19 @@ class TestScheduleOverviewFields(TestCase):
         executed = self.graphql_client.execute(query, context=Dict(user=self.user))
         self.assertNotIn("errors", executed)
         return Dict(executed).data
+
+    def test__a_member_without_the_permission_gets_no_overview_fields(self):
+        member = UserFactory.create()
+        for field in (
+            "plannedUntil",
+            "upcomingSlots { total }",
+            "recentLocations",
+        ):
+            executed = self.graphql_client.execute(
+                "{ allSchedules { name %s } }" % field,
+                context=Dict(user=member),
+            )
+            self.assertIn("errors", executed, field)
 
     def overview(self):
         data = self.execute("""
