@@ -9,6 +9,7 @@ https://docs.djangoproject.com/en/1.10/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/1.10/ref/settings/
 """
+
 import json
 import os
 from datetime import timedelta
@@ -321,6 +322,9 @@ LANGUAGE_SESSION_KEY = "language"
 VERSION = "2026.10.1"
 
 # Feature flag keys
+# Feedback from the dashboard goes to this address (common.schema.SendFeedbackMutation)
+FEEDBACK_EMAIL = os.environ.get("FEEDBACK_EMAIL", "ksg-it@samfundet.no")
+
 STRIPE_INTEGRATION_FEATURE_FLAG = "stripe_integration"
 BANK_TRANSFER_DEPOSIT_FEATURE_FLAG = "bank_transfer_deposit"
 DEPOSIT_TIME_RESTRICTIONS_FEATURE_FLAG = "deposit_time_restrictions"
