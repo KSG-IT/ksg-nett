@@ -8,7 +8,7 @@ from rest_framework import status
 from rest_framework.test import APITestCase, APIClient
 from rest_framework_simplejwt.tokens import SlidingToken
 
-from economy.models import SociSession
+from economy.models import ProductOrder, SociSession
 from economy.tests.factories import (
     SociProductFactory,
     SociBankAccountFactory,
@@ -401,6 +401,72 @@ class ChargeAccountStockMarketDisabled(APITestCase):
         expected_total_cost = expected_tuborg_cost + expected_ice_cost
 
         self.assertEqual(account_charge, expected_total_cost)
+
+
+class ChargeAccountErrorsTest(APITestCase):
+    """The X-App shows a message for 402 and 424 (xapp-electron ProductScreen)."""
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.client = APIClient()
+
+    def setUp(self):
+        self.account = SociBankAccountFactory(user__is_staff=True)
+        self.account.add_funds(100)
+        self.burger = SociProductFactory.create(
+            name="Burger", sku_number="BURGER", price=80, purchase_price=None
+        )
+        self.client.force_authenticate(self.account.user)
+        self.url = reverse("api:charge")
+        self.session = SociSessionFactory.create()
+
+    def charge(self, order_size, sku=None):
+        return self.client.post(
+            self.url,
+            {
+                "bank_account_id": f"{self.account.id}",
+                "products": [
+                    {"sku": sku or self.burger.sku_number, "order_size": order_size}
+                ],
+            },
+            format="json",
+        )
+
+    def test__insufficient_funds__payment_required_and_nothing_charged(self):
+        response = self.charge(order_size=2)
+
+        self.assertEqual(response.status_code, status.HTTP_402_PAYMENT_REQUIRED)
+        self.assertEqual(response.data, {"message": "Insufficient funds"})
+        self.account.refresh_from_db()
+        self.assertEqual(self.account.balance, 100)
+        self.assertFalse(ProductOrder.objects.exists())
+
+    def test__no_active_session__failed_dependency(self):
+        self.session.closed_at = timezone.now()
+        self.session.save()
+
+        response = self.charge(order_size=1)
+
+        self.assertEqual(response.status_code, status.HTTP_424_FAILED_DEPENDENCY)
+        self.assertEqual(response.data, {"message": "No active SociSession"})
+        self.account.refresh_from_db()
+        self.assertEqual(self.account.balance, 100)
+
+    def test__unknown_sku__bad_request(self):
+        response = self.charge(order_size=1, sku="NOPE")
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test__soci_gold__can_go_below_zero(self):
+        self.account.user.is_superuser = True
+        self.account.user.save()
+
+        response = self.charge(order_size=2)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.account.refresh_from_db()
+        self.assertEqual(self.account.balance, -60)
 
 
 class ApiDocsTest(APITestCase):
