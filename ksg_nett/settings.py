@@ -270,7 +270,13 @@ ADMISSION_LATE_BATCH_TIMESTAMP = timedelta(hours=15)
 #
 
 AUTH_JWT_HEADER_PREFIX = "Bearer"
-AUTH_JWT_SECRET = "SOME-JWT-SECRET-VALUE"
+# Signs the SPA login tokens, password reset links and the X-App tokens
+# (SIMPLE_JWT below). Production and dev must set AUTH_JWT_SECRET in the
+# environment (settings_prod.py, settings_development.py). The fallback is
+# only for local development and tests.
+AUTH_JWT_SECRET = os.environ.get(
+    "AUTH_JWT_SECRET", "local-development-only-not-a-real-secret"
+)
 AUTH_JWT_METHOD = "HS256"
 
 SIMPLE_JWT = {
