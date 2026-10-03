@@ -113,6 +113,7 @@ class ScheduleNode(DjangoObjectType):
         ShiftNode, shifts_from=graphene.Date(), number_of_weeks=graphene.Int()
     )
 
+    @gql_login_required()
     def resolve_shifts_from_range(self: Schedule, info, shifts_from, number_of_weeks):
         return self.shifts_from_range(shifts_from, number_of_weeks)
 
@@ -282,6 +283,7 @@ class ScheduleQuery(graphene.ObjectType):
     def resolve_schedule_allergies_v2(self, info, shifts_from, *args, **kwargs):
         return schedule_allergies_for_week(shifts_from)
 
+    @gql_login_required()
     def resolve_all_schedules(self, info, *args, **kwargs):
         return Schedule.objects.all().order_by("name")
 
