@@ -234,10 +234,12 @@ class ChargeBankAccountView(APIView):
         order = request.data
         bank_account_id = order["bank_account_id"]
 
+        # The X-App shows a message for 424 and 402, not for 400.
         session = SociSession.get_active_session()
         if session is None:
             return Response(
-                {"message": "No active SociSession"}, status=status.HTTP_400_BAD_REQUEST
+                {"message": "No active SociSession"},
+                status=status.HTTP_424_FAILED_DEPENDENCY,
             )
 
         account = SociBankAccount.objects.get(id=bank_account_id)
@@ -277,7 +279,8 @@ class ChargeBankAccountView(APIView):
 
         if account.balance < total_cost and not account.is_gold:
             return Response(
-                {"message": "Insufficient funds"}, status=status.HTTP_400_BAD_REQUEST
+                {"message": "Insufficient funds"},
+                status=status.HTTP_402_PAYMENT_REQUIRED,
             )
 
         with transaction.atomic():
