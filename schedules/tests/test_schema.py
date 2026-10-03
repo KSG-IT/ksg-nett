@@ -1,9 +1,12 @@
 import datetime
+from zoneinfo import ZoneInfo
 
 from addict import Dict
+from django.conf import settings
 from django.test import TestCase
 from django.utils import timezone
 from graphene.test import Client
+from graphql_relay import to_global_id
 
 from ksg_nett.schema import schema
 from schedules.models import RoleOption
@@ -256,4 +259,143 @@ class TestAllSchedulesLogin(TestCase):
         self.assertIn(
             "errors",
             self.graphql_client.execute(query, context=Dict(user=self.anonymous)),
+        )
+
+
+class TestCreateAndUpdateShiftV2(TestCase):
+    def setUp(self) -> None:
+        from schedules.tests.factories import ScheduleFactory
+        from users.tests.factories import UserWithPermissionsFactory
+
+        self.graphql_client = Client(schema)
+        self.manager = UserWithPermissionsFactory.create(
+            permissions=(
+                "schedules.add_shift",
+                "schedules.add_shiftslot",
+                "schedules.change_shift",
+            )
+        )
+        self.schedule = ScheduleFactory.create(name="Edgar")
+        self.schedule_id = to_global_id("ScheduleNode", self.schedule.pk)
+
+    def execute(self, query, variables, user=None):
+        return self.graphql_client.execute(
+            query, variables=variables, context=Dict(user=user or self.manager)
+        )
+
+    CREATE = """
+        mutation Create($input: CreateShiftWithSlotsInput!) {
+          createShiftWithSlots(input: $input) {
+            shift { id name location datetimeStart datetimeEnd slots { role } }
+          }
+        }
+    """
+
+    def create(self, **overrides):
+        variables = {
+            "input": {
+                "scheduleId": self.schedule_id,
+                "name": "Kveld",
+                "location": "EDGAR",
+                "date": "2026-10-09",
+                "startTime": "16:00:00",
+                "endTime": "23:00:00",
+                "slots": [
+                    {"shiftSlotRole": "BARISTA", "count": 2},
+                    {"shiftSlotRole": "KAFEANSVARLIG", "count": 1},
+                ],
+                **overrides,
+            }
+        }
+        return self.execute(self.CREATE, variables)
+
+    def test__creates_the_shift_and_its_slots_in_local_time(self):
+        from schedules.models import Shift
+
+        executed = self.create()
+        self.assertNotIn("errors", executed)
+        shift = Shift.objects.get()
+        local = ZoneInfo(settings.TIME_ZONE)
+        self.assertEqual(
+            shift.datetime_start, datetime.datetime(2026, 10, 9, 16, tzinfo=local)
+        )
+        self.assertEqual(
+            shift.datetime_end, datetime.datetime(2026, 10, 9, 23, tzinfo=local)
+        )
+        self.assertEqual(shift.schedule, self.schedule)
+        self.assertEqual(
+            sorted(shift.slots.values_list("role", flat=True)),
+            ["BARISTA", "BARISTA", "KAFEANSVARLIG"],
+        )
+
+    def test__an_end_before_the_start_is_the_next_day(self):
+        from schedules.models import Shift
+
+        self.assertNotIn(
+            "errors", self.create(startTime="20:00:00", endTime="03:00:00")
+        )
+        shift = Shift.objects.get()
+        self.assertEqual(
+            shift.datetime_end - shift.datetime_start, datetime.timedelta(hours=7)
+        )
+
+    def test__an_unknown_location_creates_nothing(self):
+        from schedules.models import Shift
+
+        self.assertIn("errors", self.create(location="NOWHERE"))
+        self.assertEqual(Shift.objects.count(), 0)
+
+    def test__needs_the_permissions(self):
+        from schedules.models import Shift
+
+        executed = self.execute(
+            self.CREATE,
+            {
+                "input": {
+                    "scheduleId": self.schedule_id,
+                    "name": "Kveld",
+                    "date": "2026-10-09",
+                    "startTime": "16:00:00",
+                    "endTime": "23:00:00",
+                    "slots": [],
+                }
+            },
+            user=UserFactory.create(),
+        )
+        self.assertIn("errors", executed)
+        self.assertEqual(Shift.objects.count(), 0)
+
+    def test__update_shift_details_changes_name_location_and_times(self):
+        from schedules.models import Shift
+
+        self.create()
+        shift = Shift.objects.get()
+        executed = self.execute(
+            """
+            mutation Update($input: UpdateShiftDetailsInput!) {
+              updateShiftDetails(input: $input) { shift { id } }
+            }
+            """,
+            {
+                "input": {
+                    "shiftId": to_global_id("ShiftNode", shift.pk),
+                    "name": "Sen kveld",
+                    "location": "BODEGAEN",
+                    "date": "2026-10-10",
+                    "startTime": "21:30:00",
+                    "endTime": "02:00:00",
+                }
+            },
+        )
+        self.assertNotIn("errors", executed)
+        shift.refresh_from_db()
+        local = ZoneInfo(settings.TIME_ZONE)
+        self.assertEqual(shift.name, "Sen kveld")
+        self.assertEqual(shift.location, "BODEGAEN")
+        self.assertEqual(
+            shift.datetime_start,
+            datetime.datetime(2026, 10, 10, 21, 30, tzinfo=local),
+        )
+        self.assertEqual(
+            shift.datetime_end, datetime.datetime(2026, 10, 11, 2, tzinfo=local)
         )

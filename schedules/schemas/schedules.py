@@ -13,6 +13,7 @@ from graphene_django_cud.util import disambiguate_id
 from graphql_relay import to_global_id
 
 from common.decorators import gql_has_permissions, gql_login_required
+from common.exceptions import IllegalOperation
 from schedules.models import (
     Schedule,
     Shift,
@@ -689,6 +690,99 @@ class AddSlotsToShiftMutation(graphene.Mutation):
         return AddSlotsToShiftMutation(shift=shift)
 
 
+def local_shift_times(date, start_time, end_time):
+    """
+    The start and end of a shift on `date`, in settings.TIME_ZONE. An end at
+    or before the start is on the next day (a night shift).
+    """
+    local = ZoneInfo(settings.TIME_ZONE)
+    start = datetime.datetime.combine(date, start_time, tzinfo=local)
+    end_date = date + datetime.timedelta(days=1) if end_time <= start_time else date
+    end = datetime.datetime.combine(end_date, end_time, tzinfo=local)
+    return start, end
+
+
+def valid_location(location):
+    if location is not None and location not in Shift.Location.values:
+        raise IllegalOperation(f"Unknown location: {location}")
+    return location
+
+
+class CreateShiftWithSlotsInput(graphene.InputObjectType):
+    schedule_id = graphene.ID(required=True)
+    name = graphene.String(required=True)
+    location = graphene.String()
+    date = graphene.Date(required=True)
+    start_time = graphene.Time(required=True)
+    end_time = graphene.Time(required=True)
+    slots = graphene.List(graphene.NonNull(AddSlotToShiftInput), required=True)
+
+
+class CreateShiftWithSlotsMutation(graphene.Mutation):
+    """
+    Creates a shift and its slots in one transaction. The times are a date and
+    clock times in settings.TIME_ZONE, so the browser time zone does not matter.
+    """
+
+    class Arguments:
+        input = CreateShiftWithSlotsInput(required=True)
+
+    shift = graphene.Field(ShiftNode)
+
+    @gql_has_permissions("schedules.add_shift", "schedules.add_shiftslot")
+    def mutate(self, info, input):
+        name = input.name.strip()
+        if not name:
+            raise IllegalOperation("A shift needs a name")
+        start, end = local_shift_times(input.date, input.start_time, input.end_time)
+        with transaction.atomic():
+            shift = Shift.objects.create(
+                schedule=Schedule.objects.get(pk=disambiguate_id(input.schedule_id)),
+                name=name,
+                location=valid_location(input.location),
+                datetime_start=start,
+                datetime_end=end,
+            )
+            ShiftSlot.objects.bulk_create(
+                ShiftSlot(shift=shift, role=slot.shift_slot_role.value)
+                for slot in input.slots
+                for _ in range(slot.count)
+            )
+        return CreateShiftWithSlotsMutation(shift=shift)
+
+
+class UpdateShiftDetailsInput(graphene.InputObjectType):
+    shift_id = graphene.ID(required=True)
+    name = graphene.String(required=True)
+    location = graphene.String()
+    date = graphene.Date(required=True)
+    start_time = graphene.Time(required=True)
+    end_time = graphene.Time(required=True)
+
+
+class UpdateShiftDetailsMutation(graphene.Mutation):
+    """Changes the name, location and times of a shift, as for create."""
+
+    class Arguments:
+        input = UpdateShiftDetailsInput(required=True)
+
+    shift = graphene.Field(ShiftNode)
+
+    @gql_has_permissions("schedules.change_shift")
+    def mutate(self, info, input):
+        name = input.name.strip()
+        if not name:
+            raise IllegalOperation("A shift needs a name")
+        shift = Shift.objects.get(pk=disambiguate_id(input.shift_id))
+        shift.name = name
+        shift.location = valid_location(input.location)
+        shift.datetime_start, shift.datetime_end = local_shift_times(
+            input.date, input.start_time, input.end_time
+        )
+        shift.save()
+        return UpdateShiftDetailsMutation(shift=shift)
+
+
 class AutofillShiftSlotsMutation(graphene.Mutation):
     class Arguments:
         schedule_id = graphene.ID(required=True)
@@ -747,6 +841,8 @@ class SchedulesMutations(graphene.ObjectType):
     create_shift_slot = CreateShiftSlotMutation.Field()
     delete_shift_slot = DeleteShiftSlotMutation.Field()
     add_slots_to_shift = AddSlotsToShiftMutation.Field()
+    create_shift_with_slots = CreateShiftWithSlotsMutation.Field()
+    update_shift_details = UpdateShiftDetailsMutation.Field()
 
     create_shift_interest = CreateShiftInterestMutation.Field()
     autofill_shift_slots = AutofillShiftSlotsMutation.Field()
