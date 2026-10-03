@@ -1,4 +1,5 @@
 import logging
+import secrets
 from smtplib import SMTPException
 
 import graphene
@@ -168,26 +169,30 @@ class SendFeedbackMutation(graphene.Mutation):
         else:
             sender = f"{user.get_full_name()} <{user.email}>"
 
+        # A reference per submission. A unique subject makes each feedback its
+        # own thread in the mail client.
+        reference = secrets.token_hex(3).upper()
+
         # An HTML version, as in the other emails from KSG-nett
         html_message = (
             f"<p><strong>Fra:</strong> {escape(sender)}</p>"
             f"<p>{linebreaksbr(message, autoescape=True)}</p>"
             '<hr><p style="color:#868e96;font-size:12px">'
-            "Sendt fra tilbakemeldingsskjemaet på KSG-nett."
+            f"Sendt fra tilbakemeldingsskjemaet på KSG-nett. Referanse: {reference}."
             f"{'' if anonymous else ' Svar til e-postadressen over.'}"
             "</p>"
         )
         try:
             sent_ok = send_email(
-                subject="Tilbakemelding fra KSG-nett",
-                message=f"Fra: {sender}\n\n{message}\n",
+                subject=f"Tilbakemelding fra KSG-nett #{reference}",
+                message=f"Fra: {sender}\n\n{message}\n\nReferanse: {reference}\n",
                 html_message=html_message,
                 recipients=[settings.FEEDBACK_EMAIL],
                 fail_silently=False,
             )
         except (SMTPException, OSError) as error:
             # Log the reason, not the message of the member
-            logger.warning("Feedback email not sent: %r", error)
+            logger.warning("Feedback email %s not sent: %r", reference, error)
             raise IllegalOperation(
                 "Tilbakemeldingen kunne ikke sendes. Prøv igjen senere, "
                 f"eller send en e-post til {settings.FEEDBACK_EMAIL}."
