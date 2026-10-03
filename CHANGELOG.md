@@ -13,6 +13,18 @@
 - Organization: `setUserMembershipHistory` to correct a user's verv timeline
 - Schedules: `scheduleAllergiesV2`, a weekly allergy matrix with the number of people at
   work per day
+- Schedules: `plannedUntil`, `upcomingSlots(days)` and `recentLocations(weeks)` on
+  `ScheduleNode` for the schedules overview (`schedules.change_schedule`)
+- Schedules: `createShiftWithSlots` and `updateShiftDetails` for the new schedule view. They
+  take a date and clock times and combine them in `TIME_ZONE`, so the browser time zone
+  does not matter; an end at or before the start is the next day
+- Common: `sendFeedback`, feedback from the dashboard as an email to `FEEDBACK_EMAIL`
+  (default `ksg-it@samfundet.no`). Max 500 characters and 5 per user per hour; plain text
+  and HTML; a reference per submission in the subject, so each feedback is its own thread
+- Logging: `RequestLogMiddleware` logs one line per request (the Varnish request id,
+  GraphQL operation, user id, status, sizes and time) and returns it as `X-Request-ID`.
+  `LOG_LEVEL` sets the level; errors and requests slower than `REQUEST_LOG_SLOW_MS`
+  (default 2000) are always logged as warnings
 - Tests for invoice and food order PDFs, rich text sanitizing, the API docs and the
   charge errors
 
@@ -31,6 +43,10 @@
 - Economy: bank account and balance fields only for the owner or
   `economy.view_socibankaccount`; sales statistics need `economy.view_productorder`
 - Schedules: the allergy queries need `schedules.change_schedule`
+- Schedules: `allSchedules` and `shiftsFromRange` need login
+- Settings: `AUTH_JWT_SECRET` comes from the environment. Production and dev refuse to start
+  without it, or with less than 32 characters, and the X-App tokens use the same key.
+  Everyone is logged out once after the deploy
 - Admissions: no per-applicant queries in the applicant lists; `currentApplicants`
   prefetches priorities
 - Settings: dev server settings are in `settings_development.py`
@@ -56,6 +72,8 @@
   - Test workflow ran on the retired `ubuntu-20.04` image and never got a runner, so no
     test has actually executed since mid 2025. Now runs on `ubuntu-24.04`
   - `Schedule.autofill_slots` test called the method without its `interest_type` argument
+- Security: login, password reset and X-App tokens were signed with a secret in the
+  repository instead of the one in the environment
 
 ### Removed
 - `GET /test-pdf-print` and the unrouted krysseliste PDF view
