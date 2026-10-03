@@ -1,3 +1,4 @@
+import re
 from smtplib import SMTPDataError
 from unittest import mock
 
@@ -111,3 +112,19 @@ class TestSendFeedback(TestCase):
         error = executed["errors"][0]["message"]
         self.assertIn("kunne ikke sendes", error)
         self.assertNotIn("550", error)
+
+    def test__each_email_has_its_own_subject_so_it_is_its_own_thread(self):
+        self.send()
+        self.send(anonymous=True)
+        first, second = (email.subject for email in mail.outbox)
+        pattern = r"^Tilbakemelding fra KSG-nett #[0-9A-F]{6}$"
+        self.assertRegex(first, pattern)
+        self.assertRegex(second, pattern)
+        self.assertNotEqual(first, second)
+
+    def test__the_reference_is_also_in_the_body(self):
+        self.send()
+        email = mail.outbox[0]
+        reference = re.search(r"#([0-9A-F]{6})$", email.subject).group(1)
+        self.assertIn(reference, email.body)
+        self.assertIn(reference, email.alternatives[0][0])
