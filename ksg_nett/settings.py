@@ -78,6 +78,8 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    # First, so it times the whole request and sees the final response.
+    "common.middleware.RequestLogMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "corsheaders.middleware.CorsMiddleware",
@@ -88,6 +90,34 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "login.middleware.JwtProviderMiddleware",
 ]
+
+# Logging. Everything goes to stderr, which uWSGI writes to its log file.
+# LOG_LEVEL=DEBUG also shows one line per request (common/middleware.py).
+# Slow requests (REQUEST_LOG_SLOW_MS or more) and 5xx are logged at WARNING.
+LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO").upper()
+REQUEST_LOG_SLOW_MS = int(os.environ.get("REQUEST_LOG_SLOW_MS", "2000"))
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "default": {
+            "format": "%(asctime)s.%(msecs)03d %(levelname)s %(name)s %(message)s",
+            "datefmt": "%Y-%m-%d %H:%M:%S",
+        },
+    },
+    "handlers": {
+        "stderr": {
+            "class": "logging.StreamHandler",
+            "formatter": "default",
+        },
+    },
+    "root": {"handlers": ["stderr"], "level": "WARNING"},
+    "loggers": {
+        "django": {"handlers": ["stderr"], "level": "INFO", "propagate": False},
+        "ksg_nett": {"handlers": ["stderr"], "level": LOG_LEVEL, "propagate": False},
+    },
+}
 
 ROOT_URLCONF = "ksg_nett.urls"
 
