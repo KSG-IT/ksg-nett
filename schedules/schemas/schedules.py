@@ -27,7 +27,7 @@ from users.models import User, Allergy as UserAllergy
 from django.utils import timezone
 from django.conf import settings
 
-from django.db.models import Count
+from django.db.models import Count, Max
 from django.db.models.functions import TruncDate
 
 
@@ -99,6 +99,11 @@ class DayAllergyNode(graphene.ObjectType):
     total_user_count = graphene.NonNull(graphene.Int)
 
 
+class ScheduleSlotCounts(graphene.ObjectType):
+    filled = graphene.NonNull(graphene.Int)
+    total = graphene.NonNull(graphene.Int)
+
+
 class ScheduleNode(DjangoObjectType):
     class Meta:
         model = Schedule
@@ -110,6 +115,49 @@ class ScheduleNode(DjangoObjectType):
 
     def resolve_shifts_from_range(self: Schedule, info, shifts_from, number_of_weeks):
         return self.shifts_from_range(shifts_from, number_of_weeks)
+
+    # Fields for the schedules overview. Each one is a small query per
+    # schedule; there are only a few schedules.
+    planned_until = graphene.DateTime(
+        description="Start of the last shift that has not started yet"
+    )
+    upcoming_slots = graphene.Field(
+        graphene.NonNull(ScheduleSlotCounts),
+        days=graphene.Int(default_value=14),
+    )
+    recent_locations = graphene.NonNull(
+        graphene.List(graphene.NonNull(graphene.String)),
+        weeks=graphene.Int(default_value=8),
+        description="Locations of shifts from the last weeks on, most used first",
+    )
+
+    def resolve_planned_until(self: Schedule, info):
+        return (
+            self.shifts.filter(datetime_start__gte=timezone.now())
+            .aggregate(last=Max("datetime_start"))
+            .get("last")
+        )
+
+    def resolve_upcoming_slots(self: Schedule, info, days):
+        now = timezone.now()
+        slots = ShiftSlot.objects.filter(
+            shift__schedule=self,
+            shift__datetime_start__gte=now,
+            shift__datetime_start__lt=now + timezone.timedelta(days=days),
+        )
+        return ScheduleSlotCounts(
+            filled=slots.filter(user__isnull=False).count(), total=slots.count()
+        )
+
+    def resolve_recent_locations(self: Schedule, info, weeks):
+        since = timezone.now() - timezone.timedelta(weeks=weeks)
+        rows = (
+            self.shifts.filter(datetime_start__gte=since, location__isnull=False)
+            .values("location")
+            .annotate(count=Count("id"))
+            .order_by("-count", "location")
+        )
+        return [row["location"] for row in rows]
 
     @classmethod
     def get_node(cls, info, id):
