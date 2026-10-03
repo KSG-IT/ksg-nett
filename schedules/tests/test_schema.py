@@ -122,3 +122,96 @@ class TestScheduleAllergiesV2Query(TestCase):
 
     def test__without_permission__returns_error(self):
         self.assertIn("errors", self.execute(UserFactory.create()))
+
+
+class TestScheduleOverviewFields(TestCase):
+    def setUp(self) -> None:
+        from schedules.models import Shift
+        from schedules.tests.factories import ScheduleFactory
+
+        from users.tests.factories import UserWithPermissionsFactory
+
+        self.graphql_client = Client(schema)
+        self.user = UserWithPermissionsFactory.create(
+            permissions="schedules.change_schedule"
+        )
+        self.schedule = ScheduleFactory.create(name="Edgar")
+        self.empty = ScheduleFactory.create(name="Arrangement")
+        now = timezone.now()
+
+        def shift(days, location=Shift.Location.EDGAR, filled=1, open_slots=0):
+            start = now + datetime.timedelta(days=days)
+            created = ShiftFactory.create(
+                schedule=self.schedule,
+                location=location,
+                datetime_start=start,
+                datetime_end=start + datetime.timedelta(hours=6),
+            )
+            for _ in range(filled):
+                ShiftSlotFactory.create(shift=created, role=RoleOption.BARISTA)
+            for _ in range(open_slots):
+                ShiftSlotFactory.create(
+                    shift=created, user=None, role=RoleOption.BARISTA
+                )
+            return created
+
+        # Old shift: counts for locations, not for slots or planned until
+        shift(-20, location=Shift.Location.BODEGAEN)
+        shift(-200, location=Shift.Location.STROSSA)
+        shift(2, filled=2, open_slots=1)
+        shift(10, filled=1, open_slots=2)
+        self.last = shift(20, filled=3)
+
+    def execute(self, query):
+        executed = self.graphql_client.execute(query, context=Dict(user=self.user))
+        self.assertNotIn("errors", executed)
+        return Dict(executed).data
+
+    def test__a_member_without_the_permission_gets_no_overview_fields(self):
+        member = UserFactory.create()
+        for field in (
+            "plannedUntil",
+            "upcomingSlots { total }",
+            "recentLocations",
+        ):
+            executed = self.graphql_client.execute(
+                "{ allSchedules { name %s } }" % field,
+                context=Dict(user=member),
+            )
+            self.assertIn("errors", executed, field)
+
+    def overview(self):
+        data = self.execute("""
+            {
+              allSchedules {
+                name
+                plannedUntil
+                upcomingSlots { filled total }
+                recentLocations
+              }
+            }
+            """)
+        return {schedule.name: schedule for schedule in data.allSchedules}
+
+    def test__planned_until__is_the_start_of_the_last_upcoming_shift(self):
+        planned_until = self.overview()["Edgar"].plannedUntil
+        self.assertEqual(
+            datetime.datetime.fromisoformat(planned_until),
+            self.last.datetime_start,
+        )
+
+    def test__planned_until__is_null_without_upcoming_shifts(self):
+        self.assertIsNone(self.overview()["Arrangement"].plannedUntil)
+
+    def test__upcoming_slots__counts_the_next_14_days(self):
+        slots = self.overview()["Edgar"].upcomingSlots
+        self.assertEqual((slots.filled, slots.total), (3, 6))
+
+    def test__upcoming_slots__is_zero_without_shifts(self):
+        slots = self.overview()["Arrangement"].upcomingSlots
+        self.assertEqual((slots.filled, slots.total), (0, 0))
+
+    def test__recent_locations__most_used_first_and_not_too_old(self):
+        self.assertEqual(
+            self.overview()["Edgar"].recentLocations, ["EDGAR", "BODEGAEN"]
+        )
