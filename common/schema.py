@@ -1,3 +1,6 @@
+import logging
+from smtplib import SMTPException
+
 import graphene
 from django.utils import timezone
 from graphene_django import DjangoObjectType
@@ -9,6 +12,8 @@ from common.exceptions import IllegalOperation
 from common.models import FeatureFlag
 from common.util import check_feature_flag, send_email
 from django.core.cache import cache
+from django.template.defaultfilters import linebreaksbr
+from django.utils.html import escape
 from schedules.schemas.schedules import ShiftSlotNode
 from summaries.schema import SummaryNode
 from summaries.models import Summary
@@ -117,6 +122,8 @@ class ToggleFeatureFlagMutation(graphene.Mutation):
         return ToggleFeatureFlagMutation(feature_flag=feature_flag)
 
 
+logger = logging.getLogger(__name__)
+
 FEEDBACK_MAX_LENGTH = 500
 FEEDBACK_PER_HOUR = 5
 
@@ -162,13 +169,32 @@ class SendFeedbackMutation(graphene.Mutation):
             sender = f"{user.get_full_name()} <{user.email}>"
             reply_to = [user.email]
 
-        sent_ok = send_email(
-            subject="Tilbakemelding fra KSG-nett",
-            message=f"Fra: {sender}\n\n{message}\n",
-            recipients=[settings.FEEDBACK_EMAIL],
-            reply_to=reply_to,
-            fail_silently=False,
+        # An HTML version, as in the other emails from KSG-nett. A plain text
+        # email with a Reply-To was rejected by the samfundet.no spam filter.
+        html_message = (
+            f"<p><strong>Fra:</strong> {escape(sender)}</p>"
+            f"<p>{linebreaksbr(message, autoescape=True)}</p>"
+            '<hr><p style="color:#868e96;font-size:12px">'
+            "Sendt fra tilbakemeldingsskjemaet på KSG-nett."
+            f"{'' if anonymous else ' Svar på e-posten for å svare avsenderen.'}"
+            "</p>"
         )
+        try:
+            sent_ok = send_email(
+                subject="Tilbakemelding fra KSG-nett",
+                message=f"Fra: {sender}\n\n{message}\n",
+                html_message=html_message,
+                recipients=[settings.FEEDBACK_EMAIL],
+                reply_to=reply_to,
+                fail_silently=False,
+            )
+        except (SMTPException, OSError) as error:
+            # Log the reason, not the message of the member
+            logger.warning("Feedback email not sent: %r", error)
+            raise IllegalOperation(
+                "Tilbakemeldingen kunne ikke sendes. Prøv igjen senere, "
+                f"eller send en e-post til {settings.FEEDBACK_EMAIL}."
+            )
         cache.set(key, sent + 1, timeout=60 * 60)
         return SendFeedbackMutation(ok=bool(sent_ok))
 
