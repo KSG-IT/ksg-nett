@@ -215,3 +215,45 @@ class TestScheduleOverviewFields(TestCase):
         self.assertEqual(
             self.overview()["Edgar"].recentLocations, ["EDGAR", "BODEGAEN"]
         )
+
+
+class TestAllSchedulesLogin(TestCase):
+    def setUp(self) -> None:
+        from django.contrib.auth.models import AnonymousUser
+        from schedules.tests.factories import ScheduleFactory
+
+        self.graphql_client = Client(schema)
+        self.anonymous = AnonymousUser()
+        ScheduleFactory.create(name="Edgar")
+
+    def test__all_schedules__needs_login(self):
+        executed = self.graphql_client.execute(
+            "{ allSchedules { name } }", context=Dict(user=self.anonymous)
+        )
+        self.assertIn("errors", executed)
+
+    def test__all_schedules__works_for_a_member(self):
+        executed = self.graphql_client.execute(
+            "{ allSchedules { name } }", context=Dict(user=UserFactory.create())
+        )
+        self.assertNotIn("errors", executed)
+        self.assertEqual(executed["data"]["allSchedules"], [{"name": "Edgar"}])
+
+    def test__shifts_from_range__needs_login(self):
+        from graphql_relay import to_global_id
+        from schedules.models import Schedule
+
+        schedule_id = to_global_id("ScheduleNode", Schedule.objects.get().pk)
+        # schedule(id) has no guard, so check the field through it
+        query = (
+            '{ schedule(id: "%s") { shiftsFromRange(shiftsFrom: "2026-10-05", '
+            "numberOfWeeks: 1) { id } } }" % schedule_id
+        )
+        member = UserFactory.create()
+        self.assertNotIn(
+            "errors", self.graphql_client.execute(query, context=Dict(user=member))
+        )
+        self.assertIn(
+            "errors",
+            self.graphql_client.execute(query, context=Dict(user=self.anonymous)),
+        )
