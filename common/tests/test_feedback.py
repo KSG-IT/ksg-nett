@@ -1,3 +1,6 @@
+from smtplib import SMTPDataError
+from unittest import mock
+
 from addict import Dict
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
@@ -75,3 +78,32 @@ class TestSendFeedback(TestCase):
         self.assertEqual(len(mail.outbox), 5)
         # Another user is not limited
         self.assertNotIn("errors", self.send(user=UserFactory.create()))
+
+    def test__the_email_has_an_html_version_with_the_message_escaped(self):
+        self.send(message="<b>Hei</b>\nNy linje")
+        email = mail.outbox[0]
+        self.assertEqual(len(email.alternatives), 1)
+        html, mimetype = email.alternatives[0]
+        self.assertEqual(mimetype, "text/html")
+        self.assertIn("&lt;b&gt;Hei&lt;/b&gt;", html)
+        self.assertNotIn("<b>Hei</b>", html)
+        self.assertIn("<br>", html)
+        self.assertIn("Ola Nordmann", html)
+
+    def test__the_anonymous_html_version_has_no_name(self):
+        self.send(anonymous=True)
+        html, _ = mail.outbox[0].alternatives[0]
+        self.assertNotIn("Ola", html)
+        self.assertNotIn("ola@example.com", html)
+
+    def test__a_rejected_email_gives_a_clear_error(self):
+        rejected = SMTPDataError(550, b"Rejected by spam filter")
+        with mock.patch(
+            "django.core.mail.backends.locmem.EmailBackend.send_messages",
+            side_effect=rejected,
+        ):
+            executed = self.send()
+        self.assertIn("errors", executed)
+        error = executed["errors"][0]["message"]
+        self.assertIn("kunne ikke sendes", error)
+        self.assertNotIn("550", error)
