@@ -131,9 +131,10 @@ FEEDBACK_PER_HOUR = 5
 class SendFeedbackMutation(graphene.Mutation):
     """
     Sends feedback from the dashboard as an email to settings.FEEDBACK_EMAIL.
-    Without `anonymous`, the email has the name and email of the user, and a
-    Reply-To header, so KSG-IT can answer. The request log still has the user
-    id (common.middleware.RequestLogMiddleware).
+    Without `anonymous`, the email has the name and email of the user, so
+    KSG-IT can answer. There is no Reply-To header: with one, the samfundet.no
+    spam filter rejected the email. The request log still has the user id
+    (common.middleware.RequestLogMiddleware).
     """
 
     class Arguments:
@@ -164,19 +165,16 @@ class SendFeedbackMutation(graphene.Mutation):
 
         if anonymous:
             sender = "Anonym"
-            reply_to = []
         else:
             sender = f"{user.get_full_name()} <{user.email}>"
-            reply_to = [user.email]
 
-        # An HTML version, as in the other emails from KSG-nett. A plain text
-        # email with a Reply-To was rejected by the samfundet.no spam filter.
+        # An HTML version, as in the other emails from KSG-nett
         html_message = (
             f"<p><strong>Fra:</strong> {escape(sender)}</p>"
             f"<p>{linebreaksbr(message, autoescape=True)}</p>"
             '<hr><p style="color:#868e96;font-size:12px">'
             "Sendt fra tilbakemeldingsskjemaet på KSG-nett."
-            f"{'' if anonymous else ' Svar på e-posten for å svare avsenderen.'}"
+            f"{'' if anonymous else ' Svar til e-postadressen over.'}"
             "</p>"
         )
         try:
@@ -185,7 +183,6 @@ class SendFeedbackMutation(graphene.Mutation):
                 message=f"Fra: {sender}\n\n{message}\n",
                 html_message=html_message,
                 recipients=[settings.FEEDBACK_EMAIL],
-                reply_to=reply_to,
                 fail_silently=False,
             )
         except (SMTPException, OSError) as error:

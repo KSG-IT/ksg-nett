@@ -34,18 +34,22 @@ class TestSendFeedback(TestCase):
             context=Dict(user=user or self.user),
         )
 
-    def test__sends_an_email_with_name_and_reply_to(self):
+    def test__sends_an_email_with_name_and_email_but_no_reply_to(self):
+        # A Reply-To on another domain made the samfundet.no spam filter
+        # reject the email, so KSG-IT answers to the address in the body.
         executed = self.send()
         self.assertNotIn("errors", executed)
         self.assertEqual(len(mail.outbox), 1)
         email = mail.outbox[0]
         self.assertEqual(email.to, [settings.FEEDBACK_EMAIL])
-        self.assertEqual(email.reply_to, ["ola@example.com"])
+        self.assertEqual(email.reply_to, [])
+        html, _ = email.alternatives[0]
+        self.assertIn("ola@example.com", html)
         self.assertIn("Kaffemaskinen piper.", email.body)
         self.assertIn("Ola Nordmann", email.body)
         self.assertIn("ola@example.com", email.body)
 
-    def test__anonymous_feedback_has_no_name_and_no_reply_to(self):
+    def test__anonymous_feedback_has_no_name(self):
         executed = self.send(anonymous=True)
         self.assertNotIn("errors", executed)
         email = mail.outbox[0]
