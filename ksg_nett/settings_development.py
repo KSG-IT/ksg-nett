@@ -1,4 +1,5 @@
 from ksg_nett.settings import *
+from ksg_nett.env import required_secret
 import os
 import sentry_sdk
 from sentry_sdk.integrations.django import DjangoIntegration
@@ -8,6 +9,10 @@ DEBUG = True
 
 # Raise exceptions on unhandled secret key
 SECRET_KEY = os.environ.get("SECRET_KEY", None)
+
+# The app does not start without a real JWT key (ksg_nett/env.py).
+AUTH_JWT_SECRET = required_secret("AUTH_JWT_SECRET")
+SIMPLE_JWT = {**SIMPLE_JWT, "SIGNING_KEY": AUTH_JWT_SECRET}
 
 sentry_sdk.init(
     dsn="https://b803a49419fa48029eb23004cb67b99d@o487192.ingest.sentry.io/5545712",
