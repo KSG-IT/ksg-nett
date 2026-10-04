@@ -330,6 +330,7 @@ BANK_TRANSFER_DEPOSIT_FEATURE_FLAG = "bank_transfer_deposit"
 DEPOSIT_TIME_RESTRICTIONS_FEATURE_FLAG = "deposit_time_restrictions"
 EXTERNAL_CHARGING_FEATURE_FLAG = "external_charging"
 X_APP_STOCK_MARKET_MODE = "x-app-stock-market-mode"
+FEEDBACK_FEATURE_FLAG = "feedback"
 
 EXTERNAL_CHARGE_MAX_AMOUNT = os.environ.get("EXTERNAL_CHARGE_MAX_AMOUNT", 300)
 
