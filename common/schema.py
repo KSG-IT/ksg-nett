@@ -8,7 +8,11 @@ from graphene_django import DjangoObjectType
 from graphene_django_cud.util import disambiguate_id
 
 from admissions.models import Admission
-from common.decorators import gql_has_permissions, gql_login_required
+from common.decorators import (
+    gql_feature_flag_required,
+    gql_has_permissions,
+    gql_login_required,
+)
 from common.exceptions import IllegalOperation
 from common.models import FeatureFlag
 from common.util import check_feature_flag, send_email
@@ -41,6 +45,7 @@ class DashboardData(graphene.ObjectType):
     soci_order_session = graphene.Field("economy.schema.SociOrderSessionNode")
     show_newbies = graphene.Boolean()
     show_stock_market_shortcut = graphene.Boolean()
+    show_feedback = graphene.Boolean()
 
 
 class SidebarData(graphene.ObjectType):
@@ -82,6 +87,9 @@ class DashboardQuery(graphene.ObjectType):
         show_stock_market_shortcut = check_feature_flag(
             settings.X_APP_STOCK_MARKET_MODE, fail_silently=True
         )
+        show_feedback = check_feature_flag(
+            settings.FEEDBACK_FEATURE_FLAG, fail_silently=True
+        )
         return DashboardData(
             last_quotes=quotes,
             last_summaries=summaries,
@@ -90,6 +98,7 @@ class DashboardQuery(graphene.ObjectType):
             soci_order_session=soci_order_session,
             show_newbies=show_newbies,
             show_stock_market_shortcut=show_stock_market_shortcut,
+            show_feedback=show_feedback,
         )
 
 
@@ -132,6 +141,7 @@ FEEDBACK_PER_HOUR = 5
 class SendFeedbackMutation(graphene.Mutation):
     """
     Sends feedback from the dashboard as an email to settings.FEEDBACK_EMAIL.
+    Off until the settings.FEEDBACK_FEATURE_FLAG feature flag is enabled.
     Without `anonymous`, the email has the name and email of the user, so
     KSG-IT can answer. There is no Reply-To header: with one, the samfundet.no
     spam filter rejected the email. The request log still has the user id
@@ -145,6 +155,7 @@ class SendFeedbackMutation(graphene.Mutation):
     ok = graphene.Boolean()
 
     @gql_login_required()
+    @gql_feature_flag_required(settings.FEEDBACK_FEATURE_FLAG)
     def mutate(self, info, message, anonymous):
         user = info.context.user
         message = message.strip()

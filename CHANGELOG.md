@@ -3,6 +3,10 @@
 
 ## [unreleased]
 
+### Changed
+- Common: `sendFeedback` needs the `feedback` feature flag (`FEEDBACK_FEATURE_FLAG`). It is off
+  by default. `dashboardData.showFeedback` tells the dashboard if the flag is on
+
 ## [2026.10.1]
 
 ### Added

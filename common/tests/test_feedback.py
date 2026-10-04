@@ -10,6 +10,7 @@ from django.core.cache import cache
 from django.test import TestCase
 from graphene.test import Client
 
+from common.models import FeatureFlag
 from ksg_nett.schema import schema
 from users.tests.factories import UserFactory
 
@@ -23,6 +24,9 @@ SEND = """
 class TestSendFeedback(TestCase):
     def setUp(self) -> None:
         cache.clear()
+        self.flag = FeatureFlag.objects.create(
+            name=settings.FEEDBACK_FEATURE_FLAG, enabled=True
+        )
         self.graphql_client = Client(schema)
         self.user = UserFactory.create(
             first_name="Ola", last_name="Nordmann", email="ola@example.com"
@@ -74,6 +78,12 @@ class TestSendFeedback(TestCase):
 
     def test__needs_login(self):
         self.assertIn("errors", self.send(user=AnonymousUser()))
+        self.assertEqual(len(mail.outbox), 0)
+
+    def test__is_refused_when_the_feature_flag_is_off(self):
+        self.flag.enabled = False
+        self.flag.save()
+        self.assertIn("errors", self.send())
         self.assertEqual(len(mail.outbox), 0)
 
     def test__at_most_5_messages_per_hour_per_user(self):
