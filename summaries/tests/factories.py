@@ -1,4 +1,4 @@
-import pytz
+from zoneinfo import ZoneInfo
 from factory import Faker, RelatedFactory, SubFactory
 from factory.django import DjangoModelFactory
 from ksg_nett import settings
@@ -12,4 +12,4 @@ class SummaryFactory(DjangoModelFactory):
     contents = Faker("text")
     participants = RelatedFactory("users.tests.factories.UserFactory")
     reporter = SubFactory("users.tests.factories.UserFactory")
-    date = Faker("past_datetime", tzinfo=pytz.timezone(settings.TIME_ZONE))
+    date = Faker("past_datetime", tzinfo=ZoneInfo(settings.TIME_ZONE))

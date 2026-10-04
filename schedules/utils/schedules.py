@@ -2,7 +2,7 @@ import secrets
 
 from django.utils import timezone
 from django.conf import settings
-import pytz
+from zoneinfo import ZoneInfo
 
 from common.util import send_email
 
@@ -152,10 +152,10 @@ def normalize_shifts(shifts, display_mode):
 def send_given_shift_email(shift_slot):
     user = shift_slot.user
     local_time_datetime_start = timezone.localtime(
-        shift_slot.shift.datetime_start, pytz.timezone(settings.TIME_ZONE)
+        shift_slot.shift.datetime_start, ZoneInfo(settings.TIME_ZONE)
     )
     local_time_datetime_end = timezone.localtime(
-        shift_slot.shift.datetime_end, pytz.timezone(settings.TIME_ZONE)
+        shift_slot.shift.datetime_end, ZoneInfo(settings.TIME_ZONE)
     )
 
     formatted_datetime_start = local_time_datetime_start.strftime("%d.%m kl %H:%M")

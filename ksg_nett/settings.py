@@ -9,6 +9,7 @@ https://docs.djangoproject.com/en/1.10/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/1.10/ref/settings/
 """
+
 import json
 import os
 from datetime import timedelta
@@ -78,6 +79,8 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    # First, so it times the whole request and sees the final response.
+    "common.middleware.RequestLogMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "corsheaders.middleware.CorsMiddleware",
@@ -88,6 +91,34 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "login.middleware.JwtProviderMiddleware",
 ]
+
+# Logging. Everything goes to stderr, which uWSGI writes to its log file.
+# LOG_LEVEL=DEBUG also shows one line per request (common/middleware.py).
+# Slow requests (REQUEST_LOG_SLOW_MS or more) and 5xx are logged at WARNING.
+LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO").upper()
+REQUEST_LOG_SLOW_MS = int(os.environ.get("REQUEST_LOG_SLOW_MS", "2000"))
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "default": {
+            "format": "%(asctime)s.%(msecs)03d %(levelname)s %(name)s %(message)s",
+            "datefmt": "%Y-%m-%d %H:%M:%S",
+        },
+    },
+    "handlers": {
+        "stderr": {
+            "class": "logging.StreamHandler",
+            "formatter": "default",
+        },
+    },
+    "root": {"handlers": ["stderr"], "level": "WARNING"},
+    "loggers": {
+        "django": {"handlers": ["stderr"], "level": "INFO", "propagate": False},
+        "ksg_nett": {"handlers": ["stderr"], "level": LOG_LEVEL, "propagate": False},
+    },
+}
 
 ROOT_URLCONF = "ksg_nett.urls"
 
@@ -170,7 +201,6 @@ LANGUAGE_CODE = "en-us"
 
 TIME_ZONE = "Europe/Belgrade"
 USE_I18N = True
-USE_L10N = True
 USE_TZ = True
 
 warnings.filterwarnings(
@@ -217,7 +247,9 @@ MEDIA_URL = "http://localhost:8000/media/"
 APP_URL = "http://localhost:3012"
 BASE_URL = "http://localhost:8000"
 
-MAX_MEDIA_SIZE = 128 * (1024**2)
+# Uploaded images
+MAX_IMAGE_UPLOAD_SIZE = 10 * (1024**2)
+MAX_IMAGE_PIXELS = 50_000_000
 
 # Given in percentage
 APPLICANT_IMAGE_COMPRESSION_VALUE = 50
@@ -239,7 +271,13 @@ ADMISSION_LATE_BATCH_TIMESTAMP = timedelta(hours=15)
 #
 
 AUTH_JWT_HEADER_PREFIX = "Bearer"
-AUTH_JWT_SECRET = "SOME-JWT-SECRET-VALUE"
+# Signs the SPA login tokens, password reset links and the X-App tokens
+# (SIMPLE_JWT below). Production and dev must set AUTH_JWT_SECRET in the
+# environment (settings_prod.py, settings_development.py). The fallback is
+# only for local development and tests.
+AUTH_JWT_SECRET = os.environ.get(
+    "AUTH_JWT_SECRET", "local-development-only-not-a-real-secret"
+)
 AUTH_JWT_METHOD = "HS256"
 
 SIMPLE_JWT = {
@@ -281,14 +319,18 @@ STOCK_MODE_PRICE_WINDOW = timedelta(minutes=30)
 DEPOSIT_TIME_RESTRICTION_HOUR = os.environ.get("DEPOSIT_TIME_RESTRICTION_HOUR", 20)
 LANGUAGE_SESSION_KEY = "language"
 
-VERSION = "2026.7.1"
+VERSION = "2026.10.1"
 
 # Feature flag keys
+# Feedback from the dashboard goes to this address (common.schema.SendFeedbackMutation)
+FEEDBACK_EMAIL = os.environ.get("FEEDBACK_EMAIL", "ksg-it@samfundet.no")
+
 STRIPE_INTEGRATION_FEATURE_FLAG = "stripe_integration"
 BANK_TRANSFER_DEPOSIT_FEATURE_FLAG = "bank_transfer_deposit"
 DEPOSIT_TIME_RESTRICTIONS_FEATURE_FLAG = "deposit_time_restrictions"
 EXTERNAL_CHARGING_FEATURE_FLAG = "external_charging"
 X_APP_STOCK_MARKET_MODE = "x-app-stock-market-mode"
+FEEDBACK_FEATURE_FLAG = "feedback"
 
 EXTERNAL_CHARGE_MAX_AMOUNT = os.environ.get("EXTERNAL_CHARGE_MAX_AMOUNT", 300)
 

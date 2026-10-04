@@ -194,7 +194,14 @@ Do not be afraid to include all relevant info in the test names themselves. Long
 
 ## Continuous Integration (CI)
 
-We use [Travis](https://travis-ci.org/) for continuous integration.
+We use [GitHub Actions](https://github.com/KSG-IT/ksg-nett/actions) for continuous integration.
+
+The workflow lives in `.github/workflows/test.yml` and runs on every push to `master`/`develop`
+and on every pull request against them. It installs the locked dependencies with poetry, checks
+that no model changes are missing a migration, and runs the test suite with `pytest`.
+
+You can reproduce the CI run locally with `make test`, or `make test-coverage` to additionally
+get a coverage report.
 
 ## Versioning
 

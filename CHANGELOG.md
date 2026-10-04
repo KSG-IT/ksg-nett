@@ -3,6 +3,94 @@
 
 ## [unreleased]
 
+### Changed
+- Common: `sendFeedback` needs the `feedback` feature flag (`FEEDBACK_FEATURE_FLAG`). It is off
+  by default. `dashboardData.showFeedback` tells the dashboard if the flag is on
+
+## [2026.10.1]
+
+### Added
+- Economy
+  - Sales statistics grouped by day, week, month or semester, and for all time. Without
+    `productIds`, the products sold in the range are used
+  - `myPurchasesByPeriod` for the Min økonomi page
+- Organization: `setUserMembershipHistory` to correct a user's verv timeline
+- Schedules: `scheduleAllergiesV2`, a weekly allergy matrix with the number of people at
+  work per day
+- Schedules: `plannedUntil`, `upcomingSlots(days)` and `recentLocations(weeks)` on
+  `ScheduleNode` for the schedules overview (`schedules.change_schedule`)
+- Schedules: `createShiftWithSlots` and `updateShiftDetails` for the new schedule view. They
+  take a date and clock times and combine them in `TIME_ZONE`, so the browser time zone
+  does not matter; an end at or before the start is the next day
+- Common: `sendFeedback`, feedback from the dashboard as an email to `FEEDBACK_EMAIL`
+  (default `ksg-it@samfundet.no`). Max 500 characters and 5 per user per hour; plain text
+  and HTML; a reference per submission in the subject, so each feedback is its own thread
+- Logging: `RequestLogMiddleware` logs one line per request (the Varnish request id,
+  GraphQL operation, user id, status, sizes and time) and returns it as `X-Request-ID`.
+  `LOG_LEVEL` sets the level; errors and requests slower than `REQUEST_LOG_SLOW_MS`
+  (default 2000) are always logged as warnings
+- Tests for invoice and food order PDFs, rich text sanitizing, the API docs and the
+  charge errors
+
+### Changed
+- Dependencies
+  - Django 4.2 -> 5.2 LTS. `pytz` replaced by `zoneinfo`
+  - scipy and numpy removed: shift autofill uses an in-house bipartite matching
+  - WeasyPrint 54 -> 70, bleach 5 -> 6.4 (XSS fixes), pyjwt 2.15,
+    djangorestframework-simplejwt 5.5, drf-yasg 1.21.15, graphene-django 3.2,
+    graphene-django-cud 0.13, django-filter 25, DRF 3.18, sentry-sdk 2, urllib3 2.8,
+    sqlparse 0.6. setuptools is no longer needed
+  - Python 3.11 to 3.13
+- API: `POST /api/economy/charge` returns 402 for insufficient funds and 424 when no
+  Soci session is active (was 400), so the X-App shows a message
+- Bar tab: compact invoice rows, and the KSG logo is part of the repo
+- Economy: bank account and balance fields only for the owner or
+  `economy.view_socibankaccount`; sales statistics need `economy.view_productorder`
+- Schedules: the allergy queries need `schedules.change_schedule`
+- Schedules: `allSchedules` and `shiftsFromRange` need login
+- Settings: `AUTH_JWT_SECRET` comes from the environment. Production and dev refuse to start
+  without it, or with less than 32 characters, and the X-App tokens use the same key.
+  Everyone is logged out once after the deploy
+- Admissions: no per-applicant queries in the applicant lists; `currentApplicants`
+  prefetches priorities
+- Settings: dev server settings are in `settings_development.py`
+- CI
+  - Consolidated the three workflow files into a single `test.yml` (no more duplicate runs
+    per branch), bumped the deprecated `actions/checkout@v2`/`setup-python@v2`, added
+    dependency caching, a concurrency group, a job timeout and a missing-migration check
+  - Removed Travis configuration; GitHub Actions is the only CI
+  - Tests run on Python 3.11 and 3.13
+
+### Fixed
+- Time zones: day boundaries for shifts and shift generation had a +01:22 offset; the end
+  of summer time is handled; the interview booking soft wall compared local time as UTC
+- Bar tab: invoice reply-to address (`ksg-soci-okonomi@samfundet.no`), and the invoice
+  logo, which returned 404
+- Rich text: the `u` tag is allowed, so underline from the editor is kept
+- Schedules: shift slots keep their order after a slot is filled; `myUpcomingShifts` and
+  `allMyShifts` return each shift once
+- Economy: removed a second `allSociSessions` resolver that deleted all sessions
+- Admissions: uploaded images are validated, and old applicant images are cleaned up;
+  `generate_active_admission` makes data that matches the current models
+- CI
+  - Test workflow ran on the retired `ubuntu-20.04` image and never got a runner, so no
+    test has actually executed since mid 2025. Now runs on `ubuntu-24.04`
+  - `Schedule.autofill_slots` test called the method without its `interest_type` argument
+- Security: login, password reset and X-App tokens were signed with a secret in the
+  repository instead of the one in the environment
+
+### Removed
+- `GET /test-pdf-print` and the unrouted krysseliste PDF view
+- Dockerfiles, `run_server.sh`, `restart.sh` and `_build/`. Production runs uWSGI behind
+  Apache
+
+## [2026.3.1] - 2026-03-03
+
+### Changed
+- Frontend
+  - Migrated UI library (Mantine) from v6 to v8
+  - Fixed active navbar item being invisible after migration
+
 ## [2024.9.21] - 2024-09-21
 
 ### Added

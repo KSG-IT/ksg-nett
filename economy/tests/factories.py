@@ -1,4 +1,4 @@
-import pytz
+from zoneinfo import ZoneInfo
 from django.utils import timezone
 from factory import SubFactory, Faker, Sequence, post_generation
 from factory.django import DjangoModelFactory
@@ -35,7 +35,7 @@ class SociProductFactory(DjangoModelFactory):
     price = Faker("random_number", digits=4, fix_len=True)
     description = Faker("sentence")
     icon = "🤖"
-    end = Faker("future_datetime", tzinfo=pytz.timezone(settings.TIME_ZONE))
+    end = Faker("future_datetime", tzinfo=ZoneInfo(settings.TIME_ZONE))
 
 
 class SociSessionFactory(DjangoModelFactory):
@@ -43,7 +43,7 @@ class SociSessionFactory(DjangoModelFactory):
         model = SociSession
 
     name = Faker("sentence")
-    created_at = Faker("past_datetime", tzinfo=pytz.timezone(settings.TIME_ZONE))
+    created_at = Faker("past_datetime", tzinfo=ZoneInfo(settings.TIME_ZONE))
     created_by = SubFactory("users.tests.factories.UserFactory")
 
 
@@ -56,7 +56,7 @@ class ProductOrderFactory(DjangoModelFactory):
     cost = Faker("random_number", digits=2, fix_len=True)
     source = SubFactory(SociBankAccountFactory)
     session = SubFactory(SociSessionFactory)
-    purchased_at = Faker("date_time", tzinfo=pytz.timezone(settings.TIME_ZONE))
+    purchased_at = Faker("date_time", tzinfo=ZoneInfo(settings.TIME_ZONE))
 
 
 class TransferFactory(DjangoModelFactory):
@@ -66,7 +66,7 @@ class TransferFactory(DjangoModelFactory):
     source = SubFactory(SociBankAccountFactory)
     destination = SubFactory(SociBankAccountFactory)
     amount = Faker("random_number", digits=4, fix_len=True)
-    created_at = Faker("date_time", tzinfo=pytz.timezone(settings.TIME_ZONE))
+    created_at = Faker("date_time", tzinfo=ZoneInfo(settings.TIME_ZONE))
 
 
 class DepositFactory(DjangoModelFactory):
@@ -77,7 +77,7 @@ class DepositFactory(DjangoModelFactory):
     description = Faker("text")
     amount = Faker("random_number", digits=4, fix_len=True)
     receipt = ImageField()
-    created_at = Faker("date_time", tzinfo=pytz.timezone(settings.TIME_ZONE))
+    created_at = Faker("date_time", tzinfo=ZoneInfo(settings.TIME_ZONE))
 
     approved_by = SubFactory("users.tests.factories.UserFactory")
     approved_at = None
@@ -95,4 +95,4 @@ class DepositCommentFactory(DjangoModelFactory):
     deposit = SubFactory(DepositFactory)
     user = SubFactory("users.tests.factories.UserFactory")
     comment = Faker("text")
-    created = Faker("date_time", tzinfo=pytz.timezone(settings.TIME_ZONE))
+    created = Faker("date_time", tzinfo=ZoneInfo(settings.TIME_ZONE))

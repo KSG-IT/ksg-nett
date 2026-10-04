@@ -1,4 +1,4 @@
-import pytz
+from zoneinfo import ZoneInfo
 from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
@@ -32,7 +32,7 @@ class Command(BaseCommand):
                 if not aware_datetime.tzinfo:
 
                     aware_datetime = timezone.make_aware(
-                        deposit.registrert, timezone=pytz.timezone(settings.TIME_ZONE)
+                        deposit.registrert, timezone=ZoneInfo(settings.TIME_ZONE)
                     )
                 self.stdout.write(
                     self.style.SUCCESS(f"Migrating deposit: {deposit.kommentar}")

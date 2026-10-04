@@ -1,5 +1,5 @@
 import graphene
-import pytz
+from zoneinfo import ZoneInfo
 from django.db import transaction
 from graphene import Node
 from graphene_django import DjangoObjectType
@@ -10,8 +10,10 @@ from graphene_django_cud.mutations import (
     DjangoCreateMutation,
 )
 from graphene_django_cud.util import disambiguate_id
+from graphql_relay import to_global_id
 
 from common.decorators import gql_has_permissions, gql_login_required
+from common.exceptions import IllegalOperation
 from schedules.models import (
     Schedule,
     Shift,
@@ -26,7 +28,7 @@ from users.models import User, Allergy as UserAllergy
 from django.utils import timezone
 from django.conf import settings
 
-from django.db.models import Count
+from django.db.models import Count, Max
 from django.db.models.functions import TruncDate
 
 
@@ -75,10 +77,11 @@ class ShiftNode(DjangoObjectType):
         return users
 
     def resolve_slots(self: Shift, info):
-        return self.slots.all()
+        # Without an explicit order Postgres returns updated rows last
+        return self.slots.all().order_by("id")
 
     def resolve_filled_slots(self: Shift, info):
-        return self.slots.filter(user__isnull=False)
+        return self.slots.filter(user__isnull=False).order_by("id")
 
     @classmethod
     @gql_login_required()
@@ -97,6 +100,11 @@ class DayAllergyNode(graphene.ObjectType):
     total_user_count = graphene.NonNull(graphene.Int)
 
 
+class ScheduleSlotCounts(graphene.ObjectType):
+    filled = graphene.NonNull(graphene.Int)
+    total = graphene.NonNull(graphene.Int)
+
+
 class ScheduleNode(DjangoObjectType):
     class Meta:
         model = Schedule
@@ -106,8 +114,55 @@ class ScheduleNode(DjangoObjectType):
         ShiftNode, shifts_from=graphene.Date(), number_of_weeks=graphene.Int()
     )
 
+    @gql_login_required()
     def resolve_shifts_from_range(self: Schedule, info, shifts_from, number_of_weeks):
         return self.shifts_from_range(shifts_from, number_of_weeks)
+
+    # Fields for the schedules overview, for schedule managers only. Each one
+    # is a small query per schedule; there are only a few schedules.
+    planned_until = graphene.DateTime(
+        description="Start of the last shift that has not started yet"
+    )
+    upcoming_slots = graphene.Field(
+        graphene.NonNull(ScheduleSlotCounts),
+        days=graphene.Int(default_value=14),
+    )
+    recent_locations = graphene.NonNull(
+        graphene.List(graphene.NonNull(graphene.String)),
+        weeks=graphene.Int(default_value=8),
+        description="Locations of shifts from the last weeks on, most used first",
+    )
+
+    @gql_has_permissions("schedules.change_schedule")
+    def resolve_planned_until(self: Schedule, info):
+        return (
+            self.shifts.filter(datetime_start__gte=timezone.now())
+            .aggregate(last=Max("datetime_start"))
+            .get("last")
+        )
+
+    @gql_has_permissions("schedules.change_schedule")
+    def resolve_upcoming_slots(self: Schedule, info, days):
+        now = timezone.now()
+        slots = ShiftSlot.objects.filter(
+            shift__schedule=self,
+            shift__datetime_start__gte=now,
+            shift__datetime_start__lt=now + timezone.timedelta(days=days),
+        )
+        return ScheduleSlotCounts(
+            filled=slots.filter(user__isnull=False).count(), total=slots.count()
+        )
+
+    @gql_has_permissions("schedules.change_schedule")
+    def resolve_recent_locations(self: Schedule, info, weeks):
+        since = timezone.now() - timezone.timedelta(weeks=weeks)
+        rows = (
+            self.shifts.filter(datetime_start__gte=since, location__isnull=False)
+            .values("location")
+            .annotate(count=Count("id"))
+            .order_by("-count", "location")
+        )
+        return [row["location"] for row in rows]
 
     @classmethod
     def get_node(cls, info, id):
@@ -124,14 +179,116 @@ class ShiftTradeNode(DjangoObjectType):
         return ShiftTrade.objects.get(pk=id)
 
 
+class AllergyUserRow(graphene.ObjectType):
+    user_id = graphene.NonNull(graphene.ID)
+    name = graphene.NonNull(graphene.String)
+    # One value per name in ScheduleAllergiesWeek.allergies
+    allergies = graphene.NonNull(graphene.List(graphene.NonNull(graphene.Boolean)))
+    # The days of the week with a filled slot for this user
+    days = graphene.NonNull(graphene.List(graphene.NonNull(graphene.Date)))
+
+
+class AllergyWorkDay(graphene.ObjectType):
+    date = graphene.NonNull(graphene.Date)
+    people_at_work = graphene.NonNull(graphene.Int)
+
+
+class ScheduleAllergiesWeek(graphene.ObjectType):
+    # Allergy names of the people at work, sorted by name
+    allergies = graphene.NonNull(graphene.List(graphene.NonNull(graphene.String)))
+    # People at work with at least one allergy, sorted by name
+    users = graphene.NonNull(graphene.List(graphene.NonNull(AllergyUserRow)))
+    # People at work in the week with each allergy
+    allergy_counts = graphene.NonNull(graphene.List(graphene.NonNull(graphene.Int)))
+    # Distinct people with a filled slot in the week, and per day
+    people_at_work = graphene.NonNull(graphene.Int)
+    days = graphene.NonNull(graphene.List(graphene.NonNull(AllergyWorkDay)))
+
+
+def schedule_allergies_for_week(shifts_from):
+    """Allergies of everyone with a filled slot in the week of shifts_from."""
+    monday = shifts_from - datetime.timedelta(days=shifts_from.weekday())
+    start = timezone.make_aware(datetime.datetime.combine(monday, datetime.time.min))
+    end = timezone.make_aware(
+        datetime.datetime.combine(
+            monday + datetime.timedelta(days=6), datetime.time.max
+        )
+    )
+    slots = (
+        ShiftSlot.objects.filter(
+            shift__datetime_start__range=(start, end), user__isnull=False
+        )
+        .select_related("user", "shift")
+        .prefetch_related("user__allergies")
+    )
+
+    users = {}
+    days_by_user = {}
+    for slot in slots:
+        day = timezone.localtime(slot.shift.datetime_start).date()
+        users[slot.user_id] = slot.user
+        days_by_user.setdefault(slot.user_id, set()).add(day)
+
+    allergies_by_user = {
+        user_id: {allergy.name for allergy in user.allergies.all()}
+        for user_id, user in users.items()
+    }
+    allergy_names = sorted(
+        set().union(*allergies_by_user.values()), key=lambda name: name.lower()
+    )
+    allergic_ids = sorted(
+        (user_id for user_id, names in allergies_by_user.items() if names),
+        key=lambda user_id: users[user_id].get_clean_full_name().lower(),
+    )
+
+    people_per_day = {}
+    for user_days in days_by_user.values():
+        for day in user_days:
+            people_per_day[day] = people_per_day.get(day, 0) + 1
+
+    return ScheduleAllergiesWeek(
+        allergies=allergy_names,
+        users=[
+            AllergyUserRow(
+                user_id=to_global_id("UserNode", user_id),
+                name=users[user_id].get_clean_full_name(),
+                allergies=[
+                    name in allergies_by_user[user_id] for name in allergy_names
+                ],
+                days=sorted(days_by_user[user_id]),
+            )
+            for user_id in allergic_ids
+        ],
+        allergy_counts=[
+            sum(name in names for names in allergies_by_user.values())
+            for name in allergy_names
+        ],
+        people_at_work=len(users),
+        days=[
+            AllergyWorkDay(date=day, people_at_work=count)
+            for day, count in sorted(people_per_day.items())
+        ],
+    )
+
+
 class ScheduleQuery(graphene.ObjectType):
     schedule = Node.Field(ScheduleNode)
     all_schedules = graphene.NonNull(graphene.List(ScheduleNode, required=True))
     schedule_allergies = graphene.List(DayAllergyNode, shifts_from=graphene.Date())
+    schedule_allergies_v2 = graphene.Field(
+        graphene.NonNull(ScheduleAllergiesWeek),
+        shifts_from=graphene.Date(required=True),
+    )
 
+    @gql_has_permissions("schedules.change_schedule")
+    def resolve_schedule_allergies_v2(self, info, shifts_from, *args, **kwargs):
+        return schedule_allergies_for_week(shifts_from)
+
+    @gql_login_required()
     def resolve_all_schedules(self, info, *args, **kwargs):
         return Schedule.objects.all().order_by("name")
 
+    @gql_has_permissions("schedules.change_schedule")
     def resolve_schedule_allergies(self, info, shifts_from, *args, **kwargs):
         monday = shifts_from - timezone.timedelta(days=shifts_from.weekday())
         monday = timezone.datetime(
@@ -139,7 +296,7 @@ class ScheduleQuery(graphene.ObjectType):
             month=monday.month,
             day=monday.day,
         )
-        monday = timezone.make_aware(monday, timezone=pytz.timezone(settings.TIME_ZONE))
+        monday = timezone.make_aware(monday, timezone=ZoneInfo(settings.TIME_ZONE))
         sunday = monday + timezone.timedelta(days=6, hours=23, minutes=59, seconds=59)
 
         filtered_shifts = Shift.objects.filter(
@@ -216,13 +373,12 @@ class ScheduleQuery(graphene.ObjectType):
                 )
             )
 
-
-        # There is a special case where 
+        # There is a special case where
         for count_key in count_dict.keys():
             if count_key in result_dict.keys():
                 continue
 
-            date_object = datetime.datetime.strptime(count_key, '%Y-%m-%d').date()
+            date_object = datetime.datetime.strptime(count_key, "%Y-%m-%d").date()
             node = DayAllergyNode(
                 date=date_object,
                 allergy_list=[],
@@ -292,14 +448,20 @@ class ShiftQuery(graphene.ObjectType):
 
     def resolve_my_upcoming_shifts(self, info, *args, **kwargs):
         me = info.context.user
-        return Shift.objects.filter(
-            datetime_end__gt=timezone.now(),
-            slots__user=me,
-        ).order_by("-datetime_start")
+        return (
+            Shift.objects.filter(
+                datetime_end__gt=timezone.now(),
+                slots__user=me,
+            )
+            .distinct()
+            .order_by("-datetime_start")
+        )
 
     def resolve_all_my_shifts(self, info, *args, **kwargs):
         me = info.context.user
-        return Shift.objects.filter(slots__user=me).order_by("-datetime_start")
+        return (
+            Shift.objects.filter(slots__user=me).distinct().order_by("-datetime_start")
+        )
 
     def resolve_all_shifts(self, info, date, *args, **kwargs):
         datetime_from = timezone.datetime(
@@ -309,7 +471,7 @@ class ShiftQuery(graphene.ObjectType):
             0,
             0,
             0,
-            tzinfo=pytz.timezone(settings.TIME_ZONE),
+            tzinfo=ZoneInfo(settings.TIME_ZONE),
         )
         datetime_to = timezone.datetime(
             date.year,
@@ -318,7 +480,7 @@ class ShiftQuery(graphene.ObjectType):
             23,
             59,
             59,
-            tzinfo=pytz.timezone(settings.TIME_ZONE),
+            tzinfo=ZoneInfo(settings.TIME_ZONE),
         )
         return Shift.objects.filter(
             datetime_start__gt=datetime_from, datetime_start__lt=datetime_to
@@ -333,7 +495,7 @@ class ShiftQuery(graphene.ObjectType):
             0,
             0,
             0,
-            tzinfo=pytz.timezone(settings.TIME_ZONE),
+            tzinfo=ZoneInfo(settings.TIME_ZONE),
         )
         datetime_to = timezone.datetime(
             date.year,
@@ -342,7 +504,7 @@ class ShiftQuery(graphene.ObjectType):
             23,
             59,
             59,
-            tzinfo=pytz.timezone(settings.TIME_ZONE),
+            tzinfo=ZoneInfo(settings.TIME_ZONE),
         )
         return User.objects.filter(
             filled_shifts__shift__datetime_start__gt=datetime_from,
@@ -528,6 +690,99 @@ class AddSlotsToShiftMutation(graphene.Mutation):
         return AddSlotsToShiftMutation(shift=shift)
 
 
+def local_shift_times(date, start_time, end_time):
+    """
+    The start and end of a shift on `date`, in settings.TIME_ZONE. An end at
+    or before the start is on the next day (a night shift).
+    """
+    local = ZoneInfo(settings.TIME_ZONE)
+    start = datetime.datetime.combine(date, start_time, tzinfo=local)
+    end_date = date + datetime.timedelta(days=1) if end_time <= start_time else date
+    end = datetime.datetime.combine(end_date, end_time, tzinfo=local)
+    return start, end
+
+
+def valid_location(location):
+    if location is not None and location not in Shift.Location.values:
+        raise IllegalOperation(f"Unknown location: {location}")
+    return location
+
+
+class CreateShiftWithSlotsInput(graphene.InputObjectType):
+    schedule_id = graphene.ID(required=True)
+    name = graphene.String(required=True)
+    location = graphene.String()
+    date = graphene.Date(required=True)
+    start_time = graphene.Time(required=True)
+    end_time = graphene.Time(required=True)
+    slots = graphene.List(graphene.NonNull(AddSlotToShiftInput), required=True)
+
+
+class CreateShiftWithSlotsMutation(graphene.Mutation):
+    """
+    Creates a shift and its slots in one transaction. The times are a date and
+    clock times in settings.TIME_ZONE, so the browser time zone does not matter.
+    """
+
+    class Arguments:
+        input = CreateShiftWithSlotsInput(required=True)
+
+    shift = graphene.Field(ShiftNode)
+
+    @gql_has_permissions("schedules.add_shift", "schedules.add_shiftslot")
+    def mutate(self, info, input):
+        name = input.name.strip()
+        if not name:
+            raise IllegalOperation("A shift needs a name")
+        start, end = local_shift_times(input.date, input.start_time, input.end_time)
+        with transaction.atomic():
+            shift = Shift.objects.create(
+                schedule=Schedule.objects.get(pk=disambiguate_id(input.schedule_id)),
+                name=name,
+                location=valid_location(input.location),
+                datetime_start=start,
+                datetime_end=end,
+            )
+            ShiftSlot.objects.bulk_create(
+                ShiftSlot(shift=shift, role=slot.shift_slot_role.value)
+                for slot in input.slots
+                for _ in range(slot.count)
+            )
+        return CreateShiftWithSlotsMutation(shift=shift)
+
+
+class UpdateShiftDetailsInput(graphene.InputObjectType):
+    shift_id = graphene.ID(required=True)
+    name = graphene.String(required=True)
+    location = graphene.String()
+    date = graphene.Date(required=True)
+    start_time = graphene.Time(required=True)
+    end_time = graphene.Time(required=True)
+
+
+class UpdateShiftDetailsMutation(graphene.Mutation):
+    """Changes the name, location and times of a shift, as for create."""
+
+    class Arguments:
+        input = UpdateShiftDetailsInput(required=True)
+
+    shift = graphene.Field(ShiftNode)
+
+    @gql_has_permissions("schedules.change_shift")
+    def mutate(self, info, input):
+        name = input.name.strip()
+        if not name:
+            raise IllegalOperation("A shift needs a name")
+        shift = Shift.objects.get(pk=disambiguate_id(input.shift_id))
+        shift.name = name
+        shift.location = valid_location(input.location)
+        shift.datetime_start, shift.datetime_end = local_shift_times(
+            input.date, input.start_time, input.end_time
+        )
+        shift.save()
+        return UpdateShiftDetailsMutation(shift=shift)
+
+
 class AutofillShiftSlotsMutation(graphene.Mutation):
     class Arguments:
         schedule_id = graphene.ID(required=True)
@@ -586,6 +841,8 @@ class SchedulesMutations(graphene.ObjectType):
     create_shift_slot = CreateShiftSlotMutation.Field()
     delete_shift_slot = DeleteShiftSlotMutation.Field()
     add_slots_to_shift = AddSlotsToShiftMutation.Field()
+    create_shift_with_slots = CreateShiftWithSlotsMutation.Field()
+    update_shift_details = UpdateShiftDetailsMutation.Field()
 
     create_shift_interest = CreateShiftInterestMutation.Field()
     autofill_shift_slots = AutofillShiftSlotsMutation.Field()

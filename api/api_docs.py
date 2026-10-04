@@ -12,9 +12,6 @@ SchemaView = get_schema_view(
         title="KSG X-API",
         default_version="v1",
         contact=Contact(name="Maintained by KSG-IT", email="ksg-it@samfundet.no"),
-        x_logo={
-            "url": "https://sg.samfundet.no/ekstern/ksg_logo.jpg",
-        },
         description=(
             "---\n"
             "### This is the API reference for the web services of Kafé- og Serveringsgjengen (KSG) "

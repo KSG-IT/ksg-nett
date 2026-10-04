@@ -1,9 +1,12 @@
 import math
+import os
+import uuid
 from typing import List
 
-import pytz
+from zoneinfo import ZoneInfo
 from django.utils import timezone
 from django.db import transaction
+from django.db.models import Prefetch
 from graphene_django_cud.util import disambiguate_id
 
 from common.util import send_email
@@ -11,8 +14,10 @@ from django.utils.translation import gettext_lazy as _
 from django.conf import settings
 from django.apps import apps
 
+from django.core.files.base import ContentFile
 from common.util import (
     date_time_combiner,
+    delete_unused_media_file,
     get_date_from_datetime,
     parse_datetime_to_midnight,
     validate_qs,
@@ -24,7 +29,61 @@ from admissions.models import (
     Applicant,
     InternalGroupPositionPriority,
 )
-from organization.models import InternalGroupPosition
+from organization.models import InternalGroupPosition, InternalGroupPositionMembership
+from users.models import User
+
+
+def prefetch_applicant_list_data(queryset, prefix=""):
+    """
+    Prefetches the relations ApplicantNode resolves for each row in an applicant list,
+    so the list costs a fixed number of queries instead of several queries per
+    applicant. Use `prefix` for querysets of other models, e.g. "applicant__" for
+    recommendations.
+
+    Interviewers get their active memberships as `active_memberships`, which
+    `get_interviewers_from_internal_group` reads.
+    """
+    active_memberships = InternalGroupPositionMembership.objects.filter(
+        date_ended__isnull=True
+    ).select_related("position")
+    interviewers = User.objects.prefetch_related(
+        Prefetch(
+            "internal_group_position_history",
+            queryset=active_memberships,
+            to_attr="active_memberships",
+        )
+    )
+    priorities = InternalGroupPositionPriority.objects.select_related(
+        "internal_group_position__internal_group"
+    )
+
+    return queryset.select_related(f"{prefix}interview").prefetch_related(
+        Prefetch(f"{prefix}priorities", queryset=priorities),
+        Prefetch(f"{prefix}interview__interviewers", queryset=interviewers),
+        f"{prefix}internal_group_interests__internal_group",
+    )
+
+
+def get_interviewers_from_internal_group(interview, internal_group_id):
+    """
+    Returns the interviewers of the interview who are active members of the internal
+    group, ordered by id. Reuses `active_memberships` from
+    `prefetch_applicant_list_data` if present.
+    """
+    internal_group_id = int(internal_group_id)
+    interviewers_from_internal_group = []
+    for interviewer in interview.interviewers.all():
+        memberships = getattr(interviewer, "active_memberships", None)
+        if memberships is None:
+            memberships = interviewer.internal_group_position_history.filter(
+                date_ended__isnull=True
+            ).select_related("position")
+        if any(
+            membership.position.internal_group_id == internal_group_id
+            for membership in memberships
+        ):
+            interviewers_from_internal_group.append(interviewer)
+    return sorted(interviewers_from_internal_group, key=lambda user: user.id)
 
 
 def get_available_interview_locations(datetime_from=None, datetime_to=None):
@@ -92,7 +151,7 @@ def generate_interviews_from_schedule(schedule):
             minute=default_interview_day_start.minute,
             second=0,
         ),
-        timezone=pytz.timezone(settings.TIME_ZONE),
+        timezone=ZoneInfo(settings.TIME_ZONE),
     )
     datetime_interview_period_end = timezone.make_aware(
         timezone.datetime(
@@ -103,7 +162,7 @@ def generate_interviews_from_schedule(schedule):
             minute=default_interview_day_end.minute,
             second=0,
         ),
-        timezone=pytz.timezone(settings.TIME_ZONE),
+        timezone=ZoneInfo(settings.TIME_ZONE),
     )
 
     # Lazy load models due to circular import errors
@@ -372,7 +431,7 @@ def notify_interviewers_applicant_has_been_moved_to_another_interview_email(
     interviewers_emails: List[str] = None,
 ):
     local_time = timezone.localtime(
-        interview_datetime_start, pytz.timezone(settings.TIME_ZONE)
+        interview_datetime_start, ZoneInfo(settings.TIME_ZONE)
     )
     formatted_local_time = local_time.strftime("%d.%m.%Y kl. %H:%M")
     content = (
@@ -433,7 +492,7 @@ def notify_interviewers_applicant_has_been_moved_to_another_interview_email(
 
 def notify_interviewers_cancelled_interview_email(applicant, interview):
     local_time = timezone.localtime(
-        interview.interview_start, pytz.timezone(settings.TIME_ZONE)
+        interview.interview_start, ZoneInfo(settings.TIME_ZONE)
     )
     name = applicant.get_full_name
     interview_location = interview.location.name
@@ -498,7 +557,7 @@ def notify_interviewers_applicant_has_been_removed_from_interview_email(
     applicant, interview
 ):
     local_time = timezone.localtime(
-        interview.interview_start, pytz.timezone(settings.TIME_ZONE)
+        interview.interview_start, ZoneInfo(settings.TIME_ZONE)
     )
     name = applicant.get_full_name
     interview_location = interview.location.name
@@ -563,7 +622,7 @@ def send_interview_confirmation_email(interview):
     applicant = interview.applicant
 
     local_time = timezone.localtime(
-        interview.interview_start, pytz.timezone(settings.TIME_ZONE)
+        interview.interview_start, ZoneInfo(settings.TIME_ZONE)
     )
     name = applicant.get_full_name
     interview_location = interview.location.name
@@ -707,7 +766,8 @@ def read_admission_csv(file):
 def obfuscate_admission(admission):
     """
     Obfuscates all applications for a given admission process. Meaning removing any identifying information.
-    Randomizes name, phone number and email. Other details we can use to track statistics.
+    Randomizes name, phone number and email, and removes the date of birth.
+    Other details we can use to track statistics.
     """
     # Lazy load it due to circular import issues
     from admissions.tests.factories import ApplicantFactory
@@ -721,7 +781,30 @@ def obfuscate_admission(admission):
         applicant.address = fake_data.address[:20]
         applicant.hometown = fake_data.hometown[:20]
         applicant.phone = fake_data.phone[:10]
+        applicant.date_of_birth = None
         applicant.save()
+
+
+def copy_applicant_image_to_user(applicant: Applicant, user: User):
+    """
+    Copies the applicant image to a new file for the user, so the applicant
+    images can be deleted when the admission closes.
+    """
+    if not applicant.image:
+        return
+    extension = os.path.splitext(applicant.image.name)[1]
+    with applicant.image.open("rb") as image:
+        user.profile_image.save(
+            f"{uuid.uuid4().hex}{extension}", ContentFile(image.read()), save=True
+        )
+
+
+def delete_applicant_images(admission):
+    """Deletes the image files of all applicants in the admission"""
+    applicants = admission.applicants.exclude(image__isnull=True).exclude(image="")
+    for name in applicants.values_list("image", flat=True):
+        delete_unused_media_file(name)
+    applicants.update(image=None)
 
 
 def group_interviews_by_date(interviews):
@@ -827,7 +910,7 @@ def internal_group_applicant_data(internal_group):
     all_applicants = Applicant.objects.filter(admission=active_admission)
 
     # Is it possible to sort by and append all that are null
-    first_priorities = (
+    first_priorities = prefetch_applicant_list_data(
         all_applicants.filter(
             priorities__applicant_priority=Priority.FIRST,
             priorities__internal_group_position__internal_group=internal_group,
@@ -835,7 +918,7 @@ def internal_group_applicant_data(internal_group):
         .exclude(status=ApplicantStatus.RETRACTED_APPLICATION)
         .order_by("first_name")
     )
-    second_priorities = (
+    second_priorities = prefetch_applicant_list_data(
         all_applicants.filter(
             priorities__applicant_priority=Priority.SECOND,
             priorities__internal_group_position__internal_group=internal_group,
@@ -843,7 +926,7 @@ def internal_group_applicant_data(internal_group):
         .exclude(status=ApplicantStatus.RETRACTED_APPLICATION)
         .order_by("first_name")
     )
-    third_priorities = (
+    third_priorities = prefetch_applicant_list_data(
         all_applicants.filter(
             priorities__applicant_priority=Priority.THIRD,
             priorities__internal_group_position__internal_group=internal_group,
@@ -1128,7 +1211,7 @@ def interview_overview_parser(interviews):
                 applicant_id = to_global_id("ApplicantNode", interview.applicant.id)
 
             local_time = timezone.localtime(
-                interview.interview_start, pytz.timezone(settings.TIME_ZONE)
+                interview.interview_start, ZoneInfo(settings.TIME_ZONE)
             )
 
             minute = str(local_time.minute)

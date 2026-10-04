@@ -1,15 +1,18 @@
 import random
 import re
 import sys
+import uuid
 from io import BytesIO
 from datetime import datetime, date
 from typing import Union, List, Tuple
 
-import pytz
-from PIL import Image
+from zoneinfo import ZoneInfo
+from PIL import Image, UnidentifiedImageError
 from pydash import strip_tags
 from django.core.mail import EmailMultiAlternatives
 from django.conf import settings
+from django.core.exceptions import ValidationError
+from django.core.files.storage import default_storage
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.utils import timezone
 from django.db.models import QuerySet
@@ -237,7 +240,7 @@ def compress_image(image, image_name, file_type):
         "ImageField",
         image_name,
         content_type,
-        sys.getsizeof(output_io_stream),
+        output_io_stream.getbuffer().nbytes,
         None,
     )
     return compressed_file
@@ -285,7 +288,7 @@ def date_time_combiner(date: datetime.date, time: datetime.time):
             minute=time.minute,
             second=time.second,
         ),
-        timezone=pytz.timezone(settings.TIME_ZONE),
+        timezone=ZoneInfo(settings.TIME_ZONE),
     )
 
 
@@ -338,7 +341,7 @@ def midnight_timestamps_from_date(date):
             minute=0,
             second=0,
         ),
-        timezone=pytz.timezone(settings.TIME_ZONE),
+        timezone=ZoneInfo(settings.TIME_ZONE),
     )
     datetime_late = timezone.make_aware(
         timezone.datetime(
@@ -349,7 +352,7 @@ def midnight_timestamps_from_date(date):
             minute=59,
             second=59,
         ),
-        timezone=pytz.timezone(settings.TIME_ZONE),
+        timezone=ZoneInfo(settings.TIME_ZONE),
     )
     return datetime_early, datetime_late
 
@@ -362,3 +365,53 @@ def check_feature_flag(feature_flag_key, fail_silently=False):
 
     if not flag.enabled:
         raise IllegalOperation(f"Feature flag {feature_flag_key} is not enabled")
+
+
+IMAGE_FORMAT_EXTENSIONS = {"JPEG": "jpg", "PNG": "png"}
+
+
+def validate_image_upload(image) -> str:
+    """
+    Checks the size and the real file type of an uploaded image.
+    Returns the Pillow format of the image, "JPEG" or "PNG".
+
+    TODO: Translate the error messages with gettext when the backend gets
+    translation files. LOCALE_PATHS points to a folder that does not exist.
+    """
+    max_size = settings.MAX_IMAGE_UPLOAD_SIZE
+    if image.size > max_size:
+        raise ValidationError(f"Image is too large. Max {max_size // 1024**2} MB.")
+
+    try:
+        with Image.open(image) as temp_image:
+            temp_image.verify()
+            image_format = temp_image.format
+            width, height = temp_image.size
+    except (UnidentifiedImageError, Image.DecompressionBombError, OSError, SyntaxError):
+        raise ValidationError("File is not a valid image.")
+    finally:
+        image.seek(0)
+
+    if image_format not in IMAGE_FORMAT_EXTENSIONS:
+        raise ValidationError("Image must be JPEG or PNG.")
+    if width * height > settings.MAX_IMAGE_PIXELS:
+        raise ValidationError("Image resolution is too high.")
+    return image_format
+
+
+def random_image_name(image_format: str) -> str:
+    """A name that does not reveal the original file name and cannot be guessed"""
+    return f"{uuid.uuid4().hex}.{IMAGE_FORMAT_EXTENSIONS[image_format]}"
+
+
+def delete_unused_media_file(name: str):
+    """
+    Deletes a media file, unless a user still uses it as profile image.
+    Users created by closed admissions before images were copied share
+    the file with their applicant.
+    """
+    from users.models import User
+
+    if not name or User.objects.filter(profile_image=name).exists():
+        return
+    default_storage.delete(name)

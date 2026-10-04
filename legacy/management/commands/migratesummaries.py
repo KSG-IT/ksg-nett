@@ -1,6 +1,6 @@
 from functools import reduce
 
-import pytz
+from zoneinfo import ZoneInfo
 from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
@@ -32,7 +32,7 @@ def create_summary(summaries, internal_group=None):
         if not hasattr(registered, "tz_info"):
             registered = timezone.make_aware(
                 legacy_summary.registrert,
-                timezone=pytz.timezone(settings.TIME_ZONE),
+                timezone=ZoneInfo(settings.TIME_ZONE),
             )
 
         if internal_group:

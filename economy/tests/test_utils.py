@@ -1,7 +1,8 @@
 import math
 
 from django.test import TestCase
-from economy.utils import parse_transaction_history
+from economy.models import SociOrderSession, SociOrderSessionOrder, SociProduct
+from economy.utils import create_food_order_pdf_file, parse_transaction_history
 from economy.price_strategies import calculate_stock_price_for_product
 from economy.tests.factories import (
     SociBankAccountFactory,
@@ -11,6 +12,7 @@ from economy.tests.factories import (
     SociProductFactory,
 )
 from users.schema import BankAccountActivity
+from users.tests.factories import UserFactory
 from django.conf import settings
 from django.utils import timezone
 
@@ -94,3 +96,37 @@ class TestAuctionPriceCalculation(TestCase):
         expected = math.floor(5 * multiplier + self.tuborg.purchase_price)
         calculated_price = calculate_stock_price_for_product(self.tuborg.id)
         self.assertEqual(expected, calculated_price)
+
+
+class TestCreateFoodOrderPdfFile(TestCase):
+    def setUp(self) -> None:
+        self.session = SociOrderSession.objects.create(
+            status=SociOrderSession.Status.FOOD_ORDERING
+        )
+        pizza = SociProductFactory.create(name="Pizza", type=SociProduct.Type.FOOD)
+        burger = SociProductFactory.create(name="Burger", type=SociProduct.Type.FOOD)
+        beer = SociProductFactory.create(name="Øl", type=SociProduct.Type.DRINK)
+
+        for product in [pizza, pizza, burger, beer]:
+            SociOrderSessionOrder.objects.create(
+                session=self.session,
+                user=UserFactory.create(),
+                product=product,
+                amount=1,
+            )
+
+    def test__create_food_order_pdf_file__returns_pdf(self):
+        file = create_food_order_pdf_file(self.session)
+        file.seek(0)
+        content = file.read()
+
+        self.assertTrue(content.startswith(b"%PDF-"))
+        self.assertIn(b"%%EOF", content[-1024:])
+
+    def test__create_food_order_pdf_file_without_orders__returns_pdf(self):
+        self.session.orders.all().delete()
+
+        file = create_food_order_pdf_file(self.session)
+        file.seek(0)
+
+        self.assertTrue(file.read().startswith(b"%PDF-"))

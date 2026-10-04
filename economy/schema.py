@@ -1,9 +1,8 @@
 import datetime
 
 import graphene
-import calendar
 
-import pytz
+from zoneinfo import ZoneInfo
 from django.conf import settings
 from django.core.exceptions import (
     SuspiciousOperation,
@@ -63,6 +62,7 @@ class TotalExpenditure(graphene.ObjectType):
 
 
 class TotalExpenditureItem(graphene.ObjectType):
+    product_id = graphene.ID()
     name = graphene.String()
     total = graphene.Int()
     quantity = graphene.Int()
@@ -152,23 +152,80 @@ class DepositNode(DjangoObjectType):
         return Deposit.objects.get(pk=id)
 
 
+def can_view_bank_account(info, account: SociBankAccount) -> bool:
+    """The owner, or a user with economy.view_socibankaccount."""
+    user = getattr(info.context, "user", None)
+    if user is None or not user.is_authenticated:
+        return False
+    return account.user_id == user.id or user.has_perm("economy.view_socibankaccount")
+
+
+def can_view_balance(info, account: SociBankAccount) -> bool:
+    """
+    Like can_view_bank_account, but balances on the dashboard Wanted list
+    are visible to every logged-in user, as the list shows them by design.
+    """
+    if can_view_bank_account(info, account):
+        return True
+    user = getattr(info.context, "user", None)
+    if user is None or not user.is_authenticated:
+        return False
+    owner = account.user
+    return (
+        account.balance <= settings.WANTED_LIST_THRESHOLD
+        and owner.is_active
+        and owner.username not in settings.SOCI_GOLD
+    )
+
+
 class SociBankAccountNode(DjangoObjectType):
     class Meta:
         model = SociBankAccount
         interfaces = (Node,)
+        # Only myExternalChargeQrCodeUrl uses the secret, for the own account
+        exclude = ("external_charge_secret",)
 
+    balance = graphene.Int()
     deposits = graphene.NonNull(graphene.List(graphene.NonNull(DepositNode)))
     last_deposits = graphene.NonNull(graphene.List(graphene.NonNull(DepositNode)))
 
+    def resolve_balance(self: SociBankAccount, info, **kwargs):
+        return self.balance if can_view_balance(info, self) else None
+
+    def resolve_card_uuid(self: SociBankAccount, info, **kwargs):
+        return self.card_uuid if can_view_bank_account(info, self) else None
+
+    def resolve_product_orders(self: SociBankAccount, info, **kwargs):
+        if not can_view_bank_account(info, self):
+            return self.product_orders.none()
+        return self.product_orders.all()
+
+    def resolve_source_transfers(self: SociBankAccount, info, **kwargs):
+        if not can_view_bank_account(info, self):
+            return self.source_transfers.none()
+        return self.source_transfers.all()
+
+    def resolve_destination_transfers(self: SociBankAccount, info, **kwargs):
+        if not can_view_bank_account(info, self):
+            return self.destination_transfers.none()
+        return self.destination_transfers.all()
+
     def resolve_deposits(self: SociBankAccount, info, **kwargs):
+        if not can_view_bank_account(info, self):
+            return []
         return self.deposits.all().order_by("-created_at")
 
     def resolve_last_deposits(self: SociBankAccount, info, **kwargs):
+        if not can_view_bank_account(info, self):
+            return []
         return self.deposits.all().order_by("-created_at")[:10]
 
     @classmethod
     def get_node(cls, info, id):
-        return SociBankAccount.objects.get(pk=id)
+        account = SociBankAccount.objects.filter(pk=id).first()
+        if account is None or not can_view_bank_account(info, account):
+            return None
+        return account
 
 
 class ProductOrderNode(DjangoObjectType):
@@ -353,91 +410,192 @@ class DepositQuery(graphene.ObjectType):
         return ongoing_deposit_intent
 
 
+class SalesGranularity(graphene.Enum):
+    DAY = "day"
+    WEEK = "week"
+    MONTH = "month"
+    # Autumn from 1 August, spring from 1 January, as in
+    # InternalGroupPositionMembership.get_semester_of_membership
+    SEMESTER = "semester"
+
+
+def period_start(day, granularity):
+    """The first day of the day, ISO week, month or semester that day is in."""
+    if granularity == SalesGranularity.WEEK.value:
+        return day - datetime.timedelta(days=day.weekday())
+    if granularity == SalesGranularity.MONTH.value:
+        return day.replace(day=1)
+    if granularity == SalesGranularity.SEMESTER.value:
+        return day.replace(month=8 if day.month >= 8 else 1, day=1)
+    return day
+
+
+def next_period(day, granularity):
+    if granularity == SalesGranularity.WEEK.value:
+        return day + datetime.timedelta(weeks=1)
+    if granularity == SalesGranularity.MONTH.value:
+        return (day.replace(day=28) + datetime.timedelta(days=4)).replace(day=1)
+    if granularity == SalesGranularity.SEMESTER.value:
+        if day.month >= 8:
+            return datetime.date(day.year + 1, 1, 1)
+        return datetime.date(day.year, 8, 1)
+    return day + datetime.timedelta(days=1)
+
+
+def periods_between(date_from, date_to, granularity):
+    """The first day of every period from date_from to date_to."""
+    periods = []
+    period = period_start(date_from, granularity)
+    while period <= date_to:
+        periods.append(period)
+        period = next_period(period, granularity)
+    return periods
+
+
+def product_sales_by_period(
+    product_ids,
+    date_from,
+    date_to,
+    granularity=SalesGranularity.DAY.value,
+    source=None,
+):
+    """
+    Sales per product and period between date_from and date_to, both
+    included. A period is a day, an ISO week (from Monday), a month or a
+    semester (from 1 January or 1 August), and is
+    named by its first day. Periods without sales are in the list with sum 0,
+    so charts get a full axis. Without date_from, the range starts at the
+    first sale of the products. With source, only the purchases of that
+    bank account count. Without product_ids, the products are the
+    ones with sales in the range, sorted by name. quantity counts the items
+    sold. average is the revenue per day with sales.
+    """
+    # Graphene passes an enum member, Python callers pass the value
+    granularity = getattr(granularity, "value", granularity)
+    if product_ids:
+        ids = [int(disambiguate_id(product_id)) for product_id in product_ids]
+        orders = ProductOrder.objects.filter(product_id__in=ids)
+    else:
+        ids = None
+        orders = ProductOrder.objects.all()
+    # source: only the purchases of one bank account
+    if source is not None:
+        orders = orders.filter(source=source)
+
+    if date_from is None:
+        first = orders.order_by("purchased_at").values_list("purchased_at", flat=True)
+        first = first.first()
+        date_from = timezone.localtime(first).date() if first else date_to
+
+    start = timezone.make_aware(datetime.datetime.combine(date_from, datetime.time.min))
+    end = timezone.make_aware(datetime.datetime.combine(date_to, datetime.time.max))
+
+    # Group by day in the database. There are few days with sales, so the
+    # weeks and months are summed here.
+    rows = list(
+        orders.filter(purchased_at__range=(start, end))
+        .annotate(date=TruncDate("purchased_at"))
+        .values("product_id", "date")
+        .annotate(revenue=Sum("cost"), items=Sum("order_size"))
+    )
+    if ids is None:
+        ids = list({row["product_id"] for row in rows})
+    products = SociProduct.objects.in_bulk(ids)
+    if not product_ids:
+        ids = sorted(
+            (pk for pk in ids if pk in products),
+            key=lambda pk: products[pk].name.lower(),
+        )
+    by_product = {}
+    for row in rows:
+        product_sales = by_product.setdefault(
+            row["product_id"], {"days": set(), "items": 0, "periods": {}}
+        )
+        product_sales["days"].add(row["date"])
+        product_sales["items"] += row["items"]
+        period = period_start(row["date"], granularity)
+        product_sales["periods"][period] = (
+            product_sales["periods"].get(period, 0) + row["revenue"]
+        )
+
+    periods = periods_between(date_from, date_to, granularity)
+
+    result = []
+    for product_id in ids:
+        product = products.get(product_id)
+        if product is None:
+            continue
+        sales = by_product.get(product_id, {"days": set(), "items": 0, "periods": {}})
+        total = sum(sales["periods"].values())
+        result.append(
+            TotalExpenditureItem(
+                product_id=to_global_id("SociProductNode", product_id),
+                name=product.name,
+                total=total,
+                quantity=sales["items"],
+                average=round(total / len(sales["days"]), 2) if sales["days"] else 0,
+                data=[
+                    ExpenditureDay(day=period, sum=sales["periods"].get(period, 0))
+                    for period in periods
+                ],
+            )
+        )
+    return result
+
+
 class ProductOrderQuery(graphene.ObjectType):
     product_order = Node.Field(ProductOrderNode)
     all_product_orders = DjangoConnectionField(ProductOrderNode)
     product_orders_by_item_and_date = graphene.Field(
         TotalExpenditureItem,
-        product_id=graphene.ID(),
+        product_id=graphene.ID(required=True),
         date_from=graphene.Date(),
-        date_to=graphene.Date(),
+        date_to=graphene.Date(required=True),
+        granularity=SalesGranularity(default_value=SalesGranularity.DAY.value),
     )
     product_orders_by_item_and_date_list = graphene.List(
         TotalExpenditureItem,
-        product_ids=graphene.List(graphene.ID),
+        # Empty or left out: the products with sales in the range
+        product_ids=graphene.List(graphene.NonNull(graphene.ID)),
         date_from=graphene.Date(),
-        date_to=graphene.Date(),
+        date_to=graphene.Date(required=True),
+        granularity=SalesGranularity(default_value=SalesGranularity.DAY.value),
     )
 
+    @gql_has_permissions("economy.view_productorder")
     def resolve_all_product_orders(self, info, *args, **kwargs):
         return ProductOrder.objects.all().order_by("-purchased_at")
 
+    @gql_has_permissions("economy.view_productorder")
     def resolve_product_orders_by_item_and_date(
-        self, info, product_id, date_from, date_to, *args, **kwargs
+        self,
+        info,
+        product_id,
+        date_to,
+        date_from=None,
+        granularity=SalesGranularity.DAY.value,
+        *args,
+        **kwargs,
     ):
-        soci_item = disambiguate_id(product_id)
+        sales = product_sales_by_period([product_id], date_from, date_to, granularity)
+        return sales[0] if sales else None
 
-        date_from = timezone.make_aware(
-            datetime.datetime.combine(date_from, datetime.time.min)
-        )
-        date_to = timezone.make_aware(
-            datetime.datetime.combine(date_to, datetime.time.max)
-        )
-
-        product = SociProduct.objects.get(id=soci_item)
-
-        product_orders = (
-            ProductOrder.objects.filter(
-                product_id=soci_item, purchased_at__range=(date_from, date_to)
-            )
-            .annotate(date=TruncDate("purchased_at"))
-            .values("date")
-            .annotate(sum=Sum("cost"))
-            .order_by("date")
-        )
-        avg = round(getattr(product_orders.aggregate(Avg("sum")), "sum__avg", 0), 2)
-        qty = product_orders.aggregate(sum__qty=Sum("sum") / product.price)["sum__qty"]
-        total_expenditure = product_orders.aggregate(Sum("sum"))["sum__sum"]
-
-        return TotalExpenditureItem(
-            data=[
-                ExpenditureDay(
-                    day=product_order["date"],
-                    sum=product_order["sum"],
-                )
-                for product_order in product_orders
-            ],
-            name=product.name,
-            average=avg,
-            quantity=qty,
-            total=total_expenditure,
-        )
-
+    @gql_has_permissions("economy.view_productorder")
     def resolve_product_orders_by_item_and_date_list(
-        self, info, product_ids, date_from, date_to, *args, **kwargs
+        self,
+        info,
+        date_to,
+        product_ids=None,
+        date_from=None,
+        granularity=SalesGranularity.DAY.value,
+        *args,
+        **kwargs,
     ):
-        total_expenditures = []
-        for product_id in product_ids:
-            total_expenditure = (
-                ProductOrderQuery.resolve_product_orders_by_item_and_date(
-                    self,
-                    info,
-                    product_id=product_id,
-                    date_from=date_from,
-                    date_to=date_to,
-                )
-            )
-            total_expenditures.append(total_expenditure)
-        return total_expenditures
+        return product_sales_by_period(product_ids, date_from, date_to, granularity)
 
 
 class SociSessionQuery(graphene.ObjectType):
     soci_session = Node.Field(SociSessionNode)
-    all_soci_sessions = DjangoConnectionField(SociSessionNode)
-
-    def resolve_all_soci_sessions(self, info, *args, **kwargs):
-        SociSession.objects.all().delete()
-        return SociSession.objects.all().order_by("created_at")
 
 
 class SociBankAccountQuery(graphene.ObjectType):
@@ -447,6 +605,12 @@ class SociBankAccountQuery(graphene.ObjectType):
     my_expenditures = graphene.Field(
         TotalExpenditure, date_range=TotalExpenditureDateRange()
     )
+    my_purchases_by_period = graphene.List(
+        TotalExpenditureItem,
+        date_from=graphene.Date(),
+        date_to=graphene.Date(required=True),
+        granularity=SalesGranularity(default_value=SalesGranularity.DAY.value),
+    )
     my_external_charge_qr_code_url = graphene.String()
 
     def resolve_my_bank_account(self, info, *args, **kwargs):
@@ -454,54 +618,81 @@ class SociBankAccountQuery(graphene.ObjectType):
             return None
         return info.context.user.bank_account
 
+    @gql_has_permissions("economy.view_socibankaccount")
     def resolve_all_soci_bank_accounts(self, info, *args, **kwargs):
         return SociBankAccount.objects.all()
 
-    def resolve_my_expenditures(self, info, date_range, *args, **kwargs):
-        data = []
-        total = 0
+    @gql_login_required()
+    def resolve_my_expenditures(self, info, date_range=None, *args, **kwargs):
+        """
+        My spending per period. this-month is per day for the whole month,
+        this-semester per week, all-semesters per semester and all-time per
+        month, both from my first purchase.
+        """
+        account = info.context.user.bank_account
+        date_range = getattr(date_range, "value", date_range) or "this-month"
+        today = timezone.localdate()
+        granularity = {
+            "this-month": SalesGranularity.DAY.value,
+            "this-semester": SalesGranularity.WEEK.value,
+            "all-semesters": SalesGranularity.SEMESTER.value,
+            "all-time": SalesGranularity.MONTH.value,
+        }[date_range]
 
-        my_bank_account = info.context.user.bank_account
-
-        cal = calendar.Calendar()
-        today = datetime.date.today()
-        iterator = cal.itermonthdates(today.year, today.month)
-        for day in iterator:
-            # Won't be any more data in the future
-            if day > today:
-                data.append(ExpenditureDay(day=day, sum=0))
-                continue
-
-            # The iterator returns days in prev month if they are contained in within the first week
-            if day.month != today.month:
-                continue
-
-            # Create a day datetime range for each day
-            day_min = timezone.make_aware(
-                timezone.datetime(
-                    year=day.year,
-                    month=day.month,
-                    day=day.day,
-                    hour=0,
-                    minute=0,
-                    second=0,
-                ),
-                timezone=pytz.timezone(settings.TIME_ZONE),
+        date_to = today
+        if date_range == "this-month":
+            date_from = today.replace(day=1)
+            # The whole month, so the chart keeps its width
+            month_after = next_period(date_from, SalesGranularity.MONTH.value)
+            date_to = month_after - datetime.timedelta(days=1)
+        elif date_range == "this-semester":
+            date_from = period_start(today, SalesGranularity.SEMESTER.value)
+        else:
+            first = (
+                account.product_orders.order_by("purchased_at")
+                .values_list("purchased_at", flat=True)
+                .first()
             )
-            day_max = day_min + timezone.timedelta(hours=23, minutes=59, seconds=59)
-            # https://blog.zdsmith.com/posts/comparing-dates-and-datetimes-in-the-django-orm.html
+            date_from = timezone.localtime(first).date() if first else today
 
-            purchases = my_bank_account.product_orders.filter(
-                purchased_at__range=(day_min, day_max)
-            )
-            purchase_sum = purchases.aggregate(purchase_sum=Coalesce(Sum("cost"), 0))[
-                "purchase_sum"
-            ]
-            expenditure_day = ExpenditureDay(day=day, sum=purchase_sum)
-            total += purchase_sum
-            data.append(expenditure_day)
+        products = product_sales_by_period(
+            None, date_from, date_to, granularity, source=account
+        )
+        sums = {}
+        for product in products:
+            for point in product.data:
+                sums[point.day] = sums.get(point.day, 0) + point.sum
 
-        return TotalExpenditure(data=data, total=total)
+        return TotalExpenditure(
+            data=[
+                ExpenditureDay(day=day, sum=sums.get(day, 0))
+                for day in periods_between(date_from, date_to, granularity)
+            ],
+            total=sum(product.total for product in products),
+        )
+
+    @gql_login_required()
+    def resolve_my_purchases_by_period(
+        self,
+        info,
+        date_to,
+        date_from=None,
+        granularity=SalesGranularity.DAY.value,
+        *args,
+        **kwargs,
+    ):
+        """
+        My purchases per product and period, with the same rules as
+        productOrdersByItemAndDateList: only products I bought in the range,
+        and without date_from from my first purchase.
+        """
+        return product_sales_by_period(
+            None,
+            date_from,
+            date_to,
+            granularity,
+            source=info.context.user.bank_account,
+        )
 
     def resolve_my_external_charge_qr_code_url(self, info, *args, **kwargs):
         account = info.context.user.bank_account
@@ -729,7 +920,7 @@ class SociRankedQuery(graphene.ObjectType):
                 minute=0,
                 second=0,
             ),
-            timezone=pytz.timezone(settings.TIME_ZONE),
+            timezone=ZoneInfo(settings.TIME_ZONE),
         )
 
         season_filter = Q(
@@ -1338,9 +1529,7 @@ class CreateDepositMutation(graphene.Mutation):
     @gql_login_required()
     def mutate(self, info, amount, deposit_method, description, *args, **kwargs):
         # Deposits are only allowed before 20:00 localtime
-        local_time = timezone.localtime(
-            timezone.now(), pytz.timezone(settings.TIME_ZONE)
-        )
+        local_time = timezone.localtime(timezone.now(), ZoneInfo(settings.TIME_ZONE))
 
         time_restrictions = check_feature_flag(
             settings.DEPOSIT_TIME_RESTRICTIONS_FEATURE_FLAG, fail_silently=True

@@ -1,6 +1,6 @@
 import datetime
 
-import pytz
+from zoneinfo import ZoneInfo
 from django.test import TestCase
 from django.utils.timezone import make_aware
 from django.core import mail
@@ -108,7 +108,7 @@ class TestApplyScheduleTemplateHelper(TestCase):
 class TestShiftInterest(TestCase):
     def setUp(self):
         start = make_aware(
-            datetime.datetime(2022, 5, 2, 15, 0), timezone=pytz.timezone("Europe/Oslo")
+            datetime.datetime(2022, 5, 2, 15, 0), timezone=ZoneInfo("Europe/Oslo")
         )
         end = start + datetime.timedelta(hours=8)
         self.schedule = ScheduleFactory.create(
@@ -190,10 +190,12 @@ class TestShiftInterest(TestCase):
 
     def test__hello_world(self):
         start = make_aware(
-            datetime.datetime(2022, 5, 2, 14, 0), timezone=pytz.timezone("Europe/Oslo")
+            datetime.datetime(2022, 5, 2, 14, 0), timezone=ZoneInfo("Europe/Oslo")
         )
         end = start + datetime.timedelta(days=3)
-        self.schedule.autofill_slots(start, end)
+        self.schedule.autofill_slots(
+            start, end, ShiftInterest.InterestTypes.INTERESTED
+        )
         shifts = ShiftSlot.objects.filter(shift__schedule=self.schedule)
         for shift in shifts:
             print(f"{shift.user} is filled as {shift.role}")
@@ -202,7 +204,7 @@ class TestShiftInterest(TestCase):
 class TestShiftEmailCorrectFormat(TestCase):
     def setUp(self):
         start = make_aware(
-            datetime.datetime(2022, 5, 2, 15, 0), timezone=pytz.timezone("Europe/Oslo")
+            datetime.datetime(2022, 5, 2, 15, 0), timezone=ZoneInfo("Europe/Oslo")
         )
         end = start + datetime.timedelta(hours=8)
 
