@@ -16,6 +16,7 @@ from graphene_django_cud.mutations import (
 
 from admissions.models import Admission
 from common.decorators import gql_has_permissions, gql_login_required
+from quotes.models import VOTE_SUM
 from quotes.schema import QuoteNode
 from users.models import KnightHood, User, UserType, UserTypeLogEntry, Allergy
 from common.util import (
@@ -145,7 +146,12 @@ class UserNode(DjangoObjectType):
         return self.ksg_status
 
     def resolve_tagged_and_verified_quotes(self: User, info, *args, **kwargs):
-        return self.quotes.filter(approved=True).order_by("-created_at")
+        return (
+            self.quotes.filter(approved=True)
+            .annotate(vote_sum=VOTE_SUM)
+            .prefetch_related("tagged")
+            .order_by("-created_at")
+        )
 
     def resolve_upvoted_quote_ids(self: User, info, **kwargs):
         return [
