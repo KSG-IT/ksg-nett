@@ -6,7 +6,8 @@ counts since the last admission closed.
 import datetime
 from collections import defaultdict
 from dataclasses import dataclass
-from typing import ClassVar, Optional
+from enum import Enum
+from typing import Optional
 
 from django.db import transaction
 from django.db.models import (
@@ -28,17 +29,22 @@ from users.models import User
 ROSTER_VALUES = ("autofill_as", "default_availability", "shift_cap")
 
 
+class RosterChangeKind(str, Enum):
+    # A user who matches a rule and has no row
+    ADD = "ADD"
+    # A row that is not edited gets the values of its rule
+    CHANGE = "CHANGE"
+    # A user who matches no rule, or a row added by hand for a user who left
+    REMOVE = "REMOVE"
+    # A rule would change an edited row. The values of the row stay.
+    KEEP = "KEEP"
+    # The user matches more than one rule. The sync does not touch the row.
+    CONFLICT = "CONFLICT"
+
+
 @dataclass
 class RosterChange:
-    ADD: ClassVar[str] = "ADD"
-    CHANGE: ClassVar[str] = "CHANGE"
-    REMOVE: ClassVar[str] = "REMOVE"
-    # A rule would change an edited row. The values of the row stay.
-    KEEP: ClassVar[str] = "KEEP"
-    # The user matches more than one rule. The sync does not touch the row.
-    CONFLICT: ClassVar[str] = "CONFLICT"
-
-    kind: str
+    kind: RosterChangeKind
     user: User
     entry: Optional[ScheduleRoster] = None
     grouping: Optional[ScheduleRosterGrouping] = None
@@ -109,7 +115,7 @@ def plan_roster_sync(schedule):
         if len(matched) > 1:
             changes.append(
                 RosterChange(
-                    RosterChange.CONFLICT,
+                    RosterChangeKind.CONFLICT,
                     user,
                     entry=rows.get(user_id),
                     message="; ".join(str(grouping) for grouping in matched.values()),
@@ -124,7 +130,7 @@ def plan_roster_sync(schedule):
         if row is None:
             changes.append(
                 RosterChange(
-                    RosterChange.ADD,
+                    RosterChangeKind.ADD,
                     user,
                     grouping=grouping,
                     count_from=membership.date_joined,
@@ -139,7 +145,7 @@ def plan_roster_sync(schedule):
             if new_grouping or _values(row) != values:
                 changes.append(
                     RosterChange(
-                        RosterChange.KEEP,
+                        RosterChangeKind.KEEP,
                         user,
                         entry=row,
                         grouping=grouping,
@@ -150,7 +156,7 @@ def plan_roster_sync(schedule):
         elif new_grouping or _values(row) != values:
             changes.append(
                 RosterChange(
-                    RosterChange.CHANGE,
+                    RosterChangeKind.CHANGE,
                     user,
                     entry=row,
                     grouping=grouping,
@@ -164,7 +170,7 @@ def plan_roster_sync(schedule):
             continue
         if row.added_manually and _is_member(user_id, schedule):
             continue
-        changes.append(RosterChange(RosterChange.REMOVE, row.user, entry=row))
+        changes.append(RosterChange(RosterChangeKind.REMOVE, row.user, entry=row))
 
     return changes
 
@@ -173,7 +179,7 @@ def apply_roster_sync(schedule):
     with transaction.atomic():
         changes = plan_roster_sync(schedule)
         for change in changes:
-            if change.kind == RosterChange.ADD:
+            if change.kind == RosterChangeKind.ADD:
                 ScheduleRoster.objects.create(
                     schedule=schedule,
                     user=change.user,
@@ -183,15 +189,15 @@ def apply_roster_sync(schedule):
                     shift_cap=change.shift_cap,
                     count_from=change.count_from,
                 )
-            elif change.kind in (RosterChange.CHANGE, RosterChange.KEEP):
+            elif change.kind in (RosterChangeKind.CHANGE, RosterChangeKind.KEEP):
                 row = change.entry
                 row.grouping = change.grouping
                 row.count_from = change.count_from
-                if change.kind == RosterChange.CHANGE:
+                if change.kind == RosterChangeKind.CHANGE:
                     for name in ROSTER_VALUES:
                         setattr(row, name, getattr(change, name))
                 row.save()
-            elif change.kind == RosterChange.REMOVE:
+            elif change.kind == RosterChangeKind.REMOVE:
                 change.entry.delete()
     return changes
 

@@ -18,12 +18,32 @@ from schedules.models import (
 )
 from schedules.permissions import managed_schedules, require_can_manage_schedule
 from schedules.schemas.schedules import ShiftSlotRoleEnum
-from schedules.utils.roster import annotate_shift_counts, apply_roster_sync
+from schedules.utils.roster import (
+    RosterChangeKind,
+    annotate_shift_counts,
+    apply_roster_sync,
+)
 from users.models import User
 
 MANAGE = "schedules.change_schedule"
 
 DefaultAvailabilityEnum = graphene.Enum.from_enum(DefaultAvailability)
+
+ROSTER_CHANGE_KIND_DESCRIPTIONS = {
+    RosterChangeKind.ADD: "The user matches a rule and has no row",
+    RosterChangeKind.CHANGE: "The row gets the values of its rule",
+    RosterChangeKind.REMOVE: "The user matches no rule, or left the group",
+    RosterChangeKind.KEEP: "A rule would change an edited row; the values stay",
+    RosterChangeKind.CONFLICT: "The user matches more than one rule; no change",
+}
+RosterChangeKindEnum = graphene.Enum.from_enum(
+    RosterChangeKind,
+    description=lambda kind: (
+        ROSTER_CHANGE_KIND_DESCRIPTIONS.get(kind)
+        if kind
+        else "What the roster sync does with a row"
+    ),
+)
 
 
 class ScheduleRosterGroupingNode(DjangoObjectType):
@@ -94,7 +114,7 @@ class ScheduleRosterNode(DjangoObjectType):
 
 
 class RosterChangeNode(graphene.ObjectType):
-    kind = graphene.NonNull(graphene.String)
+    kind = graphene.NonNull(RosterChangeKindEnum)
     user = graphene.NonNull("users.schema.UserNode")
     entry = graphene.Field(ScheduleRosterNode)
     grouping = graphene.Field(ScheduleRosterGroupingNode)

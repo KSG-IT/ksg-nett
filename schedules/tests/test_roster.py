@@ -25,7 +25,7 @@ from schedules.tests.factories import (
     position_in,
 )
 from schedules.utils.roster import (
-    RosterChange,
+    RosterChangeKind,
     annotate_shift_counts,
     apply_roster_sync,
     plan_roster_sync,
@@ -112,9 +112,9 @@ class TestRosterSync(RosterTestCase):
         self.assertEqual(
             self.kinds(changes),
             {
-                (RosterChange.ADD, self.anna.pk),
-                (RosterChange.ADD, self.per.pk),
-                (RosterChange.ADD, self.sara.pk),
+                (RosterChangeKind.ADD, self.anna.pk),
+                (RosterChangeKind.ADD, self.per.pk),
+                (RosterChangeKind.ADD, self.sara.pk),
             },
         )
         self.assertEqual(ScheduleRoster.objects.count(), 0)
@@ -139,7 +139,7 @@ class TestRosterSync(RosterTestCase):
         self.gang.save()
         self.assertEqual(
             self.kinds(apply_roster_sync(self.schedule)),
-            {(RosterChange.CHANGE, self.anna.pk)},
+            {(RosterChangeKind.CHANGE, self.anna.pk)},
         )
         self.assertEqual(self.row(self.anna).shift_cap, 2)
 
@@ -153,7 +153,7 @@ class TestRosterSync(RosterTestCase):
         self.gang.save()
         self.assertEqual(
             self.kinds(apply_roster_sync(self.schedule)),
-            {(RosterChange.KEEP, self.anna.pk)},
+            {(RosterChangeKind.KEEP, self.anna.pk)},
         )
         self.assertEqual(self.row(self.anna).shift_cap, 5)
 
@@ -182,7 +182,7 @@ class TestRosterSync(RosterTestCase):
         self.anna_membership.save()
         self.assertEqual(
             self.kinds(apply_roster_sync(self.schedule)),
-            {(RosterChange.REMOVE, self.anna.pk)},
+            {(RosterChangeKind.REMOVE, self.anna.pk)},
         )
         self.assertFalse(ScheduleRoster.objects.filter(user=self.anna).exists())
 
@@ -201,7 +201,7 @@ class TestRosterSync(RosterTestCase):
         self.hangaround.delete()
         self.assertEqual(
             self.kinds(apply_roster_sync(self.schedule)),
-            {(RosterChange.REMOVE, self.per.pk)},
+            {(RosterChangeKind.REMOVE, self.per.pk)},
         )
 
     def test__a_manual_row__stays_while_the_user_is_in_the_group(self):
@@ -234,7 +234,7 @@ class TestRosterSync(RosterTestCase):
     def test__a_user_who_matches_two_rules__is_a_conflict(self):
         member_of(self.anna, self.edgar, Type.FUNCTIONARY, position=self.kafe)
         changes = apply_roster_sync(self.schedule)
-        self.assertIn((RosterChange.CONFLICT, self.anna.pk), self.kinds(changes))
+        self.assertIn((RosterChangeKind.CONFLICT, self.anna.pk), self.kinds(changes))
         self.assertFalse(ScheduleRoster.objects.filter(user=self.anna).exists())
 
 
@@ -371,7 +371,8 @@ class TestRosterGraphQL(RosterTestCase):
             {"id": self.schedule_id},
         )
         self.assertNotIn("errors", executed)
-        self.assertEqual(len(executed["data"]["syncScheduleRoster"]["changes"]), 3)
+        changes = executed["data"]["syncScheduleRoster"]["changes"]
+        self.assertEqual([change["kind"] for change in changes], ["ADD"] * 3)
         self.assertEqual(ScheduleRoster.objects.count(), 3)
 
     UPDATE = """
