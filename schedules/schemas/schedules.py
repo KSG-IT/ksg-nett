@@ -154,6 +154,45 @@ class ScheduleNode(DjangoObjectType):
         description="If the user can manage the schedule, see schedules/permissions.py",
     )
 
+    roster = graphene.NonNull(
+        graphene.List(graphene.NonNull("schedules.schemas.roster.ScheduleRosterNode")),
+        description="All rows for managers, the own row for other users",
+    )
+    roster_groupings = graphene.NonNull(
+        graphene.List(
+            graphene.NonNull("schedules.schemas.roster.ScheduleRosterGroupingNode")
+        ),
+        description="The rules of the roster sync, for managers only",
+    )
+    roster_sync_preview = graphene.NonNull(
+        graphene.List(graphene.NonNull("schedules.schemas.roster.RosterChangeNode")),
+        description="The changes syncScheduleRoster would make",
+    )
+
+    def resolve_roster(self: Schedule, info):
+        from schedules.schemas.roster import ScheduleRosterNode
+        from schedules.utils.roster import annotate_shift_counts
+
+        rows = ScheduleRosterNode.get_queryset(self.roster.all(), info)
+        return annotate_shift_counts(rows.select_related("user")).order_by(
+            "user__first_name", "user__last_name"
+        )
+
+    def resolve_roster_groupings(self: Schedule, info):
+        from schedules.schemas.roster import ScheduleRosterGroupingNode
+
+        return ScheduleRosterGroupingNode.get_queryset(
+            self.roster_groupings.select_related("internal_group_position"), info
+        ).order_by("internal_group_position__name", "position_type")
+
+    def resolve_roster_sync_preview(self: Schedule, info):
+        from schedules.utils.roster import plan_roster_sync
+
+        require_can_manage_schedule(
+            info.context.user, self, "schedules.change_schedule"
+        )
+        return plan_roster_sync(self)
+
     def resolve_can_manage(self: Schedule, info):
         return can_manage_schedule(info.context.user, self, "schedules.change_schedule")
 

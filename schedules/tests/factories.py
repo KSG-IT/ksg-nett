@@ -155,19 +155,25 @@ def internal_group(name):
     )
 
 
+def position_in(group, name=None):
+    return InternalGroupPosition.objects.create(
+        name=name or f"Position {InternalGroupPosition.objects.count()}",
+        internal_group=group,
+    )
+
+
 def member_of(
     user,
     group,
     membership_type=InternalGroupPositionMembershipType.FUNCTIONARY,
     date_ended=None,
+    position=None,
+    date_joined=date(2025, 8, 20),
 ):
-    position = InternalGroupPosition.objects.create(
-        name=f"Position {InternalGroupPosition.objects.count()}", internal_group=group
-    )
     return InternalGroupPositionMembership.objects.create(
         user=user,
-        position=position,
+        position=position or position_in(group),
         type=membership_type,
-        date_joined=date(2025, 8, 20),
+        date_joined=date_joined,
         date_ended=date_ended,
     )
