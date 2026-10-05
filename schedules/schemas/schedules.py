@@ -438,6 +438,7 @@ class ShiftQuery(graphene.ObjectType):
     )
     all_users_working_today = graphene.List("users.schema.UserNode")
 
+    @gql_login_required()
     def resolve_normalized_shifts_from_range(
         self, info, schedule_id, shifts_from, number_of_weeks
     ):
@@ -446,6 +447,7 @@ class ShiftQuery(graphene.ObjectType):
         shifts = schedule.shifts_from_range(shifts_from, number_of_weeks)
         return normalize_shifts(shifts, schedule.display_mode)
 
+    @gql_login_required()
     def resolve_my_upcoming_shifts(self, info, *args, **kwargs):
         me = info.context.user
         return (
@@ -457,12 +459,14 @@ class ShiftQuery(graphene.ObjectType):
             .order_by("-datetime_start")
         )
 
+    @gql_login_required()
     def resolve_all_my_shifts(self, info, *args, **kwargs):
         me = info.context.user
         return (
             Shift.objects.filter(slots__user=me).distinct().order_by("-datetime_start")
         )
 
+    @gql_login_required()
     def resolve_all_shifts(self, info, date, *args, **kwargs):
         datetime_from = timezone.datetime(
             date.year,
@@ -486,6 +490,7 @@ class ShiftQuery(graphene.ObjectType):
             datetime_start__gt=datetime_from, datetime_start__lt=datetime_to
         ).order_by("datetime_start")
 
+    @gql_login_required()
     def resolve_all_users_working_today(self, info, *args, **kwargs):
         date = datetime.date.today()
         datetime_from = timezone.datetime(
