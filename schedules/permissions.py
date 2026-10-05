@@ -3,10 +3,13 @@ Who can manage a schedule.
 
 A user manages a schedule when they have the permission and an active
 functionary membership in the internal group that staffs the schedule. A
-superuser manages every schedule. Reading shift lists does not need this.
+schedule without an internal group, for example Bærevakt, can be managed by
+anyone with the permission. A superuser manages every schedule. Reading shift
+lists does not need this.
 """
 
 from django.core.exceptions import PermissionDenied
+from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
 from graphene_django_cud.util import disambiguate_id
 
@@ -37,10 +40,10 @@ def can_manage_schedule(user, schedule, *permissions):
         return False
     if user.is_superuser:
         return True
-    if schedule is None or schedule.internal_group_id is None:
+    if schedule is None or not user.has_perms(permissions):
         return False
-    if not user.has_perms(permissions):
-        return False
+    if schedule.internal_group_id is None:
+        return True
     return schedule.internal_group_id in set(managed_internal_group_ids(user))
 
 
@@ -57,7 +60,8 @@ def managed_schedules(user, *permissions):
     if not user.has_perms(permissions):
         return Schedule.objects.none()
     return Schedule.objects.filter(
-        internal_group_id__in=managed_internal_group_ids(user)
+        Q(internal_group__isnull=True)
+        | Q(internal_group_id__in=managed_internal_group_ids(user))
     )
 
 
