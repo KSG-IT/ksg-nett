@@ -5,6 +5,7 @@ from django import forms
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.forms import UserChangeForm, UserCreationForm
+from django.db.models import Count
 from django.utils.translation import gettext_lazy as _
 
 from economy.models import SociBankAccount
@@ -36,12 +37,17 @@ class MyUserCreationForm(UserCreationForm):
 
 class AllergyAdmin(admin.ModelAdmin):
     list_display = ["pk", "name"]
+    search_fields = ["name"]
 
 
 class KnightHoodAdmin(admin.ModelAdmin):
     model = KnightHood
     verbose_name = "Knighthood"
     verbose_name_plural = "Knighthoods"
+    list_display = ["user", "knighted_date"]
+    list_select_related = ["user"]
+    search_fields = ["user__first_name", "user__last_name", "description"]
+    autocomplete_fields = ["user"]
 
 
 class UserTypeInline(admin.TabularInline):
@@ -61,7 +67,16 @@ class SociBankAccountInline(admin.StackedInline):
 
 
 class MyUserAdmin(UserAdmin):
-    list_display = ["pk", "full_name", "is_active"]
+    list_display = ["pk", "full_name", "username", "email", "is_active", "is_staff"]
+    list_filter = ["is_active", "is_staff", "is_superuser", "user_types"]
+    search_fields = [
+        "username",
+        "first_name",
+        "last_name",
+        "nickname",
+        "email",
+        "phone",
+    ]
     form = MyUserChangeForm
     filter_horizontal = ("allergies",)
     add_form = MyUserCreationForm
@@ -125,8 +140,8 @@ class MyUserAdmin(UserAdmin):
         ),
     )
 
-    @staticmethod
-    def full_name(obj):
+    @admin.display(ordering="first_name")
+    def full_name(self, obj):
         return obj.get_full_name()
 
 
@@ -137,19 +152,54 @@ class UsersHaveMadeOutAdmin(admin.ModelAdmin):
         "user_two",
         "created",
     )
+    list_select_related = ("user_one", "user_two")
+    search_fields = (
+        "user_one__first_name",
+        "user_one__last_name",
+        "user_two__first_name",
+        "user_two__last_name",
+    )
+    autocomplete_fields = ("user_one", "user_two")
 
 
 class UserTypeAdmin(admin.ModelAdmin):
     filter_horizontal = ("users", "permissions")
     list_display = (
         "name",
+        "user_count",
         "requires_self",
         "requires_superuser",
     )
+    search_fields = ("name", "description")
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).annotate(user_count=Count("users"))
+
+    @admin.display(description="Users", ordering="user_count")
+    def user_count(self, user_type):
+        return user_type.user_count
+
+    def formfield_for_manytomany(self, db_field, request, **kwargs):
+        # Permission.__str__ renders its content type
+        if db_field.name == "permissions":
+            kwargs["queryset"] = db_field.remote_field.model.objects.select_related(
+                "content_type"
+            )
+        return super().formfield_for_manytomany(db_field, request, **kwargs)
 
 
 class UserTypeLogEntryAdmin(admin.ModelAdmin):
-    list_display = ("user", "user_type", "action", "done_by")
+    list_display = ("user", "user_type", "action", "done_by", "timestamp")
+    list_select_related = ("user", "user_type", "done_by")
+    list_filter = ("action", "user_type")
+    search_fields = (
+        "user__first_name",
+        "user__last_name",
+        "done_by__first_name",
+        "done_by__last_name",
+    )
+    date_hierarchy = "timestamp"
+    autocomplete_fields = ("user", "done_by")
 
 
 admin.site.register(User, MyUserAdmin)

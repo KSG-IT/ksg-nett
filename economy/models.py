@@ -225,10 +225,8 @@ class SociSession(models.Model):
         return sum(purchase_sums)
 
     def __str__(self):
-        return (
-            f"SociSession {self.name} containing {self.product_orders.count()} product_orders "
-            f"between {self.created_at} and {self.closed_at}"
-        )
+        # No product order count here: the admin renders __str__ for every row
+        return f"SociSession {self.name} between {self.created_at} and {self.closed_at}"
 
     def __repr__(self):
         return f"SociSession(name={self.name},start={self.created_at},end={self.closed_at})"
