@@ -46,6 +46,10 @@ from schedules.schemas.schedules import (
 from schedules.schemas.templates import ScheduleTemplateQuery, ScheduleTemplateMutations
 from schedules.schemas.roster import ScheduleRosterMutations
 from schedules.schemas.planning import PlanningPeriodQuery, PlanningPeriodMutations
+from schedules.schemas.unavailability import (
+    UserUnavailabilityQuery,
+    UserUnavailabilityMutations,
+)
 
 from sensors.schema import SensorMeasurementQuery, SensorsMutations
 from summaries.schema import SummaryQuery, SummariesMutations
@@ -83,6 +87,7 @@ class Query(
     ScheduleQuery,
     ScheduleTemplateQuery,
     PlanningPeriodQuery,
+    UserUnavailabilityQuery,
     SensorMeasurementQuery,
     SummaryQuery,
     QuoteQuery,
@@ -105,6 +110,7 @@ class Mutation(
     ScheduleTemplateMutations,
     ScheduleRosterMutations,
     PlanningPeriodMutations,
+    UserUnavailabilityMutations,
     SensorsMutations,
     SummariesMutations,
     graphene.ObjectType,

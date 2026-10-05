@@ -24,6 +24,7 @@ from django.utils import timezone
 from admissions.models import Admission
 from organization.models import InternalGroup, InternalGroupPositionMembership
 from schedules.models import ScheduleRoster, ScheduleRosterGrouping, ShiftSlot
+from schedules.utils.unavailability import prefill_roster_row
 from users.models import User
 
 ROSTER_VALUES = ("autofill_as", "default_availability", "shift_cap")
@@ -199,6 +200,11 @@ def apply_roster_sync(schedule):
                 row.save()
             elif change.kind == RosterChangeKind.REMOVE:
                 change.entry.delete()
+        for change in changes:
+            if change.kind in (RosterChangeKind.ADD, RosterChangeKind.CHANGE):
+                prefill_roster_row(
+                    ScheduleRoster.objects.get(schedule=schedule, user=change.user)
+                )
     return changes
 
 
