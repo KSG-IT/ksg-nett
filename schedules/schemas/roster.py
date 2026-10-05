@@ -16,7 +16,11 @@ from schedules.models import (
     ScheduleRoster,
     ScheduleRosterGrouping,
 )
-from schedules.permissions import managed_schedules, require_can_manage_schedule
+from schedules.permissions import (
+    can_manage_schedule,
+    managed_schedules,
+    require_can_manage_schedule,
+)
 from schedules.schemas.schedules import ShiftSlotRoleEnum
 from schedules.utils.roster import (
     RosterChangeKind,
@@ -90,11 +94,14 @@ class ScheduleRosterNode(DjangoObjectType):
     def get_node(cls, info, id):
         return cls.get_queryset(ScheduleRoster.objects, info).get(pk=id)
 
-    def _counted(self):
+    def _counted(self, info):
         # Rows from ScheduleNode.roster have the counts. Others get them here.
         if not hasattr(self, "shifts_done"):
             counted = annotate_shift_counts(
-                ScheduleRoster.objects.filter(pk=self.pk)
+                ScheduleRoster.objects.filter(pk=self.pk),
+                include_drafts=can_manage_schedule(
+                    info.context.user, self.schedule, MANAGE
+                ),
             ).get()
             for name in ("shifts_done", "shifts_planned", "last_shift"):
                 setattr(self, name, getattr(counted, name))
@@ -102,16 +109,16 @@ class ScheduleRosterNode(DjangoObjectType):
         return self
 
     def resolve_membership_type(self, info):
-        return ScheduleRosterNode._counted(self).membership_type
+        return ScheduleRosterNode._counted(self, info).membership_type
 
     def resolve_shifts_done(self, info):
-        return ScheduleRosterNode._counted(self).shifts_done
+        return ScheduleRosterNode._counted(self, info).shifts_done
 
     def resolve_shifts_planned(self, info):
-        return ScheduleRosterNode._counted(self).shifts_planned
+        return ScheduleRosterNode._counted(self, info).shifts_planned
 
     def resolve_last_shift(self, info):
-        return ScheduleRosterNode._counted(self).last_shift
+        return ScheduleRosterNode._counted(self, info).last_shift
 
 
 class RosterChangeNode(graphene.ObjectType):

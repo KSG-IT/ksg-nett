@@ -21,12 +21,14 @@ from schedules.models import (
     ShiftSlot,
     RoleOption,
     ShiftInterest,
+    ShiftSlotDraft,
 )
 from schedules.permissions import (
     ManagedCreateMixin,
     ManagedDeleteMixin,
     ManagedPatchMixin,
     can_manage_schedule,
+    can_manage_schedule_in_request,
     require_can_manage_schedule,
 )
 from schedules.utils.schedules import normalize_shifts, send_given_shift_email
@@ -56,9 +58,20 @@ class ShiftSlotNode(DjangoObjectType):
         interfaces = (Node,)
 
     role_display = graphene.String()
+    draft = graphene.Field(
+        "schedules.schemas.drafts.ShiftSlotDraftNode",
+        description="The draft change of the slot, for managers only",
+    )
 
     def resolve_role_display(self, info):
         return self.get_role_display()
+
+    def resolve_draft(self: ShiftSlot, info):
+        if not can_manage_schedule_in_request(
+            info, self.shift.schedule, "schedules.change_shiftslot"
+        ):
+            return None
+        return ShiftSlotDraft.objects.filter(slot=self).first()
 
     @classmethod
     def get_node(cls, info, id):
@@ -196,9 +209,12 @@ class ScheduleNode(DjangoObjectType):
         from schedules.utils.roster import annotate_shift_counts
 
         rows = ScheduleRosterNode.get_queryset(self.roster.all(), info)
-        return annotate_shift_counts(rows.select_related("user")).order_by(
-            "user__first_name", "user__last_name"
+        include_drafts = can_manage_schedule(
+            info.context.user, self, "schedules.change_schedule"
         )
+        return annotate_shift_counts(
+            rows.select_related("user"), include_drafts=include_drafts
+        ).order_by("user__first_name", "user__last_name")
 
     def resolve_roster_groupings(self: Schedule, info):
         from schedules.schemas.roster import ScheduleRosterGroupingNode
@@ -214,6 +230,22 @@ class ScheduleNode(DjangoObjectType):
             info.context.user, self, "schedules.change_schedule"
         )
         return plan_roster_sync(self)
+
+    draft_count = graphene.Int(
+        date_from=graphene.Date(),
+        date_to=graphene.Date(),
+        description="Drafts of the schedule, in the dates when given. Null for "
+        "users who do not manage the schedule",
+    )
+
+    def resolve_draft_count(self: Schedule, info, date_from=None, date_to=None):
+        from schedules.utils.drafts import drafts_in_range
+
+        if not can_manage_schedule(
+            info.context.user, self, "schedules.change_shiftslot"
+        ):
+            return None
+        return drafts_in_range(self, date_from, date_to).count()
 
     def resolve_can_manage(self: Schedule, info):
         return can_manage_schedule(info.context.user, self, "schedules.change_schedule")
