@@ -13,7 +13,7 @@ from graphene_django import DjangoConnectionField
 from graphene_django_cud.util import disambiguate_id
 
 from common.decorators import gql_has_permissions, gql_login_required
-from quotes.models import Quote, QuoteVote
+from quotes.models import Quote, QuoteVote, VOTE_SUM
 from quotes.filters import QuoteFilter
 from graphql_relay import from_global_id
 
@@ -25,12 +25,17 @@ class QuoteNode(DjangoObjectType):
         model = Quote
         interfaces = (Node,)
 
-    sum = graphene.Int(source="sum")
+    sum = graphene.Int()
     tagged = graphene.NonNull(graphene.List(graphene.NonNull("users.schema.UserNode")))
     semester = graphene.String()
 
     def resolve_tagged(self: Quote, info, **kwargs):
         return self.tagged.all()
+
+    def resolve_sum(self: Quote, info, **kwargs):
+        if hasattr(self, "vote_sum"):
+            return self.vote_sum
+        return self.sum
 
     def resolve_semester(self: Quote, info, **kwargs):
         return self.get_semester_of_quote()
@@ -65,17 +70,21 @@ class QuoteQuery(graphene.ObjectType):
         return Quote.get_current_semester_shorthand()
 
     def resolve_popular_quotes_current_semester(self, info, *args, **kwargs):
-        return Quote.get_popular_quotes_in_current_semester()
+        return Quote.get_popular_quotes_in_current_semester().prefetch_related("tagged")
 
     def resolve_popular_quotes_all_time(self, info, *args, **kwargs):
-        return Quote.get_popular_quotes_all_time()
+        return Quote.get_popular_quotes_all_time().prefetch_related("tagged")
 
     @gql_has_permissions("quotes.approve_quote")
     def resolve_pending_quotes(self, info, *args, **kwargs):
         return Quote.get_pending_quotes()
 
     def resolve_approved_quotes(self, info, *args, **kwargs):
-        return Quote.get_approved_quotes().prefetch_related("tagged")
+        return (
+            Quote.get_approved_quotes()
+            .annotate(vote_sum=VOTE_SUM)
+            .prefetch_related("tagged")
+        )
 
 
 class CreateQuoteMutation(DjangoCreateMutation):
