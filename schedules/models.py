@@ -57,7 +57,8 @@ class Schedule(models.Model):
         max_length=64, choices=RoleOption.choices, null=True, blank=False, default=None
     )
     # The internal group that staffs the schedule. Its functionaries with the
-    # schedule permissions manage it, see schedules/permissions.py.
+    # schedule permissions manage it. Without a group, anyone with the
+    # permissions manages it. See schedules/permissions.py.
     internal_group = models.ForeignKey(
         InternalGroup,
         null=True,

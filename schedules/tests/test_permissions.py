@@ -89,11 +89,18 @@ class TestCanManageSchedule(TestCase):
     def test__a_functionary_of_another_group__cannot_manage(self):
         self.assertFalse(self.can_manage(manager_of(internal_group("Lyche"))))
 
-    def test__a_schedule_without_a_group__has_no_managers(self):
-        user = manager_of(self.edgar)
+    def test__a_schedule_without_a_group__can_be_managed_by_anyone_with_the_permission(
+        self,
+    ):
+        # For example Bærevakt, which no single internal group staffs
         self.schedule.internal_group = None
         self.schedule.save()
-        self.assertFalse(self.can_manage(user))
+        self.assertTrue(self.can_manage(user_with_permissions()))
+
+    def test__a_schedule_without_a_group__still_needs_the_permission(self):
+        self.schedule.internal_group = None
+        self.schedule.save()
+        self.assertFalse(self.can_manage(UserFactory.create()))
 
     def test__a_superuser__can_manage_without_a_membership(self):
         superuser = UserFactory.create(is_superuser=True)
@@ -170,6 +177,13 @@ class TestScheduleOverviewIsScoped(GraphQLTestCase):
         self.assertIsNone(lyche["plannedUntil"])
         self.assertIsNone(lyche["upcomingSlots"])
         self.assertEqual(lyche["recentLocations"], [])
+
+    def test__a_schedule_without_a_group__has_the_overview_fields(self):
+        self.lyche_schedule.internal_group = None
+        self.lyche_schedule.save()
+        lyche = self.overview()["Lyche"]
+        self.assertTrue(lyche["canManage"])
+        self.assertEqual(lyche["upcomingSlots"], {"total": 1})
 
     def test__a_member__can_read_can_manage(self):
         executed = self.execute(
@@ -344,6 +358,11 @@ class TestShiftInterestsAreHidden(GraphQLTestCase):
 
     def test__a_manager_of_another_group__sees_none(self):
         self.assertEqual(self.interests_on_shift(manager_of(self.lyche)), [])
+
+    def test__a_manager__sees_interests_on_a_schedule_without_a_group(self):
+        self.edgar_schedule.internal_group = None
+        self.edgar_schedule.save()
+        self.assertEqual(len(self.interests_on_shift(manager_of(self.lyche))), 2)
 
     def test__a_member__cannot_read_the_interests_of_another_user(self):
         executed = self.execute(
