@@ -133,3 +133,15 @@ class ManagedDeleteMixin:
         require_can_manage_schedule(
             info.context.user, schedule_of(obj), *cls._meta.permissions
         )
+
+
+def can_manage_schedule_in_request(info, schedule, *permissions):
+    """can_manage_schedule, cached for the request. For fields on many rows."""
+    cache = getattr(info.context, "_can_manage_schedule", None)
+    if cache is None:
+        cache = {}
+        setattr(info.context, "_can_manage_schedule", cache)
+    key = (schedule.pk if schedule else None, permissions)
+    if key not in cache:
+        cache[key] = can_manage_schedule(info.context.user, schedule, *permissions)
+    return cache[key]

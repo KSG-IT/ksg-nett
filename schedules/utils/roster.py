@@ -15,6 +15,7 @@ from django.db.models import (
     DateField,
     IntegerField,
     OuterRef,
+    Q,
     Subquery,
     Value,
 )
@@ -222,15 +223,15 @@ def shift_count_start():
     return None
 
 
-def annotate_shift_counts(queryset):
+def annotate_shift_counts(queryset, include_drafts=False):
     """
     Add shifts_done, shifts_planned, last_shift and membership_type to roster
     rows, in one query. A shift counts from the last admission, or from
-    count_from when it is later.
+    count_from when it is later. With include_drafts, shifts_planned counts the
+    plan with the drafts; only managers may see that.
     """
     now = timezone.now()
-    slots = ShiftSlot.objects.filter(
-        user=OuterRef("user"),
+    schedule_slots = ShiftSlot.objects.filter(
         shift__schedule=OuterRef("schedule"),
         shift__datetime_start__date__gte=Coalesce(
             OuterRef("count_from"),
@@ -240,13 +241,23 @@ def annotate_shift_counts(queryset):
     )
     start = shift_count_start()
     if start is not None:
-        slots = slots.filter(shift__datetime_start__gte=start)
+        schedule_slots = schedule_slots.filter(shift__datetime_start__gte=start)
+    slots = schedule_slots.filter(user=OuterRef("user"))
+    planned = schedule_slots.filter(shift__datetime_start__gte=now)
+    if include_drafts:
+        planned = planned.filter(
+            Q(user=OuterRef("user"), draft__isnull=True)
+            | Q(draft__user=OuterRef("user"))
+        )
+    else:
+        planned = planned.filter(user=OuterRef("user"))
 
     def count(filtered):
+        # All rows of a subquery have the same schedule, so this is one group
         return Coalesce(
             Subquery(
                 filtered.order_by()
-                .values("user")
+                .values("shift__schedule")
                 .annotate(count=Count("id"))
                 .values("count")[:1],
                 output_field=IntegerField(),
@@ -259,7 +270,7 @@ def annotate_shift_counts(queryset):
     ).order_by("-date_joined")
     return queryset.annotate(
         shifts_done=count(slots.filter(shift__datetime_start__lt=now)),
-        shifts_planned=count(slots.filter(shift__datetime_start__gte=now)),
+        shifts_planned=count(planned),
         last_shift=Subquery(
             slots.filter(shift__datetime_start__lt=now)
             .order_by("-shift__datetime_start")

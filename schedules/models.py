@@ -602,3 +602,25 @@ class UserUnavailability(models.Model):
 
     def __str__(self):
         return f"{self.user}: {self.day} {self.time_start}-{self.time_end}"
+
+
+class ShiftSlotDraft(models.Model):
+    """
+    A change to a slot that is not visible to the members yet. A null user
+    removes the person from the slot. lockDraft copies the drafts to the slots.
+    See schedules/utils/drafts.py.
+    """
+
+    slot = models.OneToOneField(
+        ShiftSlot, on_delete=models.CASCADE, related_name="draft"
+    )
+    user = models.ForeignKey(
+        User, null=True, blank=True, on_delete=models.CASCADE, related_name="+"
+    )
+    changed_by = models.ForeignKey(
+        User, null=True, blank=True, on_delete=models.SET_NULL, related_name="+"
+    )
+    changed_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Draft of {self.slot}: {self.user}"
