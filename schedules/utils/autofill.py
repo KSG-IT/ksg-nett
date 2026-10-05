@@ -69,6 +69,20 @@ def _preference(row, answer):
     return 0 if answer == INTERESTED else 1
 
 
+def candidates(rows, answers, shift, role):
+    """
+    The roster rows that can work the shift in the role, with their preference
+    (0 interested, 1 available). answers maps (user id, shift id) to a type.
+    """
+    return [
+        (row, preference)
+        for row in rows
+        if row.autofill_as == role
+        for preference in [_preference(row, answers.get((row.user_id, shift.pk)))]
+        if preference is not None
+    ]
+
+
 def _commitments(user_ids, first_day, last_day):
     """
     The planned shifts of the users in the days, in all schedules: a slot
@@ -132,21 +146,13 @@ def run_autofill(period, created_by=None):
                     weekly[user_id][_week(shift.datetime_start)] += 1
 
         roles = {row.autofill_as for row in rows}
-        candidates = {}
-        for slot in slots:
-            candidates[slot.pk] = [
-                (row, preference)
-                for row in rows
-                if row.autofill_as == slot.role
-                for preference in [
-                    _preference(row, answers.get((row.user_id, slot.shift_id)))
-                ]
-                if preference is not None
-            ]
+        slot_candidates = {
+            slot.pk: candidates(rows, answers, slot.shift, slot.role) for slot in slots
+        }
 
         slots.sort(
             key=lambda slot: (
-                len(candidates[slot.pk]),
+                len(slot_candidates[slot.pk]),
                 slot.shift.datetime_start,
                 slot.pk,
             )
@@ -158,7 +164,7 @@ def run_autofill(period, created_by=None):
             week = _week(slot.shift.datetime_start)
             eligible = []
             failed = Counter()
-            for row, preference in candidates[slot.pk]:
+            for row, preference in slot_candidates[slot.pk]:
                 if day in busy_days.get(row.user_id, set()):
                     failed[UnfilledReason.BUSY_SAME_DAY] += 1
                 elif weekly[row.user_id][week] >= schedule.max_shifts_per_week:
@@ -185,7 +191,7 @@ def run_autofill(period, created_by=None):
 
             if slot.role not in roles:
                 reason = UnfilledReason.NO_ROLE_ON_ROSTER
-            elif not candidates[slot.pk]:
+            elif not slot_candidates[slot.pk]:
                 reason = UnfilledReason.NO_CANDIDATES
             else:
                 reason = failed.most_common(1)[0][0]
@@ -193,7 +199,7 @@ def run_autofill(period, created_by=None):
                 {
                     "slot": slot.pk,
                     "reason": reason.value,
-                    "candidates": len(candidates[slot.pk]),
+                    "candidates": len(slot_candidates[slot.pk]),
                 }
             )
 

@@ -12,8 +12,14 @@ from schedules.models import (
     Shift,
     ShiftInterest,
 )
-from schedules.permissions import require_can_manage_schedule
+from schedules.permissions import can_manage_schedule, require_can_manage_schedule
 from schedules.schemas.schedules import ShiftNode
+from schedules.schemas.schedules import ShiftSlotRoleEnum
+from schedules.utils.planning import (
+    response_stats,
+    send_period_reminder,
+    slot_coverage,
+)
 from schedules.utils.unavailability import prefill_period
 
 MANAGE = "schedules.change_schedule"
@@ -24,6 +30,41 @@ PlanningPeriodStatusEnum = graphene.Enum.from_enum(
 ShiftInterestTypeEnum = graphene.Enum.from_enum(
     ShiftInterest.InterestTypes, name="ShiftInterestTypeEnum"
 )
+
+
+class ResponseStatsNode(graphene.ObjectType):
+    roster_count = graphene.NonNull(graphene.Int)
+    opt_in_count = graphene.NonNull(graphene.Int)
+    users_with_answers = graphene.NonNull(
+        graphene.Int,
+        description="Users with at least one answer they gave themselves",
+    )
+    opt_in_with_interest = graphene.NonNull(
+        graphene.Int,
+        description="Opt-in users with at least one interested or available answer",
+    )
+    interested = graphene.NonNull(graphene.Int)
+    available = graphene.NonNull(graphene.Int)
+    unavailable = graphene.NonNull(graphene.Int)
+    unavailable_prefilled = graphene.NonNull(
+        graphene.Int, description="Unavailable answers from weekly unavailability"
+    )
+    with_note = graphene.NonNull(graphene.Int)
+
+
+class SlotCoverageNode(graphene.ObjectType):
+    shift = graphene.NonNull(ShiftNode)
+    role = graphene.NonNull(ShiftSlotRoleEnum)
+    slot_count = graphene.NonNull(graphene.Int)
+    open_slot_count = graphene.NonNull(
+        graphene.Int, description="Slots without a user in the plan with drafts"
+    )
+    candidate_count = graphene.NonNull(
+        graphene.Int, description="Users with the role who can work, as in autofill"
+    )
+    interested_count = graphene.NonNull(graphene.Int)
+    unavailable_count = graphene.NonNull(graphene.Int)
+    unavailable_with_note_count = graphene.NonNull(graphene.Int)
 
 
 class PlanningPeriodNode(DjangoObjectType):
@@ -42,6 +83,25 @@ class PlanningPeriodNode(DjangoObjectType):
 
     def resolve_status(self: PlanningPeriod, info):
         return self.status
+
+    response_stats = graphene.Field(
+        ResponseStatsNode, description="For managers only, null otherwise"
+    )
+    slot_coverage = graphene.NonNull(
+        graphene.List(graphene.NonNull(SlotCoverageNode)),
+        description="Shifts and roles with the fewest spare candidates first. "
+        "Empty for users who do not manage the schedule",
+    )
+
+    def resolve_response_stats(self: PlanningPeriod, info):
+        if not can_manage_schedule(info.context.user, self.schedule, MANAGE):
+            return None
+        return response_stats(self)
+
+    def resolve_slot_coverage(self: PlanningPeriod, info):
+        if not can_manage_schedule(info.context.user, self.schedule, MANAGE):
+            return []
+        return slot_coverage(self)
 
     def resolve_autofill_runs(self: PlanningPeriod, info):
         from schedules.schemas.drafts import ScheduleAutofillRunNode
@@ -163,6 +223,32 @@ class DeletePlanningPeriodMutation(graphene.Mutation):
         return DeletePlanningPeriodMutation(found=True)
 
 
+class SendPlanningPeriodReminderMutation(graphene.Mutation):
+    """
+    Emails the roster users with the default "available" about the deadline.
+    Only for an open period. reminderSentAt shows when it was last sent.
+    """
+
+    class Arguments:
+        planning_period_id = graphene.ID(required=True)
+
+    planning_period = graphene.Field(PlanningPeriodNode)
+    recipients = graphene.NonNull(graphene.Int)
+
+    @gql_has_permissions(MANAGE)
+    def mutate(self, info, planning_period_id):
+        period = PlanningPeriod.objects.select_related("schedule").get(
+            pk=disambiguate_id(planning_period_id)
+        )
+        require_can_manage_schedule(info.context.user, period.schedule, MANAGE)
+        if period.status != PlanningPeriod.Status.OPEN:
+            raise IllegalOperation("The planning period is not open")
+        recipients = send_period_reminder(period)
+        return SendPlanningPeriodReminderMutation(
+            planning_period=period, recipients=recipients
+        )
+
+
 class SetShiftInterestMutation(graphene.Mutation):
     """
     Sets the user's answer for a shift: interested, available or unavailable.
@@ -213,3 +299,4 @@ class PlanningPeriodMutations(graphene.ObjectType):
     update_planning_period = UpdatePlanningPeriodMutation.Field()
     delete_planning_period = DeletePlanningPeriodMutation.Field()
     set_shift_interest = SetShiftInterestMutation.Field()
+    send_planning_period_reminder = SendPlanningPeriodReminderMutation.Field()

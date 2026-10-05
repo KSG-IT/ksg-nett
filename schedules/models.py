@@ -494,6 +494,8 @@ class PlanningPeriod(models.Model):
     date_to = models.DateField()
     deadline = models.DateTimeField()
     published_at = models.DateTimeField(null=True, blank=True)
+    # When a manager last sent the availability reminder
+    reminder_sent_at = models.DateTimeField(null=True, blank=True)
     created_by = models.ForeignKey(
         User, null=True, blank=True, on_delete=models.SET_NULL, related_name="+"
     )
