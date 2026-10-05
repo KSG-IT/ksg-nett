@@ -46,7 +46,7 @@ from schedules.schemas.schedules import (
 from schedules.schemas.templates import ScheduleTemplateQuery, ScheduleTemplateMutations
 from schedules.schemas.roster import ScheduleRosterMutations
 from schedules.schemas.planning import PlanningPeriodQuery, PlanningPeriodMutations
-from schedules.schemas.drafts import DraftMutations
+from schedules.schemas.drafts import AutofillMutations, DraftMutations
 from schedules.schemas.unavailability import (
     UserUnavailabilityQuery,
     UserUnavailabilityMutations,
@@ -113,6 +113,7 @@ class Mutation(
     PlanningPeriodMutations,
     UserUnavailabilityMutations,
     DraftMutations,
+    AutofillMutations,
     SensorsMutations,
     SummariesMutations,
     graphene.ObjectType,

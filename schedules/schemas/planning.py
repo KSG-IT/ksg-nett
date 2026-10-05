@@ -32,10 +32,21 @@ class PlanningPeriodNode(DjangoObjectType):
         interfaces = (Node,)
 
     status = graphene.NonNull(PlanningPeriodStatusEnum)
+    autofill_runs = graphene.NonNull(
+        graphene.List(
+            graphene.NonNull("schedules.schemas.drafts.ScheduleAutofillRunNode")
+        ),
+        description="Newest first. Empty for users who do not manage the schedule",
+    )
     shifts = graphene.NonNull(graphene.List(graphene.NonNull(ShiftNode)))
 
     def resolve_status(self: PlanningPeriod, info):
         return self.status
+
+    def resolve_autofill_runs(self: PlanningPeriod, info):
+        from schedules.schemas.drafts import ScheduleAutofillRunNode
+
+        return ScheduleAutofillRunNode.get_queryset(self.autofill_runs.all(), info)
 
     def resolve_shifts(self: PlanningPeriod, info):
         return self.shifts()
