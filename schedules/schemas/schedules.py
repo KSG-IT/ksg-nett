@@ -676,13 +676,11 @@ class AddUserToShiftSlotMutation(graphene.Mutation):
     def mutate(self, info, shift_slot_id, user_id):
         shift_slot_id = disambiguate_id(shift_slot_id)
         user_id = disambiguate_id(user_id)
+        shift_slot = ShiftSlot.objects.get(pk=shift_slot_id)
+        require_can_manage_schedule(
+            info.context.user, shift_slot.shift.schedule, "schedules.change_shiftslot"
+        )
         with transaction.atomic():
-            shift_slot = ShiftSlot.objects.get(pk=shift_slot_id)
-            require_can_manage_schedule(
-                info.context.user,
-                shift_slot.shift.schedule,
-                "schedules.change_shiftslot",
-            )
             user = User.objects.get(pk=user_id)
             shift_slot.user = user
             if user.notify_on_shift:

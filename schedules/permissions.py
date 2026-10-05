@@ -7,6 +7,7 @@ superuser manages every schedule. Reading shift lists does not need this.
 """
 
 from django.core.exceptions import PermissionDenied
+from django.utils.translation import gettext_lazy as _
 from graphene_django_cud.util import disambiguate_id
 
 from organization.consts import InternalGroupPositionMembershipType
@@ -20,7 +21,7 @@ from schedules.models import (
     ShiftTemplate,
 )
 
-NOT_PERMITTED = "You do not have permission to do this"
+NOT_PERMITTED = _("You do not have permission to do this")
 
 
 def managed_internal_group_ids(user):
