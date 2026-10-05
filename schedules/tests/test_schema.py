@@ -3,6 +3,7 @@ from zoneinfo import ZoneInfo
 
 from addict import Dict
 from django.conf import settings
+from django.contrib.auth.models import AnonymousUser
 from django.test import TestCase
 from django.utils import timezone
 from graphene.test import Client
@@ -42,6 +43,38 @@ class TestMyShiftsQueries(TestCase):
     def test__all_my_shifts__returns_each_shift_once(self):
         data = self.execute("{ allMyShifts { id } }")
         self.assertEqual(len(data.allMyShifts), 1)
+
+
+class TestShiftQueriesRequireLogin(TestCase):
+    def setUp(self) -> None:
+        self.graphql_client = Client(schema)
+
+    def assert_permission_denied(self, query):
+        executed = self.graphql_client.execute(
+            query, context=Dict(user=AnonymousUser())
+        )
+        self.assertIn("errors", executed)
+        self.assertEqual(
+            executed["errors"][0]["message"], "You are not permitted to view this"
+        )
+
+    def test__my_upcoming_shifts__anonymous_user__is_denied(self):
+        self.assert_permission_denied("{ myUpcomingShifts { id } }")
+
+    def test__all_my_shifts__anonymous_user__is_denied(self):
+        self.assert_permission_denied("{ allMyShifts { id } }")
+
+    def test__all_shifts__anonymous_user__is_denied(self):
+        self.assert_permission_denied('{ allShifts(date: "2026-10-05") { id } }')
+
+    def test__all_users_working_today__anonymous_user__is_denied(self):
+        self.assert_permission_denied("{ allUsersWorkingToday { id } }")
+
+    def test__normalized_shifts_from_range__anonymous_user__is_denied(self):
+        self.assert_permission_denied(
+            '{ normalizedShiftsFromRange(scheduleId: "1", shiftsFrom: "2026-10-05",'
+            " numberOfWeeks: 1) { __typename } }"
+        )
 
 
 class TestScheduleAllergiesV2Query(TestCase):
