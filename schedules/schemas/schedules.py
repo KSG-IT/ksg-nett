@@ -956,36 +956,6 @@ class UpdateShiftDetailsMutation(graphene.Mutation):
         return UpdateShiftDetailsMutation(shift=shift)
 
 
-class AutofillShiftSlotsMutation(graphene.Mutation):
-    class Arguments:
-        schedule_id = graphene.ID(required=True)
-        from_date = graphene.Date(required=True)
-        to_date = graphene.Date(required=True)
-
-    success = graphene.Boolean()
-
-    @gql_has_permissions("schedules.change_shiftslot")
-    def mutate(self, info, schedule_id, from_date, to_date):
-        today = timezone.now().date()
-
-        if from_date < today:
-            raise ValueError("From date must be in the future")
-
-        if to_date < today:
-            raise ValueError("To date must be in the future")
-
-        if to_date < from_date:
-            raise ValueError("To date must be after from date")
-
-        schedule_id = disambiguate_id(schedule_id)
-        schedule = Schedule.objects.get(pk=schedule_id)
-        require_can_manage_schedule(
-            info.context.user, schedule, "schedules.change_shiftslot"
-        )
-        schedule.autofill_slots(from_date, to_date)
-        return AutofillShiftSlotsMutation(success=True)
-
-
 class MyShiftAvailabilityObject(graphene.ObjectType):
     shift = graphene.NonNull(graphene.Field(ShiftNode))
     shift_interest = graphene.Field(ShiftInterestNode)
@@ -1008,5 +978,3 @@ class SchedulesMutations(graphene.ObjectType):
     add_slots_to_shift = AddSlotsToShiftMutation.Field()
     create_shift_with_slots = CreateShiftWithSlotsMutation.Field()
     update_shift_details = UpdateShiftDetailsMutation.Field()
-
-    autofill_shift_slots = AutofillShiftSlotsMutation.Field()

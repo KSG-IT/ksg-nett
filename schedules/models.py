@@ -1,7 +1,6 @@
 from zoneinfo import ZoneInfo
 from django.db import models
 from django.utils.translation import gettext_lazy as _
-from schedules.utils.matching import maximum_bipartite_matching
 
 from organization.consts import InternalGroupPositionMembershipType
 from organization.models import (
@@ -67,6 +66,8 @@ class Schedule(models.Model):
         on_delete=models.SET_NULL,
         related_name="schedules",
     )
+    # Autofill gives a user at most this many shifts in a calendar week
+    max_shifts_per_week = models.PositiveSmallIntegerField(default=2)
 
     def shifts_from_range(self, shifts_from, number_of_weeks):
         monday = shifts_from - timezone.timedelta(days=shifts_from.weekday())
@@ -107,54 +108,6 @@ class Schedule(models.Model):
             filled_shifts__shift__datetime_end__gte=now,
         ).distinct()
         return users
-
-    def autofill_slots(self, date_start, date_end, interest_type):
-        shifts_to_fill = Shift.objects.filter(
-            datetime_start__gte=date_start, datetime_end__lte=date_end, schedule=self
-        )
-        # Length for the adjacency matrix
-        SLOTS_AVAILABLE = 0
-        slots_length = []
-        for shift in shifts_to_fill:
-            c = shift.slots.count()
-            SLOTS_AVAILABLE += c
-            slots_length.append(c)
-
-        data = dict()
-        roster = self.roster.all()
-        for i, shift in enumerate(shifts_to_fill):
-            # Progress the offset based on the previous shift's slots amount
-            offset = 0
-            for k in range(i):
-                offset += slots_length[k]
-
-            interests = shift.interests.filter(interest_type=interest_type)
-            for interest in interests:
-                slots = interest.shift.slots.all()
-                if interest.user_id not in data:
-                    data[interest.user_id] = [0] * SLOTS_AVAILABLE
-
-                for j in range(slots.count()):
-                    if (
-                        roster.get(user_id=interest.user_id).autofill_as
-                        == slots[j].role
-                    ):
-                        data[interest.user_id][j + offset] = 1
-
-        adjacency = [
-            [slot for slot, can_fill in enumerate(row) if can_fill]
-            for row in data.values()
-        ]
-        result = maximum_bipartite_matching(adjacency, SLOTS_AVAILABLE)
-        users = list(data.keys())
-        slots = shifts_to_fill.values_list("slots")
-        for i, match in enumerate(result):
-            if match != -1:
-                user_id = users[match]
-                shift_slot_id = slots[i][0]
-                slot = ShiftSlot.objects.get(id=shift_slot_id)
-                slot.user_id = user_id
-                slot.save()
 
 
 class Shift(models.Model):
@@ -604,6 +557,27 @@ class UserUnavailability(models.Model):
         return f"{self.user}: {self.day} {self.time_start}-{self.time_end}"
 
 
+class ScheduleAutofillRun(models.Model):
+    """
+    One autofill of a planning period. Its result is ShiftSlotDraft rows with
+    autofill_run set, and the slots it could not fill, with a reason.
+    See schedules/utils/autofill.py.
+    """
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    period = models.ForeignKey(
+        PlanningPeriod, on_delete=models.CASCADE, related_name="autofill_runs"
+    )
+    created_by = models.ForeignKey(
+        User, null=True, blank=True, on_delete=models.SET_NULL, related_name="+"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    # [{"slot": slot id, "reason": UnfilledReason, "candidates": int}]
+    unfilled = models.JSONField(default=list)
+
+
 class ShiftSlotDraft(models.Model):
     """
     A change to a slot that is not visible to the members yet. A null user
@@ -621,6 +595,15 @@ class ShiftSlotDraft(models.Model):
         User, null=True, blank=True, on_delete=models.SET_NULL, related_name="+"
     )
     changed_at = models.DateTimeField(auto_now=True)
+    # The autofill run that made the draft. Null for a manual draft; a new run
+    # of autofill keeps manual drafts.
+    autofill_run = models.ForeignKey(
+        ScheduleAutofillRun,
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
+        related_name="drafts",
+    )
 
     def __str__(self):
         return f"Draft of {self.slot}: {self.user}"
