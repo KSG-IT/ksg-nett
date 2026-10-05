@@ -5,6 +5,9 @@ from users.models import User
 from django.db.models.functions import Coalesce
 from django.utils import timezone
 
+# Annotate as `vote_sum` so `QuoteNode.sum` does not run a query per quote
+VOTE_SUM = Coalesce(Sum("votes__value"), 0)
+
 
 class Quote(TimestampedModel):
     class Meta:
@@ -59,8 +62,8 @@ class Quote(TimestampedModel):
         semester_start = timezone.make_aware(semester_start)
         popular_quotes = (
             cls.objects.filter(approved=True, created_at__gte=semester_start)
-            .annotate(total_votes=Coalesce(Sum("votes__value"), 0))
-            .order_by("-total_votes")[:10]
+            .annotate(vote_sum=VOTE_SUM)
+            .order_by("-vote_sum")[:10]
         )
         return popular_quotes
 
@@ -75,8 +78,8 @@ class Quote(TimestampedModel):
         # TODO TESTS
         popular_quotes = (
             cls.objects.filter(approved=True)
-            .annotate(total_votes=Coalesce(Sum("votes__value"), 0))
-            .order_by("-total_votes")[:10]
+            .annotate(vote_sum=VOTE_SUM)
+            .order_by("-vote_sum")[:10]
         )
         return popular_quotes
 
@@ -100,9 +103,7 @@ class Quote(TimestampedModel):
         can simply aggregate the value field.
         :return Int:
         """
-        if self.votes.count() == 0:
-            return 0
-        return self.votes.aggregate(value=Sum("value"))["value"]
+        return self.votes.aggregate(value=Coalesce(Sum("value"), 0))["value"]
 
     def __str__(self):
         return self.text

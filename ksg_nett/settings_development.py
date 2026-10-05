@@ -1,8 +1,7 @@
 from ksg_nett.settings import *
 from ksg_nett.env import required_secret
 import os
-import sentry_sdk
-from sentry_sdk.integrations.django import DjangoIntegration
+from ksg_nett.sentry import init_sentry
 
 
 DEBUG = True
@@ -14,13 +13,7 @@ SECRET_KEY = os.environ.get("SECRET_KEY", None)
 AUTH_JWT_SECRET = required_secret("AUTH_JWT_SECRET")
 SIMPLE_JWT = {**SIMPLE_JWT, "SIGNING_KEY": AUTH_JWT_SECRET}
 
-sentry_sdk.init(
-    dsn="https://b803a49419fa48029eb23004cb67b99d@o487192.ingest.sentry.io/5545712",
-    integrations=[DjangoIntegration()],
-    traces_sample_rate=1.0,
-    send_default_pii=True,
-    environment="development",
-)
+init_sentry("development")
 
 EMAIL_HOST = "smtp.samfundet.no"
 EMAIL_USE_TLS = True
