@@ -23,6 +23,7 @@ from schedules.utils.roster import (
     annotate_shift_counts,
     apply_roster_sync,
 )
+from schedules.utils.unavailability import prefill_roster_row
 from users.models import User
 
 MANAGE = "schedules.change_schedule"
@@ -265,6 +266,7 @@ class AddScheduleRosterEntryMutation(graphene.Mutation):
             )
         except IntegrityError:
             raise IllegalOperation("The user is on the roster")
+        prefill_roster_row(entry)
         return AddScheduleRosterEntryMutation(entry=entry)
 
 
@@ -295,6 +297,7 @@ class UpdateScheduleRosterEntryMutation(graphene.Mutation):
             entry.shift_cap = input.shift_cap
         entry.manually_edited = True
         entry.save()
+        prefill_roster_row(entry)
         return UpdateScheduleRosterEntryMutation(entry=entry)
 
 

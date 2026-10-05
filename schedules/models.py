@@ -580,3 +580,25 @@ class PlanningPeriod(models.Model):
         return cls.objects.filter(
             schedule_id=shift.schedule_id, date_from__lte=day, date_to__gte=day
         ).first()
+
+
+class UserUnavailability(models.Model):
+    """
+    A time on a weekday when the user cannot work. It repeats each week, like a
+    ShiftTemplate, and applies to all schedules. It pre-fills "cannot work" for
+    the shifts it overlaps, see schedules/utils/unavailability.py.
+    """
+
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="unavailabilities"
+    )
+    day = models.CharField(max_length=10, choices=ShiftTemplate.Day.choices)
+    time_start = models.TimeField()
+    # At or before time_start means the next day
+    time_end = models.TimeField()
+    note = models.CharField(max_length=255, blank=True, default="")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.user}: {self.day} {self.time_start}-{self.time_end}"

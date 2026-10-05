@@ -14,6 +14,7 @@ from schedules.models import (
 )
 from schedules.permissions import require_can_manage_schedule
 from schedules.schemas.schedules import ShiftNode
+from schedules.utils.unavailability import prefill_period
 
 MANAGE = "schedules.change_schedule"
 
@@ -99,6 +100,7 @@ class CreatePlanningPeriodMutation(graphene.Mutation):
             deadline=input.deadline,
             created_by=info.context.user,
         )
+        prefill_period(period)
         return CreatePlanningPeriodMutation(planning_period=period)
 
 
@@ -126,6 +128,7 @@ class UpdatePlanningPeriodMutation(graphene.Mutation):
                 setattr(period, name, input.get(name))
         check_period_dates(period.schedule, period.date_from, period.date_to, period)
         period.save()
+        prefill_period(period)
         return UpdatePlanningPeriodMutation(planning_period=period)
 
 

@@ -31,6 +31,7 @@ from schedules.permissions import (
 )
 from schedules.utils.schedules import normalize_shifts, send_given_shift_email
 from schedules.utils.templates import apply_schedule_template
+from schedules.utils.unavailability import prefill_schedule, prefill_shift
 from users.models import User, Allergy as UserAllergy
 from django.utils import timezone
 from django.conf import settings
@@ -619,6 +620,11 @@ class CreateShiftMutation(ManagedCreateMixin, DjangoCreateMutation):
         model = Shift
         permissions = ("schedules.add_shift",)
 
+    @classmethod
+    def after_mutate(cls, root, info, input, obj, return_data):
+        prefill_shift(obj)
+        return super().after_mutate(root, info, input, obj, return_data)
+
 
 class CreateShiftsFromTemplateMutation(graphene.Mutation):
     class Arguments:
@@ -641,6 +647,11 @@ class PatchShiftMutation(ManagedPatchMixin, DjangoPatchMutation):
     class Meta:
         model = Shift
         permissions = ("schedules.change_shift",)
+
+    @classmethod
+    def after_mutate(cls, root, info, id, input, obj, return_data):
+        prefill_shift(obj)
+        return super().after_mutate(root, info, id, input, obj, return_data)
 
 
 class DeleteShiftMutation(ManagedDeleteMixin, DjangoDeleteMutation):
@@ -704,6 +715,7 @@ class GenerateShiftsFromTemplateMutation(graphene.Mutation):
             info.context.user, schedule_template.schedule, "schedules.add_shift"
         )
         count = apply_schedule_template(schedule_template, start_date, number_of_weeks)
+        prefill_schedule(schedule_template.schedule)
         return GenerateShiftsFromTemplateMutation(shifts_created=count)
 
 
@@ -872,6 +884,7 @@ class CreateShiftWithSlotsMutation(graphene.Mutation):
                 for slot in input.slots
                 for _ in range(slot.count)
             )
+        prefill_shift(shift)
         return CreateShiftWithSlotsMutation(shift=shift)
 
 
@@ -907,6 +920,7 @@ class UpdateShiftDetailsMutation(graphene.Mutation):
             input.date, input.start_time, input.end_time
         )
         shift.save()
+        prefill_shift(shift)
         return UpdateShiftDetailsMutation(shift=shift)
 
 
