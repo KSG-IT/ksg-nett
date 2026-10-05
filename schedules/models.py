@@ -3,6 +3,7 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 from schedules.utils.matching import maximum_bipartite_matching
 
+from organization.consts import InternalGroupPositionMembershipType
 from organization.models import (
     InternalGroup,
     InternalGroupPosition,
@@ -398,7 +399,64 @@ class ShiftInterest(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
 
+class DefaultAvailability(models.TextChoices):
+    # No answer for a shift means "can work"
+    AVAILABLE = "available", _("Available")
+    # No answer for a shift means "cannot work"
+    OPT_IN = "opt_in", _("Opt in")
+
+
+class ScheduleRosterGrouping(models.Model):
+    """
+    A rule for the roster sync: active members with this position and
+    membership type are on the roster of the schedule, with these values.
+    See schedules/utils/roster.py.
+    """
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["schedule", "internal_group_position", "position_type"],
+                name="unique_roster_grouping",
+            )
+        ]
+
+    schedule = models.ForeignKey(
+        Schedule, on_delete=models.CASCADE, related_name="roster_groupings"
+    )
+    internal_group_position = models.ForeignKey(
+        InternalGroupPosition, on_delete=models.CASCADE, related_name="+"
+    )
+    position_type = models.CharField(
+        max_length=32, choices=InternalGroupPositionMembershipType.choices
+    )
+    role = models.CharField(max_length=64, choices=RoleOption.choices)
+    default_availability = models.CharField(
+        max_length=12, choices=DefaultAvailability.choices
+    )
+    # The most shifts between two admissions. Null means no cap.
+    shift_cap = models.PositiveSmallIntegerField(null=True, blank=True)
+
+    def __str__(self):
+        return (
+            f"{self.schedule.name}: {self.internal_group_position.name} "
+            f"{self.position_type} as {self.role}"
+        )
+
+
 class ScheduleRoster(models.Model):
+    """
+    One row per user on the roster of a schedule. The roster sync writes the
+    rows from the groupings. A manager can edit a row or add one by hand.
+    """
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["schedule", "user"], name="unique_schedule_roster_user"
+            )
+        ]
+
     schedule = models.ForeignKey(
         Schedule,
         blank=False,
@@ -412,5 +470,26 @@ class ScheduleRoster(models.Model):
     )
 
     autofill_as = models.CharField(
-        max_length=64, choices=RoleOption.choices, null=True, blank=False, default=None
+        max_length=64, choices=RoleOption.choices, null=False, blank=False
     )
+    default_availability = models.CharField(
+        max_length=12,
+        choices=DefaultAvailability.choices,
+        default=DefaultAvailability.AVAILABLE,
+    )
+    shift_cap = models.PositiveSmallIntegerField(null=True, blank=True)
+    # The rule that added the row. Null for a row added by hand, or when the
+    # rule was deleted.
+    grouping = models.ForeignKey(
+        ScheduleRosterGrouping,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="roster_entries",
+    )
+    # The sync does not change the values of an edited row
+    manually_edited = models.BooleanField(default=False)
+    # A manager added the row. The sync removes it only when the user leaves.
+    added_manually = models.BooleanField(default=False)
+    # Count shifts from this date when it is after the last admission closed
+    count_from = models.DateField(null=True, blank=True)

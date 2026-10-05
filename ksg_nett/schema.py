@@ -24,7 +24,7 @@ from economy.schema import (
     SociSessionQuery,
     StockMarketQuery,
     StripeQuery,
-    SociRankedQuery
+    SociRankedQuery,
 )
 from bar_tab.schema import (
     BarTabQuery,
@@ -44,6 +44,7 @@ from schedules.schemas.schedules import (
     SchedulesMutations,
 )
 from schedules.schemas.templates import ScheduleTemplateQuery, ScheduleTemplateMutations
+from schedules.schemas.roster import ScheduleRosterMutations
 
 from sensors.schema import SensorMeasurementQuery, SensorsMutations
 from summaries.schema import SummaryQuery, SummariesMutations
@@ -100,6 +101,7 @@ class Mutation(
     QuotesMutations,
     SchedulesMutations,
     ScheduleTemplateMutations,
+    ScheduleRosterMutations,
     SensorsMutations,
     SummariesMutations,
     graphene.ObjectType,
