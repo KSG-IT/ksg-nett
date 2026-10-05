@@ -21,7 +21,7 @@ from django.http import HttpResponse
 from django.urls import path
 from api.api_docs import SchemaView
 
-from graphene_file_upload.django import FileUploadGraphQLView
+from ksg_nett.graphql_view import SentryGraphQLView
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import RedirectView
 
@@ -48,7 +48,7 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path(
         "graphql/",
-        csrf_exempt(FileUploadGraphQLView.as_view(graphiql=settings.GRAPHIQL)),
+        csrf_exempt(SentryGraphQLView.as_view(graphiql=settings.GRAPHIQL)),
     ),
     path("sentry-debug/", trigger_error),
     path("", RedirectView.as_view(url="admin")),

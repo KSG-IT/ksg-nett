@@ -1,8 +1,7 @@
 import os
 from ksg_nett.settings import *
 from ksg_nett.env import required_secret
-import sentry_sdk
-from sentry_sdk.integrations.django import DjangoIntegration
+from ksg_nett.sentry import init_sentry
 
 # Raise exceptions on unhandled secret key
 SECRET_KEY = os.environ.get("SECRET_KEY", None)
@@ -18,13 +17,7 @@ EMAIL_USE_TLS = True
 EMAIL_PORT = 587
 
 
-sentry_sdk.init(
-    dsn="https://b803a49419fa48029eb23004cb67b99d@o487192.ingest.sentry.io/5545712",
-    integrations=[DjangoIntegration()],
-    traces_sample_rate=1.0,
-    send_default_pii=True,
-    environment="production",
-)
+init_sentry("production")
 
 HOST_URL = "https://ksg-nett.samfundet.no"
 MEDIA_URL = "https://ksg-nett.samfundet.no/media/"
