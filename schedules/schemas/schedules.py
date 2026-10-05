@@ -90,6 +90,16 @@ class ShiftNode(DjangoObjectType):
     def resolve_filled_slots(self: Shift, info):
         return self.slots.filter(user__isnull=False).order_by("id")
 
+    my_interest = graphene.Field(
+        ShiftInterestNode, description="The user's own answer for the shift"
+    )
+
+    def resolve_my_interest(self: Shift, info):
+        user = info.context.user
+        if not user.is_authenticated:
+            return None
+        return self.interests.filter(user=user).first()
+
     def resolve_interests(self: Shift, info):
         # Managers of the schedule see all answers, other users their own
         user = info.context.user
@@ -168,6 +178,17 @@ class ScheduleNode(DjangoObjectType):
         graphene.List(graphene.NonNull("schedules.schemas.roster.RosterChangeNode")),
         description="The changes syncScheduleRoster would make",
     )
+
+    planning_periods = graphene.NonNull(
+        graphene.List(
+            graphene.NonNull("schedules.schemas.planning.PlanningPeriodNode")
+        ),
+        description="Newest first",
+    )
+
+    @gql_login_required()
+    def resolve_planning_periods(self: Schedule, info):
+        return self.planning_periods.all()
 
     def resolve_roster(self: Schedule, info):
         from schedules.schemas.roster import ScheduleRosterNode
@@ -919,17 +940,6 @@ class AutofillShiftSlotsMutation(graphene.Mutation):
         return AutofillShiftSlotsMutation(success=True)
 
 
-class CreateShiftInterestMutation(DjangoCreateMutation):
-    class Meta:
-        model = ShiftInterest
-        auto_context_field = {"user": "user"}
-
-
-class DeleteShiftInterestMutation(DjangoDeleteMutation):
-    class Meta:
-        model = ShiftInterest
-
-
 class MyShiftAvailabilityObject(graphene.ObjectType):
     shift = graphene.NonNull(graphene.Field(ShiftNode))
     shift_interest = graphene.Field(ShiftInterestNode)
@@ -953,5 +963,4 @@ class SchedulesMutations(graphene.ObjectType):
     create_shift_with_slots = CreateShiftWithSlotsMutation.Field()
     update_shift_details = UpdateShiftDetailsMutation.Field()
 
-    create_shift_interest = CreateShiftInterestMutation.Field()
     autofill_shift_slots = AutofillShiftSlotsMutation.Field()

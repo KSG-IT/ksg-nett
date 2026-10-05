@@ -393,10 +393,28 @@ class ShiftInterest(models.Model):
         on_delete=models.CASCADE,
     )
 
+    class Source(models.TextChoices):
+        MANUAL = "manual", _("Manual")
+        # Pre-filled from the user's weekly unavailability
+        UNAVAILABILITY = "unavailability", _("Unavailability")
+
     interest_type = models.CharField(
         default=InterestTypes.INTERESTED, choices=InterestTypes.choices, max_length=12
     )
+    # A note to the schedule managers, for example why the user cannot work
+    note = models.CharField(max_length=255, blank=True, default="")
+    source = models.CharField(
+        max_length=16, choices=Source.choices, default=Source.MANUAL
+    )
     created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["shift", "user"], name="unique_shift_interest_user"
+            )
+        ]
 
 
 class DefaultAvailability(models.TextChoices):
@@ -493,3 +511,72 @@ class ScheduleRoster(models.Model):
     added_manually = models.BooleanField(default=False)
     # Count shifts from this date when it is after the last admission closed
     count_from = models.DateField(null=True, blank=True)
+
+
+class PlanningPeriod(models.Model):
+    """
+    The shifts of a schedule from date_from to date_to, both included. Users on
+    the roster answer for the shifts until the deadline. Then the managers make
+    and publish the plan.
+    """
+
+    class Status(models.TextChoices):
+        OPEN = "open", _("Open")
+        CLOSED = "closed", _("Closed")
+        PUBLISHED = "published", _("Published")
+
+    class Meta:
+        ordering = ["-date_from"]
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(date_to__gte=models.F("date_from")),
+                name="planning_period_dates_in_order",
+            )
+        ]
+
+    schedule = models.ForeignKey(
+        Schedule, on_delete=models.CASCADE, related_name="planning_periods"
+    )
+    date_from = models.DateField()
+    date_to = models.DateField()
+    deadline = models.DateTimeField()
+    published_at = models.DateTimeField(null=True, blank=True)
+    created_by = models.ForeignKey(
+        User, null=True, blank=True, on_delete=models.SET_NULL, related_name="+"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.schedule.name}: {self.date_from} to {self.date_to}"
+
+    @property
+    def status(self):
+        if self.published_at:
+            return self.Status.PUBLISHED
+        if timezone.now() < self.deadline:
+            return self.Status.OPEN
+        return self.Status.CLOSED
+
+    def shifts(self):
+        # __date uses settings.TIME_ZONE, so a shift belongs to its local date
+        return Shift.objects.filter(
+            schedule=self.schedule,
+            datetime_start__date__gte=self.date_from,
+            datetime_start__date__lte=self.date_to,
+        ).order_by("datetime_start")
+
+    @classmethod
+    def overlapping(cls, schedule, date_from, date_to, exclude=None):
+        periods = cls.objects.filter(
+            schedule=schedule, date_from__lte=date_to, date_to__gte=date_from
+        )
+        if exclude is not None:
+            periods = periods.exclude(pk=exclude.pk)
+        return periods
+
+    @classmethod
+    def for_shift(cls, shift):
+        day = timezone.localdate(shift.datetime_start)
+        return cls.objects.filter(
+            schedule_id=shift.schedule_id, date_from__lte=day, date_to__gte=day
+        ).first()
