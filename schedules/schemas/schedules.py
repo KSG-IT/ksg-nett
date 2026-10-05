@@ -730,22 +730,46 @@ class DeleteShiftTradeMutation(DjangoDeleteMutation):
 
 
 class GenerateShiftsFromTemplateMutation(graphene.Mutation):
+    """
+    Makes the template's shifts for whole weeks from the Monday of startDate.
+    The template's shifts in those weeks are made again. When that deletes
+    filled slots, answers or drafts, it needs confirmDelete; see
+    templateGenerationPreview.
+    """
+
     class Arguments:
         schedule_template_id = graphene.ID(required=True)
         start_date = graphene.Date(required=True)
         number_of_weeks = graphene.Int(required=True)
+        confirm_delete = graphene.Boolean(default_value=False)
 
     shifts_created = graphene.Int()
 
     @gql_has_permissions("schedules.add_shift")
-    def mutate(self, info, schedule_template_id, start_date, number_of_weeks):
+    def mutate(
+        self,
+        info,
+        schedule_template_id,
+        start_date,
+        number_of_weeks,
+        confirm_delete=False,
+    ):
         from schedules.schemas.templates import ScheduleTemplate
+        from schedules.utils.templates import replace_impact
 
         schedule_template_id = disambiguate_id(schedule_template_id)
         schedule_template = ScheduleTemplate.objects.get(pk=schedule_template_id)
         require_can_manage_schedule(
             info.context.user, schedule_template.schedule, "schedules.add_shift"
         )
+        impact = replace_impact(schedule_template, start_date, number_of_weeks)
+        if impact.needs_confirmation and not confirm_delete:
+            raise IllegalOperation(
+                f"This deletes {impact.filled_slots_to_delete} filled slots, "
+                f"{impact.answers_to_delete} answers and {impact.drafts_to_delete} "
+                f"drafts from {impact.first_day} to {impact.last_day}. "
+                "Send confirmDelete to continue."
+            )
         count = apply_schedule_template(schedule_template, start_date, number_of_weeks)
         prefill_schedule(schedule_template.schedule)
         return GenerateShiftsFromTemplateMutation(shifts_created=count)
