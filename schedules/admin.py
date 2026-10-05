@@ -16,7 +16,8 @@ USER_SEARCH_FIELDS = ("user__username", "user__first_name", "user__last_name")
 
 
 class ScheduleAdmin(admin.ModelAdmin):
-    list_display = ("name", "display_mode", "default_role")
+    list_display = ("name", "internal_group", "display_mode", "default_role")
+    list_filter = ("internal_group",)
     search_fields = ("name",)
 
 

@@ -56,6 +56,15 @@ class Schedule(models.Model):
     default_role = models.CharField(
         max_length=64, choices=RoleOption.choices, null=True, blank=False, default=None
     )
+    # The internal group that staffs the schedule. Its functionaries with the
+    # schedule permissions manage it, see schedules/permissions.py.
+    internal_group = models.ForeignKey(
+        InternalGroup,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="schedules",
+    )
 
     def shifts_from_range(self, shifts_from, number_of_weeks):
         monday = shifts_from - timezone.timedelta(days=shifts_from.weekday())

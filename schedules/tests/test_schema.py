@@ -168,11 +168,15 @@ class TestScheduleOverviewFields(TestCase):
         from users.tests.factories import UserWithPermissionsFactory
 
         self.graphql_client = Client(schema)
+        from schedules.tests.factories import internal_group, member_of
+
         self.user = UserWithPermissionsFactory.create(
             permissions="schedules.change_schedule"
         )
-        self.schedule = ScheduleFactory.create(name="Edgar")
-        self.empty = ScheduleFactory.create(name="Arrangement")
+        edgar = internal_group("Edgar")
+        member_of(self.user, edgar)
+        self.schedule = ScheduleFactory.create(name="Edgar", internal_group=edgar)
+        self.empty = ScheduleFactory.create(name="Arrangement", internal_group=edgar)
         now = timezone.now()
 
         def shift(days, location=Shift.Location.EDGAR, filled=1, open_slots=0):
@@ -308,7 +312,11 @@ class TestCreateAndUpdateShiftV2(TestCase):
                 "schedules.change_shift",
             )
         )
-        self.schedule = ScheduleFactory.create(name="Edgar")
+        from schedules.tests.factories import internal_group, member_of
+
+        edgar = internal_group("Edgar")
+        member_of(self.manager, edgar)
+        self.schedule = ScheduleFactory.create(name="Edgar", internal_group=edgar)
         self.schedule_id = to_global_id("ScheduleNode", self.schedule.pk)
 
     def execute(self, query, variables, user=None):
