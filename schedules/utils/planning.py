@@ -19,6 +19,7 @@ from schedules.models import (
     ShiftInterest,
     ShiftSlot,
 )
+from schedules.utils.roster import annotate_shift_counts
 from schedules.utils.autofill import candidates
 
 AVAILABILITY_PATH = "/schedules/me/availability"
@@ -128,9 +129,17 @@ def response_stats(period):
 
 
 @dataclass
+class SlotCoverageCandidateBreakdown:
+    membership_type: str | None
+    candidate_count: int
+    interested_count: int
+
+
+@dataclass
 class SlotCoverage:
     shift: object
     role: str
+    candidate_breakdown: list[SlotCoverageCandidateBreakdown]
     slot_count: int
     # Slots without a user in the plan with the drafts
     open_slot_count: int
@@ -146,7 +155,12 @@ def slot_coverage(period):
     by the same rule as autofill. The rows with the fewest spare candidates
     come first.
     """
-    rows = list(ScheduleRoster.objects.filter(schedule=period.schedule))
+    rows = list(
+        annotate_shift_counts(
+            ScheduleRoster.objects.filter(schedule=period.schedule),
+            include_drafts=False,
+        )
+    )
     shifts = list(period.shifts())
     answers = {}
     unavailable = defaultdict(lambda: [0, 0])
@@ -170,6 +184,22 @@ def slot_coverage(period):
     for (shift_id, role), (slot_count, open_count) in slots.items():
         shift = by_id[shift_id]
         can_work = candidates(rows, answers, shift, role)
+        candidates_by_type = defaultdict(lambda: [0, 0])
+        for row, preference in can_work:
+            candidates_by_type[row.membership_type][0] += 1
+            if preference == 0:
+                candidates_by_type[row.membership_type][1] += 1
+        candidate_breakdown = [
+            SlotCoverageCandidateBreakdown(
+                membership_type=membership_type,
+                candidate_count=counts[0],
+                interested_count=counts[1],
+            )
+            for membership_type, counts in sorted(
+                candidates_by_type.items(),
+                key=lambda item: (item[0] is None, item[0] or ""),
+            )
+        ]
         with_role = [row for row in rows if row.autofill_as == role]
         marks = [unavailable.get((shift_id, row.user_id)) for row in with_role]
         marks = [mark for mark in marks if mark]
@@ -177,6 +207,7 @@ def slot_coverage(period):
             SlotCoverage(
                 shift=shift,
                 role=role,
+                candidate_breakdown=candidate_breakdown,
                 slot_count=slot_count,
                 open_slot_count=open_count,
                 candidate_count=len(can_work),

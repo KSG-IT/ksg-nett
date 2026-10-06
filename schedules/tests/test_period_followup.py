@@ -213,6 +213,11 @@ class TestSlotCoverage(FollowupTestCase):
             slotCoverage {
               shift { id }
               role
+              candidateBreakdown {
+                membershipType
+                candidateCount
+                interestedCount
+              }
               slotCount
               openSlotCount
               candidateCount
@@ -241,6 +246,13 @@ class TestSlotCoverage(FollowupTestCase):
             {
                 "shift": {"id": to_global_id("ShiftNode", self.shift.pk)},
                 "role": "BARISTA",
+                "candidateBreakdown": [
+                    {
+                        "membershipType": None,
+                        "candidateCount": 1,
+                        "interestedCount": 1,
+                    }
+                ],
                 "slotCount": 2,
                 "openSlotCount": 2,
                 "candidateCount": 1,
@@ -258,6 +270,50 @@ class TestSlotCoverage(FollowupTestCase):
         slot.save()
         other = [row for row in self.coverage() if row["slotCount"] == 1][0]
         self.assertEqual(other["openSlotCount"], 0)
+
+    def test__candidate_breakdown_splits_mixed_types_without_splitting_vacancies(self):
+        member_of(self.anna, self.schedule.internal_group, Type.GANG_MEMBER)
+        member_of(
+            self.bob,
+            self.schedule.internal_group,
+            Type.ACTIVE_GANG_MEMBER_PANG,
+        )
+        self.answer(self.anna, self.shift, ShiftInterest.InterestTypes.INTERESTED)
+        self.answer(self.bob, self.shift, ShiftInterest.InterestTypes.AVAILABLE)
+        self.answer(self.per, self.shift, ShiftInterest.InterestTypes.AVAILABLE)
+
+        row = self.coverage()[0]
+
+        self.assertEqual(row["openSlotCount"], 2)
+        self.assertEqual(row["candidateCount"], 3)
+        self.assertEqual(
+            row["candidateBreakdown"],
+            [
+                {
+                    "membershipType": "active-gang-member-pang",
+                    "candidateCount": 1,
+                    "interestedCount": 0,
+                },
+                {
+                    "membershipType": "gang-member",
+                    "candidateCount": 1,
+                    "interestedCount": 1,
+                },
+                {
+                    "membershipType": None,
+                    "candidateCount": 1,
+                    "interestedCount": 0,
+                },
+            ],
+        )
+
+    def test__candidate_breakdown_is_empty_when_everyone_is_unavailable(self):
+        self.answer(self.anna, self.shift, ShiftInterest.InterestTypes.UNAVAILABLE)
+        self.answer(self.bob, self.shift, ShiftInterest.InterestTypes.UNAVAILABLE)
+
+        row = self.coverage()[0]
+
+        self.assertEqual(row["candidateBreakdown"], [])
 
     def test__a_member__gets_no_coverage(self):
         self.assertEqual(self.coverage(user=self.anna), [])
