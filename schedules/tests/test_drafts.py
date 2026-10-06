@@ -118,6 +118,29 @@ class TestDraftSlot(DraftTestCase):
         self.assertIsNone(self.first.user)
         self.assertEqual(ShiftSlotDraft.objects.get().changed_by, self.manager)
 
+    def test__a_manual_draft__has_no_autofill_run(self):
+        self.draft(self.first, self.anna)
+        executed = self.execute(
+            """
+            query Drafts($id: ID!, $from: Date!) {
+              schedule(id: $id) {
+                shiftsFromRange(shiftsFrom: $from, numberOfWeeks: 1) {
+                  slots { draft { autofillRun { id } } }
+                }
+              }
+            }
+            """,
+            {"id": self.schedule_id(), "from": self.day.isoformat()},
+        )
+        self.assertNotIn("errors", executed)
+        drafts = [
+            slot["draft"]
+            for shift in executed["data"]["schedule"]["shiftsFromRange"]
+            for slot in shift["slots"]
+            if slot["draft"]
+        ]
+        self.assertEqual(drafts, [{"autofillRun": None}])
+
     def test__a_draft_back_to_the_current_user__removes_the_draft(self):
         self.draft(self.first, self.anna)
         self.draft(self.first, None)

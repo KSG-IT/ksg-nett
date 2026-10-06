@@ -65,7 +65,9 @@ class ScheduleRosterGroupingNode(DjangoObjectType):
 
     @classmethod
     def get_node(cls, info, id):
-        return cls.get_queryset(ScheduleRosterGrouping.objects, info).get(pk=id)
+        # None for a null foreign key, for example ScheduleRoster.grouping
+        queryset = cls.get_queryset(ScheduleRosterGrouping.objects, info)
+        return queryset.filter(pk=id).first()
 
 
 class ScheduleRosterNode(DjangoObjectType):
