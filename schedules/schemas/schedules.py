@@ -14,6 +14,7 @@ from graphql_relay import to_global_id
 
 from common.decorators import gql_has_permissions, gql_login_required
 from common.exceptions import IllegalOperation
+from common.util import local_datetime
 from schedules.models import (
     Schedule,
     Shift,
@@ -334,16 +335,10 @@ class ScheduleAllergiesWeek(graphene.ObjectType):
     days = graphene.NonNull(graphene.List(graphene.NonNull(AllergyWorkDay)))
 
 
-def _local_datetime(day, clock):
-    return timezone.make_aware(
-        datetime.datetime.combine(day, clock), timezone=ZoneInfo(settings.TIME_ZONE)
-    )
-
-
 def _overlaps_time_window(shift, day, time_from, time_to):
     """Return whether a shift has positive overlap with a local day's window."""
-    window_start = _local_datetime(day, time_from)
-    window_end = _local_datetime(day, time_to)
+    window_start = local_datetime(day, time_from)
+    window_end = local_datetime(day, time_to)
     return shift.datetime_start < window_end and shift.datetime_end > window_start
 
 
@@ -351,8 +346,8 @@ def schedule_allergies_for_week(shifts_from, time_from=None, time_to=None):
     """Allergies of everyone with a filled slot in the week of shifts_from."""
     monday = shifts_from - datetime.timedelta(days=shifts_from.weekday())
     next_monday = monday + datetime.timedelta(days=7)
-    start = _local_datetime(monday, datetime.time.min)
-    end = _local_datetime(next_monday, datetime.time.min)
+    start = local_datetime(monday, datetime.time.min)
+    end = local_datetime(next_monday, datetime.time.min)
     days = [monday + datetime.timedelta(days=offset) for offset in range(7)]
 
     slots_query = ShiftSlot.objects.filter(user__isnull=False)
