@@ -8,7 +8,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ("internalcontrol", "0002_auto_20230429_1525"),
-        ("schedules", "0009_shiftinterest_interest_type"),
+        ("schedules", "0020_planning_period_reminder"),
     ]
 
     operations = [
