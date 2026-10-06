@@ -188,3 +188,41 @@ def send_given_shift_email(shift_slot):
         message=content,
         html_message=html_content,
     )
+
+
+def send_new_shifts_email(user, shift_slots):
+    """One email with all the new shifts of a user from one lock of drafts."""
+    from django.utils.html import escape
+
+    local = ZoneInfo(settings.TIME_ZONE)
+    shifts = sorted(
+        (slot.shift for slot in shift_slots), key=lambda s: s.datetime_start
+    )
+    lines = []
+    for shift in shifts:
+        start = timezone.localtime(shift.datetime_start, local)
+        end = timezone.localtime(shift.datetime_end, local)
+        where = shift.get_location_display() or ""
+        lines.append(
+            f"{start.strftime('%d.%m kl %H:%M')} - {end.strftime('%H:%M')}: "
+            f"{shift.name}{', ' + where if where else ''}"
+        )
+
+    count = len(lines)
+    subject = (
+        f"Du har fått {count} nye vakter"
+        if count > 1
+        else "Du har blitt satt opp på vakt!"
+    )
+    content = "Hei!\n\nDu har blitt satt opp på disse vaktene:\n\n" + "\n".join(lines)
+    html_content = (
+        "<p>Hei!</p><p>Du har blitt satt opp på disse vaktene:</p><ul>"
+        + "".join(f"<li>{escape(line)}</li>" for line in lines)
+        + "</ul>"
+    )
+    send_email(
+        recipients=[user.email],
+        subject=subject,
+        message=content,
+        html_message=html_content,
+    )

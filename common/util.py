@@ -3,7 +3,7 @@ import re
 import sys
 import uuid
 from io import BytesIO
-from datetime import datetime, date
+from datetime import datetime, date, time
 from typing import Union, List, Tuple
 
 from zoneinfo import ZoneInfo
@@ -19,6 +19,13 @@ from django.db.models import QuerySet
 from common.exceptions import IllegalOperation
 
 from common.models import FeatureFlag
+
+
+def local_datetime(day: date, clock: time):
+    """Make a datetime in the application's configured local timezone."""
+    return timezone.make_aware(
+        datetime.combine(day, clock), timezone=ZoneInfo(settings.TIME_ZONE)
+    )
 
 
 def get_semester_year_shorthand(timestamp: Union[datetime, date]) -> str:

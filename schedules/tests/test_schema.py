@@ -1,8 +1,10 @@
 import datetime
+from datetime import time
 from zoneinfo import ZoneInfo
 
 from addict import Dict
 from django.conf import settings
+from django.contrib.auth.models import AnonymousUser
 from django.test import TestCase
 from django.utils import timezone
 from graphene.test import Client
@@ -10,6 +12,7 @@ from graphql_relay import to_global_id
 
 from ksg_nett.schema import schema
 from schedules.models import RoleOption
+from schedules.schemas.schedules import local_shift_times
 from schedules.tests.factories import ShiftFactory, ShiftSlotFactory
 from users.tests.factories import UserFactory
 
@@ -42,6 +45,38 @@ class TestMyShiftsQueries(TestCase):
     def test__all_my_shifts__returns_each_shift_once(self):
         data = self.execute("{ allMyShifts { id } }")
         self.assertEqual(len(data.allMyShifts), 1)
+
+
+class TestShiftQueriesRequireLogin(TestCase):
+    def setUp(self) -> None:
+        self.graphql_client = Client(schema)
+
+    def assert_permission_denied(self, query):
+        executed = self.graphql_client.execute(
+            query, context=Dict(user=AnonymousUser())
+        )
+        self.assertIn("errors", executed)
+        self.assertEqual(
+            executed["errors"][0]["message"], "You are not permitted to view this"
+        )
+
+    def test__my_upcoming_shifts__anonymous_user__is_denied(self):
+        self.assert_permission_denied("{ myUpcomingShifts { id } }")
+
+    def test__all_my_shifts__anonymous_user__is_denied(self):
+        self.assert_permission_denied("{ allMyShifts { id } }")
+
+    def test__all_shifts__anonymous_user__is_denied(self):
+        self.assert_permission_denied('{ allShifts(date: "2026-10-05") { id } }')
+
+    def test__all_users_working_today__anonymous_user__is_denied(self):
+        self.assert_permission_denied("{ allUsersWorkingToday { id } }")
+
+    def test__normalized_shifts_from_range__anonymous_user__is_denied(self):
+        self.assert_permission_denied(
+            '{ normalizedShiftsFromRange(scheduleId: "1", shiftsFrom: "2026-10-05",'
+            " numberOfWeeks: 1) { __typename } }"
+        )
 
 
 class TestScheduleAllergiesV2Query(TestCase):
@@ -127,6 +162,99 @@ class TestScheduleAllergiesV2Query(TestCase):
         self.assertIn("errors", self.execute(UserFactory.create()))
 
 
+MONDAY = datetime.date(2026, 9, 7)
+SUNDAY_BEFORE = datetime.date(2026, 9, 6)
+
+
+class TestScheduleAllergiesV2TimeWindow(TestCase):
+    def setUp(self) -> None:
+        from users.models import Allergy
+        from users.tests.factories import UserWithPermissionsFactory
+
+        self.graphql_client = Client(schema)
+        self.planner = UserWithPermissionsFactory.create(
+            permissions="schedules.change_schedule"
+        )
+        gluten = Allergy.objects.create(name="Gluten")
+        nuts = Allergy.objects.create(name="Nøtter")
+        self.inside = UserFactory.create(first_name="Ingrid", last_name="I")
+        self.inside.allergies.add(gluten)
+        self.slot(self.inside, MONDAY, time(15), time(17))
+        # Duplicate assignments count once for the person and the day.
+        self.slot(self.inside, MONDAY, time(15), time(17), duplicate=True)
+
+        self.overnight = UserFactory.create(first_name="Ola", last_name="O")
+        self.overnight.allergies.add(nuts)
+        # Starts before the selected week, but overlaps Monday's local window.
+        self.slot(self.overnight, SUNDAY_BEFORE, time(23), time(15))
+
+        self.no_allergy = UserFactory.create(first_name="Nils", last_name="N")
+        self.slot(self.no_allergy, MONDAY, time(15), time(15, 30))
+
+        self.ends_at_window = UserFactory.create(first_name="Ends", last_name="At")
+        self.ends_at_window.allergies.add(gluten)
+        self.slot(self.ends_at_window, MONDAY, time(10), time(14))
+
+        self.starts_at_window = UserFactory.create(first_name="Starts", last_name="At")
+        self.starts_at_window.allergies.add(nuts)
+        self.slot(self.starts_at_window, MONDAY, time(16), time(18))
+
+    def slot(self, user, day, start, end, duplicate=False):
+        # An end at or before the start is on the next day
+        datetime_start, datetime_end = local_shift_times(day, start, end)
+        shift = ShiftFactory.create(
+            datetime_start=datetime_start, datetime_end=datetime_end
+        )
+        ShiftSlotFactory.create(shift=shift, user=user, role=RoleOption.BARISTA)
+        if duplicate:
+            ShiftSlotFactory.create(
+                shift=shift, user=user, role=RoleOption.KAFEANSVARLIG
+            )
+
+    def execute(self, arguments):
+        return self.graphql_client.execute(
+            """
+            {
+              scheduleAllergiesV2(shiftsFrom: "2026-09-07"%s) {
+                allergies
+                users { name days }
+                allergyCounts
+                peopleAtWork
+                days { date peopleAtWork }
+              }
+            }
+            """
+            % arguments,
+            context=Dict(user=self.planner),
+        )
+
+    def test__positive_local_overlap__counts_each_person_once(self):
+        # Ends at 14 and Starts at 16 only touch the window, so they do not count
+        executed = self.execute(', timeFrom: "14:00:00", timeTo: "16:00:00"')
+        self.assertNotIn("errors", executed)
+        week = executed["data"]["scheduleAllergiesV2"]
+
+        self.assertEqual(week["allergies"], ["Gluten", "Nøtter"])
+        self.assertEqual(
+            week["users"],
+            [
+                {"name": "Ingrid I", "days": ["2026-09-07"]},
+                {"name": "Ola O", "days": ["2026-09-07"]},
+            ],
+        )
+        self.assertEqual(week["allergyCounts"], [1, 1])
+        self.assertEqual(week["peopleAtWork"], 3)
+        self.assertEqual(
+            week["days"], [{"date": "2026-09-07", "peopleAtWork": 3}]
+        )
+
+    def test__one_time_argument_or_reversed_window_is_rejected(self):
+        self.assertIn("errors", self.execute(', timeFrom: "14:00:00"'))
+        self.assertIn(
+            "errors", self.execute(', timeFrom: "16:00:00", timeTo: "14:00:00"')
+        )
+
+
 class TestScheduleOverviewFields(TestCase):
     def setUp(self) -> None:
         from schedules.models import Shift
@@ -135,11 +263,15 @@ class TestScheduleOverviewFields(TestCase):
         from users.tests.factories import UserWithPermissionsFactory
 
         self.graphql_client = Client(schema)
+        from schedules.tests.factories import internal_group, member_of
+
         self.user = UserWithPermissionsFactory.create(
             permissions="schedules.change_schedule"
         )
-        self.schedule = ScheduleFactory.create(name="Edgar")
-        self.empty = ScheduleFactory.create(name="Arrangement")
+        edgar = internal_group("Edgar")
+        member_of(self.user, edgar)
+        self.schedule = ScheduleFactory.create(name="Edgar", internal_group=edgar)
+        self.empty = ScheduleFactory.create(name="Arrangement", internal_group=edgar)
         now = timezone.now()
 
         def shift(days, location=Shift.Location.EDGAR, filled=1, open_slots=0):
@@ -275,7 +407,11 @@ class TestCreateAndUpdateShiftV2(TestCase):
                 "schedules.change_shift",
             )
         )
-        self.schedule = ScheduleFactory.create(name="Edgar")
+        from schedules.tests.factories import internal_group, member_of
+
+        edgar = internal_group("Edgar")
+        member_of(self.manager, edgar)
+        self.schedule = ScheduleFactory.create(name="Edgar", internal_group=edgar)
         self.schedule_id = to_global_id("ScheduleNode", self.schedule.pk)
 
     def execute(self, query, variables, user=None):

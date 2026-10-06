@@ -10,13 +10,15 @@ from schedules.models import (
     ShiftTemplate,
     ShiftInterest,
     ScheduleRoster,
+    ScheduleRosterGrouping,
 )
 
 USER_SEARCH_FIELDS = ("user__username", "user__first_name", "user__last_name")
 
 
 class ScheduleAdmin(admin.ModelAdmin):
-    list_display = ("name", "display_mode", "default_role")
+    list_display = ("name", "internal_group", "display_mode", "default_role")
+    list_filter = ("internal_group",)
     search_fields = ("name",)
 
 
@@ -128,9 +130,18 @@ class ShiftInterestAdmin(admin.ModelAdmin):
 
 
 class ScheduleRosterAdmin(admin.ModelAdmin):
-    list_display = ("id", "schedule", "user", "autofill_as")
+    list_display = (
+        "id",
+        "schedule",
+        "user",
+        "autofill_as",
+        "default_availability",
+        "shift_cap",
+        "manually_edited",
+        "added_manually",
+    )
     list_select_related = ("schedule", "user")
-    list_filter = ("schedule", "autofill_as")
+    list_filter = ("schedule", "autofill_as", "default_availability")
     search_fields = USER_SEARCH_FIELDS
     autocomplete_fields = ("user",)
 
@@ -144,3 +155,19 @@ admin.site.register(ShiftTemplate, ShiftTemplateAdmin)
 admin.site.register(ShiftSlotTemplate, ShiftSlotTemplateAdmin)
 admin.site.register(ShiftInterest, ShiftInterestAdmin)
 admin.site.register(ScheduleRoster, ScheduleRosterAdmin)
+
+
+class ScheduleRosterGroupingAdmin(admin.ModelAdmin):
+    list_display = (
+        "schedule",
+        "internal_group_position",
+        "position_type",
+        "role",
+        "default_availability",
+        "shift_cap",
+    )
+    list_select_related = ("schedule", "internal_group_position")
+    list_filter = ("schedule",)
+
+
+admin.site.register(ScheduleRosterGrouping, ScheduleRosterGroupingAdmin)

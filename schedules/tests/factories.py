@@ -1,5 +1,5 @@
 import random
-from datetime import timedelta, datetime
+from datetime import date, timedelta, datetime
 
 from django.utils import timezone
 from factory import Faker, SubFactory, RelatedFactory, LazyAttribute, SelfAttribute
@@ -20,6 +20,12 @@ from schedules.models import (
     RoleOption,
 )
 from users.tests.factories import UserFactory
+from organization.consts import InternalGroupPositionMembershipType
+from organization.models import (
+    InternalGroup,
+    InternalGroupPosition,
+    InternalGroupPositionMembership,
+)
 
 
 class ScheduleFactory(DjangoModelFactory):
@@ -140,4 +146,34 @@ class ScheduleRosterFactory(DjangoModelFactory):
     user = SubFactory(UserFactory)
     autofill_as = LazyAttribute(
         lambda o: random.choice([x[0] for x in RoleOption.choices])
+    )
+
+
+def internal_group(name):
+    return InternalGroup.objects.create(
+        name=name, type=InternalGroup.Type.INTERNAL_GROUP
+    )
+
+
+def position_in(group, name=None):
+    return InternalGroupPosition.objects.create(
+        name=name or f"Position {InternalGroupPosition.objects.count()}",
+        internal_group=group,
+    )
+
+
+def member_of(
+    user,
+    group,
+    membership_type=InternalGroupPositionMembershipType.FUNCTIONARY,
+    date_ended=None,
+    position=None,
+    date_joined=date(2025, 8, 20),
+):
+    return InternalGroupPositionMembership.objects.create(
+        user=user,
+        position=position or position_in(group),
+        type=membership_type,
+        date_joined=date_joined,
+        date_ended=date_ended,
     )

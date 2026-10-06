@@ -24,7 +24,7 @@ from economy.schema import (
     SociSessionQuery,
     StockMarketQuery,
     StripeQuery,
-    SociRankedQuery
+    SociRankedQuery,
 )
 from bar_tab.schema import (
     BarTabQuery,
@@ -44,6 +44,13 @@ from schedules.schemas.schedules import (
     SchedulesMutations,
 )
 from schedules.schemas.templates import ScheduleTemplateQuery, ScheduleTemplateMutations
+from schedules.schemas.roster import ScheduleRosterMutations
+from schedules.schemas.planning import PlanningPeriodQuery, PlanningPeriodMutations
+from schedules.schemas.drafts import AutofillMutations, DraftMutations
+from schedules.schemas.unavailability import (
+    UserUnavailabilityQuery,
+    UserUnavailabilityMutations,
+)
 
 from sensors.schema import SensorMeasurementQuery, SensorsMutations
 from summaries.schema import SummaryQuery, SummariesMutations
@@ -80,6 +87,8 @@ class Query(
     ShiftQuery,
     ScheduleQuery,
     ScheduleTemplateQuery,
+    PlanningPeriodQuery,
+    UserUnavailabilityQuery,
     SensorMeasurementQuery,
     SummaryQuery,
     QuoteQuery,
@@ -100,6 +109,11 @@ class Mutation(
     QuotesMutations,
     SchedulesMutations,
     ScheduleTemplateMutations,
+    ScheduleRosterMutations,
+    PlanningPeriodMutations,
+    UserUnavailabilityMutations,
+    DraftMutations,
+    AutofillMutations,
     SensorsMutations,
     SummariesMutations,
     graphene.ObjectType,

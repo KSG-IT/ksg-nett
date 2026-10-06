@@ -319,7 +319,7 @@ STOCK_MODE_PRICE_WINDOW = timedelta(minutes=30)
 DEPOSIT_TIME_RESTRICTION_HOUR = os.environ.get("DEPOSIT_TIME_RESTRICTION_HOUR", 20)
 LANGUAGE_SESSION_KEY = "language"
 
-VERSION = "2026.10.1"
+VERSION = "2026.10.3"
 
 # Feature flag keys
 # Feedback from the dashboard goes to this address (common.schema.SendFeedbackMutation)
@@ -331,6 +331,7 @@ DEPOSIT_TIME_RESTRICTIONS_FEATURE_FLAG = "deposit_time_restrictions"
 EXTERNAL_CHARGING_FEATURE_FLAG = "external_charging"
 X_APP_STOCK_MARKET_MODE = "x-app-stock-market-mode"
 FEEDBACK_FEATURE_FLAG = "feedback"
+TRUTH_OR_DRINK_FEATURE_FLAG = "truth_or_drink"
 
 EXTERNAL_CHARGE_MAX_AMOUNT = os.environ.get("EXTERNAL_CHARGE_MAX_AMOUNT", 300)
 

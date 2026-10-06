@@ -8,7 +8,7 @@ from django.utils import timezone
 from graphene import Node
 
 from economy.tests.factories import ProductOrderFactory, SociProductFactory
-from economy.models import ProductGhostOrder, ProductOrder
+from economy.models import ProductGhostOrder, ProductOrder, SociProduct
 from users.tests.factories import UserWithPermissionsFactory, UserFactory
 
 
@@ -193,6 +193,31 @@ class TestProductOrdersByItemAndDateListQuery(TestCase):
         self.assertEqual(
             executed["data"]["productOrdersByItemAndDateList"],
             [{"name": "Dahls", "total": 140}],
+        )
+
+    def test__voucher__is_in_the_list_and_marked(self):
+        bong = SociProductFactory.create(
+            name="Bong", price=100, type=SociProduct.Type.VOUCHER
+        )
+        self.order(bong, self.day, order_size=1, cost=100)
+        executed = self.graphql_client.execute(
+            """
+            query Stats($from: Date, $to: Date!) {
+              productOrdersByItemAndDateList(dateFrom: $from, dateTo: $to) {
+                name total isVoucher
+              }
+            }
+            """,
+            variables={"from": "2026-09-01", "to": "2026-09-03"},
+            context=Dict(user=self.user),
+        )
+        self.assertNotIn("errors", executed)
+        self.assertEqual(
+            executed["data"]["productOrdersByItemAndDateList"],
+            [
+                {"name": "Bong", "total": 100, "isVoucher": True},
+                {"name": "Dahls", "total": 140, "isVoucher": False},
+            ],
         )
 
     def test__without_product_ids_and_no_sales__returns_empty_list(self):

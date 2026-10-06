@@ -14,6 +14,7 @@ from graphql_relay import to_global_id
 
 from common.decorators import gql_has_permissions, gql_login_required
 from common.exceptions import IllegalOperation
+from common.util import local_datetime
 from schedules.models import (
     Schedule,
     Shift,
@@ -21,9 +22,19 @@ from schedules.models import (
     ShiftSlot,
     RoleOption,
     ShiftInterest,
+    ShiftSlotDraft,
+)
+from schedules.permissions import (
+    ManagedCreateMixin,
+    ManagedDeleteMixin,
+    ManagedPatchMixin,
+    can_manage_schedule,
+    can_manage_schedule_in_request,
+    require_can_manage_schedule,
 )
 from schedules.utils.schedules import normalize_shifts, send_given_shift_email
 from schedules.utils.templates import apply_schedule_template
+from schedules.utils.unavailability import prefill_schedule, prefill_shift
 from users.models import User, Allergy as UserAllergy
 from django.utils import timezone
 from django.conf import settings
@@ -48,9 +59,20 @@ class ShiftSlotNode(DjangoObjectType):
         interfaces = (Node,)
 
     role_display = graphene.String()
+    draft = graphene.Field(
+        "schedules.schemas.drafts.ShiftSlotDraftNode",
+        description="The draft change of the slot, for managers only",
+    )
 
     def resolve_role_display(self, info):
         return self.get_role_display()
+
+    def resolve_draft(self: ShiftSlot, info):
+        if not can_manage_schedule_in_request(
+            info, self.shift.schedule, "schedules.change_shiftslot"
+        ):
+            return None
+        return ShiftSlotDraft.objects.filter(slot=self).first()
 
     @classmethod
     def get_node(cls, info, id):
@@ -82,6 +104,25 @@ class ShiftNode(DjangoObjectType):
 
     def resolve_filled_slots(self: Shift, info):
         return self.slots.filter(user__isnull=False).order_by("id")
+
+    my_interest = graphene.Field(
+        ShiftInterestNode, description="The user's own answer for the shift"
+    )
+
+    def resolve_my_interest(self: Shift, info):
+        user = info.context.user
+        if not user.is_authenticated:
+            return None
+        return self.interests.filter(user=user).first()
+
+    def resolve_interests(self: Shift, info):
+        # Managers of the schedule see all answers, other users their own
+        user = info.context.user
+        if can_manage_schedule(user, self.schedule, "schedules.change_schedule"):
+            return self.interests.all()
+        if not user.is_authenticated:
+            return self.interests.none()
+        return self.interests.filter(user=user)
 
     @classmethod
     @gql_login_required()
@@ -124,17 +165,98 @@ class ScheduleNode(DjangoObjectType):
         description="Start of the last shift that has not started yet"
     )
     upcoming_slots = graphene.Field(
-        graphene.NonNull(ScheduleSlotCounts),
+        ScheduleSlotCounts,
         days=graphene.Int(default_value=14),
+        description="Null when the user does not manage the schedule",
     )
     recent_locations = graphene.NonNull(
         graphene.List(graphene.NonNull(graphene.String)),
         weeks=graphene.Int(default_value=8),
         description="Locations of shifts from the last weeks on, most used first",
     )
+    can_manage = graphene.NonNull(
+        graphene.Boolean,
+        description="If the user can manage the schedule, see schedules/permissions.py",
+    )
+
+    roster = graphene.NonNull(
+        graphene.List(graphene.NonNull("schedules.schemas.roster.ScheduleRosterNode")),
+        description="All rows for managers, the own row for other users",
+    )
+    roster_groupings = graphene.NonNull(
+        graphene.List(
+            graphene.NonNull("schedules.schemas.roster.ScheduleRosterGroupingNode")
+        ),
+        description="The rules of the roster sync, for managers only",
+    )
+    roster_sync_preview = graphene.NonNull(
+        graphene.List(graphene.NonNull("schedules.schemas.roster.RosterChangeNode")),
+        description="The changes syncScheduleRoster would make",
+    )
+
+    planning_periods = graphene.NonNull(
+        graphene.List(
+            graphene.NonNull("schedules.schemas.planning.PlanningPeriodNode")
+        ),
+        description="Newest first",
+    )
+
+    @gql_login_required()
+    def resolve_planning_periods(self: Schedule, info):
+        return self.planning_periods.all()
+
+    def resolve_roster(self: Schedule, info):
+        from schedules.schemas.roster import ScheduleRosterNode
+        from schedules.utils.roster import annotate_shift_counts
+
+        rows = ScheduleRosterNode.get_queryset(self.roster.all(), info)
+        include_drafts = can_manage_schedule(
+            info.context.user, self, "schedules.change_schedule"
+        )
+        return annotate_shift_counts(
+            rows.select_related("user"), include_drafts=include_drafts
+        ).order_by("user__first_name", "user__last_name")
+
+    def resolve_roster_groupings(self: Schedule, info):
+        from schedules.schemas.roster import ScheduleRosterGroupingNode
+
+        return ScheduleRosterGroupingNode.get_queryset(
+            self.roster_groupings.select_related("internal_group_position"), info
+        ).order_by("internal_group_position__name", "position_type")
+
+    def resolve_roster_sync_preview(self: Schedule, info):
+        from schedules.utils.roster import plan_roster_sync
+
+        require_can_manage_schedule(
+            info.context.user, self, "schedules.change_schedule"
+        )
+        return plan_roster_sync(self)
+
+    draft_count = graphene.Int(
+        date_from=graphene.Date(),
+        date_to=graphene.Date(),
+        description="Drafts of the schedule, in the dates when given. Null for "
+        "users who do not manage the schedule",
+    )
+
+    def resolve_draft_count(self: Schedule, info, date_from=None, date_to=None):
+        from schedules.utils.drafts import drafts_in_range
+
+        if not can_manage_schedule(
+            info.context.user, self, "schedules.change_shiftslot"
+        ):
+            return None
+        return drafts_in_range(self, date_from, date_to).count()
+
+    def resolve_can_manage(self: Schedule, info):
+        return can_manage_schedule(info.context.user, self, "schedules.change_schedule")
 
     @gql_has_permissions("schedules.change_schedule")
     def resolve_planned_until(self: Schedule, info):
+        if not can_manage_schedule(
+            info.context.user, self, "schedules.change_schedule"
+        ):
+            return None
         return (
             self.shifts.filter(datetime_start__gte=timezone.now())
             .aggregate(last=Max("datetime_start"))
@@ -143,6 +265,10 @@ class ScheduleNode(DjangoObjectType):
 
     @gql_has_permissions("schedules.change_schedule")
     def resolve_upcoming_slots(self: Schedule, info, days):
+        if not can_manage_schedule(
+            info.context.user, self, "schedules.change_schedule"
+        ):
+            return None
         now = timezone.now()
         slots = ShiftSlot.objects.filter(
             shift__schedule=self,
@@ -155,6 +281,10 @@ class ScheduleNode(DjangoObjectType):
 
     @gql_has_permissions("schedules.change_schedule")
     def resolve_recent_locations(self: Schedule, info, weeks):
+        if not can_manage_schedule(
+            info.context.user, self, "schedules.change_schedule"
+        ):
+            return []
         since = timezone.now() - timezone.timedelta(weeks=weeks)
         rows = (
             self.shifts.filter(datetime_start__gte=since, location__isnull=False)
@@ -205,29 +335,55 @@ class ScheduleAllergiesWeek(graphene.ObjectType):
     days = graphene.NonNull(graphene.List(graphene.NonNull(AllergyWorkDay)))
 
 
-def schedule_allergies_for_week(shifts_from):
-    """Allergies of everyone with a filled slot in the week of shifts_from."""
+def schedule_allergies_for_week(shifts_from, time_from=None, time_to=None):
+    """
+    Allergies of everyone with a filled slot in the week of shifts_from.
+    Without a time window, a shift counts on the day it starts. With
+    time_from and time_to, it counts on each day where it overlaps that clock
+    window, for example soup time.
+    """
     monday = shifts_from - datetime.timedelta(days=shifts_from.weekday())
-    start = timezone.make_aware(datetime.datetime.combine(monday, datetime.time.min))
-    end = timezone.make_aware(
-        datetime.datetime.combine(
-            monday + datetime.timedelta(days=6), datetime.time.max
+    days = [monday + datetime.timedelta(days=offset) for offset in range(7)]
+    start = local_datetime(monday, datetime.time.min)
+    end = local_datetime(monday + datetime.timedelta(days=7), datetime.time.min)
+
+    slots = ShiftSlot.objects.filter(user__isnull=False)
+    if time_from is None:
+        slots = slots.filter(
+            shift__datetime_start__gte=start, shift__datetime_start__lt=end
         )
-    )
-    slots = (
-        ShiftSlot.objects.filter(
-            shift__datetime_start__range=(start, end), user__isnull=False
+
+        def worked_days(shift):
+            return [timezone.localtime(shift.datetime_start).date()]
+
+    else:
+        # An overnight shift can start before Monday or end after Sunday
+        slots = slots.filter(
+            shift__datetime_start__lt=end, shift__datetime_end__gt=start
         )
-        .select_related("user", "shift")
-        .prefetch_related("user__allergies")
-    )
+        windows = [
+            (day, local_datetime(day, time_from), local_datetime(day, time_to))
+            for day in days
+        ]
+
+        def worked_days(shift):
+            return [
+                day
+                for day, window_start, window_end in windows
+                if shift.datetime_start < window_end
+                and shift.datetime_end > window_start
+            ]
 
     users = {}
     days_by_user = {}
-    for slot in slots:
-        day = timezone.localtime(slot.shift.datetime_start).date()
+    for slot in slots.select_related("user", "shift").prefetch_related(
+        "user__allergies"
+    ):
+        shift_days = worked_days(slot.shift)
+        if not shift_days:
+            continue
         users[slot.user_id] = slot.user
-        days_by_user.setdefault(slot.user_id, set()).add(day)
+        days_by_user.setdefault(slot.user_id, set()).update(shift_days)
 
     allergies_by_user = {
         user_id: {allergy.name for allergy in user.allergies.all()}
@@ -278,11 +434,19 @@ class ScheduleQuery(graphene.ObjectType):
     schedule_allergies_v2 = graphene.Field(
         graphene.NonNull(ScheduleAllergiesWeek),
         shifts_from=graphene.Date(required=True),
+        time_from=graphene.Time(),
+        time_to=graphene.Time(),
     )
 
     @gql_has_permissions("schedules.change_schedule")
-    def resolve_schedule_allergies_v2(self, info, shifts_from, *args, **kwargs):
-        return schedule_allergies_for_week(shifts_from)
+    def resolve_schedule_allergies_v2(
+        self, info, shifts_from, time_from=None, time_to=None, *args, **kwargs
+    ):
+        if (time_from is None) != (time_to is None):
+            raise IllegalOperation("Give both timeFrom and timeTo, or neither")
+        if time_from is not None and time_from >= time_to:
+            raise IllegalOperation("timeFrom must be before timeTo")
+        return schedule_allergies_for_week(shifts_from, time_from, time_to)
 
     @gql_login_required()
     def resolve_all_schedules(self, info, *args, **kwargs):
@@ -438,6 +602,7 @@ class ShiftQuery(graphene.ObjectType):
     )
     all_users_working_today = graphene.List("users.schema.UserNode")
 
+    @gql_login_required()
     def resolve_normalized_shifts_from_range(
         self, info, schedule_id, shifts_from, number_of_weeks
     ):
@@ -446,6 +611,7 @@ class ShiftQuery(graphene.ObjectType):
         shifts = schedule.shifts_from_range(shifts_from, number_of_weeks)
         return normalize_shifts(shifts, schedule.display_mode)
 
+    @gql_login_required()
     def resolve_my_upcoming_shifts(self, info, *args, **kwargs):
         me = info.context.user
         return (
@@ -457,12 +623,14 @@ class ShiftQuery(graphene.ObjectType):
             .order_by("-datetime_start")
         )
 
+    @gql_login_required()
     def resolve_all_my_shifts(self, info, *args, **kwargs):
         me = info.context.user
         return (
             Shift.objects.filter(slots__user=me).distinct().order_by("-datetime_start")
         )
 
+    @gql_login_required()
     def resolve_all_shifts(self, info, date, *args, **kwargs):
         datetime_from = timezone.datetime(
             date.year,
@@ -486,6 +654,7 @@ class ShiftQuery(graphene.ObjectType):
             datetime_start__gt=datetime_from, datetime_start__lt=datetime_to
         ).order_by("datetime_start")
 
+    @gql_login_required()
     def resolve_all_users_working_today(self, info, *args, **kwargs):
         date = datetime.date.today()
         datetime_from = timezone.datetime(
@@ -513,10 +682,15 @@ class ShiftQuery(graphene.ObjectType):
 
 
 # === MUTATIONS ===
-class CreateShiftMutation(DjangoCreateMutation):
+class CreateShiftMutation(ManagedCreateMixin, DjangoCreateMutation):
     class Meta:
         model = Shift
         permissions = ("schedules.add_shift",)
+
+    @classmethod
+    def after_mutate(cls, root, info, input, obj, return_data):
+        prefill_shift(obj)
+        return super().after_mutate(root, info, input, obj, return_data)
 
 
 class CreateShiftsFromTemplateMutation(graphene.Mutation):
@@ -536,13 +710,18 @@ class CreateShiftsFromTemplateMutation(graphene.Mutation):
         return CreateShiftsFromTemplateMutation(shifts_created=shifts_created)
 
 
-class PatchShiftMutation(DjangoPatchMutation):
+class PatchShiftMutation(ManagedPatchMixin, DjangoPatchMutation):
     class Meta:
         model = Shift
         permissions = ("schedules.change_shift",)
 
+    @classmethod
+    def after_mutate(cls, root, info, id, input, obj, return_data):
+        prefill_shift(obj)
+        return super().after_mutate(root, info, id, input, obj, return_data)
 
-class DeleteShiftMutation(DjangoDeleteMutation):
+
+class DeleteShiftMutation(ManagedDeleteMixin, DjangoDeleteMutation):
     class Meta:
         model = Shift
         permissions = ("schedules.delete_shift",)
@@ -552,15 +731,19 @@ class CreateScheduleMutation(DjangoCreateMutation):
     class Meta:
         model = Schedule
         permissions = ("schedules.add_schedule",)
+        # Set by a superuser in the Django admin
+        exclude = ("internal_group",)
 
 
-class PatchScheduleMutation(DjangoPatchMutation):
+class PatchScheduleMutation(ManagedPatchMixin, DjangoPatchMutation):
     class Meta:
         model = Schedule
         permissions = ("schedules.change_schedule",)
+        # Set by a superuser in the Django admin
+        exclude = ("internal_group",)
 
 
-class DeleteScheduleMutation(DjangoDeleteMutation):
+class DeleteScheduleMutation(ManagedDeleteMixin, DjangoDeleteMutation):
     class Meta:
         model = Schedule
         permissions = ("schedules.delete_schedule",)
@@ -582,20 +765,48 @@ class DeleteShiftTradeMutation(DjangoDeleteMutation):
 
 
 class GenerateShiftsFromTemplateMutation(graphene.Mutation):
+    """
+    Makes the template's shifts for whole weeks from the Monday of startDate.
+    The template's shifts in those weeks are made again. When that deletes
+    filled slots, answers or drafts, it needs confirmDelete; see
+    templateGenerationPreview.
+    """
+
     class Arguments:
         schedule_template_id = graphene.ID(required=True)
         start_date = graphene.Date(required=True)
         number_of_weeks = graphene.Int(required=True)
+        confirm_delete = graphene.Boolean(default_value=False)
 
     shifts_created = graphene.Int()
 
     @gql_has_permissions("schedules.add_shift")
-    def mutate(self, info, schedule_template_id, start_date, number_of_weeks):
+    def mutate(
+        self,
+        info,
+        schedule_template_id,
+        start_date,
+        number_of_weeks,
+        confirm_delete=False,
+    ):
         from schedules.schemas.templates import ScheduleTemplate
+        from schedules.utils.templates import replace_impact
 
         schedule_template_id = disambiguate_id(schedule_template_id)
         schedule_template = ScheduleTemplate.objects.get(pk=schedule_template_id)
+        require_can_manage_schedule(
+            info.context.user, schedule_template.schedule, "schedules.add_shift"
+        )
+        impact = replace_impact(schedule_template, start_date, number_of_weeks)
+        if impact.needs_confirmation and not confirm_delete:
+            raise IllegalOperation(
+                f"This deletes {impact.filled_slots_to_delete} filled slots, "
+                f"{impact.answers_to_delete} answers and {impact.drafts_to_delete} "
+                f"drafts from {impact.first_day} to {impact.last_day}. "
+                "Send confirmDelete to continue."
+            )
         count = apply_schedule_template(schedule_template, start_date, number_of_weeks)
+        prefill_schedule(schedule_template.schedule)
         return GenerateShiftsFromTemplateMutation(shifts_created=count)
 
 
@@ -609,6 +820,9 @@ class RemoveUserFromShiftSlotMutation(graphene.Mutation):
     def mutate(self, info, shift_slot_id, *args, **kwargs):
         shift_slot_id = disambiguate_id(shift_slot_id)
         shift_slot = ShiftSlot.objects.get(pk=shift_slot_id)
+        require_can_manage_schedule(
+            info.context.user, shift_slot.shift.schedule, "schedules.change_shiftslot"
+        )
         shift_slot.user = None
         shift_slot.save()
         return RemoveUserFromShiftSlotMutation(shift_slot=shift_slot)
@@ -625,8 +839,11 @@ class AddUserToShiftSlotMutation(graphene.Mutation):
     def mutate(self, info, shift_slot_id, user_id):
         shift_slot_id = disambiguate_id(shift_slot_id)
         user_id = disambiguate_id(user_id)
+        shift_slot = ShiftSlot.objects.get(pk=shift_slot_id)
+        require_can_manage_schedule(
+            info.context.user, shift_slot.shift.schedule, "schedules.change_shiftslot"
+        )
         with transaction.atomic():
-            shift_slot = ShiftSlot.objects.get(pk=shift_slot_id)
             user = User.objects.get(pk=user_id)
             shift_slot.user = user
             if user.notify_on_shift:
@@ -635,13 +852,13 @@ class AddUserToShiftSlotMutation(graphene.Mutation):
         return AddUserToShiftSlotMutation(shift_slot=shift_slot)
 
 
-class CreateShiftSlotMutation(DjangoCreateMutation):
+class CreateShiftSlotMutation(ManagedCreateMixin, DjangoCreateMutation):
     class Meta:
         model = ShiftSlot
         permissions = ("schedules.add_shiftslot",)
 
 
-class DeleteShiftSlotMutation(DjangoDeleteMutation):
+class DeleteShiftSlotMutation(ManagedDeleteMixin, DjangoDeleteMutation):
     class Meta:
         model = ShiftSlot
         permissions = ("schedules.delete_shiftslot",)
@@ -684,6 +901,9 @@ class AddSlotsToShiftMutation(graphene.Mutation):
     def mutate(self, info, shift_id, slots):
         shift_id = disambiguate_id(shift_id)
         shift = Shift.objects.get(pk=shift_id)
+        require_can_manage_schedule(
+            info.context.user, shift.schedule, "schedules.add_shiftslot"
+        )
         for slot in slots:
             for i in range(slot.count):
                 ShiftSlot.objects.create(shift=shift, role=slot.shift_slot_role.value)
@@ -735,9 +955,16 @@ class CreateShiftWithSlotsMutation(graphene.Mutation):
         if not name:
             raise IllegalOperation("A shift needs a name")
         start, end = local_shift_times(input.date, input.start_time, input.end_time)
+        schedule = Schedule.objects.get(pk=disambiguate_id(input.schedule_id))
+        require_can_manage_schedule(
+            info.context.user,
+            schedule,
+            "schedules.add_shift",
+            "schedules.add_shiftslot",
+        )
         with transaction.atomic():
             shift = Shift.objects.create(
-                schedule=Schedule.objects.get(pk=disambiguate_id(input.schedule_id)),
+                schedule=schedule,
                 name=name,
                 location=valid_location(input.location),
                 datetime_start=start,
@@ -748,6 +975,7 @@ class CreateShiftWithSlotsMutation(graphene.Mutation):
                 for slot in input.slots
                 for _ in range(slot.count)
             )
+        prefill_shift(shift)
         return CreateShiftWithSlotsMutation(shift=shift)
 
 
@@ -774,51 +1002,17 @@ class UpdateShiftDetailsMutation(graphene.Mutation):
         if not name:
             raise IllegalOperation("A shift needs a name")
         shift = Shift.objects.get(pk=disambiguate_id(input.shift_id))
+        require_can_manage_schedule(
+            info.context.user, shift.schedule, "schedules.change_shift"
+        )
         shift.name = name
         shift.location = valid_location(input.location)
         shift.datetime_start, shift.datetime_end = local_shift_times(
             input.date, input.start_time, input.end_time
         )
         shift.save()
+        prefill_shift(shift)
         return UpdateShiftDetailsMutation(shift=shift)
-
-
-class AutofillShiftSlotsMutation(graphene.Mutation):
-    class Arguments:
-        schedule_id = graphene.ID(required=True)
-        from_date = graphene.Date(required=True)
-        to_date = graphene.Date(required=True)
-
-    success = graphene.Boolean()
-
-    @gql_has_permissions("schedules.change_shiftslot")
-    def mutate(self, info, schedule_id, from_date, to_date):
-        today = timezone.now().date()
-
-        if from_date < today:
-            raise ValueError("From date must be in the future")
-
-        if to_date < today:
-            raise ValueError("To date must be in the future")
-
-        if to_date < from_date:
-            raise ValueError("To date must be after from date")
-
-        schedule_id = disambiguate_id(schedule_id)
-        schedule = Schedule.objects.get(pk=schedule_id)
-        schedule.autofill_slots(from_date, to_date)
-        return AutofillShiftSlotsMutation(success=True)
-
-
-class CreateShiftInterestMutation(DjangoCreateMutation):
-    class Meta:
-        model = ShiftInterest
-        auto_context_field = {"user": "user"}
-
-
-class DeleteShiftInterestMutation(DjangoDeleteMutation):
-    class Meta:
-        model = ShiftInterest
 
 
 class MyShiftAvailabilityObject(graphene.ObjectType):
@@ -843,6 +1037,3 @@ class SchedulesMutations(graphene.ObjectType):
     add_slots_to_shift = AddSlotsToShiftMutation.Field()
     create_shift_with_slots = CreateShiftWithSlotsMutation.Field()
     update_shift_details = UpdateShiftDetailsMutation.Field()
-
-    create_shift_interest = CreateShiftInterestMutation.Field()
-    autofill_shift_slots = AutofillShiftSlotsMutation.Field()

@@ -12,6 +12,15 @@ from graphene_django_cud.mutations import (
 
 from common.decorators import gql_has_permissions
 from schedules.models import ScheduleTemplate, ShiftTemplate, ShiftSlotTemplate
+from graphene_django_cud.util import disambiguate_id
+
+from schedules.permissions import (
+    ManagedCreateMixin,
+    ManagedDeleteMixin,
+    ManagedPatchMixin,
+    require_can_manage_schedule,
+)
+from schedules.utils.templates import replace_impact
 
 
 class ShiftSlotTemplateNode(DjangoObjectType):
@@ -74,52 +83,85 @@ class ScheduleTemplateNode(DjangoObjectType):
         return ScheduleTemplate.objects.get(pk=id)
 
 
+class TemplateGenerationPreviewNode(graphene.ObjectType):
+    first_day = graphene.NonNull(graphene.Date)
+    last_day = graphene.NonNull(graphene.Date)
+    shifts_to_create = graphene.NonNull(graphene.Int)
+    shifts_to_delete = graphene.NonNull(graphene.Int)
+    filled_slots_to_delete = graphene.NonNull(graphene.Int)
+    answers_to_delete = graphene.NonNull(graphene.Int)
+    drafts_to_delete = graphene.NonNull(graphene.Int)
+    needs_confirmation = graphene.NonNull(
+        graphene.Boolean,
+        description="True when generateShiftsFromTemplate needs confirmDelete",
+    )
+
+
 class ScheduleTemplateQuery(graphene.ObjectType):
     schedule_template = Node.Field(ScheduleTemplateNode)
     all_schedule_templates = graphene.List(ScheduleTemplateNode)
+    template_generation_preview = graphene.Field(
+        graphene.NonNull(TemplateGenerationPreviewNode),
+        schedule_template_id=graphene.ID(required=True),
+        start_date=graphene.Date(required=True),
+        number_of_weeks=graphene.Int(required=True),
+        description="What generateShiftsFromTemplate would make and delete",
+    )
+
+    @gql_has_permissions("schedules.add_shift")
+    def resolve_template_generation_preview(
+        self, info, schedule_template_id, start_date, number_of_weeks
+    ):
+        template = ScheduleTemplate.objects.get(
+            pk=disambiguate_id(schedule_template_id)
+        )
+        require_can_manage_schedule(
+            info.context.user, template.schedule, "schedules.add_shift"
+        )
+        return replace_impact(template, start_date, number_of_weeks)
 
     @gql_has_permissions("schedules.view_scheduletemplate")
     def resolve_all_schedule_templates(self, info, *args, **kwargs):
         return ScheduleTemplate.objects.all().order_by("schedule__name")
 
 
-class CreateScheduleTemplateMutation(DjangoCreateMutation):
+class CreateScheduleTemplateMutation(ManagedCreateMixin, DjangoCreateMutation):
     class Meta:
         model = ScheduleTemplate
         permissions = ("schedules.add_scheduletemplate",)
 
 
-class DeleteScheduleTemplateMutation(DjangoDeleteMutation):
+class DeleteScheduleTemplateMutation(ManagedDeleteMixin, DjangoDeleteMutation):
     class Meta:
         model = ScheduleTemplate
         permissions = ("schedules.delete_scheduletemplate",)
 
 
-class CreateShiftSlotTemplateMutation(DjangoCreateMutation):
+class CreateShiftSlotTemplateMutation(ManagedCreateMixin, DjangoCreateMutation):
     class Meta:
         model = ShiftSlotTemplate
         permissions = ("schedules.add_shiftslottemplate",)
 
 
-class PatchShiftSlotTemplateMutation(DjangoPatchMutation):
+class PatchShiftSlotTemplateMutation(ManagedPatchMixin, DjangoPatchMutation):
     class Meta:
         model = ShiftSlotTemplate
         permissions = ("schedules.change_shiftslottemplate",)
 
 
-class DeleteShiftSlotTemplateMutation(DjangoDeleteMutation):
+class DeleteShiftSlotTemplateMutation(ManagedDeleteMixin, DjangoDeleteMutation):
     class Meta:
         model = ShiftSlotTemplate
         permissions = ("schedules.delete_shiftslottemplate",)
 
 
-class CreateShiftTemplateMutation(DjangoCreateMutation):
+class CreateShiftTemplateMutation(ManagedCreateMixin, DjangoCreateMutation):
     class Meta:
         model = ShiftTemplate
         permissions = ("schedules.add_shifttemplate",)
 
 
-class DeleteShiftTemplateMutation(DjangoDeleteMutation):
+class DeleteShiftTemplateMutation(ManagedDeleteMixin, DjangoDeleteMutation):
     class Meta:
         model = ShiftTemplate
         permissions = ("schedules.delete_shifttemplate",)

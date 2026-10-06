@@ -132,6 +132,18 @@ class UserNode(DjangoObjectType):
     ):
         return self.internal_group_position_history.order_by("-date_joined")
 
+    def resolve_shiftinterest_set(self: User, info, *args, **kwargs):
+        # A user sees their own answers. A manager sees the answers for the
+        # schedules they manage, see schedules/permissions.py.
+        from schedules.permissions import managed_schedules
+
+        viewer = info.context.user
+        if viewer.is_authenticated and viewer.pk == self.pk:
+            return self.shiftinterest_set.all()
+        return self.shiftinterest_set.filter(
+            shift__schedule__in=managed_schedules(viewer, "schedules.change_schedule")
+        )
+
     tagged_and_verified_quotes = graphene.List(QuoteNode)
 
     future_shifts = graphene.List(ShiftSlotNode)

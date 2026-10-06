@@ -3,9 +3,64 @@
 
 ## [unreleased]
 
+## [2026.10.3]
+
+### Added
+- Schedules: planning of shifts (beta)
+  - `Schedule.internal_group` (set in the Django admin) limits who manages a schedule to the
+    active functionaries of the group, and to superusers. A schedule without a group is managed
+    by anyone with the permission, as before
+  - Roster: `ScheduleNode.roster`, `rosterGroupings` and `rosterSyncPreview`, and mutations for
+    the rules, the rows and the sync from the memberships (`schedules.change_schedule`)
+  - `PlanningPeriod`: `createPlanningPeriod`, `updatePlanningPeriod`, `deletePlanningPeriod`
+    (not when published) and `myOpenPlanningPeriods`. The status comes from `deadline` and
+    `published_at`
+  - `setShiftInterest`: one answer per user and shift, with a note, for users on the roster of
+    an open period. `PlanningPeriodNode.myDefaultAvailability` gives the default of the user
+  - Weekly unavailability (`UserUnavailability`) that pre-fills "cannot work" answers, with
+    `unavailabilityPreview` and `blockedShiftCount`
+  - Drafts of slot changes: `draftSlot`, `discardDraft` and `lockDraft`, `ShiftSlotNode.draft`
+    and `ScheduleNode.draftCount`. Members see a change after the lock, and a lock sends one
+    email per user with `notify_on_shift`. `publishPlanningPeriod` locks the drafts in the dates
+    of the period and sets `published_at`
+  - Autofill: `runAutofill` and `revertAutofillRun` make drafts for the empty slots, with a
+    reason for each slot it cannot fill. `PlanningPeriodNode.autofillRuns`
+  - `sendPlanningPeriodReminder`, `responseStats` and `slotCoverage` (with
+    `candidateBreakdown` by membership type) for the managers
+  - `templateGenerationPreview`, and `generateShiftsFromTemplate(confirmDelete)`
+  - `scheduleAllergiesV2` takes `timeFrom` and `timeTo`, to count only shifts that overlap a
+    clock window, for example soup time
+- Economy: `SociProduct.Type.VOUCHER` and `isVoucher` on the sales statistics rows, so a voucher
+  like bong is not counted as revenue
+- Common: `truthOrDrinkEnabled` tells the SPA if the hidden party game is on. It reads the
+  `truth_or_drink` feature flag (`TRUTH_OR_DRINK_FEATURE_FLAG`), which is off by default.
+  Needs login
+
 ### Changed
+- Schedules: `setShiftInterest` replaces `createShiftInterest`
+- Schedules: `generateShiftsFromTemplate` replaces the shifts of the template only in the weeks
+  it makes, and refuses to delete filled slots, answers or drafts without `confirmDelete`
+- Schedules: the shift queries need login (`myUpcomingShifts`, `allMyShifts`, `allShifts`,
+  `allUsersWorkingToday` and `normalizedShiftsFromRange`)
 - Common: `sendFeedback` needs the `feedback` feature flag (`FEEDBACK_FEATURE_FLAG`). It is off
   by default. `dashboardData.showFeedback` tells the dashboard if the flag is on
+
+### Fixed
+- Schedules: a query for `ShiftSlotNode.draft.autofillRun` of a manual draft, or for
+  `ScheduleRoster.grouping` of a row without a grouping, failed with "matching query does not
+  exist". Both fields now give `null`
+
+### Migrations
+- Schedules `0010`–`0020` and economy `0007`. `0012` deletes `ScheduleRoster` rows without a
+  role (when the schedule has no default role) and duplicate rows. `0015` deletes duplicate
+  `ShiftInterest` rows and keeps the newest. Neither can be reversed. Back up the database first
+
+## [2026.10.2]
+
+### Changed
+- Admin: faster admin pages, with search and filters
+- Quotes: `QuoteNode.sum` is annotated, so it no longer makes one query per quote
+- Monitoring: Sentry names the GraphQL transactions by operation and reports resolver errors
 
 ## [2026.10.1]
 

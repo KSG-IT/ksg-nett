@@ -3,7 +3,16 @@ from zoneinfo import ZoneInfo
 from django.conf import settings
 from django.utils import timezone
 
-from schedules.models import ShiftTemplate, Shift, ShiftSlot, ScheduleTemplate
+from dataclasses import dataclass
+
+from schedules.models import (
+    ShiftInterest,
+    ShiftTemplate,
+    Shift,
+    ShiftSlot,
+    ShiftSlotDraft,
+    ScheduleTemplate,
+)
 
 
 def apply_shift_template(shift_template: ShiftTemplate, monday_of_week: datetime.date):
@@ -52,7 +61,10 @@ def apply_schedule_template(
     overwrite=True,
 ):
     """
-    Runs through all the shift templates and applies them to the schedule
+    Runs through all the shift templates and applies them to the schedule, for
+    whole weeks from the Monday of apply_from. With overwrite, the template's
+    shifts in those weeks are deleted first, with their slots, answers and
+    drafts. Check replace_impact before.
     """
 
     if number_of_weeks < 1:
@@ -65,19 +77,8 @@ def apply_schedule_template(
     shifts_created = 0
 
     if overwrite:
-        # I keep doing this everywhere
-        aware = timezone.datetime(
-            year=apply_from.year,
-            month=apply_from.month,
-            day=apply_from.day,
-            hour=0,
-            minute=0,
-            second=0,
-            tzinfo=ZoneInfo(settings.TIME_ZONE),
-        )
-        Shift.objects.filter(
-            datetime_start__gte=aware, generated_from=template
-        ).delete()
+        # Only the weeks we generate. A later week keeps its shifts.
+        replaced_shifts(template, apply_from, number_of_weeks).delete()
 
     for week in range(number_of_weeks):
         for shift_template in template.shift_templates.all():
@@ -208,3 +209,59 @@ def get_shift_template_day_offset(day: ShiftTemplate.Day):
         return 6
     else:
         raise ValueError("Invalid day of the week")
+
+
+def generation_days(apply_from: datetime.date, number_of_weeks: int):
+    """The first and the last day a generation covers: whole weeks from Monday."""
+    first_day = apply_from - datetime.timedelta(days=apply_from.weekday())
+    last_day = first_day + datetime.timedelta(days=7 * number_of_weeks - 1)
+    return first_day, last_day
+
+
+def replaced_shifts(template, apply_from, number_of_weeks):
+    """The shifts of the template that a generation deletes and makes again."""
+    first_day, last_day = generation_days(apply_from, number_of_weeks)
+    local = ZoneInfo(settings.TIME_ZONE)
+    start = datetime.datetime.combine(first_day, datetime.time.min, tzinfo=local)
+    end = datetime.datetime.combine(
+        last_day + datetime.timedelta(days=1), datetime.time.min, tzinfo=local
+    )
+    return Shift.objects.filter(
+        generated_from=template, datetime_start__gte=start, datetime_start__lt=end
+    )
+
+
+@dataclass
+class ReplaceImpact:
+    first_day: datetime.date
+    last_day: datetime.date
+    shifts_to_create: int
+    shifts_to_delete: int
+    filled_slots_to_delete: int
+    answers_to_delete: int
+    drafts_to_delete: int
+
+    @property
+    def needs_confirmation(self):
+        # Empty shifts without answers or drafts can be made again silently
+        return bool(
+            self.filled_slots_to_delete
+            or self.answers_to_delete
+            or self.drafts_to_delete
+        )
+
+
+def replace_impact(template, apply_from, number_of_weeks):
+    shifts = replaced_shifts(template, apply_from, number_of_weeks)
+    first_day, last_day = generation_days(apply_from, number_of_weeks)
+    return ReplaceImpact(
+        first_day=first_day,
+        last_day=last_day,
+        shifts_to_create=template.shift_templates.count() * number_of_weeks,
+        shifts_to_delete=shifts.count(),
+        filled_slots_to_delete=ShiftSlot.objects.filter(
+            shift__in=shifts, user__isnull=False
+        ).count(),
+        answers_to_delete=ShiftInterest.objects.filter(shift__in=shifts).count(),
+        drafts_to_delete=ShiftSlotDraft.objects.filter(slot__shift__in=shifts).count(),
+    )
