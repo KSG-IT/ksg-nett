@@ -6,6 +6,7 @@ from graphene_django_cud.util import disambiguate_id
 from common.decorators import gql_has_permissions, gql_login_required
 from common.exceptions import IllegalOperation
 from schedules.models import (
+    DefaultAvailability,
     PlanningPeriod,
     Schedule,
     ScheduleRoster,
@@ -29,6 +30,9 @@ PlanningPeriodStatusEnum = graphene.Enum.from_enum(
 )
 ShiftInterestTypeEnum = graphene.Enum.from_enum(
     ShiftInterest.InterestTypes, name="ShiftInterestTypeEnum"
+)
+MyDefaultAvailabilityEnum = graphene.Enum.from_enum(
+    DefaultAvailability, name="MyDefaultAvailability"
 )
 
 
@@ -73,6 +77,10 @@ class PlanningPeriodNode(DjangoObjectType):
         interfaces = (Node,)
 
     status = graphene.NonNull(PlanningPeriodStatusEnum)
+    my_default_availability = graphene.Field(
+        MyDefaultAvailabilityEnum,
+        description="The current user's roster default for this schedule",
+    )
     autofill_runs = graphene.NonNull(
         graphene.List(
             graphene.NonNull("schedules.schemas.drafts.ScheduleAutofillRunNode")
@@ -83,6 +91,17 @@ class PlanningPeriodNode(DjangoObjectType):
 
     def resolve_status(self: PlanningPeriod, info):
         return self.status
+
+    def resolve_my_default_availability(self: PlanningPeriod, info):
+        if not info.context.user.is_authenticated:
+            return None
+        return (
+            ScheduleRoster.objects.filter(
+                schedule=self.schedule, user=info.context.user
+            )
+            .values_list("default_availability", flat=True)
+            .first()
+        )
 
     response_stats = graphene.Field(
         ResponseStatsNode, description="For managers only, null otherwise"
