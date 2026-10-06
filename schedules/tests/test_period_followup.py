@@ -213,7 +213,6 @@ class TestSlotCoverage(FollowupTestCase):
             slotCoverage {
               shift { id }
               role
-              membershipTypes
               slotCount
               openSlotCount
               candidateCount
@@ -259,25 +258,6 @@ class TestSlotCoverage(FollowupTestCase):
         slot.save()
         other = [row for row in self.coverage() if row["slotCount"] == 1][0]
         self.assertEqual(other["openSlotCount"], 0)
-
-    def test__coverage_includes_all_membership_types_for_a_role(self):
-        member_of(
-            self.anna,
-            self.schedule.internal_group,
-            Type.GANG_MEMBER,
-        )
-        member_of(
-            self.bob,
-            self.schedule.internal_group,
-            Type.ACTIVE_GANG_MEMBER_PANG,
-        )
-
-        row = self.coverage()[0]
-
-        self.assertEqual(
-            row["membershipTypes"],
-            ["active-gang-member-pang", "gang-member"],
-        )
 
     def test__a_member__gets_no_coverage(self):
         self.assertEqual(self.coverage(user=self.anna), [])

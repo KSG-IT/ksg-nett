@@ -59,13 +59,6 @@ class ResponseStatsNode(graphene.ObjectType):
 class SlotCoverageNode(graphene.ObjectType):
     shift = graphene.NonNull(ShiftNode)
     role = graphene.NonNull(ShiftSlotRoleEnum)
-    membership_types = graphene.NonNull(
-        graphene.List(graphene.NonNull(graphene.String)),
-        description=(
-            "Active membership types represented by roster users with this "
-            "role; a role can have more than one type"
-        ),
-    )
     slot_count = graphene.NonNull(graphene.Int)
     open_slot_count = graphene.NonNull(
         graphene.Int, description="Slots without a user in the plan with drafts"
