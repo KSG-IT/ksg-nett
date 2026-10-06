@@ -209,7 +209,9 @@ class ScheduleAutofillRunNode(DjangoObjectType):
 
     @classmethod
     def get_node(cls, info, id):
-        return cls.get_queryset(ScheduleAutofillRun.objects, info).get(pk=id)
+        # None for a null foreign key, for example ShiftSlotDraft.autofill_run
+        queryset = cls.get_queryset(ScheduleAutofillRun.objects, info)
+        return queryset.filter(pk=id).first()
 
 
 class RunAutofillMutation(graphene.Mutation):

@@ -7,6 +7,11 @@
 - Common: `sendFeedback` needs the `feedback` feature flag (`FEEDBACK_FEATURE_FLAG`). It is off
   by default. `dashboardData.showFeedback` tells the dashboard if the flag is on
 
+### Fixed
+- Schedules: a query for `ShiftSlotNode.draft.autofillRun` of a manual draft, or for
+  `ScheduleRoster.grouping` of a row without a grouping, failed with "matching query does not
+  exist". Both fields now give `null`.
+
 ### Added
 - Common: `truthOrDrinkEnabled` tells the SPA if the hidden party game is on. It reads the
   `truth_or_drink` feature flag (`TRUTH_OR_DRINK_FEATURE_FLAG`), which is off by default.
