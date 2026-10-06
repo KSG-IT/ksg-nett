@@ -1,4 +1,5 @@
 import datetime
+from datetime import time
 from zoneinfo import ZoneInfo
 
 from addict import Dict
@@ -11,6 +12,7 @@ from graphql_relay import to_global_id
 
 from ksg_nett.schema import schema
 from schedules.models import RoleOption
+from schedules.schemas.schedules import local_shift_times
 from schedules.tests.factories import ShiftFactory, ShiftSlotFactory
 from users.tests.factories import UserFactory
 
@@ -160,6 +162,10 @@ class TestScheduleAllergiesV2Query(TestCase):
         self.assertIn("errors", self.execute(UserFactory.create()))
 
 
+MONDAY = datetime.date(2026, 9, 7)
+SUNDAY_BEFORE = datetime.date(2026, 9, 6)
+
+
 class TestScheduleAllergiesV2TimeWindow(TestCase):
     def setUp(self) -> None:
         from users.models import Allergy
@@ -173,41 +179,32 @@ class TestScheduleAllergiesV2TimeWindow(TestCase):
         nuts = Allergy.objects.create(name="Nøtter")
         self.inside = UserFactory.create(first_name="Ingrid", last_name="I")
         self.inside.allergies.add(gluten)
-        self.slot(self.inside, datetime.date(2026, 9, 7), 15, 17)
+        self.slot(self.inside, MONDAY, time(15), time(17))
         # Duplicate assignments count once for the person and the day.
-        self.slot(self.inside, datetime.date(2026, 9, 7), 15, 17, duplicate=True)
+        self.slot(self.inside, MONDAY, time(15), time(17), duplicate=True)
 
         self.overnight = UserFactory.create(first_name="Ola", last_name="O")
         self.overnight.allergies.add(nuts)
         # Starts before the selected week, but overlaps Monday's local window.
-        self.slot(self.overnight, datetime.date(2026, 9, 6), 23, 15)
+        self.slot(self.overnight, SUNDAY_BEFORE, time(23), time(15))
 
         self.no_allergy = UserFactory.create(first_name="Nils", last_name="N")
-        self.slot(self.no_allergy, datetime.date(2026, 9, 7), 15, 15.5)
+        self.slot(self.no_allergy, MONDAY, time(15), time(15, 30))
 
         self.ends_at_window = UserFactory.create(first_name="Ends", last_name="At")
         self.ends_at_window.allergies.add(gluten)
-        self.slot(self.ends_at_window, datetime.date(2026, 9, 7), 10, 14)
+        self.slot(self.ends_at_window, MONDAY, time(10), time(14))
 
         self.starts_at_window = UserFactory.create(first_name="Starts", last_name="At")
         self.starts_at_window.allergies.add(nuts)
-        self.slot(self.starts_at_window, datetime.date(2026, 9, 7), 16, 18)
+        self.slot(self.starts_at_window, MONDAY, time(16), time(18))
 
-    def slot(self, user, day, start_hour, end_hour, duplicate=False):
-        local_zone = ZoneInfo(settings.TIME_ZONE)
-        start = timezone.make_aware(
-            datetime.datetime.combine(day, datetime.time(int(start_hour))),
-            timezone=local_zone,
+    def slot(self, user, day, start, end, duplicate=False):
+        # An end at or before the start is on the next day
+        datetime_start, datetime_end = local_shift_times(day, start, end)
+        shift = ShiftFactory.create(
+            datetime_start=datetime_start, datetime_end=datetime_end
         )
-        end_day = day + datetime.timedelta(days=1) if end_hour < start_hour else day
-        end_minutes = int((end_hour % 24) * 60)
-        end = timezone.make_aware(
-            datetime.datetime.combine(
-                end_day, datetime.time(end_minutes // 60, end_minutes % 60)
-            ),
-            timezone=local_zone,
-        )
-        shift = ShiftFactory.create(datetime_start=start, datetime_end=end)
         ShiftSlotFactory.create(shift=shift, user=user, role=RoleOption.BARISTA)
         if duplicate:
             ShiftSlotFactory.create(
@@ -232,6 +229,7 @@ class TestScheduleAllergiesV2TimeWindow(TestCase):
         )
 
     def test__positive_local_overlap__counts_each_person_once(self):
+        # Ends at 14 and Starts at 16 only touch the window, so they do not count
         executed = self.execute(', timeFrom: "14:00:00", timeTo: "16:00:00"')
         self.assertNotIn("errors", executed)
         week = executed["data"]["scheduleAllergiesV2"]
@@ -248,15 +246,6 @@ class TestScheduleAllergiesV2TimeWindow(TestCase):
         self.assertEqual(week["peopleAtWork"], 3)
         self.assertEqual(
             week["days"], [{"date": "2026-09-07", "peopleAtWork": 3}]
-        )
-
-    def test__endpoints_are_excluded(self):
-        week = self.execute(', timeFrom: "14:00:00", timeTo: "16:00:00"')[
-            "data"
-        ]["scheduleAllergiesV2"]
-        self.assertEqual(week["peopleAtWork"], 3)
-        self.assertEqual(
-            [user["name"] for user in week["users"]], ["Ingrid I", "Ola O"]
         )
 
     def test__one_time_argument_or_reversed_window_is_rejected(self):
