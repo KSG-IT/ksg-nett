@@ -68,6 +68,10 @@ class TotalExpenditureItem(graphene.ObjectType):
     quantity = graphene.Int()
     average = graphene.Float()
     data = graphene.List(ExpenditureDay)
+    is_voucher = graphene.NonNull(
+        graphene.Boolean,
+        description="A voucher like bong. Its sales are not revenue",
+    )
 
 
 class TotalExpenditureDateRange(graphene.Enum):
@@ -468,7 +472,8 @@ def product_sales_by_period(
     first sale of the products. With source, only the purchases of that
     bank account count. Without product_ids, the products are the
     ones with sales in the range, sorted by name. quantity counts the items
-    sold. average is the revenue per day with sales.
+    sold. average is the sales per day with sales. is_voucher marks the
+    products whose sales are not revenue, so the client can show both sums.
     """
     # Graphene passes an enum member, Python callers pass the value
     granularity = getattr(granularity, "value", granularity)
@@ -534,6 +539,7 @@ def product_sales_by_period(
                 total=total,
                 quantity=sales["items"],
                 average=round(total / len(sales["days"]), 2) if sales["days"] else 0,
+                is_voucher=product.type == SociProduct.Type.VOUCHER,
                 data=[
                     ExpenditureDay(day=period, sum=sales["periods"].get(period, 0))
                     for period in periods

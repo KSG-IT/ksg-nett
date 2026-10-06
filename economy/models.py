@@ -105,6 +105,9 @@ class SociProduct(models.Model):
     class Type(models.TextChoices):
         FOOD = "FOOD", "Food"
         DRINK = "DRINK", "Drink"
+        # A voucher like bong: sold at face value and paid back in goods
+        # later, so its sale is not revenue (omsetning)
+        VOUCHER = "VOUCHER", "Voucher"
 
     type = models.CharField(
         max_length=10,

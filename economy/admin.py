@@ -51,6 +51,7 @@ class SociProductAdmin(admin.ModelAdmin):
         "price",
         "description",
         "start",
+        "type",
     ]
     list_filter = [
         "type",
