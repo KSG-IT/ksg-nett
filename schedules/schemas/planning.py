@@ -56,9 +56,24 @@ class ResponseStatsNode(graphene.ObjectType):
     with_note = graphene.NonNull(graphene.Int)
 
 
+class SlotCoverageCandidateBreakdownNode(graphene.ObjectType):
+    membership_type = graphene.String(
+        description="Canonical active roster membership type, or null when unknown"
+    )
+    candidate_count = graphene.NonNull(graphene.Int)
+    interested_count = graphene.NonNull(graphene.Int)
+
+
 class SlotCoverageNode(graphene.ObjectType):
     shift = graphene.NonNull(ShiftNode)
     role = graphene.NonNull(ShiftSlotRoleEnum)
+    candidate_breakdown = graphene.NonNull(
+        graphene.List(graphene.NonNull(SlotCoverageCandidateBreakdownNode)),
+        description=(
+            "Candidate and interested counts by the canonical roster membership "
+            "type; vacancy counts remain on the shared shift-role row"
+        ),
+    )
     slot_count = graphene.NonNull(graphene.Int)
     open_slot_count = graphene.NonNull(
         graphene.Int, description="Slots without a user in the plan with drafts"
