@@ -3,7 +3,7 @@
 
 ## [unreleased]
 
-## [2026.10.2]
+## [2026.10.3]
 
 ### Added
 - Schedules: planning of shifts (beta)
@@ -54,6 +54,13 @@
 - Schedules `0010`–`0020` and economy `0007`. `0012` deletes `ScheduleRoster` rows without a
   role (when the schedule has no default role) and duplicate rows. `0015` deletes duplicate
   `ShiftInterest` rows and keeps the newest. Neither can be reversed. Back up the database first
+
+## [2026.10.2]
+
+### Changed
+- Admin: faster admin pages, with search and filters
+- Quotes: `QuoteNode.sum` is annotated, so it no longer makes one query per quote
+- Monitoring: Sentry names the GraphQL transactions by operation and reports resolver errors
 
 ## [2026.10.1]
 
