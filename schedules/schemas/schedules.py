@@ -14,6 +14,7 @@ from graphql_relay import to_global_id
 
 from common.decorators import gql_has_permissions, gql_login_required
 from common.exceptions import IllegalOperation
+from common.util import local_datetime
 from schedules.models import (
     Schedule,
     Shift,
@@ -334,19 +335,34 @@ class ScheduleAllergiesWeek(graphene.ObjectType):
     days = graphene.NonNull(graphene.List(graphene.NonNull(AllergyWorkDay)))
 
 
-def schedule_allergies_for_week(shifts_from):
+def _overlaps_time_window(shift, day, time_from, time_to):
+    """Return whether a shift has positive overlap with a local day's window."""
+    window_start = local_datetime(day, time_from)
+    window_end = local_datetime(day, time_to)
+    return shift.datetime_start < window_end and shift.datetime_end > window_start
+
+
+def schedule_allergies_for_week(shifts_from, time_from=None, time_to=None):
     """Allergies of everyone with a filled slot in the week of shifts_from."""
     monday = shifts_from - datetime.timedelta(days=shifts_from.weekday())
-    start = timezone.make_aware(datetime.datetime.combine(monday, datetime.time.min))
-    end = timezone.make_aware(
-        datetime.datetime.combine(
-            monday + datetime.timedelta(days=6), datetime.time.max
+    next_monday = monday + datetime.timedelta(days=7)
+    start = local_datetime(monday, datetime.time.min)
+    end = local_datetime(next_monday, datetime.time.min)
+    days = [monday + datetime.timedelta(days=offset) for offset in range(7)]
+
+    slots_query = ShiftSlot.objects.filter(user__isnull=False)
+    if time_from is None:
+        slots_query = slots_query.filter(
+            shift__datetime_start__gte=start, shift__datetime_start__lt=end
         )
-    )
+    else:
+        # A shift can start before Monday or end after Sunday when it is overnight.
+        slots_query = slots_query.filter(
+            shift__datetime_start__lt=end, shift__datetime_end__gt=start
+        )
+
     slots = (
-        ShiftSlot.objects.filter(
-            shift__datetime_start__range=(start, end), user__isnull=False
-        )
+        slots_query
         .select_related("user", "shift")
         .prefetch_related("user__allergies")
     )
@@ -354,9 +370,18 @@ def schedule_allergies_for_week(shifts_from):
     users = {}
     days_by_user = {}
     for slot in slots:
-        day = timezone.localtime(slot.shift.datetime_start).date()
+        if time_from is None:
+            worked_days = [timezone.localtime(slot.shift.datetime_start).date()]
+        else:
+            worked_days = [
+                day
+                for day in days
+                if _overlaps_time_window(slot.shift, day, time_from, time_to)
+            ]
+        if not worked_days:
+            continue
         users[slot.user_id] = slot.user
-        days_by_user.setdefault(slot.user_id, set()).add(day)
+        days_by_user.setdefault(slot.user_id, set()).update(worked_days)
 
     allergies_by_user = {
         user_id: {allergy.name for allergy in user.allergies.all()}
@@ -407,11 +432,19 @@ class ScheduleQuery(graphene.ObjectType):
     schedule_allergies_v2 = graphene.Field(
         graphene.NonNull(ScheduleAllergiesWeek),
         shifts_from=graphene.Date(required=True),
+        time_from=graphene.Time(),
+        time_to=graphene.Time(),
     )
 
     @gql_has_permissions("schedules.change_schedule")
-    def resolve_schedule_allergies_v2(self, info, shifts_from, *args, **kwargs):
-        return schedule_allergies_for_week(shifts_from)
+    def resolve_schedule_allergies_v2(
+        self, info, shifts_from, time_from=None, time_to=None, *args, **kwargs
+    ):
+        if (time_from is None) != (time_to is None):
+            raise IllegalOperation("Give both timeFrom and timeTo, or neither")
+        if time_from is not None and time_from >= time_to:
+            raise IllegalOperation("timeFrom must be before timeTo")
+        return schedule_allergies_for_week(shifts_from, time_from, time_to)
 
     @gql_login_required()
     def resolve_all_schedules(self, info, *args, **kwargs):
