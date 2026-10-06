@@ -335,53 +335,55 @@ class ScheduleAllergiesWeek(graphene.ObjectType):
     days = graphene.NonNull(graphene.List(graphene.NonNull(AllergyWorkDay)))
 
 
-def _overlaps_time_window(shift, day, time_from, time_to):
-    """Return whether a shift has positive overlap with a local day's window."""
-    window_start = local_datetime(day, time_from)
-    window_end = local_datetime(day, time_to)
-    return shift.datetime_start < window_end and shift.datetime_end > window_start
-
-
 def schedule_allergies_for_week(shifts_from, time_from=None, time_to=None):
-    """Allergies of everyone with a filled slot in the week of shifts_from."""
+    """
+    Allergies of everyone with a filled slot in the week of shifts_from.
+    Without a time window, a shift counts on the day it starts. With
+    time_from and time_to, it counts on each day where it overlaps that clock
+    window, for example soup time.
+    """
     monday = shifts_from - datetime.timedelta(days=shifts_from.weekday())
-    next_monday = monday + datetime.timedelta(days=7)
-    start = local_datetime(monday, datetime.time.min)
-    end = local_datetime(next_monday, datetime.time.min)
     days = [monday + datetime.timedelta(days=offset) for offset in range(7)]
+    start = local_datetime(monday, datetime.time.min)
+    end = local_datetime(monday + datetime.timedelta(days=7), datetime.time.min)
 
-    slots_query = ShiftSlot.objects.filter(user__isnull=False)
+    slots = ShiftSlot.objects.filter(user__isnull=False)
     if time_from is None:
-        slots_query = slots_query.filter(
+        slots = slots.filter(
             shift__datetime_start__gte=start, shift__datetime_start__lt=end
         )
+
+        def worked_days(shift):
+            return [timezone.localtime(shift.datetime_start).date()]
+
     else:
-        # A shift can start before Monday or end after Sunday when it is overnight.
-        slots_query = slots_query.filter(
+        # An overnight shift can start before Monday or end after Sunday
+        slots = slots.filter(
             shift__datetime_start__lt=end, shift__datetime_end__gt=start
         )
+        windows = [
+            (day, local_datetime(day, time_from), local_datetime(day, time_to))
+            for day in days
+        ]
 
-    slots = (
-        slots_query
-        .select_related("user", "shift")
-        .prefetch_related("user__allergies")
-    )
+        def worked_days(shift):
+            return [
+                day
+                for day, window_start, window_end in windows
+                if shift.datetime_start < window_end
+                and shift.datetime_end > window_start
+            ]
 
     users = {}
     days_by_user = {}
-    for slot in slots:
-        if time_from is None:
-            worked_days = [timezone.localtime(slot.shift.datetime_start).date()]
-        else:
-            worked_days = [
-                day
-                for day in days
-                if _overlaps_time_window(slot.shift, day, time_from, time_to)
-            ]
-        if not worked_days:
+    for slot in slots.select_related("user", "shift").prefetch_related(
+        "user__allergies"
+    ):
+        shift_days = worked_days(slot.shift)
+        if not shift_days:
             continue
         users[slot.user_id] = slot.user
-        days_by_user.setdefault(slot.user_id, set()).update(worked_days)
+        days_by_user.setdefault(slot.user_id, set()).update(shift_days)
 
     allergies_by_user = {
         user_id: {allergy.name for allergy in user.allergies.all()}
