@@ -7,6 +7,11 @@
 - Common: `sendFeedback` needs the `feedback` feature flag (`FEEDBACK_FEATURE_FLAG`). It is off
   by default. `dashboardData.showFeedback` tells the dashboard if the flag is on
 
+### Added
+- Common: `truthOrDrinkEnabled` tells the SPA if the hidden party game is on. It reads the
+  `truth_or_drink` feature flag (`TRUTH_OR_DRINK_FEATURE_FLAG`), which is off by default.
+  Needs login
+
 ## [2026.10.1]
 
 ### Added

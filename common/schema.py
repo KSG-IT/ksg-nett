@@ -107,6 +107,7 @@ class FeatureFlagQuery(graphene.ObjectType):
     get_feature_flag_by_key = graphene.Field(
         FeatureFlagNode, key=graphene.String(required=True)
     )
+    truth_or_drink_enabled = graphene.NonNull(graphene.Boolean)
 
     def resolve_all_feature_flags(self, info, *args, **kwargs):
         return FeatureFlag.objects.all()
@@ -114,6 +115,12 @@ class FeatureFlagQuery(graphene.ObjectType):
     def resolve_get_feature_flag_by_key(self, info, key, *args, **kwargs):
         flag, _ = FeatureFlag.objects.get_or_create(name=key)
         return flag
+
+    @gql_login_required()
+    def resolve_truth_or_drink_enabled(self, info, *args, **kwargs):
+        return check_feature_flag(
+            settings.TRUTH_OR_DRINK_FEATURE_FLAG, fail_silently=True
+        )
 
 
 class ToggleFeatureFlagMutation(graphene.Mutation):
