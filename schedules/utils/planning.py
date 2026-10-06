@@ -19,6 +19,7 @@ from schedules.models import (
     ShiftInterest,
     ShiftSlot,
 )
+from schedules.utils.roster import annotate_shift_counts
 from schedules.utils.autofill import candidates
 
 AVAILABILITY_PATH = "/schedules/me/availability"
@@ -131,6 +132,10 @@ def response_stats(period):
 class SlotCoverage:
     shift: object
     role: str
+    # Active membership types represented by roster users with this role.
+    # A role may be shared by gang members and pangs, so this is a set of
+    # labels rather than one inferred type for the slot.
+    membership_types: list[str]
     slot_count: int
     # Slots without a user in the plan with the drafts
     open_slot_count: int
@@ -146,7 +151,12 @@ def slot_coverage(period):
     by the same rule as autofill. The rows with the fewest spare candidates
     come first.
     """
-    rows = list(ScheduleRoster.objects.filter(schedule=period.schedule))
+    rows = list(
+        annotate_shift_counts(
+            ScheduleRoster.objects.filter(schedule=period.schedule),
+            include_drafts=False,
+        )
+    )
     shifts = list(period.shifts())
     answers = {}
     unavailable = defaultdict(lambda: [0, 0])
@@ -171,12 +181,20 @@ def slot_coverage(period):
         shift = by_id[shift_id]
         can_work = candidates(rows, answers, shift, role)
         with_role = [row for row in rows if row.autofill_as == role]
+        membership_types = sorted(
+            {
+                row.membership_type
+                for row in with_role
+                if row.membership_type is not None
+            }
+        )
         marks = [unavailable.get((shift_id, row.user_id)) for row in with_role]
         marks = [mark for mark in marks if mark]
         coverage.append(
             SlotCoverage(
                 shift=shift,
                 role=role,
+                membership_types=membership_types,
                 slot_count=slot_count,
                 open_slot_count=open_count,
                 candidate_count=len(can_work),
