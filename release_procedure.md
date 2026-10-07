@@ -17,7 +17,7 @@ Do this in the instance directory, with the virtualenv active. Run `loadenv` fir
 1. `git fetch --tags`
 2. Note what is deployed now: `git describe --tags`
 3. `git checkout <tag>`
-4. Dependencies: check if `pyproject.toml` or `poetry.lock` changed with `git diff <old tag> <tag> --stat -- pyproject.toml poetry.lock`. If they did, install them with `python -m pip install .`.
+4. Dependencies: check if `pyproject.toml` or `poetry.lock` changed with `git diff <old tag> <tag> --stat -- pyproject.toml poetry.lock`. If they did, install them with `python -m pip install .`. Use `python -m pip`, not `pip`: on cirkus `pip` is not the one of the virtualenv, so a plain `pip` installs to the wrong place.
 5. Migrations: `python manage.py migrate --plan`. If it lists migrations, run `python manage.py migrate`.
 6. `touch` the `touch-reload` file of the instance.
 7. Read `/var/log/uwsgi/app/<name>.log`. The workers must start again with no traceback.
