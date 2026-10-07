@@ -16,8 +16,9 @@
 #
 # With make: make release-preview and make release.
 #
-# After the push, approve the run in GitHub Actions. Then CI deploys, and
-# creates the GitHub release with notes from the merged pull requests.
+# After the push, CI creates the GitHub release with notes from the merged
+# pull requests. The deploy on cirkus stays manual: the script prints the
+# commands for it (see release_procedure.md).
 #
 # Test options: RELEASE_TODAY=YYYY-MM-DD uses that date instead of today.
 # RELEASE_YES=1 skips the question. RELEASE_NO_PUSH=1 creates the tag only.
@@ -28,6 +29,28 @@ cmd="${1:-preview}"
 
 die() { echo "error: $*" >&2; exit 1; }
 note() { echo "$*" >&2; }
+
+# The commands to deploy tag $1 on cirkus, with notes on the dependencies and
+# migrations that changed since tag $2 (empty for the first release).
+deploy_steps() {
+  local tag="$1" old="$2"
+  note ""
+  note "Deploy on cirkus, in the production instance directory, with the virtualenv active:"
+  note "  loadenv"
+  note "  git fetch --tags && git describe --tags   # the version that runs now"
+  note "  git checkout $tag"
+  if [ -z "$old" ] || ! git diff --quiet "$old" "$tag" -- pyproject.toml poetry.lock; then
+    note "  python -m pip install .                   # dependencies changed"
+  fi
+  local migrations=""
+  [ -n "$old" ] && migrations="$(git diff --name-only --diff-filter=A "$old" "$tag" -- '*/migrations/0*.py')"
+  if [ -z "$old" ] || [ -n "$migrations" ]; then
+    note "  python manage.py migrate --plan && python manage.py migrate"
+    [ -n "$migrations" ] && echo "$migrations" | sed 's/^/      new: /' >&2
+  fi
+  note "  touch <the touch-reload file of the instance>"
+  note "Then read /var/log/uwsgi/app/<name>.log. The workers must start with no traceback."
+}
 
 today="${RELEASE_TODAY:-$(date +%Y-%m-%d)}"
 year="${today%%-*}"
@@ -85,7 +108,7 @@ case "$cmd" in
     fi
     note ""
     note "release: v$next  at  $(git log -1 --format='%h %s')"
-    note "Pushing the tag starts the release workflow. You approve it in GitHub Actions."
+    note "Pushing the tag starts the release workflow. It creates the GitHub release. It does not deploy."
     if [ "${RELEASE_YES:-}" != "1" ]; then
       printf 'Type the tag name to release it: ' >&2
       read -r answer
@@ -96,8 +119,9 @@ case "$cmd" in
       note "created tag v$next. It is NOT pushed."
     else
       git push origin "refs/tags/v$next" || { git tag -d "v$next" >/dev/null; die "push failed. The local tag is removed."; }
-      note "pushed v$next. Approve the run in GitHub Actions."
+      note "pushed v$next."
     fi
+    deploy_steps "v$next" "${latest:+v$latest}"
     echo "v$next"
     ;;
 
