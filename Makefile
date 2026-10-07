@@ -57,10 +57,10 @@ alldebt:
 stripe:
 	stripe listen --forward-to localhost:8000/economy/stripe-webhook
 
-.PHONY: release-version
+.PHONY: release-preview
 # Prints the next release tag. Changes nothing.
-release-version:
-	@scripts/release.sh next
+release-preview:
+	@scripts/release.sh preview
 
 .PHONY: release
 # Shows what ships, asks, then tags master and pushes the tag.

@@ -6,15 +6,15 @@
 # version with a "v": v2026.10.3. The month has no leading zero.
 #
 # Usage:
-#   scripts/release.sh          same as "next"
-#   scripts/release.sh next     print the next tag
+#   scripts/release.sh          same as "preview"
+#   scripts/release.sh preview  print the next tag
 #   scripts/release.sh release  show what ships, ask, then create and push the tag
 #
 # Rule for the next version: take the highest tag. If its year and month are
 # the current year and month, add 1 to the last number. Otherwise start the
 # current month at 1.
 #
-# With make: make release-version (preview) and make release.
+# With make: make release-preview and make release.
 #
 # After the push, approve the run in GitHub Actions. Then CI deploys, and
 # creates the GitHub release with notes from the merged pull requests.
@@ -24,7 +24,7 @@
 set -euo pipefail
 
 cd "$(git rev-parse --show-toplevel)"
-cmd="${1:-next}"
+cmd="${1:-preview}"
 
 die() { echo "error: $*" >&2; exit 1; }
 note() { echo "$*" >&2; }
@@ -59,7 +59,7 @@ else
 fi
 
 case "$cmd" in
-  next)
+  preview)
     if [ -n "$latest" ]; then label="v$latest"; else label="none"; fi
     note "latest tag: $label  ->  next: v$next"
     echo "v$next"
@@ -102,6 +102,6 @@ case "$cmd" in
     ;;
 
   *)
-    die "unknown command '$cmd'. Use next or release."
+    die "unknown command '$cmd'. Use preview or release."
     ;;
 esac
