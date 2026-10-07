@@ -153,8 +153,8 @@ class Shift(models.Model):
 
     @property
     def is_filled(self):
-        empty_slots = self.slots.filter(user__isnull=True)
-        return not empty_slots.exists()
+        # Reads the prefetched slots when the resolver prefetched them
+        return all(slot.user_id is not None for slot in self.slots.all())
 
     def __str__(self):
         return f"{self.datetime_start.strftime('%Y-%-m-%-d')} {self.schedule.name}: {self.name}"

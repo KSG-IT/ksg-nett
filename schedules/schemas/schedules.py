@@ -625,7 +625,13 @@ class ShiftQuery(graphene.ObjectType):
     ):
         schedule_id = disambiguate_id(schedule_id)
         schedule = Schedule.objects.get(pk=schedule_id)
-        shifts = schedule.shifts_from_range(shifts_from, number_of_weeks)
+        shifts = (
+            schedule.shifts_from_range(shifts_from, number_of_weeks)
+            .select_related("schedule")
+            .prefetch_related(
+                Prefetch("slots", queryset=ShiftSlot.objects.select_related("user"))
+            )
+        )
         return normalize_shifts(shifts, schedule.display_mode)
 
     @gql_login_required()
