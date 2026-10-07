@@ -138,6 +138,7 @@ class SociSessionAdmin(admin.ModelAdmin):
         "created_at",
         "closed_at",
         "created_by",
+        "client_user_agent",
         "product_order_count",
     ]
     list_select_related = ["created_by"]

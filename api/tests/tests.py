@@ -79,6 +79,36 @@ class CustomTokenObtainSlidingViewTest(APITestCase):
         )
 
 
+class SociSessionUserAgentTest(APITestCase):
+    """The X-App sends User-Agent "X-App/<version> (<host name>)" (xapp-electron apiClient.js)."""
+
+    def setUp(self):
+        self.user = SociBankAccountFactory().user
+        self.url = reverse("api:obtain-token")
+
+    def open_soci(self, **headers):
+        return self.client.post(
+            self.url, {"card_uuid": self.user.bank_account.card_uuid}, **headers
+        )
+
+    def test__user_agent__stored_on_the_new_session(self):
+        response = self.open_soci(HTTP_USER_AGENT="X-App/2026.10.3 (ksg-kryssepc)")
+
+        self.assertEqual(200, response.status_code)
+        session = SociSession.get_active_session()
+        self.assertEqual("X-App/2026.10.3 (ksg-kryssepc)", session.client_user_agent)
+
+    def test__no_user_agent__empty(self):
+        self.open_soci()
+
+        self.assertEqual("", SociSession.get_active_session().client_user_agent)
+
+    def test__long_user_agent__cut_to_255_characters(self):
+        self.open_soci(HTTP_USER_AGENT="X" * 300)
+
+        self.assertEqual(255, len(SociSession.get_active_session().client_user_agent))
+
+
 class CustomTokenRefreshSlidingViewTest(APITestCase):
     @classmethod
     def setUpClass(cls):
