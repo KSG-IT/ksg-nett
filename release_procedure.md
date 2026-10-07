@@ -12,12 +12,12 @@ The tag starts `.github/workflows/release.yml`. It checks that the tag is on `ma
 Tags are versions in the form `v<year>.<month>.<number>`, for example `v2026.10.4`. Only an admin can create a tag, and a tag cannot be moved or deleted.
 
 ## 2. Deploy on cirkus
-Do this in the instance directory, with the virtualenv active.
+Do this in the instance directory, with the virtualenv active. Run `loadenv` first. It loads the environment and the `.env` variables, which `migrate` needs.
 
 1. `git fetch --tags`
 2. Note what is deployed now: `git describe --tags`
 3. `git checkout <tag>`
-4. Dependencies: check if `pyproject.toml` or `poetry.lock` changed with `git diff <old tag> <tag> --stat -- pyproject.toml poetry.lock`. If they did, install them.
+4. Dependencies: check if `pyproject.toml` or `poetry.lock` changed with `git diff <old tag> <tag> --stat -- pyproject.toml poetry.lock`. If they did, install them with `python -m pip install .`.
 5. Migrations: `python manage.py migrate --plan`. If it lists migrations, run `python manage.py migrate`.
 6. `touch` the `touch-reload` file of the instance.
 7. Read `/var/log/uwsgi/app/<name>.log`. The workers must start again with no traceback.
