@@ -14,6 +14,7 @@ from rest_framework.generics import (
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.views import (
     TokenObtainSlidingView,
     TokenRefreshSlidingView,
@@ -21,7 +22,7 @@ from rest_framework_simplejwt.views import (
 )
 
 from api.models import PurchaseTransactionLogEntry, BlacklistedSong
-from api.permissions import SensorTokenPermission
+from api.permissions import SensorTokenPermission, XAppAuthPermission
 from api.serializers import (
     CheckBalanceSerializer,
     SociProductSerializer,
@@ -81,6 +82,9 @@ class TerminateSociSessionView(DestroyAPIView):
     Terminates the current SociSession by setting an end date.
     """
 
+    authentication_classes = (JWTAuthentication,)
+    permission_classes = (XAppAuthPermission,)
+
     @swagger_auto_schema(
         tags=["Soci Sessions"],
         operation_summary="Terminate SociSession",
@@ -96,6 +100,9 @@ class SociProductListView(ListAPIView):
     """
     Retrieves a list of products that can be purchased at Soci.
     """
+
+    authentication_classes = (JWTAuthentication,)
+    permission_classes = (XAppAuthPermission,)
 
     serializer_class = SociProductSerializer
     queryset = SociProduct.objects.all()
@@ -120,6 +127,9 @@ class SociBankAccountBalanceDetailView(RetrieveAPIView):
     """
     Checks the available balance of an account, based on the provided RFID card number.
     """
+
+    authentication_classes = (JWTAuthentication,)
+    permission_classes = (XAppAuthPermission,)
 
     queryset = SociBankAccount.objects.all()
     serializer_class = CheckBalanceSerializer
@@ -230,6 +240,9 @@ class SensorMeasurementView(CustomCreateAPIView, generics.ListAPIView):
 
 
 class ChargeBankAccountView(APIView):
+    authentication_classes = (JWTAuthentication,)
+    permission_classes = (XAppAuthPermission,)
+
     def post(self, request, *args, **kwargs):
         order = request.data
         bank_account_id = order["bank_account_id"]

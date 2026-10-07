@@ -1,3 +1,4 @@
+import base64
 import json
 from datetime import timedelta
 from random import randint
@@ -467,6 +468,75 @@ class ChargeAccountErrorsTest(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.account.refresh_from_db()
         self.assertEqual(self.account.balance, -60)
+
+
+class XAppRequireAuthTest(APITestCase):
+    """The x-app-require-auth flag decides if the X-App calls need the JWT."""
+
+    def setUp(self):
+        self.account = SociBankAccountFactory(user__is_staff=True)
+        self.account.add_funds(100)
+        self.burger = SociProductFactory.create(
+            name="Burger", sku_number="BURGER", price=80, purchase_price=None
+        )
+        SociSessionFactory.create()
+        self.flag = FeatureFlagFactory.create(
+            name=settings.X_APP_REQUIRE_AUTH_FEATURE_FLAG, enabled=True
+        )
+
+    def charge(self):
+        return self.client.post(
+            reverse("api:charge"),
+            {
+                "bank_account_id": f"{self.account.id}",
+                "products": [{"sku": self.burger.sku_number, "order_size": 1}],
+            },
+            format="json",
+        )
+
+    def test__flag_off__charge_without_token__ok(self):
+        self.flag.enabled = False
+        self.flag.save()
+
+        response = self.charge()
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    def test__flag_on__charge_with_token__ok(self):
+        token = SlidingToken.for_user(UserFactory())
+        self.client.credentials(HTTP_AUTHORIZATION=f"JWT {token}")
+
+        response = self.charge()
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    def test__flag_on__no_token__unauthorized_and_nothing_charged(self):
+        responses = [
+            self.charge(),
+            self.client.get(
+                reverse("api:balance"), {"card_uuid": self.account.card_uuid}
+            ),
+            self.client.get(reverse("api:products")),
+            self.client.delete(reverse("api:terminate-session")),
+        ]
+
+        for response in responses:
+            self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.account.refresh_from_db()
+        self.assertEqual(self.account.balance, 100)
+
+    def test__flag_on__basic_auth__unauthorized(self):
+        user = UserFactory()
+        user.set_password("password")
+        user.save()
+        self.client.credentials(
+            HTTP_AUTHORIZATION="Basic "
+            + base64.b64encode(f"{user.username}:password".encode()).decode()
+        )
+
+        response = self.charge()
+
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
 
 class ApiDocsTest(APITestCase):

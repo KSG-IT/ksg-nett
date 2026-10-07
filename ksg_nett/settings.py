@@ -328,6 +328,8 @@ BANK_TRANSFER_DEPOSIT_FEATURE_FLAG = "bank_transfer_deposit"
 DEPOSIT_TIME_RESTRICTIONS_FEATURE_FLAG = "deposit_time_restrictions"
 EXTERNAL_CHARGING_FEATURE_FLAG = "external_charging"
 X_APP_STOCK_MARKET_MODE = "x-app-stock-market-mode"
+# When on, the X-App REST calls need the JWT from obtain-token (api.permissions)
+X_APP_REQUIRE_AUTH_FEATURE_FLAG = "x-app-require-auth"
 FEEDBACK_FEATURE_FLAG = "feedback"
 TRUTH_OR_DRINK_FEATURE_FLAG = "truth_or_drink"
 
