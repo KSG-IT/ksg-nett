@@ -167,8 +167,8 @@ class UserNode(DjangoObjectType):
 
     def resolve_upvoted_quote_ids(self: User, info, **kwargs):
         return [
-            to_global_id("QuoteNode", quote_vote.quote.id)
-            for quote_vote in self.quote_votes.all()
+            to_global_id("QuoteNode", quote_id)
+            for quote_id in self.quote_votes.values_list("quote_id", flat=True)
         ]
 
     def resolve_full_name(self: User, info, **kwargs):

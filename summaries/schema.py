@@ -45,7 +45,11 @@ class SummaryQuery(graphene.ObjectType):
 
     @gql_login_required()
     def resolve_all_summaries(self, info, *args, **kwargs):
-        return Summary.objects.all().prefetch_related("participants").order_by("-date")
+        return (
+            Summary.objects.select_related("reporter", "internal_group")
+            .prefetch_related("participants")
+            .order_by("-date")
+        )
 
 
 class CreateSummaryMutation(DjangoCreateMutation):
