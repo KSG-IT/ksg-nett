@@ -39,7 +39,7 @@ from users.models import User, Allergy as UserAllergy
 from django.utils import timezone
 from django.conf import settings
 
-from django.db.models import Count, Max
+from django.db.models import Count, Max, Prefetch
 from django.db.models.functions import TruncDate
 
 
@@ -72,7 +72,10 @@ class ShiftSlotNode(DjangoObjectType):
             info, self.shift.schedule, "schedules.change_shiftslot"
         ):
             return None
-        return ShiftSlotDraft.objects.filter(slot=self).first()
+        try:
+            return self.draft
+        except ShiftSlotDraft.DoesNotExist:
+            return None
 
     @classmethod
     def get_node(cls, info, id):
@@ -100,7 +103,7 @@ class ShiftNode(DjangoObjectType):
 
     def resolve_slots(self: Shift, info):
         # Without an explicit order Postgres returns updated rows last
-        return self.slots.all().order_by("id")
+        return sorted(self.slots.all(), key=lambda slot: slot.id)
 
     def resolve_filled_slots(self: Shift, info):
         return self.slots.filter(user__isnull=False).order_by("id")
@@ -157,7 +160,21 @@ class ScheduleNode(DjangoObjectType):
 
     @gql_login_required()
     def resolve_shifts_from_range(self: Schedule, info, shifts_from, number_of_weeks):
-        return self.shifts_from_range(shifts_from, number_of_weeks)
+        return (
+            self.shifts_from_range(shifts_from, number_of_weeks)
+            .select_related("schedule")
+            .prefetch_related(
+                Prefetch(
+                    "slots",
+                    queryset=ShiftSlot.objects.select_related(
+                        "user",
+                        "draft__user",
+                        "draft__changed_by",
+                        "draft__autofill_run",
+                    ),
+                )
+            )
+        )
 
     # Fields for the schedules overview, for schedule managers only. Each one
     # is a small query per schedule; there are only a few schedules.
