@@ -375,3 +375,38 @@ class TestCurrentApplicantsQuery(AdmissionsListQueryTestCase):
             for priority in data.currentApplicants[0].priorities
         ]
         self.assertEqual(names, ["Position 0", "Position 1", None])
+
+
+class TestMissingApplicant(TestCase):
+    def setUp(self) -> None:
+        self.graphql_client = Client(schema)
+
+    def execute(self, query, variables, user):
+        executed = self.graphql_client.execute(
+            query, variables=variables, context=Dict(user=user)
+        )
+        self.assertNotIn("errors", executed)
+        return Dict(executed["data"])
+
+    def test__unknown_applicant_id__resolves_to_null(self):
+        from users.tests.factories import UserWithPermissionsFactory
+
+        user = UserWithPermissionsFactory.create(
+            permissions="admissions.view_applicant"
+        )
+        data = self.execute(
+            "query ($id: ID!) { applicant(id: $id) { id } }",
+            {"id": to_global_id("ApplicantNode", 999999)},
+            user,
+        )
+        self.assertIsNone(data.applicant)
+
+    def test__unknown_token__resolves_to_null(self):
+        from django.contrib.auth.models import AnonymousUser
+
+        data = self.execute(
+            "query ($token: String!) { getApplicantFromToken(token: $token) { id } }",
+            {"token": "no-such-token"},
+            AnonymousUser(),
+        )
+        self.assertIsNone(data.getApplicantFromToken)
