@@ -4,7 +4,9 @@ from zoneinfo import ZoneInfo
 from addict import Dict
 from django.conf import settings
 from django.core import mail
+from django.db import connection
 from django.test import TestCase
+from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 from graphene.test import Client
 from graphql_relay import to_global_id
@@ -140,6 +142,32 @@ class TestDraftSlot(DraftTestCase):
             if slot["draft"]
         ]
         self.assertEqual(drafts, [{"autofillRun": None}])
+
+    def test__shifts_from_range__does_not_query_per_slot(self):
+        query = """
+            query Slots($id: ID!, $from: Date!) {
+              schedule(id: $id) {
+                shiftsFromRange(shiftsFrom: $from, numberOfWeeks: 1) {
+                  schedule { id }
+                  slots { role user { id } draft { user { id } } }
+                }
+              }
+            }
+            """
+        variables = {"id": self.schedule_id(), "from": self.day.isoformat()}
+
+        def count_queries():
+            with CaptureQueriesContext(connection) as queries:
+                executed = self.execute(query, variables)
+            self.assertNotIn("errors", executed)
+            return len(queries)
+
+        count_queries()  # Warm the permission and content type caches
+        before = count_queries()
+        for _ in range(5):
+            slot = self.slot(self.day, user=UserFactory.create())
+            ShiftSlotDraft.objects.create(slot=slot, user=self.anna)
+        self.assertEqual(count_queries(), before)
 
     def test__a_draft_back_to_the_current_user__removes_the_draft(self):
         self.draft(self.first, self.anna)
