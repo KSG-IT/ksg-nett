@@ -264,7 +264,7 @@ class ApplicantNode(DjangoObjectType):
     @classmethod
     @gql_has_permissions("admissions.view_applicant")
     def get_node(cls, info, id):
-        return Applicant.objects.get(pk=id)
+        return Applicant.objects.filter(pk=id).first()
 
 
 class InterviewScheduleTemplateNode(DjangoObjectType):
@@ -612,7 +612,10 @@ class ApplicantQuery(graphene.ObjectType):
         if token is None:
             return None
 
-        applicant = Applicant.objects.get(token=token)
+        applicant = Applicant.objects.filter(token=token).first()
+        if applicant is None:
+            return None
+
         applicant.last_activity = timezone.now()
         applicant.save()
         return applicant
