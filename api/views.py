@@ -49,11 +49,14 @@ class CustomTokenObtainSlidingView(TokenObtainSlidingView):
 
     def post(self, request, *args, **kwargs):
         response = super().post(request, *args, **kwargs)
-        self._start_new_soci_session(token=response.data["token"])
+        self._start_new_soci_session(
+            token=response.data["token"],
+            user_agent=request.META.get("HTTP_USER_AGENT", ""),
+        )
         return response
 
     @staticmethod
-    def _start_new_soci_session(token):
+    def _start_new_soci_session(token, user_agent):
         # In case XApp was hindered from terminating the active session manually,
         # we terminate any currently active session before starting a new one.
         SociSession.terminate_active_session()
@@ -66,7 +69,12 @@ class CustomTokenObtainSlidingView(TokenObtainSlidingView):
                 "verify_signature": False,
             },
         )["user_id"]
-        SociSession.objects.create(created_by_id=card_user_id)
+        # The X-App sends its version and host name, so the session shows which
+        # till and which release opened it.
+        SociSession.objects.create(
+            created_by_id=card_user_id,
+            client_user_agent=user_agent[:255],
+        )
 
 
 class CustomTokenRefreshSlidingView(TokenRefreshSlidingView):

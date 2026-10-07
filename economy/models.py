@@ -187,6 +187,13 @@ class SociSession(models.Model):
         default=0,
         help_text="Required remaining balance after placing a product order on a 'KRYSSELISTE'",
     )
+    # Set when the X-App opens Soci (api.views.CustomTokenObtainSlidingView)
+    client_user_agent = models.CharField(
+        max_length=255,
+        blank=True,
+        default="",
+        help_text="User-Agent of the client that opened the session, for example 'X-App/2026.10.3 (ksg-kryssepc)'",
+    )
 
     @property
     def closed(self):
