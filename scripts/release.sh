@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Next release version and tag. This script never pushes.
+# Next release version and tag. Only the command "push" pushes, and it asks first.
 #
 # Versions look like YEAR.MONTH.NUMBER, for example 2026.10.3. The tag is the
 # version with a "v": v2026.10.3. The month has no leading zero.
@@ -9,6 +9,8 @@
 #   scripts/release.sh next   print the next tag
 #   scripts/release.sh bump   write the next version into the version files
 #   scripts/release.sh tag    create the next tag on this clone, after checks
+#   scripts/release.sh push   push the newest tag that is not on origin yet,
+#                             after you type its name to confirm
 #
 # Rule for the next version: take the highest tag. If its year and month are
 # the current year and month, add 1 to the last number. Otherwise start the
@@ -18,9 +20,12 @@
 #   1. scripts/release.sh bump      then commit, with the changelog, in a PR
 #   2. Merge the PR, then update master in this clone
 #   3. scripts/release.sh tag       creates the tag here only
-#   4. git push origin <tag>        you push it, the script does not
+#   4. scripts/release.sh push      pushes the tag and starts the release workflow
 #
-# Test option: RELEASE_TODAY=YYYY-MM-DD uses that date instead of today.
+# With make: make release-version [ACTION=bump|tag], and make push-release.
+#
+# Test options: RELEASE_TODAY=YYYY-MM-DD uses that date instead of today.
+# RELEASE_YES=1 skips the question of "push".
 set -euo pipefail
 
 cd "$(git rev-parse --show-toplevel)"
@@ -122,7 +127,7 @@ case "$cmd" in
     first_file="${VERSION_FILES%% *}"
     in_files="$(read_version "$first_file")"
     if git rev-parse -q --verify "refs/tags/v$in_files" >/dev/null; then
-      die "tag v$in_files already exists. Push it with: git push origin v$in_files"
+      die "tag v$in_files already exists. Push it with: make push-release   (or scripts/release.sh push)"
     fi
     for f in $VERSION_FILES; do
       have="$(read_version "$f")"
@@ -133,11 +138,45 @@ case "$cmd" in
     fi
     git tag -a "v$next" -m "Release $next"
     note "created tag v$next on $(git rev-parse --short HEAD). It is NOT pushed."
-    note "Push it with: git push origin v$next"
+    note "Push it with: make push-release   (or scripts/release.sh push)"
     echo "v$next"
     ;;
 
+  push)
+    # The tags on the remote, without the ^{} lines of annotated tags.
+    remote_tags="$(git ls-remote --tags origin 'refs/tags/v*' 2>/dev/null \
+      | awk '{ print $2 }' | sed 's|^refs/tags/||; s|\^{}$||' | sort -u)" \
+      || die "could not read the tags of origin"
+    candidate=""
+    others=""
+    # Local release tags, highest first, that origin does not have.
+    for v in $(git tag --list 'v*' | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sed 's/^v//' \
+      | awk -F. '{ printf "%d %d %d %s\n", $1, $2, $3, $0 }' \
+      | sort -k1,1nr -k2,2nr -k3,3nr | cut -d' ' -f4); do
+      if ! echo "$remote_tags" | grep -qx "v$v"; then
+        if [ -z "$candidate" ]; then candidate="v$v"; else others="$others v$v"; fi
+      fi
+    done
+    [ -n "$candidate" ] || die "no release tag to push. Create one first: make release-version ACTION=tag"
+    [ -z "$others" ] || note "note: other tags are not on origin either:$others. Only $candidate is pushed."
+    git fetch --quiet origin master || die "could not fetch origin/master"
+    commit="$(git rev-parse "$candidate^{commit}")"
+    git merge-base --is-ancestor "$commit" origin/master \
+      || die "$candidate points at $commit, which is not on origin/master"
+    note "tag:    $candidate"
+    note "commit: $(git log -1 --format='%h %s' "$commit")"
+    note "Pushing the tag starts the release workflow for this repository."
+    if [ "${RELEASE_YES:-}" != "1" ]; then
+      printf 'Type the tag name to push it: ' >&2
+      read -r answer
+      [ "$answer" = "$candidate" ] || die "not confirmed. Nothing was pushed."
+    fi
+    git push origin "refs/tags/$candidate"
+    note "pushed $candidate"
+    echo "$candidate"
+    ;;
+
   *)
-    die "unknown command '$cmd'. Use next, bump or tag."
+    die "unknown command '$cmd'. Use next, bump, tag or push."
     ;;
 esac
