@@ -12,15 +12,19 @@ The tag starts `.github/workflows/release.yml`. It checks that the tag is on `ma
 Tags are versions in the form `v<year>.<month>.<number>`, for example `v2026.10.4`. Only an admin can create a tag, and a tag cannot be moved or deleted.
 
 ## 2. Deploy on cirkus
+Dev and production deploy the same way. Each is an instance directory with its own virtualenv. Dev runs `master`. Production runs a tag.
+
 Do this in the instance directory, with the virtualenv active. Run `loadenv` first. It loads the environment and the `.env` variables, which `migrate` needs.
 
-1. `git fetch --tags`
-2. Note what is deployed now: `git describe --tags`
-3. `git checkout <tag>`
-4. Dependencies: check if `pyproject.toml` or `poetry.lock` changed with `git diff <old tag> <tag> --stat -- pyproject.toml poetry.lock`. If they did, install them with `python -m pip install .`. Use `python -m pip`, not `pip`: on cirkus `pip` is not the one of the virtualenv, so a plain `pip` installs to the wrong place.
-5. Migrations: `python manage.py migrate --plan`. If it lists migrations, run `python manage.py migrate`.
-6. `touch` the `touch-reload` file of the instance.
-7. Read `/var/log/uwsgi/app/<name>.log`. The workers must start again with no traceback.
+1. Get the code.
+   - Production: `git fetch --tags`, note what runs now with `git describe --tags`, then `git checkout <tag>`.
+   - Dev: `git checkout master && git pull --ff-only`.
+2. Dependencies: check if `pyproject.toml` or `poetry.lock` changed between the old and new version, for example `git diff <old> <new> --stat -- pyproject.toml poetry.lock`. If they did, install them with `python -m pip install .`. Use `python -m pip`, not `pip`: on cirkus `pip` is not the one of the virtualenv, so a plain `pip` installs to the wrong place.
+3. Migrations: `python manage.py migrate --plan`. If it lists migrations, run `python manage.py migrate`.
+4. `touch` the `touch-reload` file of the instance.
+5. Read `/var/log/uwsgi/app/<name>.log`. The workers must start again with no traceback.
+
+Deploy dev first when you can, and check the release there before you deploy production.
 
 ## Rules
 - Deploy the backend before the frontend. A migration must be safe to run before the matching frontend is live.
@@ -29,7 +33,8 @@ Do this in the instance directory, with the virtualenv active. Run `loadenv` fir
 
 ## Roll back
 1. `git checkout <old tag>`
-2. `touch` the `touch-reload` file.
+2. If the old version needs other dependencies, install them as in step 2.
+3. `touch` the `touch-reload` file.
 
 A migration is not reversed by this. Check the release's migrations first, and restore a database backup if a migration must be undone.
 
