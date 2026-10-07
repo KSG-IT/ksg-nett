@@ -58,11 +58,11 @@ stripe:
 	stripe listen --forward-to localhost:8000/economy/stripe-webhook
 
 .PHONY: release-version
-# Next release tag. ACTION=bump writes the version files, ACTION=tag creates the tag here.
+# Prints the next release tag. Changes nothing.
 release-version:
-	@scripts/release.sh $(ACTION)
+	@scripts/release.sh next
 
-.PHONY: push-release
-# Pushes the newest tag that origin does not have, after you type its name.
-push-release:
-	@scripts/release.sh push
+.PHONY: release
+# Shows what ships, asks, then tags master and pushes the tag.
+release:
+	@scripts/release.sh release
