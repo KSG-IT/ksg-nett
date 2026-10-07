@@ -5,7 +5,7 @@ A release is a tag on `master`. Nothing is edited or committed to make one. The 
 ## 1. Tag
 1. `git checkout master && git pull`
 2. `make release-preview` prints the next tag. It changes nothing.
-3. `make release` lists the merged PRs since the last tag. Type the tag name to confirm. It creates the tag and pushes it.
+3. `make release` lists the merged PRs since the last tag. Type the tag name to confirm. It creates the tag and pushes it, then prints the commands for the deploy on cirkus. It adds the `pip install` and `migrate` steps only when the release changes dependencies or adds migrations.
 
 The tag starts `.github/workflows/release.yml`. It checks that the tag is on `master` and creates the GitHub Release with notes from the merged PRs. It does not deploy.
 
