@@ -169,6 +169,34 @@ class TestDraftSlot(DraftTestCase):
             ShiftSlotDraft.objects.create(slot=slot, user=self.anna)
         self.assertEqual(count_queries(), before)
 
+    def test__normalized_shifts_from_range__does_not_query_per_shift(self):
+        query = """
+            query Normalized($id: ID!, $from: Date!) {
+              normalizedShiftsFromRange(
+                scheduleId: $id, shiftsFrom: $from, numberOfWeeks: 1
+              ) {
+                ... on ShiftDayWeek {
+                  shiftDays {
+                    shifts { isFilled schedule { id } slots { role user { id } } }
+                  }
+                }
+              }
+            }
+            """
+        variables = {"id": self.schedule_id(), "from": self.day.isoformat()}
+
+        def count_queries():
+            with CaptureQueriesContext(connection) as queries:
+                executed = self.execute(query, variables)
+            self.assertNotIn("errors", executed)
+            return len(queries)
+
+        count_queries()  # Warm the permission and content type caches
+        before = count_queries()
+        for _ in range(5):
+            self.slot(self.day, user=UserFactory.create())
+        self.assertEqual(count_queries(), before)
+
     def test__a_draft_back_to_the_current_user__removes_the_draft(self):
         self.draft(self.first, self.anna)
         self.draft(self.first, None)
