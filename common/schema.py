@@ -67,6 +67,7 @@ class SidebarQuery(graphene.ObjectType):
 class DashboardQuery(graphene.ObjectType):
     dashboard_data = graphene.Field(graphene.NonNull(DashboardData))
 
+    @gql_login_required()
     def resolve_dashboard_data(self, info, *args, **kwargs):
         me = info.context.user
         quotes = Quote.objects.filter(approved=True).order_by("-created_at")[:5]
