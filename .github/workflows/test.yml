@@ -51,6 +51,9 @@ jobs:
       - name: Install dependencies
         run: poetry install --no-interaction
 
+      - name: Check formatting
+        run: poetry run black --check --diff .
+
       - name: Check for missing migrations
         run: poetry run python manage.py makemigrations --check --dry-run
 
