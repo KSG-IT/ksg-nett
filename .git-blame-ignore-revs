@@ -1,0 +1,5 @@
+# Formatting-only commits, hidden by GitHub blame.
+# Locally: git config blame.ignoreRevsFile .git-blame-ignore-revs
+
+# style: format the whole repo with black 26.10.0
+c87b0e8df4bf6e4c99bf2be8f509b62a826ceda2

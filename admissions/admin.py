@@ -20,7 +20,6 @@ from admissions.models import (
     ApplicantRecommendation,
 )
 
-
 APPLICANT_SEARCH_FIELDS = [
     "applicant__first_name",
     "applicant__last_name",
@@ -90,9 +89,7 @@ class InterviewAdmin(admin.ModelAdmin):
     def get_queryset(self, request):
         # __str__ renders the location, also in autocomplete results. A
         # select_related() here makes the changelist ignore list_select_related.
-        return (
-            super().get_queryset(request).select_related("location", "applicant")
-        )
+        return super().get_queryset(request).select_related("location", "applicant")
 
 
 @admin.register(InterviewBooleanEvaluation)

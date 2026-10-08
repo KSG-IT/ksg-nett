@@ -41,6 +41,7 @@ pytest-django = "^3.7"
 pytest-cov = "^2.8"
 pre-commit = "^2.10.0"
 addict = "^2.4.0"
+black = "26.10.0"
 
 [tool.black]
 line-length = 88

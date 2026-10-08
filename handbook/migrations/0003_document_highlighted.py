@@ -6,13 +6,13 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('handbook', '0002_initial'),
+        ("handbook", "0002_initial"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='document',
-            name='highlighted',
+            model_name="document",
+            name="highlighted",
             field=models.BooleanField(default=False),
         ),
     ]

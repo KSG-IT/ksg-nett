@@ -55,7 +55,4 @@ def add_message(message: dict):
 
 def get_all_old_messages() -> List[dict]:
     messages_raw = db.lrange(CHAT_ROOM_OLD_MESSAGES_KEY, 0, -1)
-    return [
-        json.loads(message)
-        for message in messages_raw
-    ]
+    return [json.loads(message) for message in messages_raw]

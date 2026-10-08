@@ -1,1 +1,1 @@
-default_app_config = 'economy.apps.EconomyConfig'
+default_app_config = "economy.apps.EconomyConfig"

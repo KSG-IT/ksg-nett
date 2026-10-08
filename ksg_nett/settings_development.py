@@ -3,7 +3,6 @@ from ksg_nett.env import required_secret
 import os
 from ksg_nett.sentry import init_sentry
 
-
 DEBUG = True
 
 # Raise exceptions on unhandled secret key

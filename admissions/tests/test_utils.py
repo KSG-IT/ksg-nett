@@ -264,4 +264,3 @@ class TestCloseAdmission(TestCase):
         self,
     ):
         pass
-

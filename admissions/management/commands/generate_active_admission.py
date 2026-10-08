@@ -180,7 +180,9 @@ class Command(BaseCommand):
     def clear_interview_period(self, schedule, locations):
         """Remove unbooked interviews and availability in the new period, so the
         generator does not create duplicates"""
-        start = date_time_combiner(schedule.interview_period_start_date, datetime.time())
+        start = date_time_combiner(
+            schedule.interview_period_start_date, datetime.time()
+        )
         end = date_time_combiner(
             schedule.interview_period_end_date, datetime.time(23, 59, 59)
         )
@@ -380,9 +382,7 @@ class Command(BaseCommand):
                 applicant.status = ApplicantStatus.HAS_SET_PRIORITIES
 
         Applicant.objects.bulk_update(applicants, ["interview", "status"])
-        self.log(
-            f"Assigned {sum(1 for a in applicants if a.interview_id)} interviews"
-        )
+        self.log(f"Assigned {sum(1 for a in applicants if a.interview_id)} interviews")
 
     def create_priorities(self, applicants):
         priorities = []

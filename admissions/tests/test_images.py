@@ -190,9 +190,7 @@ class TestDeleteClosedAdmissionImagesCommand(MediaRootTestCase):
         self.active = self.applicant_with_image(
             AdmissionFactory(status=AdmissionStatus.OPEN), "active.jpg"
         )
-        self.orphan = default_storage.save(
-            "applicants/orphan.jpg", ContentFile(JPEG)
-        )
+        self.orphan = default_storage.save("applicants/orphan.jpg", ContentFile(JPEG))
 
     def run_command(self, *args):
         call_command("delete_closed_admission_images", *args, stdout=StringIO())
@@ -208,4 +206,3 @@ class TestDeleteClosedAdmissionImagesCommand(MediaRootTestCase):
         self.assertFalse(default_storage.exists(self.orphan))
         self.assertTrue(default_storage.exists(self.shared.image.name))
         self.assertTrue(default_storage.exists(self.active.image.name))
-

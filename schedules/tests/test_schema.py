@@ -223,8 +223,7 @@ class TestScheduleAllergiesV2TimeWindow(TestCase):
                 days { date peopleAtWork }
               }
             }
-            """
-            % arguments,
+            """ % arguments,
             context=Dict(user=self.planner),
         )
 
@@ -244,9 +243,7 @@ class TestScheduleAllergiesV2TimeWindow(TestCase):
         )
         self.assertEqual(week["allergyCounts"], [1, 1])
         self.assertEqual(week["peopleAtWork"], 3)
-        self.assertEqual(
-            week["days"], [{"date": "2026-09-07", "peopleAtWork": 3}]
-        )
+        self.assertEqual(week["days"], [{"date": "2026-09-07", "peopleAtWork": 3}])
 
     def test__one_time_argument_or_reversed_window_is_rejected(self):
         self.assertIn("errors", self.execute(', timeFrom: "14:00:00"'))
