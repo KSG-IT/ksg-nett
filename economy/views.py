@@ -1,3 +1,4 @@
+import sentry_sdk
 import stripe
 from django.conf import settings
 from django.db import transaction
@@ -78,7 +79,12 @@ def stripe_webhook(request):
         # Without this the deposit stays as the ongoing intent and blocks new ones
         Deposit.objects.filter(stripe_payment_id=intent_id, approved=False).delete()
 
-    # Other event types are acknowledged so Stripe does not retry them
+    else:
+        # Stripe retries a 500 for days and can disable the endpoint, so
+        # acknowledge the event and report it to Sentry instead
+        sentry_sdk.capture_message(
+            f"Unhandled Stripe event type {event['type']}", level="warning"
+        )
 
     return JsonResponse(data={"success": True})
 

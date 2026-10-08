@@ -64,14 +64,19 @@ class TestDeleteStripeDeposit(TestCase):
         cancel.assert_called_once()
         self.assertFalse(Deposit.objects.filter(pk=self.deposit.pk).exists())
 
-    def test__succeeded_intent__is_not_deleted(self, retrieve, cancel):
-        retrieve.return_value = mock.Mock(status="succeeded")
+    def test__paid_or_processing_intent__is_not_deleted(self, retrieve, cancel):
+        for status, message in (
+            ("succeeded", "The payment went through"),
+            ("processing", "The payment is still being processed"),
+        ):
+            with self.subTest(status=status):
+                retrieve.return_value = mock.Mock(status=status)
 
-        executed = self.delete(self.owner)
+                executed = self.delete(self.owner)
 
-        self.assertIn("errors", executed)
-        cancel.assert_not_called()
-        self.assertTrue(Deposit.objects.filter(pk=self.deposit.pk).exists())
+                self.assertIn(message, executed["errors"][0]["message"])
+                cancel.assert_not_called()
+                self.assertTrue(Deposit.objects.filter(pk=self.deposit.pk).exists())
 
     def test__other_user__cannot_delete(self, retrieve, cancel):
         other = UserFactory.create()
@@ -159,9 +164,13 @@ class TestStripeWebhook(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertFalse(Deposit.objects.filter(pk=deposit.pk).exists())
 
-    def test__unhandled_event__is_acknowledged(self):
+    @mock.patch("sentry_sdk.capture_message")
+    def test__unhandled_event__is_acknowledged_and_reported(self, capture_message):
         event = {"type": "customer.created", "data": {"object": {}}}
 
         response = self.post_event(event)
 
         self.assertEqual(response.status_code, 200)
+        capture_message.assert_called_once_with(
+            "Unhandled Stripe event type customer.created", level="warning"
+        )

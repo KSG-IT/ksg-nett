@@ -1203,10 +1203,14 @@ class DeleteDepositMutation(DjangoDeleteMutation):
             stripe.api_key = settings.STRIPE_SECRET_KEY
 
             intent = stripe.PaymentIntent.retrieve(obj.stripe_payment_id)
-            if intent.status in ("processing", "succeeded"):
-                # The webhook approves the deposit, deleting it would lose the money
+            # Deleting a paid deposit would lose the money, the webhook approves it
+            if intent.status == "succeeded":
                 raise IllegalOperation(
-                    "The payment is being processed and cannot be cancelled"
+                    "The payment went through. The deposit is approved in a moment"
+                )
+            if intent.status == "processing":
+                raise IllegalOperation(
+                    "The payment is still being processed. Try again in a minute"
                 )
 
             # Stripe refuses to cancel an intent that is already cancelled
