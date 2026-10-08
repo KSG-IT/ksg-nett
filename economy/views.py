@@ -14,13 +14,17 @@ from economy.forms import ExternalChargeForm
 import qrcode
 
 
-def stripe_webhook(request):
+def stripe_webhook(request, secret_setting):
+    """
+    Each Stripe webhook endpoint has its own URL and signing secret, named after
+    the API version of the endpoint. `secret_setting` comes from economy/urls.py.
+    """
     payload = request.body
     sig_header = request.headers["STRIPE_SIGNATURE"]
 
     try:
         event = stripe.Webhook.construct_event(
-            payload, sig_header, settings.STRIPE_WEBHOOK_SECRET
+            payload, sig_header, getattr(settings, secret_setting)
         )
     except ValueError as e:
         # Invalid payload
