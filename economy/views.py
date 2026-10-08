@@ -14,6 +14,22 @@ from economy.forms import ExternalChargeForm
 import qrcode
 
 
+def deposit_for_payment_intent(payment_intent_id, event_type):
+    """
+    The deposit of a payment intent, or None. Stripe also sends events for
+    payments that are not deposits, for example "Send test event" in the
+    dashboard. Those are acknowledged so Stripe does not retry them.
+    """
+    deposit = Deposit.objects.filter(stripe_payment_id=payment_intent_id).first()
+    if deposit is None:
+        sentry_sdk.capture_message(
+            f"Stripe {event_type} for payment intent {payment_intent_id} "
+            "without a deposit",
+            level="warning",
+        )
+    return deposit
+
+
 def stripe_webhook(request, secret_setting):
     """
     Each Stripe webhook endpoint has its own URL and signing secret, named after
@@ -36,8 +52,8 @@ def stripe_webhook(request, secret_setting):
     if event["type"] == "payment_intent.succeeded":
         payment_intent = event["data"]["object"]
         intent_id = payment_intent["id"]
-        deposit = Deposit.objects.get(stripe_payment_id=intent_id)
-        if deposit.approved:
+        deposit = deposit_for_payment_intent(intent_id, event["type"])
+        if deposit is None or deposit.approved:
             # Already approved. Do nothing
             return JsonResponse(data={"success": True})
 
@@ -55,9 +71,9 @@ def stripe_webhook(request, secret_setting):
         event_object = event["data"]["object"]
         payment_intent_id = event_object["payment_intent"]
 
-        deposit = Deposit.objects.get(stripe_payment_id=payment_intent_id)
+        deposit = deposit_for_payment_intent(payment_intent_id, event["type"])
 
-        if not deposit.approved:
+        if deposit is None or not deposit.approved:
             # Already invalidated. Do nothing
             return JsonResponse(data={"success": True})
 

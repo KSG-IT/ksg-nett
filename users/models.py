@@ -94,6 +94,9 @@ class User(AbstractUser):
     notify_on_deposit = models.BooleanField(default=True)
     notify_on_quote = models.BooleanField(default=False)
 
+    # Set by the first card deposit, see economy.utils.get_stripe_customer_id
+    stripe_customer_id = models.CharField(max_length=64, null=True, blank=True)
+
     def __str__(self):
         return f"{self.get_full_name()}"
 

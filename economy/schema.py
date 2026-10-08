@@ -153,7 +153,15 @@ class DepositNode(DjangoObjectType):
 
     @classmethod
     def get_node(cls, info, id):
-        return Deposit.objects.get(pk=id)
+        # The owner, or someone who approves deposits
+        user = info.context.user
+        deposit = Deposit.objects.select_related("account").filter(pk=id).first()
+        if deposit is None:
+            return None
+        is_owner = deposit.account is not None and deposit.account.user_id == user.id
+        if is_owner or user.has_perm("economy.approve_deposit"):
+            return deposit
+        return None
 
 
 def can_view_bank_account(info, account: SociBankAccount) -> bool:
@@ -758,10 +766,28 @@ class SociOrderSessionQuery(graphene.ObjectType):
         )
 
 
+class StripeDepositFeeType(graphene.ObjectType):
+    """
+    The card fee settings. The amount to pay for `x` kr on the account is
+    ceil(x / (1 - percentage_fee / 100) + flat_fee), see stripe_amount_with_fee.
+    """
+
+    flat_fee = graphene.NonNull(graphene.Int, description="In whole NOK")
+    percentage_fee = graphene.NonNull(graphene.Float)
+
+
 class StripeQuery(graphene.ObjectType):
     get_client_secret_from_deposit_id = graphene.String(
         deposit_id=graphene.ID(required=True)
     )
+    stripe_deposit_fee = graphene.NonNull(StripeDepositFeeType)
+
+    @gql_login_required()
+    def resolve_stripe_deposit_fee(self, info, *args, **kwargs):
+        return StripeDepositFeeType(
+            flat_fee=settings.STRIPE_FLAT_FEE,
+            percentage_fee=settings.STRIPE_PERCENTAGE_FEE,
+        )
 
     @gql_login_required()
     def resolve_get_client_secret_from_deposit_id(
