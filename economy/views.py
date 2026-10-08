@@ -1,3 +1,4 @@
+import sentry_sdk
 import stripe
 from django.conf import settings
 from django.db import transaction
@@ -70,10 +71,20 @@ def stripe_webhook(request):
             deposit.save()
             if deposit.account.user.notify_on_deposit:
                 send_deposit_refunded_email(deposit)
-                # Could be confusing user flow if we don't delete the deposit
-                deposit.delete()
+            # Could be confusing user flow if we don't delete the deposit
+            deposit.delete()
+
+    elif event["type"] == "payment_intent.canceled":
+        intent_id = event["data"]["object"]["id"]
+        # Without this the deposit stays as the ongoing intent and blocks new ones
+        Deposit.objects.filter(stripe_payment_id=intent_id, approved=False).delete()
+
     else:
-        raise Exception(f"Unhandled event type {event['type']}")
+        # Stripe retries a 500 for days and can disable the endpoint, so
+        # acknowledge the event and report it to Sentry instead
+        sentry_sdk.capture_message(
+            f"Unhandled Stripe event type {event['type']}", level="warning"
+        )
 
     return JsonResponse(data={"success": True})
 

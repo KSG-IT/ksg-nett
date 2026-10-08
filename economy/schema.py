@@ -403,15 +403,15 @@ class DepositQuery(graphene.ObjectType):
 
     def resolve_ongoing_deposit_intent(self, info, *args, **kwargs):
         user = info.context.user
-        try:
-            ongoing_deposit_intent = user.bank_account.deposits.get(
+        return (
+            user.bank_account.deposits.filter(
                 stripe_payment_intent_status=Deposit.StripePaymentIntentStatusOptions.CREATED,
                 approved=False,
                 deposit_method=Deposit.DepositMethod.STRIPE,
             )
-        except Deposit.DoesNotExist:
-            ongoing_deposit_intent = None
-        return ongoing_deposit_intent
+            .order_by("-created_at")
+            .first()
+        )
 
 
 class SalesGranularity(graphene.Enum):
@@ -770,7 +770,11 @@ class StripeQuery(graphene.ObjectType):
         import stripe
 
         deposit_id = disambiguate_id(deposit_id)
-        deposit = Deposit.objects.get(id=deposit_id)
+        deposit = Deposit.objects.filter(
+            id=deposit_id, account=info.context.user.bank_account
+        ).first()
+        if not deposit or not deposit.stripe_payment_id:
+            return None
 
         stripe.api_key = settings.STRIPE_SECRET_KEY
         intent = stripe.PaymentIntent.retrieve(deposit.stripe_payment_id)
@@ -1188,7 +1192,7 @@ class DeleteDepositMutation(DjangoDeleteMutation):
         user = info.context.user
 
         has_permission = user.has_perm("economy.delete_deposit")
-        is_my_deposit = obj.account = user.bank_account
+        is_my_deposit = obj.account is not None and obj.account == user.bank_account
 
         if not (has_permission or is_my_deposit):
             raise PermissionError("You do not have permission to delete this deposit")
@@ -1198,10 +1202,23 @@ class DeleteDepositMutation(DjangoDeleteMutation):
 
             stripe.api_key = settings.STRIPE_SECRET_KEY
 
-            stripe.PaymentIntent.cancel(
-                obj.stripe_payment_id,
-                cancellation_reason="requested_by_customer",
-            )
+            intent = stripe.PaymentIntent.retrieve(obj.stripe_payment_id)
+            # Deleting a paid deposit would lose the money, the webhook approves it
+            if intent.status == "succeeded":
+                raise IllegalOperation(
+                    "The payment went through. The deposit is approved in a moment"
+                )
+            if intent.status == "processing":
+                raise IllegalOperation(
+                    "The payment is still being processed. Try again in a minute"
+                )
+
+            # Stripe refuses to cancel an intent that is already cancelled
+            if intent.status != "canceled":
+                stripe.PaymentIntent.cancel(
+                    obj.stripe_payment_id,
+                    cancellation_reason="requested_by_customer",
+                )
 
         return obj
 
