@@ -309,7 +309,16 @@ WANTED_LIST_THRESHOLD = -2000
 OWES_MONEY_THRESHOLD = 0
 SOCI_GOLD = []
 STRIPE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY", None)
-STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET", None)
+# One signing secret per webhook endpoint, named after its API version. The
+# endpoint for 2022-11-15 keeps the old environment variable name. Remove it
+# and its URL in economy/urls.py when that endpoint is disabled in Stripe
+STRIPE_WEBHOOK_SECRET_2022_11_15 = os.environ.get("STRIPE_WEBHOOK_SECRET", None)
+STRIPE_WEBHOOK_SECRET_2026_08_26 = os.environ.get(
+    "STRIPE_WEBHOOK_SECRET_2026_08_26", None
+)
+# Keep in sync with the stripe package. The webhook endpoint in the Stripe
+# dashboard has its own API version, set when the endpoint is created
+STRIPE_API_VERSION = "2026-08-26.dahlia"
 STRIPE_FLAT_FEE = 2  # in NOK
 STRIPE_PERCENTAGE_FEE = 2.4
 

@@ -1,8 +1,10 @@
 import json
 from unittest import mock
 
+import stripe
+
 from addict import Dict
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from graphene import Node
 from graphene.test import Client
 
@@ -122,14 +124,34 @@ class TestStripeWebhook(TestCase):
         self.owner = UserFactory.create(notify_on_deposit=False)
         self.account = SociBankAccountFactory.create(user=self.owner, balance=200)
 
-    def post_event(self, event):
-        with mock.patch("stripe.Webhook.construct_event", return_value=event):
-            return self.client.post(
-                "/economy/stripe-webhook",
+    def post_event(self, event, url="/economy/stripe-webhook/2026-08-26"):
+        # A real Event, so the handlers see what stripe.Webhook returns
+        stripe_event = stripe.Event.construct_from(event, "sk_test")
+        with mock.patch(
+            "stripe.Webhook.construct_event", return_value=stripe_event
+        ) as construct_event:
+            response = self.client.post(
+                url,
                 data=json.dumps(event),
                 content_type="application/json",
                 HTTP_STRIPE_SIGNATURE="signature",
             )
+        self.construct_event = construct_event
+        return response
+
+    @override_settings(
+        STRIPE_WEBHOOK_SECRET_2022_11_15="whsec_old",
+        STRIPE_WEBHOOK_SECRET_2026_08_26="whsec_new",
+    )
+    def test__each_endpoint__checks_its_own_secret(self):
+        event = {"type": "customer.created", "data": {"object": {}}}
+        for url, secret in (
+            ("/economy/stripe-webhook", "whsec_old"),
+            ("/economy/stripe-webhook/2026-08-26", "whsec_new"),
+        ):
+            with self.subTest(url=url):
+                self.assertEqual(self.post_event(event, url).status_code, 200)
+                self.assertEqual(self.construct_event.call_args.args[2], secret)
 
     def test__refund__deletes_deposit_without_notify(self):
         deposit = stripe_deposit(self.account, approved=True)

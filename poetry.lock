@@ -2177,18 +2177,22 @@ doc = ["furo", "sphinx"]
 
 [[package]]
 name = "stripe"
-version = "5.5.0"
+version = "15.6.1"
 description = "Python bindings for the Stripe API"
 optional = false
-python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
+python-versions = ">=3.9"
 groups = ["main"]
 files = [
-    {file = "stripe-5.5.0-py2.py3-none-any.whl", hash = "sha256:b4947da66dbb3de8969004ba6398f9a019c6b1b3ffe6aa88d5b07ac560a52b28"},
-    {file = "stripe-5.5.0.tar.gz", hash = "sha256:04a9732b37a46228ecf0e496163a3edd93596b0e6200029fbc48911638627e19"},
+    {file = "stripe-15.6.1-py3-none-any.whl", hash = "sha256:b33e1ea76462d7289e5fe755a1132b82099151bfb31e961021655471e6d216bf"},
+    {file = "stripe-15.6.1.tar.gz", hash = "sha256:9f3986aa960419041aba9c76191746bdf2c342c95892acfbf6edb500ab006d31"},
 ]
 
 [package.dependencies]
-requests = {version = ">=2.20", markers = "python_version >= \"3.0\""}
+requests = ">=2.20"
+typing_extensions = ">=4.7.0"
+
+[package.extras]
+async = ["httpx"]
 
 [[package]]
 name = "text-unidecode"
@@ -2599,4 +2603,4 @@ test = ["pytest"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.11,<3.14"
-content-hash = "8d101e303ea9e14389037fb601dcc4587b0a21935218cbb9a7cdc47581a5d23c"
+content-hash = "6bf5fa8c4215b96af5c237f8fcb58e1cf5cbbefe1675693a7b895afd2f4f23b1"
