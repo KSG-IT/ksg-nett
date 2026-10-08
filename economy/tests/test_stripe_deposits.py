@@ -354,3 +354,16 @@ class TestAllDepositsWithoutStripe(TestCase):
 
         ids = [e["node"]["id"] for e in executed["data"]["allDeposits"]["edges"]]
         self.assertEqual(ids, [Node.to_global_id("DepositNode", bank.pk)])
+
+
+@override_settings(STRIPE_SECRET_KEY="sk_test")
+@mock.patch("stripe.PaymentIntent.create")
+class TestCardPaymentIntent(TestCase):
+    def test__asks_the_bank_for_a_3ds_challenge(self, intent_create):
+        from economy.utils import stripe_create_payment_intent
+
+        user = UserFactory.create(stripe_customer_id="cus_stored")
+        stripe_create_payment_intent(200, customer=user)
+
+        options = intent_create.call_args.kwargs["payment_method_options"]
+        self.assertEqual(options["card"]["request_three_d_secure"], "challenge")

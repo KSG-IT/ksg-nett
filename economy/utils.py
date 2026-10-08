@@ -236,6 +236,12 @@ def stripe_amount_with_fee(amount):
     return math.ceil(amount / (1 - percentage_fee) + settings.STRIPE_FLAT_FEE)
 
 
+# "challenge" asks the bank for active authentication (BankID, the bank app).
+# With "any" Stripe prefers a frictionless 3D Secure, and Norwegian banks then
+# declined the charge with authentication_required (production, 2026-10-08).
+CARD_PAYMENT_METHOD_OPTIONS = {"card": {"request_three_d_secure": "challenge"}}
+
+
 def stripe_create_payment_intent(amount, customer=None, charge_saved_card=False):
     import stripe
 
@@ -266,17 +272,14 @@ def stripe_create_payment_intent(amount, customer=None, charge_saved_card=False)
             currency="nok",
             automatic_payment_methods={"enabled": True},
             customer=customer_id,
-            payment_method_options={
-                "card": {
-                    "request_three_d_secure": "any",
-                }
-            },
+            payment_method_options=CARD_PAYMENT_METHOD_OPTIONS,
         )
     else:
         intent = stripe.PaymentIntent.create(
             amount=amount_including_fees_in_smallest_currency,
             currency="nok",
             automatic_payment_methods={"enabled": True},
+            payment_method_options=CARD_PAYMENT_METHOD_OPTIONS,
         )
     return intent, amount_including_fees_in_nok
 
