@@ -325,3 +325,32 @@ class TestDepositNodeAccess(TestCase):
 
     def test__other_user__gets_null(self):
         self.assertIsNone(self.deposit_for(UserFactory.create()))
+
+
+class TestAllDepositsWithoutStripe(TestCase):
+    def test__approval_list__leaves_out_card_deposits(self):
+        account = SociBankAccountFactory.create(user=UserFactory.create())
+        stripe_deposit(account)
+        bank = DepositFactory.create(
+            account=account,
+            deposit_method=Deposit.DepositMethod.BANK_TRANSFER,
+            approved=False,
+            approved_by=None,
+        )
+        approver = UserWithPermissionsFactory.create(
+            permissions="economy.approve_deposit"
+        )
+
+        executed = Client(schema).execute(
+            """
+            query {
+              allDeposits(q: "", unverifiedOnly: true) {
+                edges { node { id } }
+              }
+            }
+            """,
+            context=Dict(user=approver),
+        )
+
+        ids = [e["node"]["id"] for e in executed["data"]["allDeposits"]["edges"]]
+        self.assertEqual(ids, [Node.to_global_id("DepositNode", bank.pk)])
