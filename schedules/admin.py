@@ -11,6 +11,10 @@ from schedules.models import (
     ShiftInterest,
     ScheduleRoster,
     ScheduleRosterGrouping,
+    PlanningPeriod,
+    UserUnavailability,
+    ScheduleAutofillRun,
+    ShiftSlotDraft,
 )
 
 USER_SEARCH_FIELDS = ("user__username", "user__first_name", "user__last_name")
@@ -171,3 +175,51 @@ class ScheduleRosterGroupingAdmin(admin.ModelAdmin):
 
 
 admin.site.register(ScheduleRosterGrouping, ScheduleRosterGroupingAdmin)
+
+
+class PlanningPeriodAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "schedule",
+        "date_from",
+        "date_to",
+        "deadline",
+        "published_at",
+        "reminder_sent_at",
+    )
+    list_select_related = ("schedule",)
+    list_filter = ("schedule",)
+    search_fields = ("schedule__name",)
+    date_hierarchy = "date_from"
+    autocomplete_fields = ("created_by",)
+
+
+class UserUnavailabilityAdmin(admin.ModelAdmin):
+    list_display = ("id", "user", "day", "time_start", "time_end", "note")
+    list_select_related = ("user",)
+    list_filter = ("day",)
+    search_fields = USER_SEARCH_FIELDS + ("note",)
+    autocomplete_fields = ("user",)
+
+
+class ScheduleAutofillRunAdmin(admin.ModelAdmin):
+    list_display = ("id", "period", "created_by", "created_at")
+    list_select_related = ("period__schedule", "created_by")
+    list_filter = ("period__schedule",)
+    search_fields = ("period__schedule__name",)
+    autocomplete_fields = ("created_by",)
+    readonly_fields = ("created_at",)
+
+
+class ShiftSlotDraftAdmin(admin.ModelAdmin):
+    list_display = ("id", "slot", "user", "changed_by", "changed_at", "autofill_run")
+    list_select_related = ("slot__shift__schedule", "user", "changed_by")
+    list_filter = ("slot__shift__schedule",)
+    search_fields = USER_SEARCH_FIELDS
+    autocomplete_fields = ("slot", "user", "changed_by", "autofill_run")
+
+
+admin.site.register(PlanningPeriod, PlanningPeriodAdmin)
+admin.site.register(UserUnavailability, UserUnavailabilityAdmin)
+admin.site.register(ScheduleAutofillRun, ScheduleAutofillRunAdmin)
+admin.site.register(ShiftSlotDraft, ShiftSlotDraftAdmin)
