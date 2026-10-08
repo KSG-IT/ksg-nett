@@ -70,10 +70,15 @@ def stripe_webhook(request):
             deposit.save()
             if deposit.account.user.notify_on_deposit:
                 send_deposit_refunded_email(deposit)
-                # Could be confusing user flow if we don't delete the deposit
-                deposit.delete()
-    else:
-        raise Exception(f"Unhandled event type {event['type']}")
+            # Could be confusing user flow if we don't delete the deposit
+            deposit.delete()
+
+    elif event["type"] == "payment_intent.canceled":
+        intent_id = event["data"]["object"]["id"]
+        # Without this the deposit stays as the ongoing intent and blocks new ones
+        Deposit.objects.filter(stripe_payment_id=intent_id, approved=False).delete()
+
+    # Other event types are acknowledged so Stripe does not retry them
 
     return JsonResponse(data={"success": True})
 
