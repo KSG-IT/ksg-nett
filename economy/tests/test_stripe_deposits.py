@@ -367,3 +367,32 @@ class TestCardPaymentIntent(TestCase):
 
         options = intent_create.call_args.kwargs["payment_method_options"]
         self.assertEqual(options["card"]["request_three_d_secure"], "challenge")
+
+
+@mock.patch("stripe.CustomerSession.create")
+class TestCustomerSession(TestCase):
+    def setUp(self) -> None:
+        self.user = UserFactory.create(stripe_customer_id="cus_stored")
+
+    def client_secret(self):
+        executed = Client(schema).execute(
+            "{ stripeCustomerSessionClientSecret }", context=Dict(user=self.user)
+        )
+        return executed["data"]["stripeCustomerSessionClientSecret"]
+
+    def test__saves_and_shows_cards_on_session(self, session_create):
+        session_create.return_value = mock.Mock(client_secret="cuss_secret")
+
+        self.assertEqual(self.client_secret(), "cuss_secret")
+        kwargs = session_create.call_args.kwargs
+        self.assertEqual(kwargs["customer"], "cus_stored")
+        features = kwargs["components"]["payment_element"]["features"]
+        self.assertEqual(features["payment_method_save_usage"], "on_session")
+        self.assertEqual(features["payment_method_redisplay"], "enabled")
+
+    def test__stripe_error__gives_null_and_reports(self, session_create):
+        session_create.side_effect = stripe.StripeError("down")
+
+        with mock.patch("sentry_sdk.capture_exception") as capture_exception:
+            self.assertIsNone(self.client_secret())
+        capture_exception.assert_called_once()
