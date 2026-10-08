@@ -16,6 +16,4 @@ class SensorMeasurement(models.Model):
         return f"{self.get_type_display()} measurement"
 
     class Meta:
-        indexes = [
-            models.Index(fields=['created_at'])
-        ]
+        indexes = [models.Index(fields=["created_at"])]

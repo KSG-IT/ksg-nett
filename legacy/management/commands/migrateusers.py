@@ -21,7 +21,7 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS("Migrating legacy users to new table"))
         self.stdout.write(self.style.SUCCESS(f"Migrating {len(legacy_users)} users"))
         with transaction.atomic():
-            for (_, user) in enumerate(legacy_users):
+            for _, user in enumerate(legacy_users):
                 self.stdout.write(self.style.SUCCESS(f"Migrating user: {user.navn}"))
 
                 stripped_name = strip_chars_from_string(

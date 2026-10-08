@@ -20,7 +20,7 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS("Migrating legacy quotes to new table"))
         self.stdout.write(self.style.SUCCESS(f"Migrating {len(legacy_quotes)} quotes"))
 
-        for (_, quote) in enumerate(legacy_quotes):
+        for _, quote in enumerate(legacy_quotes):
             with transaction.atomic():
                 self.stdout.write(self.style.SUCCESS(f"Migrerer sitat: {quote.tekst}"))
                 # make quote.tid timezone aware

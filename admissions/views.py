@@ -45,14 +45,14 @@ def download_callsheet_workbook(request):
     for index, parsed_applicant in enumerate(parsed_applicants):
         ws.cell(index + 2, 1).value = parsed_applicant.full_name
         ws.cell(index + 2, 2).value = parsed_applicant.phone
-        ws.cell(
-            index + 2, 3
-        ).value = parsed_applicant.offered_internal_group_position_name
+        ws.cell(index + 2, 3).value = (
+            parsed_applicant.offered_internal_group_position_name
+        )
         ws.cell(index + 2, 4).value = parsed_applicant.applicant_priority
 
     response = HttpResponse(content_type="application/ms-excel")
-    response[
-        "Content-Disposition"
-    ] = f"attachment; filename=Ringeliste KSG - {admission.semester}.xlsx"
+    response["Content-Disposition"] = (
+        f"attachment; filename=Ringeliste KSG - {admission.semester}.xlsx"
+    )
     wb.save(response)
     return response

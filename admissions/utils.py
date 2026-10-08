@@ -229,19 +229,16 @@ def generate_interviews_from_schedule(schedule):
 
 
 def send_applicant_notice_email(applicant):
-    content = _(
-        f"""
+    content = _(f"""
                 Hei!
                 
                 Vi ser at du har søkt KSG og det har gått litt tid siden vi sist
                 har hørt fra deg. 
     
                 Lenke: {settings.APP_URL}/applicant-portal/{applicant.token}
-                """
-    )
+                """)
 
-    html_content = _(
-        f"""
+    html_content = _(f"""
             Hei!
             <br />
             <br />                
@@ -251,8 +248,7 @@ def send_applicant_notice_email(applicant):
             <br />
             <span>{settings.APP_URL}/applicant-portal/{applicant.token}</span>
             <br />
-        """
-    )
+        """)
 
     return send_email(
         _("Intervju KSG"),
@@ -269,18 +265,15 @@ def mass_send_welcome_to_interview_email(emails):
     timeouts and slow performance. The applicant can then instead request to be sent their
     custom auth token from the portal itself.
     """
-    content = _(
-        f"""
+    content = _(f"""
                             Hei og takk for at du søker KSG!
             
                             Trykk på denne linken for å få tilsendt innloggingsinformasjon.
             
                             Lenke: {settings.APP_URL}/applicant-portal
-                            """
-    )
+                            """)
 
-    html_content = _(
-        f"""
+    html_content = _(f"""
             Hei og takk for at du søker KSG!
             <br />
             <br />
@@ -288,8 +281,7 @@ def mass_send_welcome_to_interview_email(emails):
             <br />
             {settings.APP_URL}/applicant-portal
             <br />
-        """
-    )
+        """)
 
     return send_email(
         _("Intervju KSG"),
@@ -301,8 +293,7 @@ def mass_send_welcome_to_interview_email(emails):
 
 
 def send_welcome_to_interview_email(email: str, auth_token: str):
-    content = _(
-        f"""
+    content = _(f"""
             Hei og velkommen til intervju hos KSG!
             
             Du får nå silsendt en lenke som lar deg registrere personlige opplysninger,
@@ -312,11 +303,9 @@ def send_welcome_to_interview_email(email: str, auth_token: str):
             Trykk på denne linken for å registrere søknaden videre
         
             Lenke: {settings.APP_URL}/applicant-portal/{auth_token}
-            """
-    )
+            """)
 
-    html_content = _(
-        f"""
+    html_content = _(f"""
             Hei og velkommen til intervju hos KSG! 
             <br />
             <br />
@@ -326,8 +315,7 @@ def send_welcome_to_interview_email(email: str, auth_token: str):
             <br />
             {settings.APP_URL}/applicant-portal/{auth_token}
             <br />
-            """
-    )
+            """)
 
     return send_email(
         _("Intervju KSG"),
@@ -338,26 +326,22 @@ def send_welcome_to_interview_email(email: str, auth_token: str):
 
 
 def resend_auth_token_email(applicant):
-    content = _(
-        f"""
+    content = _(f"""
             Hei og velkommen til KSG sin søkerportal! 
     
             Trykk på denne linken for å registrere søknaden videre, eller se intervjutiden din.
     
             Lenke: {settings.APP_URL}/applicant-portal/{applicant.token}
-            """
-    )
+            """)
 
-    html_content = _(
-        f"""
+    html_content = _(f"""
                 Hei og velkommen til KSG sin søkerportal! 
                 <br />
                 Trykk på denne linken for å registrere søknaden videre, eller se intervjutiden din.
                 <br />
                 {settings.APP_URL}/applicant-portal/{applicant.token}
                 <br />
-            """
-    )
+            """)
 
     return send_email(
         _("KSG søkerportal"),
@@ -368,26 +352,22 @@ def resend_auth_token_email(applicant):
 
 
 def send_new_interview_mail(applicant):
-    content = _(
-        f"""
+    content = _(f"""
                 Hei!
                 
                 Du har fått en ny intervjutid hos KSG. 
                 
                 Lenke: {settings.APP_URL}/applicant-portal/{applicant.token}
-            """
-    )
+            """)
 
-    html_content = _(
-        f"""
+    html_content = _(f"""
                 Hei!
                 <br />
                 Du har fått en ny intervjutid hos KSG. 
                 <br />
                 {settings.APP_URL}/applicant-portal/{applicant.token}
                 <br />
-            """
-    )
+            """)
 
     return send_email(
         _("Oppdatert intervju KSG"),
@@ -398,23 +378,19 @@ def send_new_interview_mail(applicant):
 
 
 def send_interview_cancelled_email(applicant):
-    content = _(
-        """
+    content = _("""
             Hei!
             
             Ditt intervju hos KSG har blitt kansellert. 
             
-            """
-    )
+            """)
 
-    html_content = _(
-        """
+    html_content = _("""
             Hei!
             <br />
             Ditt intervju hos KSG har blitt kansellert. 
             <br />
-            """
-    )
+            """)
 
     return send_email(
         _("Kansellert intervju KSG"),
@@ -435,8 +411,7 @@ def notify_interviewers_applicant_has_been_moved_to_another_interview_email(
     )
     formatted_local_time = local_time.strftime("%d.%m.%Y kl. %H:%M")
     content = (
-        _(
-            """
+        _("""
                 Hei!
                 
                 %(name)s sitt intervju har blitt flyttet
@@ -447,8 +422,7 @@ def notify_interviewers_applicant_has_been_moved_to_another_interview_email(
                 %(interview_location)s
                 %(interview_time)s
                 
-                """
-        )
+                """)
         % {
             "name": applicant_fullname,
             "interview_location": interview_location_name,
@@ -457,8 +431,7 @@ def notify_interviewers_applicant_has_been_moved_to_another_interview_email(
     )
 
     html_content = (
-        _(
-            """
+        _("""
                 Hei!
                 <br />
                 %(name)s sitt intervju har blitt flyttet
@@ -472,8 +445,7 @@ def notify_interviewers_applicant_has_been_moved_to_another_interview_email(
                 %(interview_time)s
                 <br />
                 
-                """
-        )
+                """)
         % {
             "name": applicant_fullname,
             "interview_location": interview_location_name,
@@ -498,8 +470,7 @@ def notify_interviewers_cancelled_interview_email(applicant, interview):
     interview_location = interview.location.name
     formatted_local_time = local_time.strftime("%d.%m.%Y kl. %H:%M")
     content = (
-        _(
-            """
+        _("""
                 Hei!
                 
                 %(name)s har kansellert sitt intervju hos KSG. 
@@ -510,8 +481,7 @@ def notify_interviewers_cancelled_interview_email(applicant, interview):
                 %(interview_location)s
                 %(interview_time)s
                 
-                """
-        )
+                """)
         % {
             "name": name,
             "interview_location": interview_location,
@@ -520,8 +490,7 @@ def notify_interviewers_cancelled_interview_email(applicant, interview):
     )
 
     html_content = (
-        _(
-            """
+        _("""
                 Hei!
                 <br />
                 %(name)s har kansellert sitt intervju hos KSG. 
@@ -535,8 +504,7 @@ def notify_interviewers_cancelled_interview_email(applicant, interview):
                 %(interview_time)s
                 <br />
                 
-                """
-        )
+                """)
         % {
             "name": name,
             "interview_location": interview_location,
@@ -563,8 +531,7 @@ def notify_interviewers_applicant_has_been_removed_from_interview_email(
     interview_location = interview.location.name
     formatted_local_time = local_time.strftime("%d.%m.%Y kl. %H:%M")
     content = (
-        _(
-            """
+        _("""
                 Hei!
                 
                 %(name)s har blitt fjernet fra sitt intervju hos KSG. 
@@ -575,8 +542,7 @@ def notify_interviewers_applicant_has_been_removed_from_interview_email(
                 %(interview_location)s
                 %(interview_time)s
                 
-                """
-        )
+                """)
         % {
             "name": name,
             "interview_location": interview_location,
@@ -585,8 +551,7 @@ def notify_interviewers_applicant_has_been_removed_from_interview_email(
     )
 
     html_content = (
-        _(
-            """
+        _("""
                 Hei!
                 <br />
                 %(name)s har blitt fjernet fra sitt intervju hos KSG. 
@@ -600,8 +565,7 @@ def notify_interviewers_applicant_has_been_removed_from_interview_email(
                 %(interview_time)s
                 <br />
                 
-                """
-        )
+                """)
         % {
             "name": name,
             "interview_location": interview_location,
@@ -628,8 +592,7 @@ def send_interview_confirmation_email(interview):
     interview_location = interview.location.name
     formatted_local_time = local_time.strftime("%d.%m.%Y kl. %H:%M")
     content = (
-        _(
-            """
+        _("""
             Hei!
             
             Så gøy at du vil på intervju hos KSG:)
@@ -646,8 +609,7 @@ def send_interview_confirmation_email(interview):
             kan se bort fra beskjed om å møte opp ved glaassinngangen.
 
             Om du har noen spørsmål, send en mail til ksg-opptak@samfundet.no 
-            """
-        )
+            """)
         % {
             "name": name,
             "interview_location": interview_location,
@@ -656,8 +618,7 @@ def send_interview_confirmation_email(interview):
     )
 
     html_content = (
-        _(
-            """
+        _("""
             Hei!
             <br />
             Dette er en bekreftelse på at du har fått et intervju hos KSG.
@@ -681,8 +642,7 @@ def send_interview_confirmation_email(interview):
             <br />
             
             
-            """
-        )
+            """)
         % {
             "name": name,
             "interview_location": interview_location,

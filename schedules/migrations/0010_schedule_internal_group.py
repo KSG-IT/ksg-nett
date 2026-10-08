@@ -7,14 +7,20 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('organization', '0003_auto_20230110_1123'),
-        ('schedules', '0009_shiftinterest_interest_type'),
+        ("organization", "0003_auto_20230110_1123"),
+        ("schedules", "0009_shiftinterest_interest_type"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='schedule',
-            name='internal_group',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='schedules', to='organization.internalgroup'),
+            model_name="schedule",
+            name="internal_group",
+            field=models.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                related_name="schedules",
+                to="organization.internalgroup",
+            ),
         ),
     ]

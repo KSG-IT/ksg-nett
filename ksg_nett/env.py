@@ -14,7 +14,6 @@ def required_secret(name, min_length=32):
         raise ImproperlyConfigured(f"Set the {name} environment variable.")
     if len(value) < min_length:
         raise ImproperlyConfigured(
-            f"{name} must be at least {min_length} characters, "
-            f"not {len(value)}."
+            f"{name} must be at least {min_length} characters, " f"not {len(value)}."
         )
     return value

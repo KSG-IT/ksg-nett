@@ -116,7 +116,9 @@ class TestGenerateActiveAdmission(TestCase):
         self.assertTrue(Admission.objects.filter(id=closed.id).exists())
         self.assertTrue(Applicant.objects.filter(id=old_applicant.id).exists())
         self.assertTrue(Interview.objects.filter(id=old_interview.id).exists())
-        self.assertEqual(Admission.objects.exclude(status=AdmissionStatus.CLOSED).count(), 1)
+        self.assertEqual(
+            Admission.objects.exclude(status=AdmissionStatus.CLOSED).count(), 1
+        )
         self.assertEqual(Applicant.objects.exclude(admission=closed).count(), 20)
 
     def test__missing_positions__raises_command_error(self):

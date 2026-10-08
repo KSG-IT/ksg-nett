@@ -6,13 +6,21 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('schedules', '0008_alter_shift_location_alter_shifttemplate_location'),
+        ("schedules", "0008_alter_shift_location_alter_shifttemplate_location"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='shiftinterest',
-            name='interest_type',
-            field=models.CharField(choices=[('interested', 'Interested'), ('available', 'Available'), ('unavailable', 'Unavailable')], default='interested', max_length=12),
+            model_name="shiftinterest",
+            name="interest_type",
+            field=models.CharField(
+                choices=[
+                    ("interested", "Interested"),
+                    ("available", "Available"),
+                    ("unavailable", "Unavailable"),
+                ],
+                default="interested",
+                max_length=12,
+            ),
         ),
     ]

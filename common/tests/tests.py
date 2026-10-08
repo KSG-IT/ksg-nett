@@ -30,12 +30,10 @@ class TestGetSemesterYearShortHand(TestCase):
 
 class TestGetSemesterYearShortHandFilter(TestCase):
     def setUp(self):
-        self.template = Template(
-            """
+        self.template = Template("""
             {% load ksg_helpers %} 
             {{ timestamp | get_semester_year_shorthand }}
-        """
-        )
+        """)
 
     def test_get_semester_year_shorthand_filter__timestamp_in_spring__returns_v_prefix_and_correct_year(
         self,
@@ -84,12 +82,10 @@ class TestGetSemesterYearShortHand(TestCase):
 
 class TestGetSemesterYearShortHandFilter(TestCase):
     def setUp(self):
-        self.template = Template(
-            """
+        self.template = Template("""
             {% load ksg_helpers %} 
             {{ timestamp | get_semester_year_shorthand }}
-        """
-        )
+        """)
 
     def test_get_semester_year_shorthand_filter__timestamp_in_spring__returns_v_prefix_and_correct_year(
         self,

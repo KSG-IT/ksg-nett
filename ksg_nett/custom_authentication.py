@@ -15,11 +15,17 @@ class UsernameOrEmailAuthenticationBackend(ModelBackend):
     # noinspection PyPep8Naming
     def authenticate(self, _request, username=None, password=None, **_kwargs):
         try:
-            user = User.objects.get(Q(username__iexact=username) | Q(email__iexact=username))
+            user = User.objects.get(
+                Q(username__iexact=username) | Q(email__iexact=username)
+            )
         except User.DoesNotExist:
             return None
 
-        return user if self.user_can_authenticate(user) and user.check_password(password) else None
+        return (
+            user
+            if self.user_can_authenticate(user) and user.check_password(password)
+            else None
+        )
 
 
 class CardNumberAuthentication(BaseAuthentication):
@@ -37,7 +43,9 @@ class CardNumberAuthentication(BaseAuthentication):
         """
 
         try:
-            user = User.objects.get(bank_account__card_uuid=request.data.get('card_uuid'), is_active=True)
+            user = User.objects.get(
+                bank_account__card_uuid=request.data.get("card_uuid"), is_active=True
+            )
         except User.DoesNotExist:
             raise AuthenticationFailed
 

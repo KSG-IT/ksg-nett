@@ -6,18 +6,18 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('organization', '0002_initial'),
+        ("organization", "0002_initial"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='internalgroupuserhighlight',
-            name='occupation',
-            field=models.CharField(blank=True, default='', max_length=32),
+            model_name="internalgroupuserhighlight",
+            name="occupation",
+            field=models.CharField(blank=True, default="", max_length=32),
         ),
         migrations.AlterField(
-            model_name='internalgroupuserhighlight',
-            name='description',
+            model_name="internalgroupuserhighlight",
+            name="description",
             field=models.TextField(blank=True, max_length=1024, null=True),
         ),
     ]

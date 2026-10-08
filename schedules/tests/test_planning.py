@@ -287,9 +287,9 @@ class TestPlanningQueries(PlanningTestCase):
         )
 
     def test__my_open_planning_periods__returns_opt_in_default(self):
-        ScheduleRoster.objects.filter(
-            schedule=self.schedule, user=self.anna
-        ).update(default_availability=DefaultAvailability.OPT_IN)
+        ScheduleRoster.objects.filter(schedule=self.schedule, user=self.anna).update(
+            default_availability=DefaultAvailability.OPT_IN
+        )
         executed = self.execute(
             "{ myOpenPlanningPeriods { myDefaultAvailability } }",
             user=self.anna,
@@ -302,14 +302,12 @@ class TestPlanningQueries(PlanningTestCase):
     def test__my_default_availability__is_null_for_a_non_member(self):
         guest = UserFactory.create()
         executed = self.execute(
-            "{ planningPeriod(id: \"%s\") { myDefaultAvailability } }"
+            '{ planningPeriod(id: "%s") { myDefaultAvailability } }'
             % to_global_id("PlanningPeriodNode", self.period.pk),
             user=guest,
         )
         self.assertNotIn("errors", executed)
-        self.assertIsNone(
-            executed["data"]["planningPeriod"]["myDefaultAvailability"]
-        )
+        self.assertIsNone(executed["data"]["planningPeriod"]["myDefaultAvailability"])
 
     def test__my_open_planning_periods__leaves_out_closed_periods(self):
         self.period.deadline = timezone.now() - datetime.timedelta(minutes=1)

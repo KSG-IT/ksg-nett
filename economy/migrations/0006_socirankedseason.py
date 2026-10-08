@@ -8,17 +8,28 @@ class Migration(migrations.Migration):
 
     dependencies = [
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
-        ('economy', '0005_stockmarketcrash'),
+        ("economy", "0005_stockmarketcrash"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='SociRankedSeason',
+            name="SociRankedSeason",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('season_start_date', models.DateField()),
-                ('season_end_date', models.DateField(blank=True, default=None, null=True)),
-                ('participants', models.ManyToManyField(to=settings.AUTH_USER_MODEL)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("season_start_date", models.DateField()),
+                (
+                    "season_end_date",
+                    models.DateField(blank=True, default=None, null=True),
+                ),
+                ("participants", models.ManyToManyField(to=settings.AUTH_USER_MODEL)),
             ],
         ),
     ]

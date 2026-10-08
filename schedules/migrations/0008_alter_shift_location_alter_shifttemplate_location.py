@@ -6,18 +6,58 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('schedules', '0007_auto_20230426_2317'),
+        ("schedules", "0007_auto_20230426_2317"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='shift',
-            name='location',
-            field=models.CharField(blank=True, choices=[('EDGAR', 'Edgar'), ('BODEGAEN', 'Bodegaen'), ('RUNDHALLEN', 'Rundhallen'), ('KLUBBEN', 'Klubben'), ('LYCHE_BAR', 'Lyche Bar'), ('LYCHE_KJOKKEN', 'Lyche Kjøkken'), ('STORSALEN', 'Storsalen'), ('SELSKAPSSIDEN', 'Selskapssiden'), ('SERVERING_C', 'Servering C'), ('SERVERING_D', 'Servering D'), ('SERVERING_K', 'Servering K'), ('STROSSA', 'Strossa'), ('DAGLIGHALLEN_BAR', 'Daglighallen Bar'), ('KONTORET', 'Kontoret')], max_length=64, null=True),
+            model_name="shift",
+            name="location",
+            field=models.CharField(
+                blank=True,
+                choices=[
+                    ("EDGAR", "Edgar"),
+                    ("BODEGAEN", "Bodegaen"),
+                    ("RUNDHALLEN", "Rundhallen"),
+                    ("KLUBBEN", "Klubben"),
+                    ("LYCHE_BAR", "Lyche Bar"),
+                    ("LYCHE_KJOKKEN", "Lyche Kjøkken"),
+                    ("STORSALEN", "Storsalen"),
+                    ("SELSKAPSSIDEN", "Selskapssiden"),
+                    ("SERVERING_C", "Servering C"),
+                    ("SERVERING_D", "Servering D"),
+                    ("SERVERING_K", "Servering K"),
+                    ("STROSSA", "Strossa"),
+                    ("DAGLIGHALLEN_BAR", "Daglighallen Bar"),
+                    ("KONTORET", "Kontoret"),
+                ],
+                max_length=64,
+                null=True,
+            ),
         ),
         migrations.AlterField(
-            model_name='shifttemplate',
-            name='location',
-            field=models.CharField(blank=True, choices=[('EDGAR', 'Edgar'), ('BODEGAEN', 'Bodegaen'), ('RUNDHALLEN', 'Rundhallen'), ('KLUBBEN', 'Klubben'), ('LYCHE_BAR', 'Lyche Bar'), ('LYCHE_KJOKKEN', 'Lyche Kjøkken'), ('STORSALEN', 'Storsalen'), ('SELSKAPSSIDEN', 'Selskapssiden'), ('SERVERING_C', 'Servering C'), ('SERVERING_D', 'Servering D'), ('SERVERING_K', 'Servering K'), ('STROSSA', 'Strossa'), ('DAGLIGHALLEN_BAR', 'Daglighallen Bar'), ('KONTORET', 'Kontoret')], max_length=64, null=True),
+            model_name="shifttemplate",
+            name="location",
+            field=models.CharField(
+                blank=True,
+                choices=[
+                    ("EDGAR", "Edgar"),
+                    ("BODEGAEN", "Bodegaen"),
+                    ("RUNDHALLEN", "Rundhallen"),
+                    ("KLUBBEN", "Klubben"),
+                    ("LYCHE_BAR", "Lyche Bar"),
+                    ("LYCHE_KJOKKEN", "Lyche Kjøkken"),
+                    ("STORSALEN", "Storsalen"),
+                    ("SELSKAPSSIDEN", "Selskapssiden"),
+                    ("SERVERING_C", "Servering C"),
+                    ("SERVERING_D", "Servering D"),
+                    ("SERVERING_K", "Servering K"),
+                    ("STROSSA", "Strossa"),
+                    ("DAGLIGHALLEN_BAR", "Daglighallen Bar"),
+                    ("KONTORET", "Kontoret"),
+                ],
+                max_length=64,
+                null=True,
+            ),
         ),
     ]
