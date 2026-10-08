@@ -390,11 +390,14 @@ class DepositQuery(graphene.ObjectType):
     @gql_has_permissions("economy.approve_deposit")
     def resolve_all_deposits(self, info, q, unverified_only, *args, **kwargs):
         # ToDo implement user fullname search filtering
+        # Card deposits are approved by the Stripe webhook and refunded in
+        # Stripe, so the approval page does not show them
         return (
             Deposit.objects.filter(
                 account__user__first_name__contains=q,
                 approved=not unverified_only,
             )
+            .exclude(deposit_method=Deposit.DepositMethod.STRIPE)
             .order_by("-created_at")
             .prefetch_related("account__user", "approved_by")
         )
