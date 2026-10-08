@@ -19,7 +19,59 @@ concurrency:
 permissions:
   contents: read
 
+env:
+  POETRY_VERSION: "2.3.2"
+
 jobs:
+  lint:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install poetry
+        run: pipx install poetry==${{ env.POETRY_VERSION }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+          cache: poetry
+
+      # black does not import the code, so the dev group is enough
+      - name: Install dev dependencies
+        run: poetry install --no-interaction --only dev --no-root
+
+      - name: Check formatting
+        run: poetry run black --check --diff .
+
+  migrations:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install poetry
+        run: pipx install poetry==${{ env.POETRY_VERSION }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+          cache: poetry
+
+      - name: Install Weasyprint system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y \
+            libpango-1.0-0 libpangoft2-1.0-0 libharfbuzz-subset0
+
+      - name: Install dependencies
+        run: poetry install --no-interaction
+
+      - name: Check for missing migrations
+        run: poetry run python manage.py makemigrations --check --dry-run
+
   test:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
@@ -28,8 +80,6 @@ jobs:
       matrix:
         # 3.11 is the production version. 3.13 is the Python of Debian 13.
         python-version: ["3.11", "3.13"]
-    env:
-      POETRY_VERSION: "2.3.2"
     steps:
       - uses: actions/checkout@v7
 
@@ -50,12 +100,6 @@ jobs:
 
       - name: Install dependencies
         run: poetry install --no-interaction
-
-      - name: Check formatting
-        run: poetry run black --check --diff .
-
-      - name: Check for missing migrations
-        run: poetry run python manage.py makemigrations --check --dry-run
 
       - name: Run tests
         run: poetry run pytest
