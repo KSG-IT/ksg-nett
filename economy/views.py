@@ -79,16 +79,14 @@ def stripe_webhook(request, secret_setting):
             deposit.save()
             change_balance(deposit.account_id, deposit.resolved_amount)
 
-        from economy.utils import send_deposit_approved_email
-
         if deposit.account.user.notify_on_deposit:
+            from economy.utils import send_deposit_approved_email
+
             send_deposit_approved_email(deposit)
 
     elif event["type"] == "charge.refunded":
         event_object = event["data"]["object"]
         payment_intent_id = event_object["payment_intent"]
-
-        from economy.utils import send_deposit_refunded_email
 
         with transaction.atomic():
             deposit = deposit_for_payment_intent(payment_intent_id, event["type"])
@@ -97,10 +95,13 @@ def stripe_webhook(request, secret_setting):
                 return JsonResponse(data={"success": True})
 
             change_balance(deposit.account_id, -deposit.resolved_amount)
-            if deposit.account.user.notify_on_deposit:
-                send_deposit_refunded_email(deposit)
             # Could be confusing user flow if we don't delete the deposit
             deposit.delete()
+
+        if deposit.account.user.notify_on_deposit:
+            from economy.utils import send_deposit_refunded_email
+
+            send_deposit_refunded_email(deposit)
 
     elif event["type"] == "payment_intent.canceled":
         intent_id = event["data"]["object"]["id"]
