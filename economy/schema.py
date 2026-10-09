@@ -784,6 +784,15 @@ class StripeQuery(graphene.ObjectType):
         deposit_id=graphene.ID(required=True)
     )
     stripe_deposit_fee = graphene.NonNull(StripeDepositFeeType)
+    stripe_customer_session_client_secret = graphene.String(
+        description="Saved cards in the Payment Element. Null on a Stripe error"
+    )
+
+    @gql_login_required()
+    def resolve_stripe_customer_session_client_secret(self, info, *args, **kwargs):
+        from economy.utils import stripe_create_customer_session
+
+        return stripe_create_customer_session(info.context.user)
 
     @gql_login_required()
     def resolve_stripe_deposit_fee(self, info, *args, **kwargs):

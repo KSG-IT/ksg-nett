@@ -1,3 +1,4 @@
+import sentry_sdk
 from django.conf import settings
 from django.core.files.temp import NamedTemporaryFile
 from django.template.loader import render_to_string
@@ -242,7 +243,7 @@ def stripe_amount_with_fee(amount):
 CARD_PAYMENT_METHOD_OPTIONS = {"card": {"request_three_d_secure": "challenge"}}
 
 
-def stripe_create_payment_intent(amount, customer=None, charge_saved_card=False):
+def stripe_create_payment_intent(amount, customer=None):
     import stripe
 
     STRIPE_API_KEY = settings.STRIPE_SECRET_KEY
@@ -257,15 +258,6 @@ def stripe_create_payment_intent(amount, customer=None, charge_saved_card=False)
 
     if customer:
         customer_id = get_stripe_customer_id(customer)
-
-        if charge_saved_card:
-            try:
-                data = stripe.PaymentMethod.list(customer=customer_id, type="card")
-                default_payment_method = data["data"][0]["id"]
-            except IndexError:
-                default_payment_method = None
-        else:
-            default_payment_method = None
 
         intent = stripe.PaymentIntent.create(
             amount=amount_including_fees_in_smallest_currency,
@@ -282,6 +274,38 @@ def stripe_create_payment_intent(amount, customer=None, charge_saved_card=False)
             payment_method_options=CARD_PAYMENT_METHOD_OPTIONS,
         )
     return intent, amount_including_fees_in_nok
+
+
+# Saved cards in the Payment Element: a checkbox to save a new card, the saved
+# cards of the user, and a remove button. Cards are only charged while the user
+# is present, so on_session. Stripe.js sets setup_future_usage from the checkbox
+SAVED_CARD_FEATURES = {
+    "payment_method_save": "enabled",
+    "payment_method_save_usage": "on_session",
+    "payment_method_redisplay": "enabled",
+    "payment_method_remove": "enabled",
+}
+
+
+def stripe_create_customer_session(user):
+    """
+    The client secret of a CustomerSession that shows the saved cards of the
+    user in the Payment Element, or None. The payment works without it, so a
+    Stripe error is reported to Sentry, not raised.
+    """
+    import stripe
+
+    try:
+        session = stripe.CustomerSession.create(
+            customer=get_stripe_customer_id(user),
+            components={
+                "payment_element": {"enabled": True, "features": SAVED_CARD_FEATURES}
+            },
+        )
+    except stripe.StripeError:
+        sentry_sdk.capture_exception()
+        return None
+    return session.client_secret
 
 
 class MultipleStripeCustomersError(Exception):
