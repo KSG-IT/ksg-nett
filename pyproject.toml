@@ -36,7 +36,7 @@ pyopenssl = "^26.0.0"
 
 
 [tool.poetry.group.dev.dependencies]
-pytest = "^7.3"
+pytest = ">=7.3,<10.0"
 pytest-django = "^3.7"
 pytest-cov = "^2.8"
 pre-commit = "^2.10.0"
