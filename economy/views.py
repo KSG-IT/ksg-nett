@@ -2,6 +2,7 @@ import sentry_sdk
 import stripe
 from django.conf import settings
 from django.db import transaction
+from django.db.models import F
 from django.shortcuts import render
 
 from common.decorators import view_feature_flag_required
@@ -14,13 +15,47 @@ from economy.forms import ExternalChargeForm
 import qrcode
 
 
-def stripe_webhook(request):
+def deposit_for_payment_intent(payment_intent_id, event_type):
+    """
+    The deposit of a payment intent, locked until the transaction ends, or
+    None. Call it inside transaction.atomic(). Stripe can deliver one event
+    twice at the same time (two endpoints, or a retry), and the lock makes the
+    second delivery wait and then see the first one's result.
+
+    Stripe also sends events for payments that are not deposits, for example
+    "Send test event" in the dashboard. Those are acknowledged so Stripe does
+    not retry them.
+    """
+    deposit = (
+        Deposit.objects.select_for_update()
+        .filter(stripe_payment_id=payment_intent_id)
+        .first()
+    )
+    if deposit is None:
+        sentry_sdk.capture_message(
+            f"Stripe {event_type} for payment intent {payment_intent_id} "
+            "without a deposit",
+            level="warning",
+        )
+    return deposit
+
+
+def change_balance(account_id, amount):
+    """Add `amount` (negative to remove) in the database, not in Python"""
+    SociBankAccount.objects.filter(pk=account_id).update(balance=F("balance") + amount)
+
+
+def stripe_webhook(request, secret_setting):
+    """
+    Each Stripe webhook endpoint has its own URL and signing secret, named after
+    the API version of the endpoint. `secret_setting` comes from economy/urls.py.
+    """
     payload = request.body
     sig_header = request.headers["STRIPE_SIGNATURE"]
 
     try:
         event = stripe.Webhook.construct_event(
-            payload, sig_header, settings.STRIPE_WEBHOOK_SECRET
+            payload, sig_header, getattr(settings, secret_setting)
         )
     except ValueError as e:
         # Invalid payload
@@ -32,47 +67,41 @@ def stripe_webhook(request):
     if event["type"] == "payment_intent.succeeded":
         payment_intent = event["data"]["object"]
         intent_id = payment_intent["id"]
-        deposit = Deposit.objects.get(stripe_payment_id=intent_id)
-        if deposit.approved:
-            # Already approved. Do nothing
-            return JsonResponse(data={"success": True})
 
         with transaction.atomic():
-            from economy.utils import send_deposit_approved_email
+            deposit = deposit_for_payment_intent(intent_id, event["type"])
+            if deposit is None or deposit.approved:
+                # Already approved. Do nothing
+                return JsonResponse(data={"success": True})
 
             deposit.approved_at = timezone.now()
             deposit.approved = True
             deposit.save()
-            deposit.account.add_funds(deposit.resolved_amount)
-            if deposit.account.user.notify_on_deposit:
-                send_deposit_approved_email(deposit)
+            change_balance(deposit.account_id, deposit.resolved_amount)
+
+        if deposit.account.user.notify_on_deposit:
+            from economy.utils import send_deposit_approved_email
+
+            send_deposit_approved_email(deposit)
 
     elif event["type"] == "charge.refunded":
         event_object = event["data"]["object"]
         payment_intent_id = event_object["payment_intent"]
 
-        deposit = Deposit.objects.get(stripe_payment_id=payment_intent_id)
-
-        if not deposit.approved:
-            # Already invalidated. Do nothing
-            return JsonResponse(data={"success": True})
-
-        amount_captured = event_object["amount_captured"]
-        amount_refunded = event_object["amount_refunded"]
-        amount = event_object["amount"]
-
-        calculated_fee = deposit.amount - deposit.resolved_amount
-
         with transaction.atomic():
-            from economy.utils import send_deposit_refunded_email
+            deposit = deposit_for_payment_intent(payment_intent_id, event["type"])
+            if deposit is None or not deposit.approved:
+                # Already invalidated. Do nothing
+                return JsonResponse(data={"success": True})
 
-            deposit.approved = False
-            deposit.account.remove_funds(deposit.resolved_amount)
-            deposit.save()
-            if deposit.account.user.notify_on_deposit:
-                send_deposit_refunded_email(deposit)
+            change_balance(deposit.account_id, -deposit.resolved_amount)
             # Could be confusing user flow if we don't delete the deposit
             deposit.delete()
+
+        if deposit.account.user.notify_on_deposit:
+            from economy.utils import send_deposit_refunded_email
+
+            send_deposit_refunded_email(deposit)
 
     elif event["type"] == "payment_intent.canceled":
         intent_id = event["data"]["object"]["id"]

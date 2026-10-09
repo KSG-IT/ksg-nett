@@ -224,32 +224,39 @@ def send_external_charge_email(user, amount, bar_tab_customer):
     )
 
 
+def stripe_amount_with_fee(amount):
+    """
+    The amount in whole NOK the user pays for `amount` to reach the account.
+    The fee is taken from the total, so the percentage applies to the total.
+    Rounded up to the nearest whole krone.
+    """
+    import math
+
+    percentage_fee = settings.STRIPE_PERCENTAGE_FEE / 100.0
+    return math.ceil(amount / (1 - percentage_fee) + settings.STRIPE_FLAT_FEE)
+
+
+# "challenge" asks the bank for active authentication (BankID, the bank app).
+# With "any" Stripe prefers a frictionless 3D Secure, and Norwegian banks then
+# declined the charge with authentication_required (production, 2026-10-08).
+CARD_PAYMENT_METHOD_OPTIONS = {"card": {"request_three_d_secure": "challenge"}}
+
+
 def stripe_create_payment_intent(amount, customer=None, charge_saved_card=False):
     import stripe
-    import math
 
     STRIPE_API_KEY = settings.STRIPE_SECRET_KEY
 
     if not STRIPE_API_KEY:
         raise EnvironmentError("Stripe API key missing")
 
-    STRIPE_FLAT_FEE = settings.STRIPE_FLAT_FEE * 100
-    STRIPE_PERCENTAGE_FEE = settings.STRIPE_PERCENTAGE_FEE / 100.0
-
-    # Calculate the total amount to be charged, including Stripe fees
-    total_fee_multiplier = 1 / (1 - STRIPE_PERCENTAGE_FEE)
-    amount_including_fees_in_nok = math.ceil(
-        amount * total_fee_multiplier + STRIPE_FLAT_FEE / 100.0
-    )
+    amount_including_fees_in_nok = stripe_amount_with_fee(amount)
     amount_including_fees_in_smallest_currency = amount_including_fees_in_nok * 100
 
     stripe.api_key = STRIPE_API_KEY
 
     if customer:
-        customer_id = stripe_search_customer(f"email:'{customer.email}'")
-
-        if not customer_id:
-            customer_id = create_new_stripe_customer(customer)
+        customer_id = get_stripe_customer_id(customer)
 
         if charge_saved_card:
             try:
@@ -265,19 +272,26 @@ def stripe_create_payment_intent(amount, customer=None, charge_saved_card=False)
             currency="nok",
             automatic_payment_methods={"enabled": True},
             customer=customer_id,
-            payment_method_options={
-                "card": {
-                    "request_three_d_secure": "any",
-                }
-            },
+            payment_method_options=CARD_PAYMENT_METHOD_OPTIONS,
         )
     else:
         intent = stripe.PaymentIntent.create(
             amount=amount_including_fees_in_smallest_currency,
             currency="nok",
             automatic_payment_methods={"enabled": True},
+            payment_method_options=CARD_PAYMENT_METHOD_OPTIONS,
         )
     return intent, amount_including_fees_in_nok
+
+
+class MultipleStripeCustomersError(Exception):
+    """
+    More than one Stripe customer has the email of the user. Not one of the
+    expected GraphQL errors, so Sentry reports it and KSG-IT removes the
+    duplicate in the Stripe dashboard.
+    """
+
+    pass
 
 
 def stripe_search_customer(query_string):
@@ -290,12 +304,33 @@ def stripe_search_customer(query_string):
         return None
 
     if len(data) > 1:
-        raise Exception(
-            f"Multiple Stripe customers resolved for query string: {query_string}"
+        raise MultipleStripeCustomersError(
+            f"Multiple Stripe customers resolved for query string: {query_string}. "
+            "Contact KSG-IT"
         )
 
     customer_data = data[0]
     return customer_data["id"]
+
+
+def get_stripe_customer_id(user):
+    """
+    The Stripe customer of the user. The first card deposit finds the customer
+    by email, or creates one, and stores the ID on the user. Later deposits use
+    the stored ID, so a changed email keeps the same customer.
+    """
+    if user.stripe_customer_id:
+        return user.stripe_customer_id
+
+    email = user.email.replace("'", "\\'")
+    customer_id = stripe_search_customer(f"email:'{email}'")
+    if not customer_id:
+        customer_id = create_new_stripe_customer(user)
+
+    # Saved before anything else can fail, so a retry does not make a duplicate
+    user.stripe_customer_id = customer_id
+    user.save(update_fields=["stripe_customer_id"])
+    return customer_id
 
 
 def create_new_stripe_customer(customer):
