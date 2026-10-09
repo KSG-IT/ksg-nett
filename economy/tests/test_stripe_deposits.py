@@ -396,3 +396,29 @@ class TestCustomerSession(TestCase):
         with mock.patch("sentry_sdk.capture_exception") as capture_exception:
             self.assertIsNone(self.client_secret())
         capture_exception.assert_called_once()
+
+
+class TestWebhookCreditsOnce(TestCase):
+    def test__same_event_twice__credits_once(self):
+        user = UserFactory.create(notify_on_deposit=False)
+        account = SociBankAccountFactory.create(user=user, balance=0)
+        deposit = stripe_deposit(account)
+        event = stripe.Event.construct_from(
+            {"type": "payment_intent.succeeded", "data": {"object": {"id": "pi_test"}}},
+            "sk_test",
+        )
+
+        for url in ("/economy/stripe-webhook", "/economy/stripe-webhook/2026-08-26"):
+            with mock.patch("stripe.Webhook.construct_event", return_value=event):
+                response = self.client.post(
+                    url,
+                    data="{}",
+                    content_type="application/json",
+                    HTTP_STRIPE_SIGNATURE="signature",
+                )
+            self.assertEqual(response.status_code, 200)
+
+        account.refresh_from_db()
+        deposit.refresh_from_db()
+        self.assertEqual(account.balance, 200)
+        self.assertTrue(deposit.approved)

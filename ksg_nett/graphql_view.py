@@ -3,10 +3,17 @@ from django.core.exceptions import PermissionDenied
 from graphene_file_upload.django import FileUploadGraphQLView
 from graphql import GraphQLError
 
+from api.exceptions import InsufficientFundsException
 from common.exceptions import IllegalOperation
 
-# Errors that resolvers raise on purpose to tell the client "no".
-EXPECTED_ERRORS = (PermissionDenied, IllegalOperation, GraphQLError)
+# Errors that resolvers raise on purpose to tell the client "no". A purchase
+# without enough money on the account is one (placeProductOrder).
+EXPECTED_ERRORS = (
+    PermissionDenied,
+    IllegalOperation,
+    GraphQLError,
+    InsufficientFundsException,
+)
 
 
 class SentryGraphQLView(FileUploadGraphQLView):
