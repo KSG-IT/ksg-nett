@@ -27,7 +27,9 @@ BASE_URL = "https://ksg-nett.samfundet.no"
 
 # Comma-separated usernames or emails with Soci gold, from the environment.
 SOCI_GOLD = [
-    entry.strip() for entry in os.environ.get("SOCI_GOLD", "").split(",") if entry.strip()
+    entry.strip()
+    for entry in os.environ.get("SOCI_GOLD", "").split(",")
+    if entry.strip()
 ]
 
 SILENCED_SYSTEM_CHECKS = ["fields.W161"]
