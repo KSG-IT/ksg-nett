@@ -307,7 +307,12 @@ SOCI_MASTER_ACCOUNT_CARD_ID = 0xBADCAFEBABE  # Real card ids are 10 digits, whil
 DIRECT_CHARGE_SKU = "X-BELOP"
 WANTED_LIST_THRESHOLD = -2000
 OWES_MONEY_THRESHOLD = 0
-SOCI_GOLD = []
+# Comma-separated usernames or emails with Soci gold, from the environment.
+SOCI_GOLD = [
+    entry.strip()
+    for entry in os.environ.get("SOCI_GOLD", "").split(",")
+    if entry.strip()
+]
 STRIPE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY", None)
 # One signing secret per webhook endpoint, named after its API version. The
 # endpoint for 2022-11-15 keeps the old environment variable name. Remove it

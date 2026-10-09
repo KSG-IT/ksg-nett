@@ -25,13 +25,6 @@ MEDIA_URL = "https://ksg-nett.samfundet.no/media/"
 APP_URL = "app.ksg-nett.no"
 BASE_URL = "https://ksg-nett.samfundet.no"
 
-# Comma-separated usernames or emails with Soci gold, from the environment.
-SOCI_GOLD = [
-    entry.strip()
-    for entry in os.environ.get("SOCI_GOLD", "").split(",")
-    if entry.strip()
-]
-
 SILENCED_SYSTEM_CHECKS = ["fields.W161"]
 
 # When False can only book interviews after midnight of current day
