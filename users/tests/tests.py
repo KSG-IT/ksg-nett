@@ -13,6 +13,7 @@ from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 
+from economy.tests.factories import SociBankAccountFactory
 from users.models import UsersHaveMadeOut, User
 from users.tests.factories import UserFactory, UsersHaveMadeOutFactory
 from users.views import user_detail, klinekart
@@ -129,3 +130,21 @@ class UsersHaveMadeOutManagerTest(TestCase):
         )
         self.assertEqual(made_outs.count(), 1)
         self.assertEqual(made_outs.first(), self.made_out_in_autumn_last_year)
+
+
+class UserOwesMoneyTest(TestCase):
+    def owing_user(self, **user_kwargs):
+        user = UserFactory(**user_kwargs)
+        SociBankAccountFactory(user=user, balance=-100)
+        return User.objects.get(pk=user.pk)
+
+    def test_owes_money__balance_below_threshold__returns_true(self):
+        self.assertTrue(self.owing_user().owes_money)
+
+    def test_owes_money__superuser__returns_false(self):
+        self.assertFalse(self.owing_user(is_superuser=True).owes_money)
+
+    def test_owes_money__soci_gold_user__returns_false(self):
+        user = self.owing_user(username="gold-user")
+        with self.settings(SOCI_GOLD=["gold-user"]):
+            self.assertFalse(user.owes_money)

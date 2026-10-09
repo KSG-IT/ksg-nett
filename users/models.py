@@ -202,9 +202,9 @@ class User(AbstractUser):
 
     @property
     def owes_money(self) -> bool:
-        if self.is_superuser:
-            return False
         account = self.bank_account
+        if self.is_superuser or account.is_gold:
+            return False
         return account.balance < settings.OWES_MONEY_THRESHOLD
 
     @property

@@ -15,7 +15,8 @@ GRAPHIQL = False
 EMAIL_HOST = "smtp.samfundet.no"
 EMAIL_USE_TLS = True
 EMAIL_PORT = 587
-
+SERVER_EMAIL = "ksg-nett-no-reply@samfundet.no"
+DEFAULT_FROM_EMAIL = "ksg-nett-no-reply@samfundet.no"
 
 init_sentry("production")
 
@@ -24,11 +25,19 @@ MEDIA_URL = "https://ksg-nett.samfundet.no/media/"
 APP_URL = "app.ksg-nett.no"
 BASE_URL = "https://ksg-nett.samfundet.no"
 
+# Comma-separated usernames or emails with Soci gold, from the environment.
+SOCI_GOLD = [
+    entry.strip() for entry in os.environ.get("SOCI_GOLD", "").split(",") if entry.strip()
+]
+
+SILENCED_SYSTEM_CHECKS = ["fields.W161"]
+
 # When False can only book interviews after midnight of current day
 ADMISSION_BOOK_INTERVIEWS_NOW = False
-OWES_MONEY_THRESHOLD = -500
+OWES_MONEY_THRESHOLD = 0
 
-ADMINS = [("Alex", "alexao1111@gmail.com")]
+# Django mails ADMINS on server errors. Sentry reports errors, so leave it empty.
+ADMINS = []
 
 DATABASES = {
     "default": {
