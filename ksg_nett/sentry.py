@@ -5,6 +5,7 @@ import sentry_sdk
 from sentry_sdk.integrations.django import DjangoIntegration
 
 DSN = "https://b803a49419fa48029eb23004cb67b99d@o487192.ingest.sentry.io/5545712"
+WARNING_SEVERITY = 13  # OpenTelemetry severity number of WARN
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
@@ -27,6 +28,13 @@ def git_sha():
     return result.stdout.strip() or None
 
 
+def drop_low_logs(log, hint):
+    """Send only WARNING and above to Sentry Logs. INFO stays in the log file."""
+    if log.get("severity_number", 0) < WARNING_SEVERITY:
+        return None
+    return log
+
+
 def init_sentry(environment):
     sentry_sdk.init(
         dsn=DSN,
@@ -35,4 +43,6 @@ def init_sentry(environment):
         send_default_pii=False,
         environment=environment,
         release=git_sha(),
+        enable_logs=True,
+        before_send_log=drop_low_logs,
     )
