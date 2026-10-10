@@ -11,7 +11,7 @@ from django.core.exceptions import (
 )
 from django.db import transaction
 from graphene import Node
-from django.db.models import Q, Sum, Avg, Window, F
+from django.db.models import Q, Sum, Avg, Window, F, OuterRef, Subquery
 from django.db.models.functions import Coalesce, TruncDate, Rank
 from graphene_django import DjangoObjectType
 from django.utils import timezone
@@ -115,6 +115,9 @@ class SociSessionNode(DjangoObjectType):
     get_name_display = graphene.String()
 
     def resolve_money_spent(self: SociSession, info, *args, **kwargs):
+        # The list resolver annotates the revenue. A single session computes it.
+        if hasattr(self, "revenue"):
+            return self.revenue
         return self.total_revenue
 
     def resolve_product_orders(self: SociSession, info, *args, **kwargs):
@@ -369,7 +372,20 @@ class SociProductQuery(graphene.ObjectType):
 
     @gql_has_permissions("economy.view_socisession")
     def resolve_all_soci_sessions(self, info, *args, **kwargs):
-        return SociSession.objects.all().order_by("-created_at")
+        # A subquery runs for the page of rows only. A join with GROUP BY would add
+        # up the orders of every session before the page is cut.
+        revenue = (
+            ProductOrder.objects.filter(session=OuterRef("pk"))
+            .order_by()
+            .values("session")
+            .annotate(total=Sum("cost"))
+            .values("total")
+        )
+        return (
+            SociSession.objects.select_related("created_by")
+            .annotate(revenue=Coalesce(Subquery(revenue), 0))
+            .order_by("-created_at")
+        )
 
     @gql_has_permissions("economy.view_sociproduct")
     def resolve_default_soci_products(self, info, *args, **kwargs):
