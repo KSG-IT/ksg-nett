@@ -53,6 +53,16 @@ class ShiftInterestNode(DjangoObjectType):
         return ShiftInterest.objects.get(pk=id)
 
 
+def with_schedule_and_slots(shifts):
+    """
+    Load the schedule and the slots with their users together with the shifts.
+    ShiftNode returns them for every shift, so each one would run its own queries.
+    """
+    return shifts.select_related("schedule").prefetch_related(
+        Prefetch("slots", queryset=ShiftSlot.objects.select_related("user"))
+    )
+
+
 class ShiftSlotNode(DjangoObjectType):
     class Meta:
         model = ShiftSlot
@@ -106,7 +116,9 @@ class ShiftNode(DjangoObjectType):
         return sorted(self.slots.all(), key=lambda slot: slot.id)
 
     def resolve_filled_slots(self: Shift, info):
-        return self.slots.filter(user__isnull=False).order_by("id")
+        # Filter in Python so a prefetch of the slots is used
+        slots = sorted(self.slots.all(), key=lambda slot: slot.id)
+        return [slot for slot in slots if slot.user_id]
 
     my_interest = graphene.Field(
         ShiftInterestNode, description="The user's own answer for the shift"
@@ -637,7 +649,7 @@ class ShiftQuery(graphene.ObjectType):
     @gql_login_required()
     def resolve_my_upcoming_shifts(self, info, *args, **kwargs):
         me = info.context.user
-        return (
+        return with_schedule_and_slots(
             Shift.objects.filter(
                 datetime_end__gt=timezone.now(),
                 slots__user=me,
@@ -649,7 +661,7 @@ class ShiftQuery(graphene.ObjectType):
     @gql_login_required()
     def resolve_all_my_shifts(self, info, *args, **kwargs):
         me = info.context.user
-        return (
+        return with_schedule_and_slots(
             Shift.objects.filter(slots__user=me).distinct().order_by("-datetime_start")
         )
 
@@ -673,9 +685,11 @@ class ShiftQuery(graphene.ObjectType):
             59,
             tzinfo=ZoneInfo(settings.TIME_ZONE),
         )
-        return Shift.objects.filter(
-            datetime_start__gt=datetime_from, datetime_start__lt=datetime_to
-        ).order_by("datetime_start")
+        return with_schedule_and_slots(
+            Shift.objects.filter(
+                datetime_start__gt=datetime_from, datetime_start__lt=datetime_to
+            ).order_by("datetime_start")
+        )
 
     @gql_login_required()
     def resolve_all_users_working_today(self, info, *args, **kwargs):

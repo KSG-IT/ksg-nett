@@ -5,7 +5,9 @@ from zoneinfo import ZoneInfo
 from addict import Dict
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
+from django.db import connection
 from django.test import TestCase
+from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 from graphene.test import Client
 from graphql_relay import to_global_id
@@ -531,4 +533,78 @@ class TestCreateAndUpdateShiftV2(TestCase):
         )
         self.assertEqual(
             shift.datetime_end, datetime.datetime(2026, 10, 11, 2, tzinfo=local)
+        )
+
+
+class TestShiftQueryCount(TestCase):
+    """The query count must not grow with the number of shifts, slots and users."""
+
+    def setUp(self) -> None:
+        self.graphql_client = Client(schema)
+        self.user = UserFactory.create()
+        self.day = timezone.now() + datetime.timedelta(days=1)
+
+    def add_shifts(self, count):
+        for _ in range(count):
+            shift = ShiftFactory.create(
+                datetime_start=self.day.replace(hour=12),
+                datetime_end=self.day.replace(hour=12) + datetime.timedelta(hours=4),
+            )
+            ShiftSlotFactory.create(
+                shift=shift, user=self.user, role=RoleOption.BARISTA
+            )
+            ShiftSlotFactory.create(
+                shift=shift, user=UserFactory.create(), role=RoleOption.KAFEANSVARLIG
+            )
+            ShiftSlotFactory.create(shift=shift, user=None, role=RoleOption.BARISTA)
+
+    def run_query(self, query, **variables):
+        with CaptureQueriesContext(connection) as queries:
+            executed = self.graphql_client.execute(
+                query, variables=variables, context=Dict(user=self.user)
+            )
+        self.assertNotIn("errors", executed)
+        return len(queries), Dict(executed).data
+
+    def assert_flat(self, query, field, **variables):
+        self.add_shifts(1)
+        self.run_query(query, **variables)  # the first call creates feature flag rows
+        one_shift, _ = self.run_query(query, **variables)
+        self.add_shifts(4)
+        five_shifts, data = self.run_query(query, **variables)
+
+        self.assertEqual(5, len(data[field]))
+        self.assertEqual(one_shift, five_shifts)
+
+    def test__all_shifts__query_count_is_flat(self):
+        query = """
+            query AllShifts($date: Date!) {
+                allShifts(date: $date) {
+                    id schedule { id name }
+                    slots { id user { id initials } }
+                    filledSlots { id user { id } }
+                }
+            }
+        """
+        self.assert_flat(query, "allShifts", date=self.day.date().isoformat())
+
+    def test__my_upcoming_shifts__query_count_is_flat(self):
+        query = """
+            { myUpcomingShifts {
+                id schedule { id name }
+                slots { id user { id initials } }
+                filledSlots { id user { id } }
+            } }
+        """
+        self.assert_flat(query, "myUpcomingShifts")
+
+    def test__filled_slots__returns_only_slots_with_a_user_in_id_order(self):
+        self.add_shifts(1)
+        query = "{ myUpcomingShifts { slots { id } filledSlots { id user { id } } } }"
+        _, data = self.run_query(query)
+        shift = data.myUpcomingShifts[0]
+        self.assertEqual(3, len(shift.slots))
+        self.assertEqual(
+            [slot.id for slot in shift.slots if slot.id != shift.slots[2].id],
+            [slot.id for slot in shift.filledSlots],
         )
