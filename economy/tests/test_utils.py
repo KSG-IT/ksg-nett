@@ -1,7 +1,14 @@
 import math
 
 from django.test import TestCase
-from economy.models import SociOrderSession, SociOrderSessionOrder, SociProduct
+from economy.models import (
+    Deposit,
+    ProductOrder,
+    Transfer,
+    SociOrderSession,
+    SociOrderSessionOrder,
+    SociProduct,
+)
 from economy.utils import create_food_order_pdf_file, parse_transaction_history
 from economy.price_strategies import calculate_stock_price_for_product
 from economy.tests.factories import (
@@ -39,6 +46,35 @@ class TestParseTransactionHistory(TestCase):
     def test__parse_transaction_history_with_slice_kwarg__returns_sliced_length(self):
         parsed_activities = parse_transaction_history(self.bank_account, 5)
         self.assertEqual(5, len(parsed_activities))
+
+    def test__parse_transaction_history_with_slice_kwarg__returns_newest_across_sources(
+        self,
+    ):
+        """The slice keeps the newest activities, whichever table they come from."""
+        now = timezone.now()
+        orders = list(self.bank_account.product_orders.all())
+        transfers = list(self.bank_account.source_transfers.all())
+        deposits = list(self.bank_account.deposits.all())
+        for i, order in enumerate(orders):
+            ProductOrder.objects.filter(pk=order.pk).update(
+                purchased_at=now - timezone.timedelta(days=10 + i)
+            )
+        for i, transfer in enumerate(transfers):
+            Transfer.objects.filter(pk=transfer.pk).update(
+                created_at=now - timezone.timedelta(days=20 + i)
+            )
+        for i, deposit in enumerate(deposits):
+            Deposit.objects.filter(pk=deposit.pk).update(
+                approved_at=now - timezone.timedelta(days=i)
+            )
+
+        parsed_activities = parse_transaction_history(self.bank_account, 4)
+
+        self.assertEqual(
+            [now - timezone.timedelta(days=i) for i in range(3)]
+            + [now - timezone.timedelta(days=10)],
+            [activity.timestamp for activity in parsed_activities],
+        )
 
 
 class TestAuctionPriceCalculation(TestCase):

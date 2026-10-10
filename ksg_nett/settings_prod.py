@@ -42,6 +42,10 @@ DATABASES = {
         "PASSWORD": os.environ.get("DB_PASSWORD"),
         "HOST": os.environ.get("DB_HOST"),
         "PORT": os.environ.get("DB_PORT"),
+        # Reuse the connection between requests. Without this, each request
+        # opens a new one (about 18 ms in Sentry).
+        "CONN_MAX_AGE": int(os.environ.get("DB_CONN_MAX_AGE", "60")),
+        "CONN_HEALTH_CHECKS": True,
     },
     "legacy": {
         "ENGINE": "django.db.backends.postgresql",

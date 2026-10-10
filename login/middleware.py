@@ -36,8 +36,10 @@ class JwtProviderMiddleware(object):
                 token, settings.AUTH_JWT_SECRET, algorithms=settings.AUTH_JWT_METHOD
             )
             user = User.objects.get(pk=decoded.get("id"))
+            # A column update, not user.save(): parallel requests of one page load
+            # must not write stale copies of the other columns back.
             user.last_login = timezone.now()
-            user.save()
+            User.objects.filter(pk=user.pk).update(last_login=user.last_login)
             request.user = user
             request.token = token
             request.decoded_token = decoded
