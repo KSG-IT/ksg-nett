@@ -11,7 +11,7 @@ from django.core.exceptions import (
 )
 from django.db import transaction
 from graphene import Node
-from django.db.models import Q, Sum, Avg, Window, F, OuterRef, Subquery
+from django.db.models import Q, Sum, Avg, Count, Window, F, OuterRef, Subquery
 from django.db.models.functions import Coalesce, TruncDate, Rank
 from graphene_django import DjangoObjectType
 from django.utils import timezone
@@ -499,7 +499,8 @@ def product_sales_by_period(
     first sale of the products. With source, only the purchases of that
     bank account count. Without product_ids, the products are the
     ones with sales in the range, sorted by name. quantity counts the items
-    sold. average is the sales per day with sales. is_voucher marks the
+    sold, and one per order for the direct charge product (DIRECT_CHARGE_SKU),
+    where order_size is the amount in kr. average is the sales per day with sales. is_voucher marks the
     products whose sales are not revenue, so the client can show both sums.
     """
     # Graphene passes an enum member, Python callers pass the value
@@ -528,7 +529,7 @@ def product_sales_by_period(
         orders.filter(purchased_at__range=(start, end))
         .annotate(date=TruncDate("purchased_at"))
         .values("product_id", "date")
-        .annotate(revenue=Sum("cost"), items=Sum("order_size"))
+        .annotate(revenue=Sum("cost"), items=Sum("order_size"), orders=Count("id"))
     )
     if ids is None:
         ids = list({row["product_id"] for row in rows})
@@ -544,7 +545,12 @@ def product_sales_by_period(
             row["product_id"], {"days": set(), "items": 0, "periods": {}}
         )
         product_sales["days"].add(row["date"])
-        product_sales["items"] += row["items"]
+        # Direct charge has order_size in kr, so count one item per order
+        is_direct_charge = (
+            row["product_id"] in products
+            and products[row["product_id"]].sku_number == settings.DIRECT_CHARGE_SKU
+        )
+        product_sales["items"] += row["orders"] if is_direct_charge else row["items"]
         period = period_start(row["date"], granularity)
         product_sales["periods"][period] = (
             product_sales["periods"].get(period, 0) + row["revenue"]

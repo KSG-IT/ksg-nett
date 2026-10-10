@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.db import connection
 from django.test.utils import CaptureQueriesContext
 from django.test import TestCase
@@ -127,6 +128,26 @@ class TestProductOrdersByItemAndDateListQuery(TestCase):
         self.assertEqual(cider["quantity"], 0)
         self.assertEqual(cider["average"], 0)
         self.assertEqual([day["sum"] for day in cider["data"]], [0, 0, 0])
+
+    def test__direct_charge__counts_orders_not_kroner(self):
+        direct = SociProductFactory.create(
+            name="Direkte beløp", sku_number=settings.DIRECT_CHARGE_SKU, price=1
+        )
+        self.order(direct, self.day, order_size=700, cost=700)
+        self.order(direct, self.day, order_size=300, cost=300)
+        executed = self.graphql_client.execute(
+            self.query,
+            variables={
+                "productIds": [Node.to_global_id("SociProductNode", direct.pk)],
+                "dateFrom": "2026-09-01",
+                "dateTo": "2026-09-03",
+            },
+            context=Dict(user=self.user),
+        )
+        self.assertNotIn("errors", executed)
+        [item] = executed["data"]["productOrdersByItemAndDateList"]
+        self.assertEqual(item["total"], 1000)
+        self.assertEqual(item["quantity"], 2)
 
     def test__without_permission__returns_error(self):
         executed = self.execute(UserFactory.create())
