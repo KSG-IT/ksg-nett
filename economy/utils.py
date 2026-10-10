@@ -1,5 +1,6 @@
 import sentry_sdk
 from django.conf import settings
+from django.db.models import F
 from django.core.files.temp import NamedTemporaryFile
 from django.template.loader import render_to_string
 from weasyprint import CSS, HTML
@@ -61,19 +62,28 @@ def parse_transaction_history(bank_account, slice=None):
     transaction_history = bank_account.transaction_history
     user = bank_account.user
 
-    parsed_transfers = [
-        parse_transfer(transfer, user) for transfer in transaction_history["transfers"]
-    ]
+    transfers = transaction_history["transfers"].order_by("-created_at")
+    product_orders = (
+        transaction_history["product_orders"]
+        .select_related("product")
+        .order_by("-purchased_at")
+    )
+    deposits = (
+        transaction_history["deposits"]
+        .filter(approved=True)
+        .order_by(F("approved_at").desc(nulls_last=True))
+    )
+    if slice:
+        # The newest `slice` of the merged list are among the newest `slice` of each source.
+        transfers = transfers[:slice]
+        product_orders = product_orders[:slice]
+        deposits = deposits[:slice]
+
+    parsed_transfers = [parse_transfer(transfer, user) for transfer in transfers]
     parsed_product_orders = [
-        parse_product_order(product_order)
-        for product_order in transaction_history["product_orders"].prefetch_related(
-            "product"
-        )
+        parse_product_order(product_order) for product_order in product_orders
     ]
-    parsed_deposits = [
-        parse_deposit(deposit)
-        for deposit in transaction_history["deposits"].filter(approved=True)
-    ]
+    parsed_deposits = [parse_deposit(deposit) for deposit in deposits]
 
     activities = [*parsed_transfers, *parsed_product_orders, *parsed_deposits]
     activities.sort(key=lambda x: x.timestamp, reverse=True)
