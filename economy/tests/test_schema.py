@@ -1,3 +1,6 @@
+from django.conf import settings
+from django.db import connection
+from django.test.utils import CaptureQueriesContext
 from django.test import TestCase
 from addict import Dict
 from graphene.test import Client
@@ -7,7 +10,11 @@ import datetime
 from django.utils import timezone
 from graphene import Node
 
-from economy.tests.factories import ProductOrderFactory, SociProductFactory
+from economy.tests.factories import (
+    ProductOrderFactory,
+    SociProductFactory,
+    SociSessionFactory,
+)
 from economy.models import ProductGhostOrder, ProductOrder, SociProduct
 from users.tests.factories import UserWithPermissionsFactory, UserFactory
 
@@ -121,6 +128,26 @@ class TestProductOrdersByItemAndDateListQuery(TestCase):
         self.assertEqual(cider["quantity"], 0)
         self.assertEqual(cider["average"], 0)
         self.assertEqual([day["sum"] for day in cider["data"]], [0, 0, 0])
+
+    def test__direct_charge__counts_orders_not_kroner(self):
+        direct = SociProductFactory.create(
+            name="Direkte beløp", sku_number=settings.DIRECT_CHARGE_SKU, price=1
+        )
+        self.order(direct, self.day, order_size=700, cost=700)
+        self.order(direct, self.day, order_size=300, cost=300)
+        executed = self.graphql_client.execute(
+            self.query,
+            variables={
+                "productIds": [Node.to_global_id("SociProductNode", direct.pk)],
+                "dateFrom": "2026-09-01",
+                "dateTo": "2026-09-03",
+            },
+            context=Dict(user=self.user),
+        )
+        self.assertNotIn("errors", executed)
+        [item] = executed["data"]["productOrdersByItemAndDateList"]
+        self.assertEqual(item["total"], 1000)
+        self.assertEqual(item["quantity"], 2)
 
     def test__without_permission__returns_error(self):
         executed = self.execute(UserFactory.create())
@@ -449,4 +476,53 @@ class TestBankAccountFieldAccess(TestCase):
                 entry["balance"]
                 for entry in executed["data"]["dashboardData"]["wantedList"]
             ],
+        )
+
+
+class TestAllSociSessionsQueryCount(TestCase):
+    QUERY = """
+        { allSociSessions(first: 50) {
+            edges { node { id getNameDisplay moneySpent createdBy { id fullName } } }
+        } }
+    """
+
+    def setUp(self) -> None:
+        self.graphql_client = Client(schema)
+        self.user = UserWithPermissionsFactory.create(
+            permissions="economy.view_socisession"
+        )
+
+    def add_sessions(self, count):
+        for _ in range(count):
+            session = SociSessionFactory.create()
+            ProductOrderFactory.create_batch(2, session=session, cost=30)
+
+    def run_query(self):
+        with CaptureQueriesContext(connection) as queries:
+            executed = self.graphql_client.execute(
+                self.QUERY, context=Dict(user=self.user)
+            )
+        self.assertNotIn("errors", executed)
+        return len(queries), Dict(executed).data.allSociSessions.edges
+
+    def test__query_count_does_not_grow_with_session_count(self):
+        self.add_sessions(1)
+        self.run_query()  # the first call creates feature flag rows
+        one_session, _ = self.run_query()
+        self.add_sessions(4)
+        five_sessions, edges = self.run_query()
+
+        self.assertEqual(5, len(edges))
+        self.assertEqual(one_session, five_sessions)
+
+    def test__money_spent__is_the_sum_of_the_order_costs(self):
+        session = SociSessionFactory.create()
+        ProductOrderFactory.create(session=session, cost=30)
+        ProductOrderFactory.create(session=session, cost=70)
+        SociSessionFactory.create()  # no orders
+
+        _, edges = self.run_query()
+
+        self.assertEqual(
+            sorted([0, 100]), sorted(edge.node.moneySpent for edge in edges)
         )

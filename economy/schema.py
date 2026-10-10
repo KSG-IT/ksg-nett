@@ -11,7 +11,7 @@ from django.core.exceptions import (
 )
 from django.db import transaction
 from graphene import Node
-from django.db.models import Q, Sum, Avg, Window, F
+from django.db.models import Q, Sum, Avg, Count, Window, F, OuterRef, Subquery
 from django.db.models.functions import Coalesce, TruncDate, Rank
 from graphene_django import DjangoObjectType
 from django.utils import timezone
@@ -115,6 +115,9 @@ class SociSessionNode(DjangoObjectType):
     get_name_display = graphene.String()
 
     def resolve_money_spent(self: SociSession, info, *args, **kwargs):
+        # The list resolver annotates the revenue. A single session computes it.
+        if hasattr(self, "revenue"):
+            return self.revenue
         return self.total_revenue
 
     def resolve_product_orders(self: SociSession, info, *args, **kwargs):
@@ -369,7 +372,20 @@ class SociProductQuery(graphene.ObjectType):
 
     @gql_has_permissions("economy.view_socisession")
     def resolve_all_soci_sessions(self, info, *args, **kwargs):
-        return SociSession.objects.all().order_by("-created_at")
+        # A subquery runs for the page of rows only. A join with GROUP BY would add
+        # up the orders of every session before the page is cut.
+        revenue = (
+            ProductOrder.objects.filter(session=OuterRef("pk"))
+            .order_by()
+            .values("session")
+            .annotate(total=Sum("cost"))
+            .values("total")
+        )
+        return (
+            SociSession.objects.select_related("created_by")
+            .annotate(revenue=Coalesce(Subquery(revenue), 0))
+            .order_by("-created_at")
+        )
 
     @gql_has_permissions("economy.view_sociproduct")
     def resolve_default_soci_products(self, info, *args, **kwargs):
@@ -483,7 +499,8 @@ def product_sales_by_period(
     first sale of the products. With source, only the purchases of that
     bank account count. Without product_ids, the products are the
     ones with sales in the range, sorted by name. quantity counts the items
-    sold. average is the sales per day with sales. is_voucher marks the
+    sold, and one per order for the direct charge product (DIRECT_CHARGE_SKU),
+    where order_size is the amount in kr. average is the sales per day with sales. is_voucher marks the
     products whose sales are not revenue, so the client can show both sums.
     """
     # Graphene passes an enum member, Python callers pass the value
@@ -512,7 +529,7 @@ def product_sales_by_period(
         orders.filter(purchased_at__range=(start, end))
         .annotate(date=TruncDate("purchased_at"))
         .values("product_id", "date")
-        .annotate(revenue=Sum("cost"), items=Sum("order_size"))
+        .annotate(revenue=Sum("cost"), items=Sum("order_size"), orders=Count("id"))
     )
     if ids is None:
         ids = list({row["product_id"] for row in rows})
@@ -528,7 +545,12 @@ def product_sales_by_period(
             row["product_id"], {"days": set(), "items": 0, "periods": {}}
         )
         product_sales["days"].add(row["date"])
-        product_sales["items"] += row["items"]
+        # Direct charge has order_size in kr, so count one item per order
+        is_direct_charge = (
+            row["product_id"] in products
+            and products[row["product_id"]].sku_number == settings.DIRECT_CHARGE_SKU
+        )
+        product_sales["items"] += row["orders"] if is_direct_charge else row["items"]
         period = period_start(row["date"], granularity)
         product_sales["periods"][period] = (
             product_sales["periods"].get(period, 0) + row["revenue"]
