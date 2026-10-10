@@ -23,7 +23,7 @@ from schedules.schemas.schedules import ShiftSlotNode
 from summaries.schema import SummaryNode
 from summaries.models import Summary
 from quotes.schema import QuoteNode
-from quotes.models import Quote
+from quotes.models import Quote, VOTE_SUM
 from users.schema import UserNode
 from economy.models import SociBankAccount, Deposit
 from django.conf import settings
@@ -70,7 +70,13 @@ class DashboardQuery(graphene.ObjectType):
     @gql_login_required()
     def resolve_dashboard_data(self, info, *args, **kwargs):
         me = info.context.user
-        quotes = Quote.objects.filter(approved=True).order_by("-created_at")[:5]
+        # vote_sum and tagged are resolved per quote, so load them in the same query.
+        quotes = (
+            Quote.objects.filter(approved=True)
+            .annotate(vote_sum=VOTE_SUM)
+            .prefetch_related("tagged")
+            .order_by("-created_at")[:5]
+        )
         summaries = Summary.objects.all().order_by("-date")[:6]
         wanted = SociBankAccount.get_wanted_list()
         upcoming_shifts = me.future_shifts

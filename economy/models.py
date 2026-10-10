@@ -56,6 +56,7 @@ class SociBankAccount(models.Model):
             )
             .exclude(is_active=False)
             .exclude(username__in=settings.SOCI_GOLD)
+            .select_related("bank_account")
             .order_by("bank_account__balance")
         )
 
