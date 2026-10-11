@@ -232,8 +232,8 @@ class SociSession(models.Model):
     @property
     def total_revenue(self) -> int:
 
-        purchase_sums = [order.cost for order in self.product_orders.all()]
-        return sum(purchase_sums)
+        # Sum in the database. A session can hold thousands of orders.
+        return self.product_orders.aggregate(total=models.Sum("cost"))["total"] or 0
 
     def __str__(self):
         # No product order count here: the admin renders __str__ for every row
