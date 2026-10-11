@@ -513,9 +513,7 @@ def product_sales_by_period(
         orders.filter(purchased_at__range=(start, end))
         .annotate(date=TruncDate("purchased_at"))
         .values("product_id", "date")
-        .annotate(
-            revenue=Sum("cost"), items=Sum("order_size"), orders=Count("id")
-        )
+        .annotate(revenue=Sum("cost"), items=Sum("order_size"), orders=Count("id"))
     )
     if ids is None:
         ids = list({row["product_id"] for row in rows})
