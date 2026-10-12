@@ -1,4 +1,5 @@
 from django.db import models
+from django.utils import timezone
 from users.models import User
 
 
@@ -37,3 +38,31 @@ class Summary(models.Model):
         if self.internal_group:
             return self.internal_group.name
         return self.title
+
+
+class SummaryReadReceipt(models.Model):
+    """
+    One row per user and summary. `opened_at` is set when the user opens the
+    summary. `read_at` is set when the user reaches the end of it. The reporter
+    gets a receipt too, but the counts leave it out (see `summaries.receipts`).
+    """
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["summary", "user"], name="unique_summary_read_receipt"
+            )
+        ]
+
+    summary = models.ForeignKey(
+        Summary, on_delete=models.CASCADE, related_name="read_receipts"
+    )
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="summary_read_receipts"
+    )
+    opened_at = models.DateTimeField(default=timezone.now)
+    read_at = models.DateTimeField(null=True, blank=True)
+
+    def __str__(self):
+        state = "read" if self.read_at else "opened"
+        return f"{self.user} {state} {self.summary}"
