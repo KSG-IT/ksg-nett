@@ -61,6 +61,7 @@ INSTALLED_APPS = [
     # Project apps
     "api",
     "bar_tab",
+    "chat",
     "common",
     "economy",
     "external",
@@ -345,6 +346,7 @@ X_APP_STOCK_MARKET_MODE = "x-app-stock-market-mode"
 X_APP_REQUIRE_AUTH_FEATURE_FLAG = "x-app-require-auth"
 FEEDBACK_FEATURE_FLAG = "feedback"
 TRUTH_OR_DRINK_FEATURE_FLAG = "truth_or_drink"
+CHAT_FEATURE_FLAG = "chat"
 
 EXTERNAL_CHARGE_MAX_AMOUNT = os.environ.get("EXTERNAL_CHARGE_MAX_AMOUNT", 300)
 
