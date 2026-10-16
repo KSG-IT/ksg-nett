@@ -86,3 +86,25 @@ def fetch_chat_for_shift(user, shift, now=None):
             ChatMembership(chat=chat, user_id=user_id) for user_id in user_ids
         )
         return chat, True
+
+
+def joinable_shift_chats(user, now=None):
+    """
+    The shifts the user may open a chat for right now, each with its chat or
+    None. A shift qualifies when the user works on it, it has enough users and
+    the join window is open.
+    """
+    now = now or timezone.now()
+    shifts = (
+        Shift.objects.filter(
+            pk__in=ShiftSlot.objects.filter(user=user).values("shift_id"),
+            datetime_start__lte=now + JOIN_BEFORE,
+            datetime_end__gte=now - JOIN_AFTER,
+        )
+        .annotate(user_count=Count("slots", filter=Q(slots__user__isnull=False)))
+        .filter(user_count__gte=MIN_SHIFT_CHAT_USERS)
+        .order_by("datetime_start", "id")
+    )
+    return [
+        (shift, find_shift_chat(shift, assigned_user_ids(shift))) for shift in shifts
+    ]
