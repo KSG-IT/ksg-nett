@@ -28,6 +28,9 @@ class Chat(models.Model):
     closes_at = models.DateTimeField()
     # Set by the code that sends a message. Sorts the inbox without an aggregate.
     last_message_at = models.DateTimeField(null=True, blank=True)
+    # A mega chat lets users with the permission add members. A shift chat does
+    # not: its members follow the roster of the shift.
+    members_editable = models.BooleanField(default=False)
 
     def __str__(self):
         return self.name
