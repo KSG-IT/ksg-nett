@@ -52,7 +52,6 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     # Third party apps
-    "channels",
     "rest_framework",
     "rest_framework.authtoken",
     "drf_yasg",
@@ -348,23 +347,6 @@ FEEDBACK_FEATURE_FLAG = "feedback"
 TRUTH_OR_DRINK_FEATURE_FLAG = "truth_or_drink"
 
 EXTERNAL_CHARGE_MAX_AMOUNT = os.environ.get("EXTERNAL_CHARGE_MAX_AMOUNT", 300)
-
-# Channels
-ASGI_APPLICATION = "ksg_nett.routing.application"
-# ASGI_APPLICATION = "ksg_nett.asgi.application"
-CHANNEL_LAYERS = {
-    "default": {
-        "BACKEND": "channels_redis.core.RedisChannelLayer",
-        "CONFIG": {"hosts": [os.environ.get("REDIS_URI", ("localhost", 6379))]},
-    }
-}
-
-# Redis
-REDIS = {
-    "host": os.environ.get("REDIS_HOST", "localhost"),
-    "port": os.environ.get("REDIS_PORT", 6379),
-}
-CHAT_STATE_REDIS_DB = 1
 
 # Load local and production settings
 try:
