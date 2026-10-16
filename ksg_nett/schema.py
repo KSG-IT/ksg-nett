@@ -26,6 +26,7 @@ from economy.schema import (
     StripeQuery,
     SociRankedQuery,
 )
+from chat.schema import ChatQuery, ChatMutations
 from bar_tab.schema import (
     BarTabQuery,
     BarTabMutations,
@@ -64,6 +65,7 @@ class Query(
     KnightHoodQuery,
     AuthenticationQuery,
     BarTabQuery,
+    ChatQuery,
     DashboardQuery,
     DepositQuery,
     DocumentQueries,
@@ -100,6 +102,7 @@ class Query(
 class Mutation(
     AdmissionsMutations,
     BarTabMutations,
+    ChatMutations,
     CommonMutations,
     EconomyMutations,
     HandbookMutations,

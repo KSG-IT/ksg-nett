@@ -1,6 +1,7 @@
 from django.core.exceptions import PermissionDenied
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import Count, OuterRef, Q, Subquery, Sum
+from django.db.models.functions import Coalesce
 from django.utils import timezone
 
 from chat.consts import MAX_MESSAGE_LENGTH, PRESENCE_WRITE_INTERVAL
@@ -79,3 +80,34 @@ def ping(user, chat, now=None):
         .update(last_seen_at=now)
     )
     return changed > 0
+
+
+def with_unread_count(chats, user):
+    """
+    Annotate each chat with `unread` and `last_message_id`. Unread messages
+    are those after the read marker of the user, not sent by the user.
+    One query for all chats.
+    """
+    my_marker = ChatMembership.objects.filter(chat=OuterRef("pk"), user=user).values(
+        "last_read_message_id"
+    )[:1]
+    unread = (
+        ChatMessage.objects.filter(
+            chat=OuterRef("pk"), id__gt=Coalesce(OuterRef("my_marker"), 0)
+        )
+        .exclude(sender=user)
+        .order_by()
+        .values("chat")
+        .annotate(total=Count("id"))
+        .values("total")
+    )
+    latest = ChatMessage.objects.filter(chat=OuterRef("pk")).order_by("-id")
+    return chats.annotate(my_marker=Subquery(my_marker)).annotate(
+        unread=Coalesce(Subquery(unread), 0),
+        last_message_id=Subquery(latest.values("id")[:1]),
+    )
+
+
+def total_unread(user):
+    chats = with_unread_count(Chat.objects.filter(memberships__user=user), user)
+    return chats.aggregate(total=Coalesce(Sum("unread"), 0))["total"]
