@@ -1,6 +1,16 @@
 from django.core.exceptions import PermissionDenied
 from django.db import transaction
-from django.db.models import Count, OuterRef, Q, Subquery, Sum
+from django.db.models import (
+    Case,
+    Count,
+    Exists,
+    OuterRef,
+    Q,
+    Subquery,
+    Sum,
+    Value,
+    When,
+)
 from django.db.models.functions import Coalesce
 from django.utils import timezone
 
@@ -86,6 +96,7 @@ def with_unread_count(chats, user):
     """
     Annotate each chat with `unread` and `last_message_id`. Unread messages
     are those after the read marker of the user, not sent by the user.
+    A chat the user is not a member of has none (a superuser can read it).
     One query for all chats.
     """
     my_marker = ChatMembership.objects.filter(chat=OuterRef("pk"), user=user).values(
@@ -101,9 +112,13 @@ def with_unread_count(chats, user):
         .annotate(total=Count("id"))
         .values("total")
     )
+    is_member = Exists(ChatMembership.objects.filter(chat=OuterRef("pk"), user=user))
     latest = ChatMessage.objects.filter(chat=OuterRef("pk")).order_by("-id")
     return chats.annotate(my_marker=Subquery(my_marker)).annotate(
-        unread=Coalesce(Subquery(unread), 0),
+        unread=Case(
+            When(is_member, then=Coalesce(Subquery(unread), 0)),
+            default=Value(0),
+        ),
         last_message_id=Subquery(latest.values("id")[:1]),
     )
 

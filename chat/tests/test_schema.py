@@ -110,6 +110,19 @@ class AccessTest(ChatSchemaTestCase):
             ChatMembership.objects.filter(chat=self.chat, user=self.superuser).exists()
         )
 
+    def test_all_chats_has_no_unread_for_chats_the_superuser_is_not_in(self):
+        outside = self.make_chat("Outside", [self.anna, self.per])
+        inside = self.make_chat("Inside", [self.anna, self.superuser])
+        self.say(outside, self.per, "hello")
+        self.say(inside, self.anna, "hello")
+        query = "query { allChats { name unreadCount } }"
+
+        result = self.run_query(self.superuser, query)
+
+        counts = {c["name"]: c["unreadCount"] for c in result["data"]["allChats"]}
+        self.assertEqual(counts["Outside"], 0)
+        self.assertEqual(counts["Inside"], 1)
+
     def test_all_chats_is_for_superusers_only(self):
         query = "query { allChats { name } }"
         self.assertIn("errors", self.run_query(self.anna, query))
