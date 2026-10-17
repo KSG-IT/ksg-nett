@@ -25,7 +25,7 @@ def user_with(*permissions):
     )
 
 
-def ugle():
+def mega_chat_creator():
     return user_with("chat.create_mega_chat", "chat.add_to_mega_chat")
 
 
@@ -41,7 +41,7 @@ class CreateMegaChatTest(TestCase):
             end=datetime.datetime(2026, 10, 18, 2, 0, tzinfo=LOCAL),
         )
 
-        creator = ugle()
+        creator = mega_chat_creator()
         chat = create_mega_chat(creator, " Fredag megachat ", now=FRIDAY_19)
 
         self.assertEqual(chat.name, "Fredag megachat")
@@ -69,11 +69,11 @@ class CreateMegaChatTest(TestCase):
         make_shift(name="Early", start=FRIDAY_17 - datetime.timedelta(hours=3))
         for now in (FRIDAY_17, SUNDAY_19):
             with self.assertRaises(IllegalOperation):
-                create_mega_chat(ugle(), "Chat", now=now)
+                create_mega_chat(mega_chat_creator(), "Chat", now=now)
 
     def test_the_creator_is_a_member_also_when_not_on_duty(self):
         make_shift()
-        creator = ugle()
+        creator = mega_chat_creator()
 
         chat = create_mega_chat(creator, "Chat", now=FRIDAY_19)
 
@@ -81,7 +81,7 @@ class CreateMegaChatTest(TestCase):
 
     def test_refuses_when_nobody_is_on_duty(self):
         with self.assertRaises(IllegalOperation):
-            create_mega_chat(ugle(), "Chat", now=FRIDAY_19)
+            create_mega_chat(mega_chat_creator(), "Chat", now=FRIDAY_19)
 
 
 class MegaChatPreviewTest(TestCase):
@@ -102,7 +102,7 @@ class MegaChatPreviewTest(TestCase):
             end=datetime.datetime(2026, 10, 18, 2, 0, tzinfo=LOCAL),
         )
 
-        preview = mega_chat_preview(ugle(), now=FRIDAY_19)
+        preview = mega_chat_preview(mega_chat_creator(), now=FRIDAY_19)
 
         self.assertTrue(preview["open"])
         self.assertEqual(preview["user_count"], 5)
@@ -111,7 +111,7 @@ class MegaChatPreviewTest(TestCase):
     def test_is_closed_outside_the_window(self):
         make_shift(name="Early", start=FRIDAY_17 - datetime.timedelta(hours=3))
 
-        preview = mega_chat_preview(ugle(), now=FRIDAY_17)
+        preview = mega_chat_preview(mega_chat_creator(), now=FRIDAY_17)
 
         self.assertFalse(preview["open"])
         self.assertEqual(preview["user_count"], 3)
@@ -124,7 +124,7 @@ class MegaChatPreviewTest(TestCase):
 class AddMembersTest(TestCase):
     def setUp(self):
         make_shift()
-        self.actor = ugle()
+        self.actor = mega_chat_creator()
         self.chat = create_mega_chat(self.actor, "Chat", now=FRIDAY_19)
 
     def test_adds_new_users_and_skips_existing_members(self):
