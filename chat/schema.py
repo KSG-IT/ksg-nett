@@ -17,6 +17,7 @@ from chat.utils import (
     is_online,
     joinable_shift_chats,
     mark_read,
+    mega_chat_preview,
     ping,
     readable_chat,
     send_chat_message,
@@ -156,6 +157,21 @@ class JoinableShiftChatType(graphene.ObjectType):
     chat = graphene.Field(ChatNode, description="Null until somebody joins.")
 
 
+class MegaChatShiftType(graphene.ObjectType):
+    shift = graphene.Field("schedules.schemas.schedules.ShiftNode", required=True)
+    user_count = graphene.Int(required=True)
+
+
+class MegaChatPreviewType(graphene.ObjectType):
+    open = graphene.Boolean(
+        required=True, description="True on Friday and Saturday evenings."
+    )
+    user_count = graphene.Int(
+        required=True, description="Users on duty now, each counted once."
+    )
+    shifts = graphene.List(graphene.NonNull(MegaChatShiftType), required=True)
+
+
 class ChatQuery(graphene.ObjectType):
     my_chats = graphene.List(graphene.NonNull(ChatNode), required=True)
     all_chats = graphene.List(
@@ -176,6 +192,11 @@ class ChatQuery(graphene.ObjectType):
     unread_chat_count = graphene.Int(required=True)
     joinable_shift_chats = graphene.List(
         graphene.NonNull(JoinableShiftChatType), required=True
+    )
+    mega_chat_preview = graphene.Field(
+        MegaChatPreviewType,
+        required=True,
+        description="Who a new mega chat would hold. Needs chat.create_mega_chat.",
     )
 
     @chat_enabled
@@ -218,6 +239,18 @@ class ChatQuery(graphene.ObjectType):
             JoinableShiftChatType(shift=shift, user_count=shift.user_count, chat=chat)
             for shift, chat in joinable_shift_chats(info.context.user)
         ]
+
+    @chat_enabled
+    def resolve_mega_chat_preview(self, info):
+        preview = mega_chat_preview(info.context.user)
+        return MegaChatPreviewType(
+            open=preview["open"],
+            user_count=preview["user_count"],
+            shifts=[
+                MegaChatShiftType(shift=shift, user_count=user_count)
+                for shift, user_count in preview["shifts"]
+            ],
+        )
 
 
 class JoinShiftChatMutation(graphene.Mutation):
