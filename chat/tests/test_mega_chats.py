@@ -7,7 +7,9 @@ from django.test import TestCase
 
 from chat.models import Chat, ChatMembership
 from chat.tests.helpers import FRIDAY_19, LOCAL, SATURDAY_02, make_shift
-from chat.utils import add_members, create_mega_chat
+from schedules.models import RoleOption
+from schedules.tests.factories import ShiftSlotFactory
+from chat.utils import add_members, create_mega_chat, mega_chat_preview
 from common.exceptions import IllegalOperation
 from users.tests.factories import UserFactory, UserWithPermissionsFactory
 
@@ -23,7 +25,7 @@ def user_with(*permissions):
     )
 
 
-def ugle():
+def mega_chat_creator():
     return user_with("chat.create_mega_chat", "chat.add_to_mega_chat")
 
 
@@ -39,7 +41,8 @@ class CreateMegaChatTest(TestCase):
             end=datetime.datetime(2026, 10, 18, 2, 0, tzinfo=LOCAL),
         )
 
-        chat = create_mega_chat(ugle(), " Fredag megachat ", now=FRIDAY_19)
+        creator = mega_chat_creator()
+        chat = create_mega_chat(creator, " Fredag megachat ", now=FRIDAY_19)
 
         self.assertEqual(chat.name, "Fredag megachat")
         self.assertTrue(chat.members_editable)
@@ -49,7 +52,7 @@ class CreateMegaChatTest(TestCase):
                     "user_id", flat=True
                 )
             ),
-            {u.pk for u in users_a + users_b},
+            {u.pk for u in users_a + users_b + [creator]},
         )
         self.assertEqual(chat.closes_at, late_end + datetime.timedelta(hours=2))
 
@@ -66,19 +69,63 @@ class CreateMegaChatTest(TestCase):
         make_shift(name="Early", start=FRIDAY_17 - datetime.timedelta(hours=3))
         for now in (FRIDAY_17, SUNDAY_19):
             with self.assertRaises(IllegalOperation):
-                create_mega_chat(ugle(), "Chat", now=now)
+                create_mega_chat(mega_chat_creator(), "Chat", now=now)
+
+    def test_the_creator_is_a_member_also_when_not_on_duty(self):
+        make_shift()
+        creator = mega_chat_creator()
+
+        chat = create_mega_chat(creator, "Chat", now=FRIDAY_19)
+
+        self.assertTrue(ChatMembership.objects.filter(chat=chat, user=creator).exists())
 
     def test_refuses_when_nobody_is_on_duty(self):
         with self.assertRaises(IllegalOperation):
-            create_mega_chat(ugle(), "Chat", now=FRIDAY_19)
+            create_mega_chat(mega_chat_creator(), "Chat", now=FRIDAY_19)
+
+
+class MegaChatPreviewTest(TestCase):
+    def test_lists_running_shifts_and_counts_each_user_once(self):
+        late, late_users = make_shift(
+            name="Late",
+            start=datetime.datetime(2026, 10, 16, 18, 30, tzinfo=LOCAL),
+            user_count=2,
+        )
+        early, early_users = make_shift(name="Early", user_count=3)
+        # A user on both shifts
+        ShiftSlotFactory.create(
+            shift=late, user=early_users[0], role=RoleOption.BARTENDER
+        )
+        make_shift(
+            name="Tomorrow",
+            start=datetime.datetime(2026, 10, 17, 18, 0, tzinfo=LOCAL),
+            end=datetime.datetime(2026, 10, 18, 2, 0, tzinfo=LOCAL),
+        )
+
+        preview = mega_chat_preview(mega_chat_creator(), now=FRIDAY_19)
+
+        self.assertTrue(preview["open"])
+        self.assertEqual(preview["user_count"], 5)
+        self.assertEqual(preview["shifts"], [(early, 3), (late, 3)])
+
+    def test_is_closed_outside_the_window(self):
+        make_shift(name="Early", start=FRIDAY_17 - datetime.timedelta(hours=3))
+
+        preview = mega_chat_preview(mega_chat_creator(), now=FRIDAY_17)
+
+        self.assertFalse(preview["open"])
+        self.assertEqual(preview["user_count"], 3)
+
+    def test_needs_the_permission(self):
+        with self.assertRaises(PermissionDenied):
+            mega_chat_preview(UserFactory.create(), now=FRIDAY_19)
 
 
 class AddMembersTest(TestCase):
     def setUp(self):
         make_shift()
-        self.actor = ugle()
+        self.actor = mega_chat_creator()
         self.chat = create_mega_chat(self.actor, "Chat", now=FRIDAY_19)
-        ChatMembership.objects.create(chat=self.chat, user=self.actor)
 
     def test_adds_new_users_and_skips_existing_members(self):
         newcomer = UserFactory.create()

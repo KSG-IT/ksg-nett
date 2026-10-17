@@ -22,6 +22,8 @@ class ChatAdmin(admin.ModelAdmin):
     )
     search_fields = ("name",)
     autocomplete_fields = ("created_by",)
+    # The shift chat lookup matches on created_at
+    readonly_fields = ("created_at",)
     inlines = (ChatMembershipInline,)
 
 

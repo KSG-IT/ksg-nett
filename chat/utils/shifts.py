@@ -80,6 +80,7 @@ def fetch_chat_for_shift(user, shift, now=None):
         chat = Chat.objects.create(
             name=f"{shift.name} gruppechat",
             created_by=user,
+            created_at=now,
             closes_at=shift.datetime_end + CLOSE_AFTER,
         )
         ChatMembership.objects.bulk_create(

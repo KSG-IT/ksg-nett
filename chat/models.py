@@ -1,4 +1,5 @@
 from django.db import models
+from django.utils import timezone
 
 from schedules.models import RoleOption
 from users.models import User
@@ -23,7 +24,9 @@ class Chat(models.Model):
     created_by = models.ForeignKey(
         User, null=True, blank=True, on_delete=models.SET_NULL, related_name="+"
     )
-    created_at = models.DateTimeField(auto_now_add=True)
+    # A default, not auto_now_add, so the code that creates a chat can pass the
+    # same `now` that it checks the join window with.
+    created_at = models.DateTimeField(default=timezone.now)
     # Nobody can post after this time. Members can read the chat for ever.
     closes_at = models.DateTimeField()
     # Set by the code that sends a message. Sorts the inbox without an aggregate.
