@@ -1,4 +1,17 @@
+import json
+import logging
+from concurrent.futures import ThreadPoolExecutor, wait
+
 from django.conf import settings
+from django.utils import timezone
+
+from push import webpush
+from push.models import PushSubscription
+
+logger = logging.getLogger(__name__)
+
+# A push that waits longer than a day at the push service is old news
+PUSH_TTL = 24 * 60 * 60
 
 
 def app_url(path):
@@ -10,3 +23,88 @@ def app_url(path):
     if "://" not in base:
         base = f"https://{base}"
     return base.rstrip("/") + path
+
+
+def send_to_users(user_ids, payload, topic=None, urgency="normal"):
+    """
+    Push `payload` (a dict, sent as JSON) to every device of the users. Sends
+    in parallel and waits at most PUSH_TOTAL_TIMEOUT. Never raises, so a
+    failed push never fails the request that triggered it.
+    """
+    try:
+        _send_to_users(user_ids, payload, topic, urgency)
+    except Exception:
+        # Error level, so Sentry gets it
+        logger.exception("Push to users failed")
+
+
+def _send_to_users(user_ids, payload, topic, urgency):
+    if not settings.VAPID_PRIVATE_KEY:
+        return
+    subscriptions = list(PushSubscription.objects.filter(user_id__in=user_ids))
+    if not subscriptions:
+        return
+    key = webpush.load_vapid_key(settings.VAPID_PRIVATE_KEY)
+    body = json.dumps(payload, ensure_ascii=False, separators=(",", ":")).encode()
+    subject = f"mailto:{settings.VAPID_CONTACT_EMAIL}"
+
+    # The workers only make HTTP calls. They read fields that are already
+    # loaded and never touch the ORM.
+    pool = ThreadPoolExecutor(
+        max_workers=min(settings.PUSH_MAX_WORKERS, len(subscriptions))
+    )
+    futures = {
+        pool.submit(
+            webpush.send,
+            subscription,
+            body,
+            key,
+            subject,
+            ttl=PUSH_TTL,
+            urgency=urgency,
+            topic=topic,
+            timeout=settings.PUSH_REQUEST_TIMEOUT,
+        ): subscription
+        for subscription in subscriptions
+    }
+    done, not_done = wait(futures, timeout=settings.PUSH_TOTAL_TIMEOUT)
+    # Sends still running are left behind; their own timeout ends them
+    pool.shutdown(wait=False, cancel_futures=True)
+    if not_done:
+        logger.warning(
+            "Push total timeout cut off %d of %d sends", len(not_done), len(futures)
+        )
+
+    ok, gone = [], []
+    for future in done:
+        subscription = futures[future]
+        try:
+            result = future.result()
+        except Exception:
+            logger.exception("Push to subscription %s failed", subscription.pk)
+            continue
+        if result.status == webpush.OK:
+            ok.append(subscription.pk)
+        elif result.status == webpush.GONE:
+            gone.append(subscription.pk)
+        elif result.status == webpush.RETRY_LATER:
+            logger.warning(
+                "Push to subscription %s: retry later (status %s)",
+                subscription.pk,
+                result.status_code,
+            )
+        else:
+            # Usually a wrong VAPID key, aud or sub, or a payload too large
+            logger.error(
+                "Push to subscription %s: %s (status %s)",
+                subscription.pk,
+                result.status,
+                result.status_code,
+            )
+
+    if gone:
+        PushSubscription.objects.filter(pk__in=gone).delete()
+    if ok:
+        PushSubscription.objects.filter(pk__in=ok).update(
+            last_success_at=timezone.now()
+        )
