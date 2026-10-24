@@ -128,6 +128,11 @@ def load_vapid_key(base64_body: str) -> ec.EllipticCurvePrivateKey:
     return key
 
 
+def application_server_key(key: ec.EllipticCurvePrivateKey) -> str:
+    """The public key of `key` in base64url, as `pushManager.subscribe` takes it."""
+    return _b64url_encode(_public_bytes(key.public_key()))
+
+
 def vapid_authorization(
     key: ec.EllipticCurvePrivateKey,
     endpoint: str,
@@ -157,8 +162,7 @@ def vapid_authorization(
     )
     signature = r.to_bytes(32, "big") + s.to_bytes(32, "big")
     token = f"{signing_input}.{_b64url_encode(signature)}"
-    public_key = _b64url_encode(_public_bytes(key.public_key()))
-    return f"vapid t={token}, k={public_key}"
+    return f"vapid t={token}, k={application_server_key(key)}"
 
 
 def _classify(status_code: int) -> str:

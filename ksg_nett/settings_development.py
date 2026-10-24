@@ -1,5 +1,5 @@
 from ksg_nett.settings import *
-from ksg_nett.env import required_secret
+from ksg_nett.env import required_secret, required_vapid_keys
 import os
 from ksg_nett.sentry import init_sentry
 
@@ -11,6 +11,8 @@ SECRET_KEY = os.environ.get("SECRET_KEY", None)
 # The app does not start without a real JWT key (ksg_nett/env.py).
 AUTH_JWT_SECRET = required_secret("AUTH_JWT_SECRET")
 SIMPLE_JWT = {**SIMPLE_JWT, "SIGNING_KEY": AUTH_JWT_SECRET}
+# Nor without a VAPID key pair for Web Push.
+VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY = required_vapid_keys()
 
 init_sentry("development")
 
