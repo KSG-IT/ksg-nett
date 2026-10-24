@@ -1,5 +1,6 @@
 import graphene
 from django.conf import settings
+from django.db import transaction
 from django.db.models import Exists, OuterRef, Prefetch
 from django.db.models.functions import Coalesce
 from django.utils import timezone
@@ -27,6 +28,7 @@ from chat.utils import (
 )
 from common.decorators import gql_feature_flag_required, gql_login_required
 from common.exceptions import IllegalOperation
+from push.triggers import notify_chat_added, notify_chat_message
 from schedules.models import Shift
 from users.schema import UserNode
 
@@ -169,6 +171,12 @@ def inbox(chats, user):
     return attach_last_messages(chats)
 
 
+def notify_members_added(chat, actor):
+    """Push "you were added" to everyone in a new chat but its creator."""
+    user_ids = list(chat.memberships.values_list("user_id", flat=True))
+    transaction.on_commit(lambda: notify_chat_added(chat, user_ids, actor))
+
+
 class JoinableShiftChatType(graphene.ObjectType):
     shift = graphene.Field("schedules.schemas.schedules.ShiftNode", required=True)
     user_count = graphene.Int(required=True)
@@ -284,7 +292,10 @@ class JoinShiftChatMutation(graphene.Mutation):
             shift = Shift.objects.get(pk=disambiguate_id(shift_id))
         except (Shift.DoesNotExist, ValueError):
             raise IllegalOperation("Shift does not exist")
-        chat, created = fetch_chat_for_shift(info.context.user, shift)
+        user = info.context.user
+        chat, created = fetch_chat_for_shift(user, shift)
+        if created:
+            notify_members_added(chat, user)
         return JoinShiftChatMutation(chat=chat, created=created)
 
 
@@ -296,7 +307,10 @@ class CreateMegaChatMutation(graphene.Mutation):
 
     @chat_enabled
     def mutate(self, info, name):
-        return CreateMegaChatMutation(chat=create_mega_chat(info.context.user, name))
+        user = info.context.user
+        chat = create_mega_chat(user, name)
+        notify_members_added(chat, user)
+        return CreateMegaChatMutation(chat=chat)
 
 
 class AddChatMembersMutation(graphene.Mutation):
@@ -314,7 +328,9 @@ class AddChatMembersMutation(graphene.Mutation):
             ids = [int(disambiguate_id(user_id)) for user_id in user_ids]
         except ValueError:
             raise IllegalOperation("Invalid user id")
-        added = add_members(info.context.user, chat, ids)
+        user = info.context.user
+        added = add_members(user, chat, ids)
+        transaction.on_commit(lambda: notify_chat_added(chat, added, user))
         return AddChatMembersMutation(chat=chat, added_count=len(added))
 
 
@@ -328,6 +344,7 @@ class SendChatMessageMutation(graphene.Mutation):
     @chat_enabled
     def mutate(self, info, chat_id, body):
         message = send_chat_message(info.context.user, get_chat(chat_id), body)
+        transaction.on_commit(lambda: notify_chat_message(message))
         return SendChatMessageMutation(message=message)
 
 
