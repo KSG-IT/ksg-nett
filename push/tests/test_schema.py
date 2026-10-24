@@ -77,6 +77,12 @@ class RegisterPushSubscriptionTest(PushSchemaTestCase):
         self.assertIn("errors", result)
         self.assertFalse(PushSubscription.objects.exists())
 
+    def test_an_endpoint_outside_the_push_services_is_refused(self):
+        result = self.register(self.anna, endpoint="https://ksg-nett.samfundet.no/")
+
+        self.assertIn("errors", result)
+        self.assertFalse(PushSubscription.objects.exists())
+
     def test_flag_off_refuses_the_call(self):
         FeatureFlag.objects.filter(name="push_notifications").update(enabled=False)
 

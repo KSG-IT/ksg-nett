@@ -8,7 +8,7 @@ from django.test import TestCase, override_settings
 from push import webpush
 from push.models import PushSubscription
 from push.tests.helpers import VAPID_PRIVATE_KEY, make_subscription
-from push.utils import app_url, send_to_users
+from push.utils import app_url, is_push_service_endpoint, send_to_users
 from users.tests.factories import UserFactory
 
 PAYLOAD = {"web_push": 8030, "notification": {"title": "Bar", "body": "Hei"}}
@@ -99,3 +99,21 @@ class AppUrlTest(TestCase):
     @override_settings(APP_URL="http://localhost:3012")
     def test_keeps_a_scheme_in_the_setting(self):
         self.assertEqual(app_url("/chat/1"), "http://localhost:3012/chat/1")
+
+
+class IsPushServiceEndpointTest(TestCase):
+    def test_accepts_only_https_on_the_push_service_hosts(self):
+        cases = {
+            "https://fcm.googleapis.com/fcm/send/abc": True,
+            "https://web.push.apple.com/QGz": True,
+            "https://updates.push.services.mozilla.com/wpush/v2/x": True,
+            "https://wns2-db5p.notify.windows.com/w/?token=x": True,
+            "http://fcm.googleapis.com/fcm/send/abc": False,
+            "https://fcm.googleapis.com:8443/fcm/send/abc": False,
+            "https://evilfcm.googleapis.com.example.com/": False,
+            "https://fcm.googleapis.com@10.0.0.1/": False,
+            "https://localhost/": False,
+        }
+        for endpoint, expected in cases.items():
+            with self.subTest(endpoint=endpoint):
+                self.assertEqual(is_push_service_endpoint(endpoint), expected)

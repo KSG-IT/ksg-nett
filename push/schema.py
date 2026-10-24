@@ -4,6 +4,7 @@ from django.conf import settings
 from common.decorators import gql_feature_flag_required, gql_login_required
 from common.exceptions import IllegalOperation
 from push.models import PushSubscription
+from push.utils import is_push_service_endpoint
 from users.schema import UserNode
 
 
@@ -45,7 +46,7 @@ class RegisterPushSubscriptionMutation(graphene.Mutation):
     @push_enabled
     def mutate(self, info, endpoint, p256dh, auth, user_agent=None):
         max_length = PushSubscription._meta.get_field("endpoint").max_length
-        if not endpoint.startswith("https://") or len(endpoint) > max_length:
+        if len(endpoint) > max_length or not is_push_service_endpoint(endpoint):
             raise IllegalOperation("Invalid push endpoint")
         PushSubscription.objects.update_or_create(
             endpoint=endpoint,

@@ -1,6 +1,7 @@
 import json
 import logging
 from concurrent.futures import ThreadPoolExecutor, wait
+from urllib.parse import urlsplit
 
 from django.conf import settings
 from django.utils import timezone
@@ -12,6 +13,33 @@ logger = logging.getLogger(__name__)
 
 # A push that waits longer than a day at the push service is old news
 PUSH_TTL = 24 * 60 * 60
+
+
+# The push services of the browsers we support. The server posts to the
+# endpoint a browser gives, so any other host is refused (no SSRF).
+PUSH_SERVICE_DOMAINS = (
+    "fcm.googleapis.com",  # Chrome, Edge on Android, Samsung Internet, Opera
+    "push.apple.com",  # Safari, iOS
+    "push.services.mozilla.com",  # Firefox
+    "notify.windows.com",  # Edge on Windows
+)
+
+
+def is_push_service_endpoint(endpoint):
+    try:
+        parts = urlsplit(endpoint)
+        port = parts.port
+    except ValueError:
+        return False
+    host = (parts.hostname or "").lower()
+    return (
+        parts.scheme == "https"
+        and port is None
+        and any(
+            host == domain or host.endswith(f".{domain}")
+            for domain in PUSH_SERVICE_DOMAINS
+        )
+    )
 
 
 def app_url(path):
