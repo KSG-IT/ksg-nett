@@ -30,6 +30,9 @@ qrcode = {extras = ["pil"], version = "^7.4.2"}
 cryptography = "^48.0.1"
 drf-yasg = "^1.21.15"
 pyopenssl = "^26.0.0"
+# Not used directly (comes in through weasyprint). The floor makes
+# `pip install .` upgrade it on deploy: CVE-2026-111497.
+brotli = ">=1.2.1"
 
 
 [tool.poetry.group.dev.dependencies]
