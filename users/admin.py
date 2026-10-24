@@ -97,6 +97,8 @@ class MyUserAdmin(UserAdmin):
                     "notify_on_deposit",
                     "notify_on_quote",
                     "notify_on_shift",
+                    "notify_on_chat_message",
+                    "notify_on_chat_added",
                 )
             },
         ),

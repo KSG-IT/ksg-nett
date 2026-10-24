@@ -94,6 +94,10 @@ class User(AbstractUser):
     notify_on_deposit = models.BooleanField(default=True)
     notify_on_quote = models.BooleanField(default=False)
 
+    # Push notification settings. They apply on every device of the user.
+    notify_on_chat_message = models.BooleanField(default=True)
+    notify_on_chat_added = models.BooleanField(default=True)
+
     # Set by the first card deposit, see economy.utils.get_stripe_customer_id
     stripe_customer_id = models.CharField(max_length=64, null=True, blank=True)
 

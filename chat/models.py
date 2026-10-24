@@ -64,6 +64,8 @@ class ChatMembership(models.Model):
     )
     # Presence. Not indexed, for the same reason.
     last_seen_at = models.DateTimeField(null=True, blank=True)
+    # No message push for this chat. Being added still sends a push.
+    muted = models.BooleanField(default=False)
 
     def __str__(self):
         return f"{self.user} in {self.chat}"

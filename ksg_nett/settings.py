@@ -69,6 +69,7 @@ INSTALLED_APPS = [
     "legacy",
     "login",
     "organization",
+    "push",
     "quotes",
     "schedules",
     "summaries",
