@@ -27,6 +27,7 @@ from economy.schema import (
     SociRankedQuery,
 )
 from chat.schema import ChatQuery, ChatMutations
+from push.schema import PushQuery, PushMutations
 from bar_tab.schema import (
     BarTabQuery,
     BarTabMutations,
@@ -71,6 +72,7 @@ class Query(
     DocumentQueries,
     FeatureFlagQuery,
     ProductOrderQuery,
+    PushQuery,
     SidebarQuery,
     SociBankAccountQuery,
     SociProductQuery,
@@ -108,6 +110,7 @@ class Mutation(
     HandbookMutations,
     LoginMutations,
     OrganizationMutations,
+    PushMutations,
     UserMutations,
     QuotesMutations,
     SchedulesMutations,

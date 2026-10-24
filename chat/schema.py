@@ -1,6 +1,6 @@
 import graphene
 from django.conf import settings
-from django.db.models import Prefetch
+from django.db.models import Exists, OuterRef, Prefetch
 from django.db.models.functions import Coalesce
 from django.utils import timezone
 from graphene import Node
@@ -21,6 +21,7 @@ from chat.utils import (
     ping,
     readable_chat,
     send_chat_message,
+    set_muted,
     total_unread,
     with_unread_count,
 )
@@ -74,6 +75,9 @@ class ChatNode(DjangoObjectType):
     last_message = graphene.Field(ChatMessageNode)
     members = graphene.List(graphene.NonNull(ChatMemberType), required=True)
     online_count = graphene.Int(required=True)
+    muted = graphene.Boolean(
+        required=True, description="The viewer muted message pushes for this chat."
+    )
 
     def resolve_closed(self: Chat, info):
         return timezone.now() > self.closes_at
@@ -86,6 +90,11 @@ class ChatNode(DjangoObjectType):
             return 0
         annotated = with_unread_count(Chat.objects.filter(pk=self.pk), user).get()
         return annotated.unread
+
+    def resolve_muted(self: Chat, info):
+        if hasattr(self, "muted"):
+            return self.muted
+        return with_muted(Chat.objects.filter(pk=self.pk), info.context.user)[0].muted
 
     def resolve_last_message(self: Chat, info):
         if hasattr(self, "last_message_cache"):
@@ -144,9 +153,18 @@ def attach_last_messages(chats):
     return chats
 
 
+def with_muted(chats, user):
+    """Annotate each chat with `muted` for the user, in the same query."""
+    return chats.annotate(
+        muted=Exists(
+            ChatMembership.objects.filter(chat=OuterRef("pk"), user=user, muted=True)
+        )
+    )
+
+
 def inbox(chats, user):
     """Newest message first. A chat without a message sorts by its creation."""
-    chats = with_unread_count(prefetch_members(chats), user)
+    chats = with_muted(with_unread_count(prefetch_members(chats), user), user)
     chats = chats.order_by(Coalesce("last_message_at", "created_at").desc(), "-id")
     return attach_last_messages(chats)
 
@@ -343,6 +361,25 @@ class PingChatMutation(graphene.Mutation):
         return PingChatMutation(recorded=ping(info.context.user, get_chat(chat_id)))
 
 
+class SetChatMutedMutation(graphene.Mutation):
+    """Mute or unmute message pushes for one chat. Being added still pushes."""
+
+    class Arguments:
+        chat_id = graphene.ID(required=True)
+        muted = graphene.Boolean(required=True)
+
+    chat = graphene.Field(ChatNode)
+
+    @chat_enabled
+    def mutate(self, info, chat_id, muted):
+        user = info.context.user
+        chat = get_chat(chat_id)
+        set_muted(user, chat, muted)
+        return SetChatMutedMutation(
+            chat=inbox(Chat.objects.filter(pk=chat.pk), user)[0]
+        )
+
+
 class ChatMutations(graphene.ObjectType):
     join_shift_chat = JoinShiftChatMutation.Field()
     create_mega_chat = CreateMegaChatMutation.Field()
@@ -350,3 +387,4 @@ class ChatMutations(graphene.ObjectType):
     send_chat_message = SendChatMessageMutation.Field()
     mark_chat_read = MarkChatReadMutation.Field()
     ping_chat = PingChatMutation.Field()
+    set_chat_muted = SetChatMutedMutation.Field()
