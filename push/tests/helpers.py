@@ -24,7 +24,7 @@ def make_vapid_keys():
 VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY = make_vapid_keys()
 
 
-def make_subscription(user):
+def make_subscription(user, vapid_public_key=VAPID_PUBLIC_KEY):
     """A subscription with real browser keys, so the payload encrypts."""
     browser = ec.generate_private_key(ec.SECP256R1())
     return PushSubscription.objects.create(
@@ -32,4 +32,5 @@ def make_subscription(user):
         endpoint=f"https://fcm.googleapis.com/fcm/send/{next(ENDPOINTS)}",
         p256dh=application_server_key(browser),
         auth=base64.urlsafe_b64encode(b"0123456789abcdef").rstrip(b"=").decode(),
+        vapid_public_key=vapid_public_key,
     )

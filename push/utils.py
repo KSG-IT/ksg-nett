@@ -69,7 +69,11 @@ def send_to_users(user_ids, payload, topic=None, urgency="normal"):
 def _send_to_users(user_ids, payload, topic, urgency):
     if not settings.VAPID_PRIVATE_KEY:
         return
-    subscriptions = list(PushSubscription.objects.filter(user_id__in=user_ids))
+    subscriptions = list(
+        PushSubscription.objects.filter(
+            user_id__in=user_ids, vapid_public_key=settings.VAPID_PUBLIC_KEY
+        )
+    )
     if not subscriptions:
         return
     key = webpush.load_vapid_key(settings.VAPID_PRIVATE_KEY)

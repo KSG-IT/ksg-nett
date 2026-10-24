@@ -55,6 +55,7 @@ class RegisterPushSubscriptionMutation(graphene.Mutation):
                 "p256dh": p256dh,
                 "auth": auth,
                 "user_agent": (user_agent or "")[:300],
+                "vapid_public_key": settings.VAPID_PUBLIC_KEY,
             },
         )
         return RegisterPushSubscriptionMutation(ok=True)

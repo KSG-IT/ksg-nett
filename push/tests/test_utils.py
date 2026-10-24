@@ -7,14 +7,21 @@ from django.test import TestCase, override_settings
 
 from push import webpush
 from push.models import PushSubscription
-from push.tests.helpers import VAPID_PRIVATE_KEY, make_subscription
+from push.tests.helpers import (
+    VAPID_PRIVATE_KEY,
+    VAPID_PUBLIC_KEY,
+    make_subscription,
+    make_vapid_keys,
+)
 from push.utils import app_url, is_push_service_endpoint, send_to_users
 from users.tests.factories import UserFactory
 
 PAYLOAD = {"web_push": 8030, "notification": {"title": "Bar", "body": "Hei"}}
 
 
-@override_settings(VAPID_PRIVATE_KEY=VAPID_PRIVATE_KEY)
+@override_settings(
+    VAPID_PUBLIC_KEY=VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY=VAPID_PRIVATE_KEY
+)
 class SendToUsersTest(TestCase):
     def setUp(self):
         self.user = UserFactory.create()
@@ -64,6 +71,17 @@ class SendToUsersTest(TestCase):
             "push.utils.PushSubscription.objects.filter", side_effect=RuntimeError
         ):
             send_to_users([self.user.pk], PAYLOAD)
+
+    def test_skips_subscriptions_made_for_another_vapid_key(self):
+        # A row copied from another instance, or left over from an old key
+        other_public_key, _ = make_vapid_keys()
+        PushSubscription.objects.all().delete()
+        make_subscription(self.user, vapid_public_key=other_public_key)
+
+        with mock.patch("push.webpush.send") as send:
+            send_to_users([self.user.pk], PAYLOAD)
+
+        send.assert_not_called()
 
     @override_settings(VAPID_PRIVATE_KEY="")
     def test_an_empty_vapid_key_makes_no_calls(self):

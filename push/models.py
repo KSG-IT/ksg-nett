@@ -17,6 +17,11 @@ class PushSubscription(models.Model):
     endpoint = models.URLField(max_length=1000, unique=True)
     p256dh = models.CharField(max_length=200)
     auth = models.CharField(max_length=100)
+    # The VAPID public key of the server that the browser subscribed to. A push
+    # service accepts pushes only signed with that key pair, so only rows with
+    # the current key get pushes (no rows copied from another instance, none
+    # left over from an old key).
+    vapid_public_key = models.CharField(max_length=100)
     user_agent = models.CharField(max_length=300, blank=True, default="")
     created_at = models.DateTimeField(auto_now_add=True)
     last_success_at = models.DateTimeField(null=True, blank=True)

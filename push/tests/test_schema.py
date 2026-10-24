@@ -65,6 +65,14 @@ class RegisterPushSubscriptionTest(PushSchemaTestCase):
         self.assertEqual(subscription.p256dh, "new key")
         self.assertEqual(subscription.user_agent, "Firefox 2")
 
+    @override_settings(VAPID_PUBLIC_KEY=VAPID_PUBLIC_KEY)
+    def test_stores_the_vapid_key_of_this_server(self):
+        self.register(self.anna)
+
+        self.assertEqual(
+            PushSubscription.objects.get().vapid_public_key, VAPID_PUBLIC_KEY
+        )
+
     def test_another_user_on_the_same_device_takes_the_row_over(self):
         self.register(self.anna)
         self.register(self.per)

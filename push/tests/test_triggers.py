@@ -12,7 +12,7 @@ from chat.tests.helpers import FRIDAY_19, make_shift
 from chat.tests.test_mega_chats import mega_chat_creator
 from common.models import FeatureFlag
 from ksg_nett.schema import schema
-from push.tests.helpers import VAPID_PRIVATE_KEY, make_subscription
+from push.tests.helpers import VAPID_PRIVATE_KEY, VAPID_PUBLIC_KEY, make_subscription
 from push.triggers import notify_chat_added, notify_chat_message
 from users.tests.factories import UserFactory
 
@@ -197,7 +197,9 @@ class CallSiteTest(TriggerTestCase):
         self.assertEqual(self.recipients(), {new.pk})
 
 
-@override_settings(VAPID_PRIVATE_KEY=VAPID_PRIVATE_KEY)
+@override_settings(
+    VAPID_PUBLIC_KEY=VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY=VAPID_PRIVATE_KEY
+)
 class SendChatMessageTest(TestCase):
     def test_returns_the_message_when_the_push_fails(self):
         FeatureFlag.objects.create(name="push_notifications", enabled=True)
