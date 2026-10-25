@@ -47,6 +47,7 @@ from economy.models import (
     SociRankedSeason,
 )
 from economy.price_strategies import calculate_stock_price_for_product
+from push.triggers import notify_deposit_approved
 from schedules.models import Schedule
 from users.models import User
 
@@ -1316,6 +1317,7 @@ class ApproveDepositMutation(graphene.Mutation):
         deposit.account.add_funds(deposit.amount)
         if deposit.account.user.notify_on_deposit:
             send_deposit_approved_email(deposit)
+        transaction.on_commit(lambda: notify_deposit_approved(deposit))
 
         return ApproveDepositMutation(deposit=deposit)
 
