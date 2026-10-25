@@ -121,17 +121,19 @@ def _send_to_users(user_ids, payload, topic, urgency):
             gone.append(subscription.pk)
         elif result.status == webpush.RETRY_LATER:
             logger.warning(
-                "Push to subscription %s: retry later (status %s)",
+                "Push to subscription %s: retry later (status %s): %s",
                 subscription.pk,
                 result.status_code,
+                result.reason,
             )
         else:
             # Usually a wrong VAPID key, aud or sub, or a payload too large
             logger.error(
-                "Push to subscription %s: %s (status %s)",
+                "Push to subscription %s: %s (status %s): %s",
                 subscription.pk,
                 result.status,
                 result.status_code,
+                result.reason,
             )
 
     if gone:

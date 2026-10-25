@@ -27,8 +27,8 @@ class SendToUsersTest(TestCase):
         self.user = UserFactory.create()
         self.subscription = make_subscription(self.user)
 
-    def send_with_status(self, status_code):
-        response = mock.Mock(status_code=status_code)
+    def send_with_status(self, status_code, text=""):
+        response = mock.Mock(status_code=status_code, text=text)
         with mock.patch("push.webpush.requests.post", return_value=response) as post:
             send_to_users([self.user.pk], PAYLOAD, topic="chat-1", urgency="high")
         return post
@@ -55,6 +55,16 @@ class SendToUsersTest(TestCase):
                 self.send_with_status(status_code)
                 self.subscription.refresh_from_db()
                 self.assertIsNone(self.subscription.last_success_at)
+
+    def test_a_rejected_push_logs_the_reason_of_the_push_service(self):
+        with self.assertLogs("push.utils", level="ERROR") as logs:
+            self.send_with_status(400, text='{"reason":"BadJwtToken"}')
+
+        self.assertIn(
+            f"Push to subscription {self.subscription.pk}: rejected (status 400): "
+            '{"reason":"BadJwtToken"}',
+            logs.output[0],
+        )
 
     def test_a_timeout_keeps_the_subscription(self):
         with mock.patch(

@@ -244,8 +244,33 @@ class SendTest(SimpleTestCase):
         }
         for status_code, status in cases.items():
             with self.subTest(status_code=status_code):
-                post.return_value = mock.Mock(status_code=status_code)
-                self.assertEqual(self.send(), webpush.SendResult(status, status_code))
+                post.return_value = mock.Mock(status_code=status_code, text="")
+                result = self.send()
+                self.assertEqual(
+                    (result.status, result.status_code), (status, status_code)
+                )
+
+    @mock.patch("push.webpush.requests.post")
+    def test_a_failure_keeps_the_reason_without_the_endpoint(self, post):
+        endpoint_path = "/fcm/send/abc"
+        post.return_value = mock.Mock(
+            status_code=400,
+            text=f'{{"reason": "BadJwtToken",\n "path": "{endpoint_path}"}}'
+            + "x" * 300,
+        )
+
+        reason = self.send().reason
+
+        self.assertTrue(reason.startswith('{"reason": "BadJwtToken", "path"'))
+        self.assertNotIn(endpoint_path, reason)
+        self.assertIn("<endpoint>", reason)
+        self.assertEqual(len(reason), webpush.MAX_REASON_LENGTH)
+
+    @mock.patch("push.webpush.requests.post")
+    def test_a_success_has_no_reason(self, post):
+        post.return_value = mock.Mock(status_code=201, text="secret body")
+
+        self.assertIsNone(self.send().reason)
 
     @mock.patch("push.webpush.requests.post")
     def test_timeout_and_connection_error_are_retry_later(self, post):
