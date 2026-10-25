@@ -1,15 +1,36 @@
+import base64
 import os
 import subprocess
 import sys
+from unittest import mock
 
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import ec
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 from django.test import SimpleTestCase
 
-from ksg_nett.env import required_secret
+from ksg_nett.env import required_secret, required_vapid_keys
+from push.webpush import application_server_key
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 LONG_SECRET = "s" * 40
+
+
+def make_vapid_env():
+    key = ec.generate_private_key(ec.SECP256R1())
+    der = key.private_bytes(
+        serialization.Encoding.DER,
+        serialization.PrivateFormat.PKCS8,
+        serialization.NoEncryption(),
+    )
+    return {
+        "VAPID_PUBLIC_KEY": application_server_key(key),
+        "VAPID_PRIVATE_KEY": base64.b64encode(der).decode(),
+    }
+
+
+VAPID_ENV = make_vapid_env()
 
 
 def start_django(env):
@@ -70,7 +91,9 @@ class JwtSecretSettingsTest(SimpleTestCase):
         self.assertIn("AUTH_JWT_SECRET", result.stderr)
 
     def test__production_uses_the_secret_from_the_environment(self):
-        result = start_django({"PRODUCTION": "True", "AUTH_JWT_SECRET": LONG_SECRET})
+        result = start_django(
+            {"PRODUCTION": "True", "AUTH_JWT_SECRET": LONG_SECRET, **VAPID_ENV}
+        )
 
         self.assertEqual(result.returncode, 0, result.stderr[-2000:])
         self.assertEqual(result.stdout.split(), [LONG_SECRET, LONG_SECRET])
@@ -80,3 +103,30 @@ class JwtSecretSettingsTest(SimpleTestCase):
 
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("AUTH_JWT_SECRET", result.stderr)
+
+
+class VapidKeySettingsTest(SimpleTestCase):
+    def test__production_refuses_to_start_without_the_vapid_key(self):
+        result = start_django({"PRODUCTION": "True", "AUTH_JWT_SECRET": LONG_SECRET})
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("VAPID_PRIVATE_KEY", result.stderr)
+
+    def test__returns_the_key_pair(self):
+        with mock.patch.dict(os.environ, VAPID_ENV):
+            self.assertEqual(
+                required_vapid_keys(),
+                (VAPID_ENV["VAPID_PUBLIC_KEY"], VAPID_ENV["VAPID_PRIVATE_KEY"]),
+            )
+
+    def test__a_full_pem_file_raises(self):
+        pem = "-----BEGIN PRIVATE KEY-----\n" + VAPID_ENV["VAPID_PRIVATE_KEY"]
+        with mock.patch.dict(os.environ, {**VAPID_ENV, "VAPID_PRIVATE_KEY": pem}):
+            with self.assertRaisesMessage(ImproperlyConfigured, "BEGIN and END"):
+                required_vapid_keys()
+
+    def test__a_public_key_from_another_pair_raises(self):
+        other = make_vapid_env()["VAPID_PUBLIC_KEY"]
+        with mock.patch.dict(os.environ, {**VAPID_ENV, "VAPID_PUBLIC_KEY": other}):
+            with self.assertRaisesMessage(ImproperlyConfigured, "does not belong"):
+                required_vapid_keys()

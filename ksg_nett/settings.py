@@ -69,6 +69,7 @@ INSTALLED_APPS = [
     "legacy",
     "login",
     "organization",
+    "push",
     "quotes",
     "schedules",
     "summaries",
@@ -327,6 +328,19 @@ STRIPE_API_VERSION = "2026-08-26.dahlia"
 STRIPE_FLAT_FEE = 2  # in NOK
 STRIPE_PERCENTAGE_FEE = 2.4
 
+# PUSH SETTINGS
+# ------------------------------
+# VAPID keys for Web Push (push/webpush.py). Dev and prod require them
+# (ksg_nett/env.py). An empty private key turns sending off.
+VAPID_PUBLIC_KEY = os.environ.get("VAPID_PUBLIC_KEY", "")
+VAPID_PRIVATE_KEY = os.environ.get("VAPID_PRIVATE_KEY", "")
+# Sent to the push services as the VAPID `sub` claim
+VAPID_CONTACT_EMAIL = os.environ.get("VAPID_CONTACT_EMAIL", "ksg-it@samfundet.no")
+PUSH_REQUEST_TIMEOUT = 3  # seconds, for each push service call
+PUSH_TOTAL_TIMEOUT = 5  # seconds, for all sends of one request
+# 1 sends one push at a time, the fallback if threads fail under uWSGI
+PUSH_MAX_WORKERS = int(os.environ.get("PUSH_MAX_WORKERS", 16))
+
 STOCK_MODE_PRICE_MULTIPLIER = 1.0  # multiplies with sales volume to get new prices
 STOCK_MODE_PRICE_WINDOW = timedelta(minutes=30)
 
@@ -347,6 +361,7 @@ X_APP_REQUIRE_AUTH_FEATURE_FLAG = "x-app-require-auth"
 FEEDBACK_FEATURE_FLAG = "feedback"
 TRUTH_OR_DRINK_FEATURE_FLAG = "truth_or_drink"
 CHAT_FEATURE_FLAG = "chat"
+PUSH_FEATURE_FLAG = "push_notifications"
 
 EXTERNAL_CHARGE_MAX_AMOUNT = os.environ.get("EXTERNAL_CHARGE_MAX_AMOUNT", 300)
 

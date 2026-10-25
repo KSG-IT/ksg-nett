@@ -34,3 +34,10 @@ def add_members(actor, chat, user_ids, now=None):
             ChatMembership(chat=chat, user_id=user_id) for user_id in new_ids
         )
     return new_ids
+
+
+def set_muted(user, chat, muted):
+    """Mute or unmute message pushes for one chat. Only for members."""
+    changed = ChatMembership.objects.filter(chat=chat, user=user).update(muted=muted)
+    if not changed:
+        raise PermissionDenied("You are not a member of this chat")

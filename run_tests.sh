@@ -5,7 +5,7 @@ set -euo pipefail
 
 MODULES=(
   admissions api bar_tab chat common economy external handbook
-  internal login organization quotes schedules sensors summaries users
+  internal login organization push quotes schedules sensors summaries users
 )
 
 COV_ARGS=()
