@@ -1,6 +1,6 @@
 """
-The chat pushes. The chat mutations call these through transaction.on_commit,
-so a push never goes out for a change that was rolled back.
+The pushes. The mutations call these through transaction.on_commit, so a push
+never goes out for a change that was rolled back.
 """
 
 from django.conf import settings
@@ -79,3 +79,28 @@ def notify_chat_added(chat, user_ids, actor=None):
         else "Du ble lagt til i chatten"
     )
     send_to_users(recipient_ids, chat_payload(chat, body), topic=chat_topic(chat))
+
+
+def notify_deposit_approved(deposit):
+    """
+    Push "deposit approved" to the owner of the account. The e-mail setting
+    `notify_on_deposit` decides, the same as for the e-mail. Only manual
+    approvals call this: a card deposit is approved while the user watches.
+    """
+    if not check_feature_flag(settings.PUSH_FEATURE_FLAG, fail_silently=True):
+        return
+    user = deposit.account.user
+    if not user.notify_on_deposit:
+        return
+    amount = f"{deposit.amount:,}".replace(",", "\u00a0")
+    payload = {
+        "web_push": 8030,
+        "notification": {
+            "title": "Innskudd godkjent",
+            "body": f"{amount}\u00a0kr er satt inn på Soci-kontoen din.",
+            "navigate": app_url("/economy/me"),
+            "tag": f"deposit-{deposit.pk}",
+            "lang": "nb",
+        },
+    }
+    send_to_users([user.pk], payload, topic=f"deposit-{deposit.pk}")

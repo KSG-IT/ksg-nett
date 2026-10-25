@@ -9,11 +9,17 @@ from graphql_relay import to_global_id
 
 from chat.models import Chat, ChatMembership, ChatMessage
 from chat.tests.helpers import FRIDAY_19, make_shift
-from chat.tests.test_mega_chats import mega_chat_creator
+from chat.tests.test_mega_chats import mega_chat_creator, user_with
 from common.models import FeatureFlag
+from economy.models import Deposit
+from economy.tests.factories import DepositFactory
 from ksg_nett.schema import schema
 from push.tests.helpers import VAPID_PRIVATE_KEY, VAPID_PUBLIC_KEY, make_subscription
-from push.triggers import notify_chat_added, notify_chat_message
+from push.triggers import (
+    notify_chat_added,
+    notify_chat_message,
+    notify_deposit_approved,
+)
 from users.tests.factories import UserFactory
 
 
@@ -227,3 +233,52 @@ class SendChatMessageTest(TestCase):
         self.assertNotIn("errors", result)
         self.assertEqual(result["data"]["sendChatMessage"]["message"]["body"], "Hei")
         push.assert_called_once()
+
+
+class NotifyDepositApprovedTest(TriggerTestCase):
+    def setUp(self):
+        super().setUp()
+        self.deposit = DepositFactory.create(
+            amount=1500, deposit_method=Deposit.DepositMethod.BANK_TRANSFER
+        )
+        self.owner = self.deposit.account.user
+        self.owner.notify_on_deposit = True
+        self.owner.save()
+
+    def test_pushes_the_amount_to_the_account_owner(self):
+        notify_deposit_approved(self.deposit)
+
+        self.assertEqual(self.recipients(), {self.owner.pk})
+        notification = self.send_to_users.call_args.args[1]["notification"]
+        self.assertEqual(notification["title"], "Innskudd godkjent")
+        self.assertEqual(
+            notification["body"], "1\u00a0500\u00a0kr er satt inn på Soci-kontoen din."
+        )
+        self.assertEqual(notification["navigate"], "https://app.ksg-nett.no/economy/me")
+
+    def test_the_deposit_email_setting_turns_it_off(self):
+        self.owner.notify_on_deposit = False
+        self.owner.save()
+
+        notify_deposit_approved(self.deposit)
+
+        self.send_to_users.assert_not_called()
+
+    def test_approve_deposit_sends_it(self):
+        approver = user_with("economy.approve_deposit")
+        approve = """
+        mutation($depositId: ID!) {
+            approveDeposit(depositId: $depositId) { deposit { approved } } }
+        """
+        with mock.patch("economy.utils.send_deposit_approved_email"):
+            with self.captureOnCommitCallbacks(execute=True):
+                result = Client(schema).execute(
+                    approve,
+                    variables={
+                        "depositId": to_global_id("DepositNode", self.deposit.pk)
+                    },
+                    context=Dict(user=approver),
+                )
+
+        self.assertNotIn("errors", result)
+        self.assertEqual(self.recipients(), {self.owner.pk})
