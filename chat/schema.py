@@ -10,6 +10,7 @@ from graphene_django_cud.util import disambiguate_id
 from graphql_relay import to_global_id
 
 from chat.models import Chat, ChatMembership, ChatMessage
+from chat.notifications import notify_added, notify_new_chat, notify_new_message
 from chat.utils import (
     add_members,
     create_mega_chat,
@@ -28,7 +29,6 @@ from chat.utils import (
 )
 from common.decorators import gql_feature_flag_required, gql_login_required
 from common.exceptions import IllegalOperation
-from push.triggers import notify_chat_added, notify_chat_message
 from schedules.models import Shift
 from users.schema import UserNode
 
@@ -171,12 +171,6 @@ def inbox(chats, user):
     return attach_last_messages(chats)
 
 
-def notify_members_added(chat, actor):
-    """Push "you were added" to everyone in a new chat but its creator."""
-    user_ids = list(chat.memberships.values_list("user_id", flat=True))
-    transaction.on_commit(lambda: notify_chat_added(chat, user_ids, actor))
-
-
 class JoinableShiftChatType(graphene.ObjectType):
     shift = graphene.Field("schedules.schemas.schedules.ShiftNode", required=True)
     user_count = graphene.Int(required=True)
@@ -295,7 +289,7 @@ class JoinShiftChatMutation(graphene.Mutation):
         user = info.context.user
         chat, created = fetch_chat_for_shift(user, shift)
         if created:
-            notify_members_added(chat, user)
+            transaction.on_commit(lambda: notify_new_chat(chat, user))
         return JoinShiftChatMutation(chat=chat, created=created)
 
 
@@ -309,7 +303,7 @@ class CreateMegaChatMutation(graphene.Mutation):
     def mutate(self, info, name):
         user = info.context.user
         chat = create_mega_chat(user, name)
-        notify_members_added(chat, user)
+        transaction.on_commit(lambda: notify_new_chat(chat, user))
         return CreateMegaChatMutation(chat=chat)
 
 
@@ -330,7 +324,7 @@ class AddChatMembersMutation(graphene.Mutation):
             raise IllegalOperation("Invalid user id")
         user = info.context.user
         added = add_members(user, chat, ids)
-        transaction.on_commit(lambda: notify_chat_added(chat, added, user))
+        transaction.on_commit(lambda: notify_added(chat, added, user))
         return AddChatMembersMutation(chat=chat, added_count=len(added))
 
 
@@ -344,7 +338,7 @@ class SendChatMessageMutation(graphene.Mutation):
     @chat_enabled
     def mutate(self, info, chat_id, body):
         message = send_chat_message(info.context.user, get_chat(chat_id), body)
-        transaction.on_commit(lambda: notify_chat_message(message))
+        transaction.on_commit(lambda: notify_new_message(message))
         return SendChatMessageMutation(message=message)
 
 
