@@ -17,14 +17,17 @@ from users.models import User
 MAX_BODY_LENGTH = 140
 
 
-def chat_payload(chat, body):
-    """Declarative Web Push JSON. Safari shows it without the service worker."""
+def chat_payload(chat, body, title=None):
+    """
+    Declarative Web Push JSON. Safari shows it without the service worker.
+    The title is the chat name unless another is given.
+    """
     if len(body) > MAX_BODY_LENGTH:
         body = body[: MAX_BODY_LENGTH - 1] + "…"
     return {
         "web_push": 8030,
         "notification": {
-            "title": chat.name,
+            "title": title or chat.name,
             "body": body,
             "navigate": app_url(f"/chat/{to_global_id('ChatNode', chat.pk)}"),
             # One notification per chat: a new push replaces the old one
@@ -55,7 +58,11 @@ def notify_chat_message(message):
         return
     send_to_users(
         user_ids,
-        chat_payload(chat, f"{message.sender.first_name}: {message.body}"),
+        chat_payload(
+            chat,
+            message.body,
+            title=f"{message.sender.first_name} skriver i {chat.name}",
+        ),
         topic=topic(chat_tag(chat)),
         urgency="high",
     )

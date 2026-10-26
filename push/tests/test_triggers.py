@@ -92,9 +92,10 @@ class NotifyChatMessageTest(TriggerTestCase):
         payload = self.send_to_users.call_args.args[1]
         notification = payload["notification"]
         self.assertEqual(payload["web_push"], 8030)
-        self.assertEqual(notification["title"], "Bar fredag")
-        self.assertTrue(notification["body"].startswith(f"{self.sender.first_name}: "))
-        self.assertEqual(len(notification["body"]), 140)
+        self.assertEqual(
+            notification["title"], f"{self.sender.first_name} skriver i Bar fredag"
+        )
+        self.assertEqual(notification["body"], "x" * 139 + "…")
         self.assertEqual(
             notification["navigate"],
             f"https://app.ksg-nett.no/chat/{to_global_id('ChatNode', self.chat.pk)}",
