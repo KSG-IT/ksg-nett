@@ -33,12 +33,15 @@ GONE = "gone"
 REJECTED = "rejected"
 TOO_LARGE = "too_large"
 RETRY_LATER = "retry_later"
+MAX_REASON_LENGTH = 200
 
 
 @dataclass(frozen=True)
 class SendResult:
     status: str
     status_code: int | None = None
+    # The push service's own words on a failure, for the log (see _reason)
+    reason: str | None = None
 
 
 def _b64url_encode(data: bytes) -> str:
@@ -178,6 +181,18 @@ def _classify(status_code: int) -> str:
     return REJECTED
 
 
+def _reason(response, endpoint: str) -> str:
+    """
+    The start of the error body, such as Apple's {"reason":"BadJwtToken"} or
+    Mozilla's errno. The endpoint identifies the device, so it is removed.
+    """
+    text = response.text or ""
+    for secret in (endpoint, urlsplit(endpoint).path):
+        if secret:
+            text = text.replace(secret, "<endpoint>")
+    return " ".join(text.split())[:MAX_REASON_LENGTH]
+
+
 def send(
     subscription,
     payload: bytes,
@@ -214,4 +229,9 @@ def send(
         )
     except requests.RequestException:
         return SendResult(RETRY_LATER)
-    return SendResult(_classify(response.status_code), response.status_code)
+    status = _classify(response.status_code)
+    if status in (OK, GONE):
+        return SendResult(status, response.status_code)
+    return SendResult(
+        status, response.status_code, _reason(response, subscription.endpoint)
+    )
