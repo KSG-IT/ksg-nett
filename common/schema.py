@@ -8,6 +8,7 @@ from graphene_django import DjangoObjectType
 from graphene_django_cud.util import disambiguate_id
 
 from admissions.models import Admission
+from common.badge import badge_count
 from common.decorators import (
     gql_feature_flag_required,
     gql_has_permissions,
@@ -62,6 +63,17 @@ class SidebarQuery(graphene.ObjectType):
         return SidebarData(
             pending_quotes=pending_quotes, pending_deposits=pending_deposits
         )
+
+
+class BadgeQuery(graphene.ObjectType):
+    badge_count = graphene.Int(
+        required=True,
+        description="The number on the app icon: everything that waits for the user.",
+    )
+
+    @gql_login_required()
+    def resolve_badge_count(self, info):
+        return badge_count(info.context.user)
 
 
 class DashboardQuery(graphene.ObjectType):
