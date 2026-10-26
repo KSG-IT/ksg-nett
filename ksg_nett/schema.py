@@ -8,6 +8,7 @@ from admissions.schema import (
 )
 from common.schema import (
     DashboardQuery,
+    BadgeQuery,
     SidebarQuery,
     FeatureFlagQuery,
     CommonMutations,
@@ -73,6 +74,7 @@ class Query(
     FeatureFlagQuery,
     ProductOrderQuery,
     PushQuery,
+    BadgeQuery,
     SidebarQuery,
     SociBankAccountQuery,
     SociProductQuery,
