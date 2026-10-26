@@ -1,11 +1,116 @@
-from django.contrib import admin
+from urllib.parse import urlsplit
 
+from django import forms
+from django.conf import settings
+from django.contrib import admin, messages
+from django.contrib.admin import helpers
+from django.template.response import TemplateResponse
+
+from push import webpush
 from push.models import PushSubscription
+from push.utils import app_url, send_to_subscriptions
+
+
+class TestPushForm(forms.Form):
+    title = forms.CharField(max_length=100, initial="Test fra KSG-nett")
+    body = forms.CharField(
+        max_length=300,
+        required=False,
+        widget=forms.Textarea(attrs={"rows": 3}),
+        initial="Dette er et testvarsel.",
+    )
+    link = forms.CharField(
+        max_length=200,
+        initial="/dashboard",
+        help_text="A path in the app. A tap on the notification opens it.",
+    )
+
+    def clean_link(self):
+        link = self.cleaned_data["link"]
+        if not link.startswith("/"):
+            raise forms.ValidationError("Use a path that starts with /.")
+        return link
+
+    def payload(self):
+        """Declarative Web Push JSON, the same format as the real pushes."""
+        return {
+            "web_push": 8030,
+            "notification": {
+                "title": self.cleaned_data["title"],
+                "body": self.cleaned_data["body"],
+                "navigate": app_url(self.cleaned_data["link"]),
+                "tag": "test",
+                "lang": "nb",
+            },
+        }
+
+
+def describe(result):
+    """One admin message for the result of one subscription."""
+    if result is None:
+        return messages.ERROR, "no answer: the send crashed or hit the total timeout"
+    if result.status == webpush.OK:
+        return messages.SUCCESS, f"sent (status {result.status_code})"
+    if result.status == webpush.GONE:
+        return (
+            messages.WARNING,
+            f"expired (status {result.status_code}), the row is deleted",
+        )
+    return (
+        messages.ERROR,
+        f"{result.status} (status {result.status_code}): {result.reason}",
+    )
 
 
 @admin.register(PushSubscription)
 class PushSubscriptionAdmin(admin.ModelAdmin):
-    list_display = ("user", "user_agent", "created_at", "last_success_at")
+    list_display = (
+        "id",
+        "user",
+        "push_service",
+        "user_agent",
+        "created_at",
+        "last_success_at",
+    )
     search_fields = ("user__first_name", "user__last_name", "user_agent")
     autocomplete_fields = ("user",)
     readonly_fields = ("vapid_public_key", "created_at", "last_success_at")
+    actions = ("send_test_push",)
+
+    @admin.display(description="Push service")
+    def push_service(self, subscription):
+        # The host only: the rest of the endpoint identifies the device
+        return urlsplit(subscription.endpoint).hostname
+
+    @admin.action(description="Send a test push", permissions=["change"])
+    def send_test_push(self, request, queryset):
+        form = TestPushForm(request.POST if "apply" in request.POST else None)
+        if form.is_valid():
+            if not settings.VAPID_PRIVATE_KEY:
+                self.message_user(
+                    request,
+                    "Sending is off: VAPID_PRIVATE_KEY is empty.",
+                    messages.ERROR,
+                )
+                return None
+            subscriptions = list(queryset)
+            results = send_to_subscriptions(subscriptions, form.payload())
+            for subscription in subscriptions:
+                level, text = describe(results[subscription.pk])
+                self.message_user(
+                    request, f"Push subscription {subscription.pk}: {text}", level
+                )
+            return None
+
+        return TemplateResponse(
+            request,
+            "admin/push/pushsubscription/send_test_push.html",
+            {
+                **self.admin_site.each_context(request),
+                "title": "Send a test push",
+                "opts": self.model._meta,
+                "form": form,
+                "subscriptions": queryset,
+                "action_checkbox_name": helpers.ACTION_CHECKBOX_NAME,
+            },
+        )

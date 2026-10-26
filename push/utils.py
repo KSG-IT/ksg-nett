@@ -74,8 +74,17 @@ def _send_to_users(user_ids, payload, topic, urgency):
             user_id__in=user_ids, vapid_public_key=settings.VAPID_PUBLIC_KEY
         )
     )
-    if not subscriptions:
-        return
+    if subscriptions:
+        send_to_subscriptions(subscriptions, payload, topic, urgency)
+
+
+def send_to_subscriptions(subscriptions, payload, topic=None, urgency="normal"):
+    """
+    Push `payload` to these subscription rows, in parallel, and apply the
+    results: 404/410 delete the row, 2xx sets last_success_at, the rest is
+    logged. Returns {pk: SendResult}, with None for a send that crashed or was
+    cut off. Raises when setup fails, for example on an empty VAPID key.
+    """
     key = webpush.load_vapid_key(settings.VAPID_PRIVATE_KEY)
     body = json.dumps(payload, ensure_ascii=False, separators=(",", ":")).encode()
     subject = f"mailto:{settings.VAPID_CONTACT_EMAIL}"
@@ -107,6 +116,7 @@ def _send_to_users(user_ids, payload, topic, urgency):
             "Push total timeout cut off %d of %d sends", len(not_done), len(futures)
         )
 
+    results = {subscription.pk: None for subscription in subscriptions}
     ok, gone = [], []
     for future in done:
         subscription = futures[future]
@@ -115,6 +125,7 @@ def _send_to_users(user_ids, payload, topic, urgency):
         except Exception:
             logger.exception("Push to subscription %s failed", subscription.pk)
             continue
+        results[subscription.pk] = result
         if result.status == webpush.OK:
             ok.append(subscription.pk)
         elif result.status == webpush.GONE:
@@ -142,3 +153,4 @@ def _send_to_users(user_ids, payload, topic, urgency):
         PushSubscription.objects.filter(pk__in=ok).update(
             last_success_at=timezone.now()
         )
+    return results
