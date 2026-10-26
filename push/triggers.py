@@ -11,6 +11,7 @@ from chat.models import ChatMembership
 from chat.utils import is_online
 from common.util import check_feature_flag
 from push.utils import app_url, send_to_users
+from push.webpush import topic
 from users.models import User
 
 MAX_BODY_LENGTH = 140
@@ -27,13 +28,13 @@ def chat_payload(chat, body):
             "body": body,
             "navigate": app_url(f"/chat/{to_global_id('ChatNode', chat.pk)}"),
             # One notification per chat: a new push replaces the old one
-            "tag": chat_topic(chat),
+            "tag": chat_tag(chat),
             "lang": "nb",
         },
     }
 
 
-def chat_topic(chat):
+def chat_tag(chat):
     return f"chat-{chat.pk}"
 
 
@@ -55,7 +56,7 @@ def notify_chat_message(message):
     send_to_users(
         user_ids,
         chat_payload(chat, f"{message.sender.first_name}: {message.body}"),
-        topic=chat_topic(chat),
+        topic=topic(chat_tag(chat)),
         urgency="high",
     )
 
@@ -78,7 +79,7 @@ def notify_chat_added(chat, user_ids, actor=None):
         if actor is not None
         else "Du ble lagt til i chatten"
     )
-    send_to_users(recipient_ids, chat_payload(chat, body), topic=chat_topic(chat))
+    send_to_users(recipient_ids, chat_payload(chat, body), topic=topic(chat_tag(chat)))
 
 
 def notify_deposit_approved(deposit):
@@ -103,4 +104,4 @@ def notify_deposit_approved(deposit):
             "lang": "nb",
         },
     }
-    send_to_users([user.pk], payload, topic=f"deposit-{deposit.pk}")
+    send_to_users([user.pk], payload, topic=topic(f"deposit-{deposit.pk}"))

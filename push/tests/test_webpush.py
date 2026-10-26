@@ -311,3 +311,18 @@ class SendTest(SimpleTestCase):
         )
         self.assertNotIn("Topic", first)
         self.assertEqual((vars(self.subscription), vars(other)), before)
+
+
+class TopicTest(SimpleTestCase):
+    def test_is_32_characters_of_valid_base64url_for_any_name(self):
+        # "deposit-1" has 9 characters: as a topic it is not valid base64url
+        for name in ("deposit-1", "chat-12345", "chat-1", "x" * 100, "æøå"):
+            with self.subTest(name=name):
+                value = webpush.topic(name)
+                self.assertEqual(len(value), 32)
+                self.assertRegex(value, r"^[A-Za-z0-9_-]{32}$")
+                self.assertEqual(len(base64.urlsafe_b64decode(value)), 24)
+
+    def test_is_the_same_for_the_same_name_only(self):
+        self.assertEqual(webpush.topic("chat-1"), webpush.topic("chat-1"))
+        self.assertNotEqual(webpush.topic("chat-1"), webpush.topic("chat-2"))
