@@ -8,6 +8,7 @@ module can be tested against the RFC vector on its own.
 
 import base64
 import functools
+import hashlib
 import json
 import os
 import time
@@ -129,6 +130,17 @@ def load_vapid_key(base64_body: str) -> ec.EllipticCurvePrivateKey:
     ):
         raise ValueError("VAPID private key must be a P-256 key")
     return key
+
+
+def topic(name: str) -> str:
+    """
+    The `Topic` header for a name such as "chat-12": 32 base64url characters
+    of its SHA-256. RFC 8030 allows 32 characters of the base64url alphabet,
+    and Apple refuses a topic that is not valid base64url (BadWebPushTopic),
+    for example one whose length leaves 1 when divided by 4. 24 bytes always
+    give exactly 32 characters with no padding.
+    """
+    return _b64url_encode(hashlib.sha256(name.encode()).digest()[:24])
 
 
 def application_server_key(key: ec.EllipticCurvePrivateKey) -> str:

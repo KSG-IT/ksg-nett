@@ -20,6 +20,7 @@ from push.triggers import (
     notify_chat_message,
     notify_deposit_approved,
 )
+from push.webpush import topic
 from users.tests.factories import UserFactory
 
 
@@ -101,7 +102,7 @@ class NotifyChatMessageTest(TriggerTestCase):
         self.assertEqual(notification["tag"], f"chat-{self.chat.pk}")
         self.assertEqual(
             self.send_to_users.call_args.kwargs,
-            {"topic": f"chat-{self.chat.pk}", "urgency": "high"},
+            {"topic": topic(f"chat-{self.chat.pk}"), "urgency": "high"},
         )
 
     def test_flag_off_sends_nothing(self):
