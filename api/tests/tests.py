@@ -501,7 +501,7 @@ class ChargeAccountErrorsTest(APITestCase):
 
 
 class XAppRequireAuthTest(APITestCase):
-    """The x-app-require-auth flag decides if the X-App calls need the JWT."""
+    """The X-App calls need the JWT from obtain-token."""
 
     def setUp(self):
         self.account = SociBankAccountFactory(user__is_staff=True)
@@ -510,9 +510,6 @@ class XAppRequireAuthTest(APITestCase):
             name="Burger", sku_number="BURGER", price=80, purchase_price=None
         )
         SociSessionFactory.create()
-        self.flag = FeatureFlagFactory.create(
-            name=settings.X_APP_REQUIRE_AUTH_FEATURE_FLAG, enabled=True
-        )
 
     def charge(self):
         return self.client.post(
@@ -524,15 +521,7 @@ class XAppRequireAuthTest(APITestCase):
             format="json",
         )
 
-    def test__flag_off__charge_without_token__ok(self):
-        self.flag.enabled = False
-        self.flag.save()
-
-        response = self.charge()
-
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-
-    def test__flag_on__charge_with_token__ok(self):
+    def test__charge_with_token__ok(self):
         token = SlidingToken.for_user(UserFactory())
         self.client.credentials(HTTP_AUTHORIZATION=f"JWT {token}")
 
@@ -540,7 +529,7 @@ class XAppRequireAuthTest(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
-    def test__flag_on__no_token__unauthorized_and_nothing_charged(self):
+    def test__no_token__unauthorized_and_nothing_charged(self):
         responses = [
             self.charge(),
             self.client.get(
@@ -555,7 +544,7 @@ class XAppRequireAuthTest(APITestCase):
         self.account.refresh_from_db()
         self.assertEqual(self.account.balance, 100)
 
-    def test__flag_on__basic_auth__unauthorized(self):
+    def test__basic_auth__unauthorized(self):
         user = UserFactory()
         user.set_password("password")
         user.save()

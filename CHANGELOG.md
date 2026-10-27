@@ -3,6 +3,10 @@
 
 ## [unreleased]
 
+### Changed
+- API: the X-App calls (charge, balance, products, terminate session) always need the JWT
+  from obtain-token. The `x-app-require-auth` feature flag is removed
+
 ## [2026.10.3]
 
 ### Added
