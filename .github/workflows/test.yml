@@ -57,7 +57,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v7
         with:
-          python-version: "3.11"
+          python-version: "3.13"
           cache: poetry
 
       - name: Install Weasyprint system dependencies
@@ -75,11 +75,6 @@ jobs:
   test:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
-    strategy:
-      fail-fast: false
-      matrix:
-        # 3.11 is the production version. 3.13 is the Python of Debian 13.
-        python-version: ["3.11", "3.13"]
     steps:
       - uses: actions/checkout@v7
 
@@ -89,7 +84,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v7
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: "3.13"
           cache: poetry
 
       - name: Install Weasyprint system dependencies
