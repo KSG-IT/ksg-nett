@@ -133,6 +133,30 @@ class SetChatNotificationsTest(PushSchemaTestCase):
         )
 
 
+class SetPushSettingsTest(PushSchemaTestCase):
+    def test_changes_only_the_given_settings(self):
+        mutation = """
+        mutation { setPushSettings(onDeposit: false, onQuote: true) {
+            user { id } } }
+        """
+        result = self.run_query(self.anna, mutation)
+        me = self.run_query(
+            self.anna,
+            "query { me { pushOnDeposit pushOnQuote pushOnShift notifyOnChatMessage } }",
+        )
+
+        self.assertNotIn("errors", result)
+        self.assertEqual(
+            me["data"]["me"],
+            {
+                "pushOnDeposit": False,
+                "pushOnQuote": True,
+                "pushOnShift": False,
+                "notifyOnChatMessage": True,
+            },
+        )
+
+
 class SetChatMutedTest(PushSchemaTestCase):
     MUTE = """
     mutation($chatId: ID!, $muted: Boolean!) {

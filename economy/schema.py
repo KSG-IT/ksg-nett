@@ -46,7 +46,10 @@ from economy.models import (
     StockMarketCrash,
     SociRankedSeason,
 )
-from economy.notifications import notify_deposit_approved
+from economy.notifications import (
+    notify_deposit_approved,
+    notify_order_session_invited,
+)
 from economy.price_strategies import calculate_stock_price_for_product
 from schedules.models import Schedule
 from users.models import User
@@ -1357,8 +1360,6 @@ class CreateSociOrderSessionMutation(graphene.Mutation):
 
     @gql_has_permissions("economy.add_sociordersession")
     def mutate(self, info, *args, **kwargs):
-        from economy.utils import send_soci_order_session_invitation_email
-
         active_session = SociOrderSession.get_active_session()
         if active_session:
             most_recent_purchase = (
@@ -1387,8 +1388,12 @@ class CreateSociOrderSessionMutation(graphene.Mutation):
             invited_users_list = list(invited_users)
             invited_users_list.append(info.context.user)
             soci_session.invited_users.add(*invited_users_list)
-            # Don't really need to send invited users. They are already part of the session?
-            send_soci_order_session_invitation_email(soci_session, invited_users)
+            # The users on duty get the invitation, as before
+            invited_ids = [user.pk for user in invited_users]
+            actor = info.context.user
+            transaction.on_commit(
+                lambda: notify_order_session_invited(soci_session, invited_ids, actor)
+            )
 
             return CreateSociOrderSessionMutation(soci_order_session=soci_session)
 
@@ -1583,14 +1588,16 @@ class InviteUsersToSociOrderSessionMutation(graphene.Mutation):
 
     @gql_has_permissions("economy.change_sociordersession")
     def mutate(self, info, users, *args, **kwargs):
-        from economy.utils import send_soci_order_session_invitation_email
-
         active_session = SociOrderSession.get_active_session()
         disambiguated_ids = [disambiguate_id(user) for user in users]
 
         user_qs = User.objects.filter(id__in=disambiguated_ids)
         active_session.invited_users.add(*list(user_qs))
-        send_soci_order_session_invitation_email(active_session, user_qs)
+        invited_ids = list(user_qs.values_list("pk", flat=True))
+        actor = info.context.user
+        transaction.on_commit(
+            lambda: notify_order_session_invited(active_session, invited_ids, actor)
+        )
         return InviteUsersToSociOrderSessionMutation(soci_order_session=active_session)
 
 

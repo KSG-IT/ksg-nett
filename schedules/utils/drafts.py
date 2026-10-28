@@ -7,7 +7,7 @@ from collections import defaultdict
 from django.db import transaction
 
 from schedules.models import ShiftSlotDraft
-from schedules.utils.schedules import send_new_shifts_email
+from schedules.notifications import notify_new_shifts
 
 
 def drafts_in_range(schedule, date_from=None, date_to=None):
@@ -23,8 +23,8 @@ def drafts_in_range(schedule, date_from=None, date_to=None):
 def lock_drafts(schedule, date_from=None, date_to=None):
     """
     Copy the drafts in the range to the slots and delete them, in one
-    transaction. After the commit, each user with notify_on_shift gets one
-    email with their new shifts. A removal sends no email.
+    transaction. After the commit, each user gets one e-mail and one push with
+    their new shifts, as their settings allow. A removal sends nothing.
     Returns the number of changed slots and of notified users.
     """
     with transaction.atomic():
@@ -48,9 +48,5 @@ def lock_drafts(schedule, date_from=None, date_to=None):
 
         notified = [user for user in new_slots if user.notify_on_shift]
 
-        def send_emails():
-            for user in notified:
-                send_new_shifts_email(user, new_slots[user])
-
-        transaction.on_commit(send_emails)
+        transaction.on_commit(lambda: notify_new_shifts(new_slots))
     return changed, len(notified)
