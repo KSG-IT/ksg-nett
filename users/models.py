@@ -148,7 +148,7 @@ class User(AbstractUser):
         if not " " in full_name:
             return full_name[0:2].upper()
         else:
-            split = re.split("\W+", full_name)
+            split = re.split(r"\W+", full_name)
             first_part, last_part = split[0], split[-1]
             return f"{first_part[0].upper()}{last_part[0].upper()}"
 
