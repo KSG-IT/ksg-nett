@@ -17,7 +17,7 @@ from quotes.models import Quote, QuoteVote, VOTE_SUM
 from quotes.filters import QuoteFilter
 from graphql_relay import from_global_id
 
-from quotes.utils import send_tagged_in_quote_email
+from quotes.notifications import notify_tagged_in_quote
 
 
 class QuoteNode(DjangoObjectType):
@@ -168,14 +168,15 @@ class ApproveQuoteMutation(graphene.Mutation):
     def mutate(self, info, quote_id):
         quote_id = disambiguate_id(quote_id)
         quote = Quote.objects.get(pk=quote_id)
+        was_approved = quote.approved
+        approver = info.context.user
         with transaction.atomic():
-            quote.approved_by = info.context.user
+            quote.approved_by = approver
             quote.approved = True
-            tagged_users = quote.tagged.filter(notify_on_quote=True)
-            if tagged_users:
-                send_tagged_in_quote_email(quote, tagged_users)
-
             quote.save()
+            # Only the first approval notifies, not a second click
+            if not was_approved:
+                transaction.on_commit(lambda: notify_tagged_in_quote(quote, approver))
         return ApproveQuoteMutation(quote=quote)
 
 

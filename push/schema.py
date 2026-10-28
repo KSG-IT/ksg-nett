@@ -78,7 +78,10 @@ class RemovePushSubscriptionMutation(graphene.Mutation):
 
 
 class SetChatNotificationsMutation(graphene.Mutation):
-    """The chat push settings of the caller. They apply on every device."""
+    """
+    The chat push settings of the caller. They apply on every device.
+    Replaced by setPushSettings; remove when the SPA no longer calls it.
+    """
 
     class Arguments:
         on_message = graphene.Boolean(required=True)
@@ -95,7 +98,49 @@ class SetChatNotificationsMutation(graphene.Mutation):
         return SetChatNotificationsMutation(user=user)
 
 
+# Argument name -> User field. A new push setting is one more line here.
+PUSH_SETTINGS = {
+    "on_chat_message": "notify_on_chat_message",
+    "on_chat_added": "notify_on_chat_added",
+    "on_deposit": "push_on_deposit",
+    "on_quote": "push_on_quote",
+    "on_shift": "push_on_shift",
+    "on_order_session": "push_on_order_session",
+}
+
+
+class SetPushSettingsMutation(graphene.Mutation):
+    """
+    The push settings of the caller. They apply on every device. Only the
+    given settings change.
+    """
+
+    class Arguments:
+        on_chat_message = graphene.Boolean()
+        on_chat_added = graphene.Boolean()
+        on_deposit = graphene.Boolean()
+        on_quote = graphene.Boolean()
+        on_shift = graphene.Boolean()
+        on_order_session = graphene.Boolean()
+
+    user = graphene.Field(UserNode)
+
+    @push_enabled
+    def mutate(self, info, **values):
+        user = info.context.user
+        fields = []
+        for argument, value in values.items():
+            if value is None:
+                continue
+            setattr(user, PUSH_SETTINGS[argument], value)
+            fields.append(PUSH_SETTINGS[argument])
+        if fields:
+            user.save(update_fields=fields)
+        return SetPushSettingsMutation(user=user)
+
+
 class PushMutations(graphene.ObjectType):
     register_push_subscription = RegisterPushSubscriptionMutation.Field()
     remove_push_subscription = RemovePushSubscriptionMutation.Field()
     set_chat_notifications = SetChatNotificationsMutation.Field()
+    set_push_settings = SetPushSettingsMutation.Field()

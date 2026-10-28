@@ -32,7 +32,8 @@ from schedules.permissions import (
     can_manage_schedule_in_request,
     require_can_manage_schedule,
 )
-from schedules.utils.schedules import normalize_shifts, send_given_shift_email
+from schedules.notifications import notify_given_shift
+from schedules.utils.schedules import normalize_shifts
 from schedules.utils.templates import apply_schedule_template
 from schedules.utils.unavailability import prefill_schedule, prefill_shift
 from users.models import User, Allergy as UserAllergy
@@ -883,9 +884,8 @@ class AddUserToShiftSlotMutation(graphene.Mutation):
         with transaction.atomic():
             user = User.objects.get(pk=user_id)
             shift_slot.user = user
-            if user.notify_on_shift:
-                send_given_shift_email(shift_slot)
             shift_slot.save()
+            transaction.on_commit(lambda: notify_given_shift(shift_slot))
         return AddUserToShiftSlotMutation(shift_slot=shift_slot)
 
 

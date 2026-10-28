@@ -99,6 +99,10 @@ class MyUserAdmin(UserAdmin):
                     "notify_on_shift",
                     "notify_on_chat_message",
                     "notify_on_chat_added",
+                    "push_on_deposit",
+                    "push_on_quote",
+                    "push_on_shift",
+                    "push_on_order_session",
                 )
             },
         ),
