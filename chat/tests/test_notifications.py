@@ -8,28 +8,19 @@ from graphene.test import Client
 from graphql_relay import to_global_id
 
 from chat.models import Chat, ChatMembership, ChatMessage
+from chat.notifications import notify_added, notify_new_message
 from chat.tests.helpers import FRIDAY_19, make_shift
-from chat.tests.test_mega_chats import mega_chat_creator, user_with
+from chat.tests.test_mega_chats import mega_chat_creator
 from common.models import FeatureFlag
-from economy.models import Deposit
-from economy.tests.factories import DepositFactory
 from ksg_nett.schema import schema
 from push.tests.helpers import VAPID_PRIVATE_KEY, VAPID_PUBLIC_KEY, make_subscription
-from push.triggers import (
-    notify_chat_added,
-    notify_chat_message,
-    notify_deposit_approved,
-)
-from push.webpush import topic
 from users.tests.factories import UserFactory
 
 
-@override_settings(APP_URL="app.ksg-nett.no")
-class TriggerTestCase(TestCase):
+class ChatNotificationTestCase(TestCase):
     def setUp(self):
-        FeatureFlag.objects.create(name="push_notifications", enabled=True)
         FeatureFlag.objects.create(name="chat", enabled=True)
-        patcher = mock.patch("push.triggers.send_to_users")
+        patcher = mock.patch("chat.notifications.send_to_users")
         self.send_to_users = patcher.start()
         self.addCleanup(patcher.stop)
 
@@ -45,8 +36,11 @@ class TriggerTestCase(TestCase):
         self.assertEqual(self.send_to_users.call_count, 1)
         return set(self.send_to_users.call_args.args[0])
 
+    def sent_message(self):
+        return self.send_to_users.call_args.args[1]
 
-class NotifyChatMessageTest(TriggerTestCase):
+
+class NotifyNewMessageTest(ChatNotificationTestCase):
     def setUp(self):
         super().setUp()
         self.sender, self.offline, self.other = UserFactory.create_batch(3)
@@ -56,7 +50,7 @@ class NotifyChatMessageTest(TriggerTestCase):
         message = ChatMessage.objects.create(
             chat=self.chat, sender=self.sender, body=body
         )
-        notify_chat_message(message)
+        notify_new_message(message)
         return message
 
     def test_sends_to_offline_members_but_not_the_sender(self):
@@ -86,35 +80,22 @@ class NotifyChatMessageTest(TriggerTestCase):
 
         self.assertIn(self.offline.pk, self.recipients())
 
-    def test_payload_links_to_the_chat_and_replaces_by_tag(self):
-        self.say("x" * 200)
+    def test_message_names_the_sender_and_links_to_the_chat(self):
+        self.say("Kan noen ta med kopper?")
 
-        payload = self.send_to_users.call_args.args[1]
-        notification = payload["notification"]
-        self.assertEqual(payload["web_push"], 8030)
+        message = self.sent_message()
         self.assertEqual(
-            notification["title"], f"{self.sender.first_name} skriver i Bar fredag"
+            message.title, f"{self.sender.first_name} skriver i Bar fredag"
         )
-        self.assertEqual(notification["body"], "x" * 139 + "…")
+        self.assertEqual(message.body, "Kan noen ta med kopper?")
         self.assertEqual(
-            notification["navigate"],
-            f"https://app.ksg-nett.no/chat/{to_global_id('ChatNode', self.chat.pk)}",
+            message.path, f"/chat/{to_global_id('ChatNode', self.chat.pk)}"
         )
-        self.assertEqual(notification["tag"], f"chat-{self.chat.pk}")
-        self.assertEqual(
-            self.send_to_users.call_args.kwargs,
-            {"topic": topic(f"chat-{self.chat.pk}"), "urgency": "high"},
-        )
-
-    def test_flag_off_sends_nothing(self):
-        FeatureFlag.objects.filter(name="push_notifications").update(enabled=False)
-
-        self.say()
-
-        self.send_to_users.assert_not_called()
+        self.assertEqual(message.tag, f"chat-{self.chat.pk}")
+        self.assertEqual(message.urgency, "high")
 
 
-class NotifyChatAddedTest(TriggerTestCase):
+class NotifyAddedTest(ChatNotificationTestCase):
     def setUp(self):
         super().setUp()
         self.actor, self.added, self.opted_out = UserFactory.create_batch(3)
@@ -123,31 +104,32 @@ class NotifyChatAddedTest(TriggerTestCase):
         self.chat = self.make_chat([self.actor, self.added, self.opted_out])
 
     def test_skips_the_actor_and_opted_out_users(self):
-        notify_chat_added(
+        notify_added(
             self.chat, [self.actor.pk, self.added.pk, self.opted_out.pk], self.actor
         )
 
         self.assertEqual(self.recipients(), {self.added.pk})
-        body = self.send_to_users.call_args.args[1]["notification"]["body"]
-        self.assertEqual(body, f"{self.actor.first_name} la deg til i chatten")
+        message = self.sent_message()
+        self.assertEqual(message.title, "Bar fredag")
+        self.assertEqual(message.body, f"{self.actor.first_name} la deg til i chatten")
+        self.assertEqual(message.tag, f"chat-{self.chat.pk}")
 
     def test_without_an_actor_the_text_has_no_name(self):
-        notify_chat_added(self.chat, [self.added.pk])
+        notify_added(self.chat, [self.added.pk])
 
-        body = self.send_to_users.call_args.args[1]["notification"]["body"]
-        self.assertEqual(body, "Du ble lagt til i chatten")
+        self.assertEqual(self.sent_message().body, "Du ble lagt til i chatten")
 
     def test_a_chat_mute_and_the_message_setting_do_not_apply(self):
         ChatMembership.objects.filter(user=self.added).update(muted=True)
         self.added.notify_on_chat_message = False
         self.added.save()
 
-        notify_chat_added(self.chat, [self.added.pk], self.actor)
+        notify_added(self.chat, [self.added.pk], self.actor)
 
         self.assertEqual(self.recipients(), {self.added.pk})
 
 
-class CallSiteTest(TriggerTestCase):
+class CallSiteTest(ChatNotificationTestCase):
     def setUp(self):
         super().setUp()
         self.client = Client(schema)
@@ -160,7 +142,7 @@ class CallSiteTest(TriggerTestCase):
         self.assertNotIn("errors", result)
         return result
 
-    def test_join_shift_chat_pushes_only_when_it_creates_the_chat(self):
+    def test_join_shift_chat_notifies_only_when_it_creates_the_chat(self):
         now = timezone.now()
         shift, users = make_shift(
             start=now - datetime.timedelta(hours=1),
@@ -176,7 +158,7 @@ class CallSiteTest(TriggerTestCase):
 
         self.assertEqual(self.recipients(), {users[1].pk, users[2].pk})
 
-    def test_create_mega_chat_pushes_to_everyone_but_the_creator(self):
+    def test_create_mega_chat_notifies_everyone_but_the_creator(self):
         _, users = make_shift()
         creator = mega_chat_creator()
         with mock.patch("chat.utils.megachat.timezone.now", return_value=FRIDAY_19):
@@ -186,7 +168,7 @@ class CallSiteTest(TriggerTestCase):
 
         self.assertEqual(self.recipients(), {user.pk for user in users})
 
-    def test_add_chat_members_pushes_only_to_the_new_users(self):
+    def test_add_chat_members_notifies_only_the_new_users(self):
         creator = mega_chat_creator()
         member, new = UserFactory.create_batch(2)
         chat = self.make_chat([creator, member])
@@ -204,11 +186,23 @@ class CallSiteTest(TriggerTestCase):
 
         self.assertEqual(self.recipients(), {new.pk})
 
+    def test_send_chat_message_notifies(self):
+        sender, other = UserFactory.create_batch(2)
+        chat = self.make_chat([sender, other])
+        send = """
+        mutation($chatId: ID!) {
+            sendChatMessage(chatId: $chatId, body: "Hei") { message { body } } }
+        """
+
+        self.run_query(sender, send, chatId=to_global_id("ChatNode", chat.pk))
+
+        self.assertEqual(self.recipients(), {other.pk})
+
 
 @override_settings(
     VAPID_PUBLIC_KEY=VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY=VAPID_PRIVATE_KEY
 )
-class SendChatMessageTest(TestCase):
+class SendChatMessagePushFailsTest(TestCase):
     def test_returns_the_message_when_the_push_fails(self):
         FeatureFlag.objects.create(name="push_notifications", enabled=True)
         FeatureFlag.objects.create(name="chat", enabled=True)
@@ -235,52 +229,3 @@ class SendChatMessageTest(TestCase):
         self.assertNotIn("errors", result)
         self.assertEqual(result["data"]["sendChatMessage"]["message"]["body"], "Hei")
         push.assert_called_once()
-
-
-class NotifyDepositApprovedTest(TriggerTestCase):
-    def setUp(self):
-        super().setUp()
-        self.deposit = DepositFactory.create(
-            amount=1500, deposit_method=Deposit.DepositMethod.BANK_TRANSFER
-        )
-        self.owner = self.deposit.account.user
-        self.owner.notify_on_deposit = True
-        self.owner.save()
-
-    def test_pushes_the_amount_to_the_account_owner(self):
-        notify_deposit_approved(self.deposit)
-
-        self.assertEqual(self.recipients(), {self.owner.pk})
-        notification = self.send_to_users.call_args.args[1]["notification"]
-        self.assertEqual(notification["title"], "Innskudd godkjent")
-        self.assertEqual(
-            notification["body"], "1\u00a0500\u00a0kr er satt inn på Soci-kontoen din."
-        )
-        self.assertEqual(notification["navigate"], "https://app.ksg-nett.no/economy/me")
-
-    def test_the_deposit_email_setting_turns_it_off(self):
-        self.owner.notify_on_deposit = False
-        self.owner.save()
-
-        notify_deposit_approved(self.deposit)
-
-        self.send_to_users.assert_not_called()
-
-    def test_approve_deposit_sends_it(self):
-        approver = user_with("economy.approve_deposit")
-        approve = """
-        mutation($depositId: ID!) {
-            approveDeposit(depositId: $depositId) { deposit { approved } } }
-        """
-        with mock.patch("economy.utils.send_deposit_approved_email"):
-            with self.captureOnCommitCallbacks(execute=True):
-                result = Client(schema).execute(
-                    approve,
-                    variables={
-                        "depositId": to_global_id("DepositNode", self.deposit.pk)
-                    },
-                    context=Dict(user=approver),
-                )
-
-        self.assertNotIn("errors", result)
-        self.assertEqual(self.recipients(), {self.owner.pk})

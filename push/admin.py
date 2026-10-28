@@ -8,13 +8,13 @@ from django.template.response import TemplateResponse
 
 from push import webpush
 from push.models import PushSubscription
-from push.utils import app_url, send_to_subscriptions
+from push.utils import MAX_BODY_LENGTH, PushMessage, send_to_subscriptions
 
 
 class TestPushForm(forms.Form):
     title = forms.CharField(max_length=100, initial="Test fra KSG-nett")
     body = forms.CharField(
-        max_length=300,
+        max_length=MAX_BODY_LENGTH,
         required=False,
         widget=forms.Textarea(attrs={"rows": 3}),
         initial="Dette er et testvarsel.",
@@ -31,18 +31,14 @@ class TestPushForm(forms.Form):
             raise forms.ValidationError("Use a path that starts with /.")
         return link
 
-    def payload(self):
-        """Declarative Web Push JSON, the same format as the real pushes."""
-        return {
-            "web_push": 8030,
-            "notification": {
-                "title": self.cleaned_data["title"],
-                "body": self.cleaned_data["body"],
-                "navigate": app_url(self.cleaned_data["link"]),
-                "tag": "test",
-                "lang": "nb",
-            },
-        }
+    def message(self):
+        # tag "test": a new test push replaces the last one on the device
+        return PushMessage(
+            title=self.cleaned_data["title"],
+            body=self.cleaned_data["body"],
+            path=self.cleaned_data["link"],
+            tag="test",
+        )
 
 
 def describe(result):
@@ -94,7 +90,7 @@ class PushSubscriptionAdmin(admin.ModelAdmin):
                 )
                 return None
             subscriptions = list(queryset)
-            results = send_to_subscriptions(subscriptions, form.payload())
+            results = send_to_subscriptions(subscriptions, form.message())
             for subscription in subscriptions:
                 level, text = describe(results[subscription.pk])
                 self.message_user(

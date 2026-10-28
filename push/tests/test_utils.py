@@ -5,6 +5,8 @@ from unittest import mock
 import requests
 from django.test import TestCase, override_settings
 
+from common.models import FeatureFlag
+
 from push import webpush
 from push.models import PushSubscription
 from push.tests.helpers import (
@@ -13,10 +15,10 @@ from push.tests.helpers import (
     make_subscription,
     make_vapid_keys,
 )
-from push.utils import app_url, is_push_service_endpoint, send_to_users
+from push.utils import PushMessage, app_url, is_push_service_endpoint, send_to_users
 from users.tests.factories import UserFactory
 
-PAYLOAD = {"web_push": 8030, "notification": {"title": "Bar", "body": "Hei"}}
+MESSAGE = PushMessage(title="Bar", body="Hei", path="/chat", tag="chat-1")
 
 
 @override_settings(
@@ -24,21 +26,24 @@ PAYLOAD = {"web_push": 8030, "notification": {"title": "Bar", "body": "Hei"}}
 )
 class SendToUsersTest(TestCase):
     def setUp(self):
+        FeatureFlag.objects.create(name="push_notifications", enabled=True)
         self.user = UserFactory.create()
         self.subscription = make_subscription(self.user)
 
     def send_with_status(self, status_code, text=""):
         response = mock.Mock(status_code=status_code, text=text)
         with mock.patch("push.webpush.requests.post", return_value=response) as post:
-            send_to_users([self.user.pk], PAYLOAD, topic="chat-1", urgency="high")
+            send_to_users([self.user.pk], MESSAGE)
         return post
 
     def test_201_sets_last_success_at(self):
         post = self.send_with_status(201)
 
         self.assertEqual(post.call_count, 1)
-        self.assertEqual(post.call_args.kwargs["headers"]["Topic"], "chat-1")
-        self.assertEqual(post.call_args.kwargs["headers"]["Urgency"], "high")
+        self.assertEqual(
+            post.call_args.kwargs["headers"]["Topic"], webpush.topic("chat-1")
+        )
+        self.assertEqual(post.call_args.kwargs["headers"]["Urgency"], "normal")
         self.subscription.refresh_from_db()
         self.assertIsNotNone(self.subscription.last_success_at)
 
@@ -70,17 +75,17 @@ class SendToUsersTest(TestCase):
         with mock.patch(
             "push.webpush.requests.post", side_effect=requests.exceptions.Timeout
         ):
-            send_to_users([self.user.pk], PAYLOAD)
+            send_to_users([self.user.pk], MESSAGE)
 
         self.assertTrue(PushSubscription.objects.exists())
 
     def test_an_exception_never_escapes(self):
         with mock.patch("push.webpush.send", side_effect=RuntimeError):
-            send_to_users([self.user.pk], PAYLOAD)
+            send_to_users([self.user.pk], MESSAGE)
         with mock.patch(
             "push.utils.PushSubscription.objects.filter", side_effect=RuntimeError
         ):
-            send_to_users([self.user.pk], PAYLOAD)
+            send_to_users([self.user.pk], MESSAGE)
 
     def test_skips_subscriptions_made_for_another_vapid_key(self):
         # A row copied from another instance, or left over from an old key
@@ -89,14 +94,22 @@ class SendToUsersTest(TestCase):
         make_subscription(self.user, vapid_public_key=other_public_key)
 
         with mock.patch("push.webpush.send") as send:
-            send_to_users([self.user.pk], PAYLOAD)
+            send_to_users([self.user.pk], MESSAGE)
+
+        send.assert_not_called()
+
+    def test_the_push_flag_off_sends_nothing(self):
+        FeatureFlag.objects.filter(name="push_notifications").update(enabled=False)
+
+        with mock.patch("push.webpush.send") as send:
+            send_to_users([self.user.pk], MESSAGE)
 
         send.assert_not_called()
 
     @override_settings(VAPID_PRIVATE_KEY="")
     def test_an_empty_vapid_key_makes_no_calls(self):
         with mock.patch("push.webpush.send") as send:
-            send_to_users([self.user.pk], PAYLOAD)
+            send_to_users([self.user.pk], MESSAGE)
 
         send.assert_not_called()
 
@@ -110,13 +123,39 @@ class SendToUsersTest(TestCase):
 
         started = time.monotonic()
         with mock.patch("push.webpush.send", side_effect=hang):
-            send_to_users([self.user.pk], PAYLOAD)
+            send_to_users([self.user.pk], MESSAGE)
         elapsed = time.monotonic() - started
         release.set()
 
         self.assertLess(elapsed, 2)
         self.subscription.refresh_from_db()
         self.assertIsNone(self.subscription.last_success_at)
+
+
+@override_settings(APP_URL="app.ksg-nett.no")
+class PushMessageTest(TestCase):
+    def test_payload_is_declarative_web_push_with_an_absolute_link(self):
+        message = PushMessage(title="Bar", body="Hei", path="/chat/1", tag="chat-1")
+
+        self.assertEqual(
+            message.payload(),
+            {
+                "web_push": 8030,
+                "notification": {
+                    "title": "Bar",
+                    "body": "Hei",
+                    "navigate": "https://app.ksg-nett.no/chat/1",
+                    "tag": "chat-1",
+                    "lang": "nb",
+                },
+            },
+        )
+        self.assertEqual(message.topic, webpush.topic("chat-1"))
+
+    def test_cuts_a_long_body_to_140_characters(self):
+        message = PushMessage(title="Bar", body="x" * 200, path="/", tag="t")
+
+        self.assertEqual(message.payload()["notification"]["body"], "x" * 139 + "…")
 
 
 class AppUrlTest(TestCase):

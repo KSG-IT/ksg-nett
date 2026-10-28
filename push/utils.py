@@ -1,11 +1,13 @@
 import json
 import logging
 from concurrent.futures import ThreadPoolExecutor, wait
+from dataclasses import dataclass
 from urllib.parse import urlsplit
 
 from django.conf import settings
 from django.utils import timezone
 
+from common.util import check_feature_flag
 from push import webpush
 from push.models import PushSubscription
 
@@ -13,6 +15,7 @@ logger = logging.getLogger(__name__)
 
 # A push that waits longer than a day at the push service is old news
 PUSH_TTL = 24 * 60 * 60
+MAX_BODY_LENGTH = 140
 
 
 # The push services of the browsers we support. The server posts to the
@@ -53,21 +56,58 @@ def app_url(path):
     return base.rstrip("/") + path
 
 
-def send_to_users(user_ids, payload, topic=None, urgency="normal"):
+@dataclass(frozen=True)
+class PushMessage:
     """
-    Push `payload` (a dict, sent as JSON) to every device of the users. Sends
-    in parallel and waits at most PUSH_TOTAL_TIMEOUT. Never raises, so a
-    failed push never fails the request that triggered it.
+    What a notification shows. `path` is a path in the SPA, opened on a tap.
+    A new push with the same `tag` replaces the older one on the device.
+    """
+
+    title: str
+    body: str
+    path: str
+    tag: str
+    urgency: str = "normal"
+
+    def payload(self):
+        """Declarative Web Push JSON. Safari shows it without the service worker."""
+        body = self.body
+        if len(body) > MAX_BODY_LENGTH:
+            body = body[: MAX_BODY_LENGTH - 1] + "…"
+        return {
+            "web_push": 8030,
+            "notification": {
+                "title": self.title,
+                "body": body,
+                "navigate": app_url(self.path),
+                "tag": self.tag,
+                "lang": "nb",
+            },
+        }
+
+    @property
+    def topic(self):
+        # The push service keeps only the newest push per topic for a device
+        return webpush.topic(self.tag)
+
+
+def send_to_users(user_ids, message):
+    """
+    Push `message` to every device of the users, when the push flag is on.
+    Sends in parallel and waits at most PUSH_TOTAL_TIMEOUT. Never raises, so
+    a failed push never fails the request that triggered it.
     """
     try:
-        _send_to_users(user_ids, payload, topic, urgency)
+        _send_to_users(user_ids, message)
     except Exception:
         # Error level, so Sentry gets it
         logger.exception("Push to users failed")
 
 
-def _send_to_users(user_ids, payload, topic, urgency):
+def _send_to_users(user_ids, message):
     if not settings.VAPID_PRIVATE_KEY:
+        return
+    if not check_feature_flag(settings.PUSH_FEATURE_FLAG, fail_silently=True):
         return
     subscriptions = list(
         PushSubscription.objects.filter(
@@ -75,18 +115,20 @@ def _send_to_users(user_ids, payload, topic, urgency):
         )
     )
     if subscriptions:
-        send_to_subscriptions(subscriptions, payload, topic, urgency)
+        send_to_subscriptions(subscriptions, message)
 
 
-def send_to_subscriptions(subscriptions, payload, topic=None, urgency="normal"):
+def send_to_subscriptions(subscriptions, message):
     """
-    Push `payload` to these subscription rows, in parallel, and apply the
+    Push `message` to these subscription rows, in parallel, and apply the
     results: 404/410 delete the row, 2xx sets last_success_at, the rest is
     logged. Returns {pk: SendResult}, with None for a send that crashed or was
     cut off. Raises when setup fails, for example on an empty VAPID key.
     """
     key = webpush.load_vapid_key(settings.VAPID_PRIVATE_KEY)
-    body = json.dumps(payload, ensure_ascii=False, separators=(",", ":")).encode()
+    body = json.dumps(
+        message.payload(), ensure_ascii=False, separators=(",", ":")
+    ).encode()
     subject = f"mailto:{settings.VAPID_CONTACT_EMAIL}"
 
     # The workers only make HTTP calls. They read fields that are already
@@ -102,8 +144,8 @@ def send_to_subscriptions(subscriptions, payload, topic=None, urgency="normal"):
             key,
             subject,
             ttl=PUSH_TTL,
-            urgency=urgency,
-            topic=topic,
+            urgency=message.urgency,
+            topic=message.topic,
             timeout=settings.PUSH_REQUEST_TIMEOUT,
         ): subscription
         for subscription in subscriptions
