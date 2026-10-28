@@ -6,6 +6,7 @@
 ### Changed
 - API: the X-App calls (charge, balance, products, terminate session) always need the JWT
   from obtain-token. The `x-app-require-auth` feature flag is removed
+- Python 3.13 only. The host runs Debian 13 since 2026-10-27, so CI no longer tests 3.11
 
 ## [2026.10.3]
 
