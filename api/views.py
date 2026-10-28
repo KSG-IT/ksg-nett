@@ -22,7 +22,7 @@ from rest_framework_simplejwt.views import (
 )
 
 from api.models import PurchaseTransactionLogEntry, BlacklistedSong
-from api.permissions import SensorTokenPermission, XAppAuthPermission
+from api.permissions import SensorTokenPermission
 from api.serializers import (
     CheckBalanceSerializer,
     SociProductSerializer,
@@ -91,7 +91,7 @@ class TerminateSociSessionView(DestroyAPIView):
     """
 
     authentication_classes = (JWTAuthentication,)
-    permission_classes = (XAppAuthPermission,)
+    permission_classes = (permissions.IsAuthenticated,)
 
     @swagger_auto_schema(
         tags=["Soci Sessions"],
@@ -110,7 +110,7 @@ class SociProductListView(ListAPIView):
     """
 
     authentication_classes = (JWTAuthentication,)
-    permission_classes = (XAppAuthPermission,)
+    permission_classes = (permissions.IsAuthenticated,)
 
     serializer_class = SociProductSerializer
     queryset = SociProduct.objects.all()
@@ -137,7 +137,7 @@ class SociBankAccountBalanceDetailView(RetrieveAPIView):
     """
 
     authentication_classes = (JWTAuthentication,)
-    permission_classes = (XAppAuthPermission,)
+    permission_classes = (permissions.IsAuthenticated,)
 
     queryset = SociBankAccount.objects.all()
     serializer_class = CheckBalanceSerializer
@@ -249,7 +249,7 @@ class SensorMeasurementView(CustomCreateAPIView, generics.ListAPIView):
 
 class ChargeBankAccountView(APIView):
     authentication_classes = (JWTAuthentication,)
-    permission_classes = (XAppAuthPermission,)
+    permission_classes = (permissions.IsAuthenticated,)
 
     def post(self, request, *args, **kwargs):
         order = request.data
